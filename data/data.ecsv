@@ -1,0 +1,490 @@
+ # %ECSV 1.0
+ # ---
+ # datatype:
+ # - name: b
+ #   unit: deg
+ #   datatype: float64
+ #   description: Galactic latitude
+ #   meta: !!omap
+ #   - {ucd: pos.galactic.lat}
+ #   - {utype: 'stc:AstroCoords.Position2D.Value2.C2'}
+ # - name: parallax_error
+ #   unit: mas
+ #   datatype: float32
+ #   description: Standard error of parallax
+ #   meta: !!omap
+ #   - {ucd: stat.error;pos.parallax.trig}
+ # - name: w1mpro_error
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W1 profile-fit photometric measurement uncertainty in mag units. This
+ # 
+ #     column is null if the W1 profile-fit magnitude is a 95% confidence upper
+ # 
+ #     limit or if the source is not measurable.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag}
+ # - name: r_hi_geo
+ #   unit: pc
+ #   datatype: float32
+ #   description: The 84th percentile of the geometric distance posterior. The upper 1-sigma-like bound on the confidence interval.
+ #   meta: !!omap
+ #   - {ucd: pos.distance;stat.max}
+ # - name: r_med_geo
+ #   unit: pc
+ #   datatype: float32
+ #   description: The median of the geometric distance posterior. The geometric distance estimate.
+ #   meta: !!omap
+ #   - {ucd: pos.distance}
+ # - {name: phot_bp_mean_flux, unit: electron / s, datatype: float64}
+ # - {name: phot_rp_mean_flux, unit: electron / s, datatype: float64}
+ # - {name: phot_bp_mean_flux_error, unit: electron / s, datatype: float32}
+ # - name: ra
+ #   unit: deg
+ #   datatype: float64
+ #   description: 'J2000 right ascension with respect to the 2MASS PSC reference frame from
+ # 
+ #     the non-moving source extraction.
+ # 
+ #     The sky coverage depth for sources in the AllWISE Catalog is
+ # 
+ #     approximately twice as large in W1 and W2 as it is in W3 and W4. AllWISE
+ # 
+ #     combined W1 and W2 Single-exposure images from the WISE 4-Band Cryo,
+ # 
+ #     3-Band Cryo and NEOWISE Post-Cryo survey phases, and W3 and W4 images
+ # 
+ #     from the 4-Band Cryo phase only. The additional epoch of W1 and W2
+ # 
+ #     coverage accenuates the weight of those two bands in determining source
+ # 
+ #     properties such as position and motion.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: pos.eq.ra;meta.main}
+ #   - {utype: Char.SpatialAxis.Coverage.Location.Coord.Position2D.Value2.C1}
+ # - name: j_m
+ #   unit: mag
+ #   datatype: float32
+ #   description: 'Default J-band magnitude.
+ # 
+ #     In case of a source not detected in the J-band, it is an upper limit and
+ # 
+ #     the corresponding total photometric uncertainty is NULL.
+ # 
+ #     In case of a source detected in the J-band and with no useful brightness
+ # 
+ #     estimate, it is set to NULL.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.J}
+ # - name: pmdec_error
+ #   unit: mas / yr
+ #   datatype: float32
+ #   description: Standard error of proper motion in declination direction
+ #   meta: !!omap
+ #   - {ucd: stat.error;pos.pm;pos.eq.dec}
+ #   - {utype: 'stc:AstroCoords.Velocity3D.Error3.C2'}
+ # - name: tmass_designation
+ #   datatype: string
+ #   description: 'Sexagesimal, equatorial position-based source name in the form:
+ # 
+ #     hmmssss+ddmmsss[ABC...] The prefix ?2MASS J? in not explicitely listed
+ # 
+ #     in the designation.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: meta.id.cross}
+ # - name: pseudocolour
+ #   unit: 1 / um
+ #   datatype: float32
+ #   description: Astrometrically estimated pseudocolour of the source
+ #   meta: !!omap
+ #   - {ucd: em.wavenumber}
+ # - name: pmra_error
+ #   unit: mas / yr
+ #   datatype: float32
+ #   description: Standard error of proper motion in right ascension direction
+ #   meta: !!omap
+ #   - {ucd: stat.error;pos.pm;pos.eq.ra}
+ #   - {utype: 'stc:AstroCoords.Velocity3D.Error3.C1'}
+ # - name: nu_eff_used_in_astrometry
+ #   unit: 1 / um
+ #   datatype: float32
+ #   description: Effective wavenumber of the source used in the astrometric solution
+ #   meta: !!omap
+ #   - {ucd: em.wavenumber}
+ # - {name: pmdec, unit: mas / yr, datatype: float64}
+ # - name: w3mpro
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W3 magnitude measured with profile-fitting photometry, or the magnitude
+ # 
+ #     of the 95% confidence brightness upper limit if the W3 flux measurement
+ # 
+ #     has SNR<2. This column is null if the source is nominally detected in
+ # 
+ #     W3, but no useful brightness estimate could be made. The corresponding
+ # 
+ #     error column is null if the W3 profile-fit magnitude is a 95% confidence
+ # 
+ #     upper limit.
+ # 
+ #     CAUTION: WISE profile-fit (w?mpro) measurements are optimized for point
+ # 
+ #     sources and will systematically underestimate the true flux of resolved
+ # 
+ #     objects. If a source entry has extFlag>0, you may wish to examine the
+ # 
+ #     elliptical aperture photometry which are measured using areas that are
+ # 
+ #     scaled from 2MASS XSC morphologies.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.8-15um}
+ # - {name: phot_g_mean_flux, unit: electron / s, datatype: float64}
+ # - name: w1mpro
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W1 magnitude measured with profile-fitting photometry, or the magnitude
+ # 
+ #     of the 95% confidence brightness upper limit if the W1 flux measurement
+ # 
+ #     has SNR<2. This column is null if the source is nominally detected in
+ # 
+ #     W1, but no useful brightness estimate could be made. The corresponding
+ # 
+ #     error column is null if the W1 profile-fit magnitude is a 95% confidence
+ # 
+ #     upper limit.
+ # 
+ #     CAUTION: WISE profile-fit (w?mpro) measurements are optimized for point
+ # 
+ #     sources and will systematically underestimate the true flux of resolved
+ # 
+ #     objects. If a source entry has extFlag>0, you may wish to examine the
+ # 
+ #     elliptical aperture photometry which are measured using areas that are
+ # 
+ #     scaled from 2MASS XSC morphologies.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.3-4um}
+ # - name: h_m
+ #   unit: mag
+ #   datatype: float32
+ #   description: 'Default H-band magnitude.
+ # 
+ #     In case of a source not detected in the H-band, it is an upper limit and
+ # 
+ #     the corresponding total photometric uncertainty is NULL.
+ # 
+ #     In case of a source detected in the H-band and with no useful brightness
+ # 
+ #     estimate, it is set to NULL.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.H}
+ # - name: h_msigcom
+ #   unit: mag
+ #   datatype: float32
+ #   description: 'Total photometric uncertainty for the default H-band magnitude. This
+ # 
+ #     column is NULL if the default magnitude is a 95% confidence upper limit
+ # 
+ #     (i.e. the source is not detected, or inconsistently deblended in the
+ # 
+ #     H-band).
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag;em.IR.H}
+ # - name: dec
+ #   unit: deg
+ #   datatype: float64
+ #   description: 'J2000 declination with respect to the 2MASS PSC reference frame from the
+ # 
+ #     non-moving source extraction.
+ # 
+ #     The sky coverage depth for sources in the AllWISE Catalog is
+ # 
+ #     approximately twice as large in W1 and W2 as it is in W3 and W4. AllWISE
+ # 
+ #     combined W1 and W2 Single-exposure images from the WISE 4-Band Cryo,
+ # 
+ #     3-Band Cryo and NEOWISE Post-Cryo survey phases, and W3 and W4 images
+ # 
+ #     from the 4-Band Cryo phase only. The additional epoch of W1 and W2
+ # 
+ #     coverage accenuates the weight of those two bands in determining source
+ # 
+ #     properties such as position and motion.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: pos.eq.dec;meta.main}
+ #   - {utype: Char.SpatialAxis.Coverage.Location.Coord.Position2D.Value2.C2}
+ # - name: G_RPmag
+ #   unit: mag
+ #   datatype: float32
+ #   description: Integrated RP mean magnitude
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.opt.R}
+ # - name: w3mpro_error
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W3 profile-fit photometric measurement uncertainty in mag units. This
+ # 
+ #     column is null if the W3 profile-fit magnitude is a 95% confidence upper
+ # 
+ #     limit or if the source is not measurable.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag}
+ # - name: w2mpro_error
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W2 profile-fit photometric measurement uncertainty in mag units. This
+ # 
+ #     column is null if the W2 profile-fit magnitude is a 95% confidence upper
+ # 
+ #     limit or if the source is not measurable.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag}
+ # - name: fidelity_v2
+ #   datatype: float32
+ #   description: A probability that eDR3 has a good astrometric solution for this source, with values between 0 (meaning likely spurious
+ #     solution) and 1 (meaning likely good solution). This is the published probability estimate.
+ #   meta: !!omap
+ #   - {ucd: stat.fit}
+ # - name: ks_msigcom
+ #   unit: mag
+ #   datatype: float32
+ #   description: 'Total photometric uncertainty for the default Ks-band magnitude. This
+ # 
+ #     column is NULL if the default magnitude is a 95% confidence upper limit
+ # 
+ #     (i.e. the source is not detected, or inconsistently deblended in the
+ # 
+ #     Ks-band.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag;em.IR.K}
+ # - name: w4mpro_error
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W4 profile-fit photometric measurement uncertainty in mag units. This
+ # 
+ #     column is null if the W4 profile-fit magnitude is a 95% confidence upper
+ # 
+ #     limit or if the source is not measurable.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag}
+ # - name: allwise_oid
+ #   datatype: float64
+ #   description: 'Incremental unique numeric identifier (increasing with declination).
+ # 
+ #     This is the only field which was not in the original allWISE catalogue,
+ # 
+ #     but was added for cross-match purposes.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: meta.id;meta.main}
+ # - name: astrometric_params_solved
+ #   datatype: int16
+ #   description: Which parameters have been solved for?
+ #   meta: !!omap
+ #   - {ucd: meta.number}
+ # - name: G_BPmag
+ #   unit: mag
+ #   datatype: float32
+ #   description: Integrated BP mean magnitude
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.opt.B}
+ # - name: w4mpro
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W4 magnitude measured with profile-fitting photometry, or the magnitude
+ # 
+ #     of the 95% confidence brightness upper limit if the W4 flux measurement
+ # 
+ #     has SNR<2. This column is null if the source is nominally detected in
+ # 
+ #     W4, but no useful brightness estimate could be made. The corresponding
+ # 
+ #     error column is null if the W1 profile-fit magnitude is a 95% confidence
+ # 
+ #     upper limit.
+ # 
+ #     CAUTION: WISE profile-fit (w?mpro) measurements are optimized for point
+ # 
+ #     sources and will systematically underestimate the true flux of resolved
+ # 
+ #     objects. If a source entry has extFlag>0, you may wish to examine the
+ # 
+ #     elliptical aperture photometry which are measured using areas that are
+ # 
+ #     scaled from 2MASS XSC morphologies.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.15-30um}
+ # - name: pm
+ #   unit: mas / yr
+ #   datatype: float32
+ #   description: Total proper motion
+ #   meta: !!omap
+ #   - {ucd: pos.pm;pos.eq}
+ # - name: l
+ #   unit: deg
+ #   datatype: float64
+ #   description: Galactic longitude
+ #   meta: !!omap
+ #   - {ucd: pos.galactic.lon}
+ #   - {utype: 'stc:AstroCoords.Position2D.Value2.C1'}
+ # - {name: phot_rp_mean_flux_error, unit: electron / s, datatype: float32}
+ # - {name: pmra, unit: mas / yr, datatype: float64}
+ # - name: Gmag
+ #   unit: mag
+ #   datatype: float32
+ #   description: G-band mean magnitude
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.opt}
+ # - name: ks_m
+ #   unit: mag
+ #   datatype: float32
+ #   description: 'Default Ks-band magnitude.
+ # 
+ #     In case of a source not detected in the Ks-band, it is an upper limit
+ # 
+ #     and the corresponding total photometric uncertainty is NULL.
+ # 
+ #     In case of a source detected in the Ks-band and with no useful
+ # 
+ #     brightness estimate, it is set to NULL.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.K}
+ # - name: source_id
+ #   datatype: int64
+ #   description: Unique source identifier. Note that this *cannot* be matched against the DR1 or DR2 source_ids.
+ #   meta: !!omap
+ #   - {ucd: meta.id;meta.main}
+ # - name: j_msigcom
+ #   unit: mag
+ #   datatype: float32
+ #   description: 'Total photometric uncertainty for the default J-band magnitude. This
+ # 
+ #     column is NULL if the default magnitude is a 95% confidence upper limit
+ # 
+ #     (i.e. the source is not detected, or inconsistently deblended in the
+ # 
+ #     J-band).
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: stat.error;phot.mag;em.IR.J}
+ # - name: w2mpro
+ #   unit: mag
+ #   datatype: float64
+ #   description: 'W2 magnitude measured with profile-fitting photometry, or the magnitude
+ # 
+ #     of the 95% confidence brightness upper limit if the W2 flux measurement
+ # 
+ #     has SNR<2. This column is null if the source is nominally detected in
+ # 
+ #     W2, but no useful brightness estimate could be made. The corresponding
+ # 
+ #     error column is null if the W2 profile-fit magnitude is a 95% confidence
+ # 
+ #     upper limit.
+ # 
+ #     CAUTION: WISE profile-fit (w?mpro) measurements are optimized for point
+ # 
+ #     sources and will systematically underestimate the true flux of resolved
+ # 
+ #     objects. If a source entry has extFlag>0, you may wish to examine the
+ # 
+ #     elliptical aperture photometry which are measured using areas that are
+ # 
+ #     scaled from 2MASS XSC morphologies.
+ # 
+ #     '
+ #   meta: !!omap
+ #   - {ucd: phot.mag;em.IR.4-8um}
+ # - {name: parallax, unit: mas, datatype: float64}
+ # - {name: phot_g_mean_flux_error, unit: electron / s, datatype: float32}
+ # - name: ecl_lat
+ #   unit: deg
+ #   datatype: float64
+ #   description: Ecliptic latitude
+ #   meta: !!omap
+ #   - {ucd: pos.ecliptic.lat}
+ # - name: r_lo_geo
+ #   unit: pc
+ #   datatype: float32
+ #   description: The 16th percentile of the geometric distance posterior. The lower 1-sigma-like bound on the confidence interval.
+ #   meta: !!omap
+ #   - {ucd: pos.distance;stat.min}
+ # - name: parallax_observed
+ #   unit: mas
+ #   datatype: float64
+ #   description: Parallax
+ #   meta: !!omap
+ #   - {ucd: pos.parallax.trig}
+ # - {name: zpvals, unit: mas, datatype: float64}
+ # - name: pmra_obs
+ #   unit: mas / yr
+ #   datatype: float64
+ #   description: Proper motion in right ascension direction
+ #   meta: !!omap
+ #   - {ucd: pos.pm;pos.eq.ra}
+ #   - {utype: 'stc:AstroCoords.Velocity3D.Value3.C1'}
+ # - name: pmdec_obs
+ #   unit: mas / yr
+ #   datatype: float64
+ #   description: Proper motion in declination direction
+ #   meta: !!omap
+ #   - {ucd: pos.pm;pos.eq.dec}
+ #   - {utype: 'stc:AstroCoords.Velocity3D.Value3.C2'}
+ # - {name: e_Gmag, unit: mag, datatype: float64}
+ # - {name: e_G_BPmag, unit: mag, datatype: float64}
+ # - {name: e_G_RPmag, unit: mag, datatype: float64}
+ # - {name: e_BP_RP, unit: mag, datatype: float64}
+ # - {name: cluster, datatype: int64}
+ # - {name: probability_hdbscan, datatype: float64}
+ # - {name: av_sagitta, datatype: float64}
+ # - {name: pms_sagitta, datatype: float64}
+ # - {name: age, datatype: float64}
+ # meta: !!omap
+ # - {name: votable}
+ # - {QUERY_STATUS: OK}
+ # - {QUERY: 'SELECT     gaia_and_spurious.*,    xmatch.original_ext_source_id,    xmatch.clean_tmass_psc_xsc_oid,    xmatch.angular_distance
+ #     AS tmass_angular_distance,    tmass.designation AS tmass_designation,    tmass.*,    dist.*,    astro.spectraltype_esphs,    astro.flags_esphs,    astro.classprob_dsc_combmod_star,    astro.classprob_dsc_combmod_binarystar,    astro.classlabel_espels,    astro.classlabel_espels_flag,    astro.classprob_espels_wcstar,    astro.classprob_espels_wnstar,    astro.classprob_espels_bestar,    astro.classprob_espels_ttauristar,    astro.classprob_espels_herbigstar,    astro.classprob_espels_dmestar,    astro.classprob_espels_pne,    astro.evolstage_flame,    wise.original_ext_source_id
+ #     AS wise_original_ext_source_id,    wise.angular_distance AS wise_angular_distance,    wise.xm_flag AS wise_xm_flag,    wise.allwise_oid
+ #     AS wise_allwise_oid,    wise.number_of_neighbours AS wise_number_of_neighbours,    wise.number_of_mates AS wise_number_of_mates,    allwise.*
+ #     FROM (     SELECT          gs.*,         es.fidelity_v2     FROM gaiadr3.gaia_source AS gs     JOIN external.gaiaedr3_spurious AS
+ #     es         ON gs.source_id = es.source_id     WHERE         CONTAINS(             POINT(''ICRS'', gs.ra, gs.dec),             CIRCLE(''ICRS'',
+ #     263.67148711, -32.57727207, 0.6666666666666666)         ) = 1         AND gs.parallax BETWEEN 0.75 AND 1.1 ) AS gaia_and_spurious
+ #     LEFT JOIN (     SELECT *     FROM gaiadr3.tmass_psc_xsc_best_neighbour     WHERE angular_distance <= 0.3 ) AS xmatch     ON gaia_and_spurious.source_id
+ #     = xmatch.source_id LEFT JOIN gaiadr3.tmass_psc_xsc_join AS xjoin     ON xmatch.original_ext_source_id = xjoin.original_psc_source_id
+ #     LEFT JOIN gaiadr1.tmass_original_valid AS tmass     ON xjoin.original_psc_source_id = tmass.designation LEFT JOIN external.gaiaedr3_distance
+ #     AS dist     ON gaia_and_spurious.source_id = dist.source_id LEFT JOIN gaiadr3.astrophysical_parameters AS astro     ON gaia_and_spurious.source_id
+ #     = astro.source_id LEFT JOIN (     SELECT *     FROM gaiadr3.allwise_best_neighbour     WHERE angular_distance <= 0.3 ) AS wise     ON
+ #     gaia_and_spurious.source_id = wise.source_id LEFT JOIN gaiadr1.allwise_original_valid AS allwise     ON wise.allwise_oid = allwise.allwise_oid;'}
