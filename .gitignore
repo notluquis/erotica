@@ -1,46 +1,100 @@
-# Python
+# ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
-*.egg-info/
+*.pyo
+*.pyd
 *.egg
+*.egg-info/
 dist/
 build/
 .eggs/
+*.whl
+MANIFEST
 
-# Environments
+# ── Virtual environments ──────────────────────────────────────────────────────
 .env
 .venv
 env/
 venv/
+ENV/
+.conda/
 
-# Jupyter
+# ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
-*.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 .jupyter/
 
-# Experiments - sensitive notebooks
+# Sensitive notebooks
 experiments/Download_data.ipynb
 
-# macOS
-.DS_Store
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
 
-# IDEs
+# ── Type checking ─────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+.pyright/
+.ruff_cache/
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# pytest
-.pytest_cache/
-htmlcov/
-.coverage
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
 
-# mypy
-.mypy_cache/
-
-# Astronomy / data artifacts
+# ── Astronomy / data artifacts ────────────────────────────────────────────────
 *.fits
+*.fits.gz
+*.fz
 data/cache/
 data/precomp/
+data/raw/
 
-# OS
-**/.DS_Store
+# Optuna SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Serialized clustering results (reproducibles desde el pipeline)
+*.dill
+*.pkl
+*clustering_results.ecsv
+
+# Backup files
+*.bak
+*.orig
+
+# ── LaTeX compilation artifacts ───────────────────────────────────────────────
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.synctex(busy)
+*.lof
+*.lot
+*.loe
+*.nav
+*.snm
+*.vrb
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.tmp
+*.temp
 Thumbs.db
