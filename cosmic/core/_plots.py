@@ -27,6 +27,17 @@ def plot_grid_search_results(cv_results) -> None:
     plt.show()
 
 
+def _cluster_colors(n: int) -> list:
+    """Return n visually distinct colors, combining tab20 palettes."""
+    if n <= 10:
+        return [plt.get_cmap("tab10")(i / 10) for i in range(n)]
+    if n <= 20:
+        return [plt.get_cmap("tab20")(i / 20) for i in range(n)]
+    # More than 20: interleave tab20, tab20b, tab20c
+    cmaps = [plt.get_cmap("tab20"), plt.get_cmap("tab20b"), plt.get_cmap("tab20c")]
+    return [cmaps[i % 3]((i // 3) / 20) for i in range(n)]
+
+
 def plot_pm_scatter(
     table: QTable,
     pm_columns: Sequence[str] = ("pmra", "pmdec"),
@@ -40,23 +51,37 @@ def plot_pm_scatter(
     if clusters is not None:
         df = df[df["cluster"].isin(list(clusters))]
 
+    unique_clusters = sorted(df["cluster"].unique())
+    n = len(unique_clusters)
+    colors = _cluster_colors(n)
+
     apply_default_style()
-    fig, ax = plt.subplots(figsize=(8, 6))
-    cmap = plt.get_cmap(PLOT_COLOR_CYCLE)
-    for i, cl in enumerate(sorted(df["cluster"].unique())):
+    fig, ax = plt.subplots(figsize=(10, 6), layout="constrained")
+    for color, cl in zip(colors, unique_clusters):
         subset = df[df["cluster"] == cl]
         ax.scatter(
             subset[pm_columns[0]],
             subset[pm_columns[1]],
             label=str(cl),
-            s=40,
-            alpha=0.8,
-            color=cmap(i % 10),
+            s=20,
+            alpha=0.7,
+            color=color,
             edgecolor="none",
         )
     ax.set(title="Proper Motion Scatter", xlabel=pm_columns[0], ylabel=pm_columns[1])
-    ax.legend(title="Cluster", loc="upper left", bbox_to_anchor=(1.05, 1))
-    plt.tight_layout()
+
+    ncols = max(1, n // 15)
+    ax.legend(
+        title="Cluster",
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1),
+        borderaxespad=0,
+        ncols=ncols,
+        fontsize=7,
+        title_fontsize=8,
+        markerscale=1.5,
+        handlelength=1,
+    )
     plt.show()
 
 
