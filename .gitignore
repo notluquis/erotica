@@ -62,6 +62,19 @@ data/cache/
 data/precomp/
 data/raw/
 
+# Isochrone tables (MIST, PARSEC) — archivos muy grandes, no van a git
+*.iso.cmd
+data/test/NGC6383/MIST/
+data/test/NGC6383/PARSEC/
+
+# Resultados de queries Gaia / fuentes ECSV grandes
+*-result.ecsv
+
+# MCMC traces y otros binarios grandes
+*.nc
+*.h5
+*.hdf5
+
 # Optuna SQLite databases
 *.db
 *.sqlite

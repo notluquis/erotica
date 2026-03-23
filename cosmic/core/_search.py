@@ -52,6 +52,7 @@ def run_optuna_search(
     persistence_threshold: float,
     search_space: dict[str, dict] | None,
     n_trials: int,
+    n_jobs: int = 1,
     sampler_name: str,
     sampler_kwargs: dict | None,
     score_methods: Iterable[str],
@@ -64,7 +65,7 @@ def run_optuna_search(
     sampler_kwargs = sampler_kwargs or {}
     methods = list(score_methods)
 
-    sampler = _build_sampler(sampler_name, search_space, sampler_kwargs)
+    sampler = _build_sampler(sampler_name, search_space, sampler_kwargs, n_jobs=n_jobs)
     study = _create_study(methods, sampler, storage_url, study_name)
 
     def objective(trial):
@@ -98,7 +99,7 @@ def run_optuna_search(
             )
         return tuple(results) if len(results) > 1 else results[0]
 
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials, n_jobs=n_jobs)
 
     if len(methods) > 1:
         pareto_trials = study.best_trials
@@ -127,7 +128,7 @@ def run_optuna_search(
     }
 
 
-def _build_sampler(name: str, search_space: dict[str, dict], sampler_kwargs: dict):
+def _build_sampler(name: str, search_space: dict[str, dict], sampler_kwargs: dict, *, n_jobs: int = 1):
     import optuna.samplers as samplers_module
 
     available = [
@@ -165,6 +166,11 @@ def _build_sampler(name: str, search_space: dict[str, dict], sampler_kwargs: dic
 
         seed = sampler_kwargs.get("seed")
         sampler_kwargs.setdefault("independent_sampler", RandomSampler(seed=seed))
+
+    # constant_liar evita que workers paralelos sugieran los mismos params.
+    # Soportado en TPESampler siempre, y en GPSampler desde v4.8.0.
+    if n_jobs != 1 and name in {"TPESampler", "GPSampler"}:
+        sampler_kwargs.setdefault("constant_liar", True)
 
     return sampler_cls(**sampler_kwargs)
 
