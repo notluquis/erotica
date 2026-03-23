@@ -1,0 +1,308 @@
+%-------------------------------------
+% This template comes from Anish Athalye (Unofficial University of Cambridge Poster Template). 
+
+% The Poster Template has been modified by Dr. Rahul Raoniar to fulfill B.Tech/Master/Ph.D./PostDoc student's poster presentation requirements.
+
+% Description: I made this unofficial Poster Template for the Indian Institute of Technology Bombay (IITB). Feel free to use it, modify it, and share it. 
+
+% Thank you note: A huge thanks goes to Anish Athalye for the original template.
+%-------------------------------------
+
+\documentclass[final]{beamer}
+
+% ====================
+% Packages
+% ====================
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[orientation=portrait,size=custom,width=75,height=90,scale=1.0]{beamerposter}
+\usetheme{gemini}
+\usecolortheme{nott}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.14}
+\usepackage{anyfontsize}
+\usepackage{xcolor}
+\usepackage{svg}
+\usepackage{natbib}
+
+
+\usepackage[skip=2pt,font=normalsize]{subcaption}
+\usepackage{adjustbox}
+
+\newcommand\aap{A\&A}                % Astronomy and Astrophysics
+\let\astap=\aap                          % alternative shortcut
+\newcommand\aapr{A\&ARv}             % Astronomy and Astrophysics Review (the)
+\newcommand\aaps{A\&AS}              % Astronomy and Astrophysics Supplement Series
+\newcommand\actaa{Acta Astron.}      % Acta Astronomica
+\newcommand\afz{Afz}                 % Astrofizika
+\newcommand\aj{AJ}                   % Astronomical Journal (the)
+\newcommand\ao{Appl. Opt.}           % Applied Optics
+\let\applopt=\ao                         % alternative shortcut
+\newcommand\aplett{Astrophys.~Lett.} % Astrophysics Letters
+\newcommand\apj{ApJ}                 % Astrophysical Journal
+\newcommand\apjl{ApJ}                % Astrophysical Journal, Letters
+\let\apjlett=\apjl                       % alternative shortcut
+\newcommand\apjs{ApJS}               % Astrophysical Journal, Supplement
+\let\apjsupp=\apjs                       % alternative shortcut
+\newcommand\apss{Ap\&SS}             % Astrophysics and Space Science
+\newcommand\araa{ARA\&A}             % Annual Review of Astronomy and Astrophysics
+\newcommand\arep{Astron. Rep.}       % Astronomy Reports
+\newcommand\aspc{ASP Conf. Ser.}     % ASP Conference Series
+\newcommand\azh{Azh}                 % Astronomicheskii Zhurnal
+\newcommand\baas{BAAS}               % Bulletin of the American Astronomical Society
+\newcommand\bac{Bull. Astron. Inst. Czechoslovakia} % Bulletin of the Astronomical Institutes of Czechoslovakia 
+\newcommand\bain{Bull. Astron. Inst. Netherlands} % Bulletin Astronomical Institute of the Netherlands
+\newcommand\caa{Chinese Astron. Astrophys.} % Chinese Astronomy and Astrophysics
+\newcommand\cjaa{Chinese J.~Astron. Astrophys.} % Chinese Journal of Astronomy and Astrophysics
+\newcommand\fcp{Fundamentals Cosmic Phys.}  % Fundamentals of Cosmic Physics
+\newcommand\gca{Geochimica Cosmochimica Acta}   % Geochimica Cosmochimica Acta
+\newcommand\grl{Geophys. Res. Lett.} % Geophysics Research Letters
+\newcommand\iaucirc{IAU~Circ.}       % IAU Cirulars
+\newcommand\icarus{Icarus}           % Icarus
+\newcommand\japa{J.~Astrophys. Astron.} % Journal of Astrophysics and Astronomy
+\newcommand\jcap{J.~Cosmology Astropart. Phys.} % Journal of Cosmology and Astroparticle Physics
+\newcommand\jcp{J.~Chem.~Phys.}      % Journal of Chemical Physics
+\newcommand\jgr{J.~Geophys.~Res.}    % Journal of Geophysics Research
+\newcommand\jqsrt{J.~Quant. Spectrosc. Radiative Transfer} % Journal of Quantitiative Spectroscopy and Radiative Transfer
+\newcommand\jrasc{J.~R.~Astron. Soc. Canada} % Journal of the RAS of Canada
+\newcommand\memras{Mem.~RAS}         % Memoirs of the RAS
+\newcommand\memsai{Mem. Soc. Astron. Italiana} % Memoire della Societa Astronomica Italiana
+\newcommand\mnassa{MNASSA}           % Monthly Notes of the Astronomical Society of Southern Africa
+\newcommand\mnras{MNRAS}             % Monthly Notices of the Royal Astronomical Society
+\newcommand\na{New~Astron.}          % New Astronomy
+\newcommand\nar{New~Astron.~Rev.}    % New Astronomy Review
+\newcommand\nat{Nature}              % Nature
+\newcommand\nphysa{Nuclear Phys.~A}  % Nuclear Physics A
+\newcommand\pra{Phys. Rev.~A}        % Physical Review A: General Physics
+\newcommand\prb{Phys. Rev.~B}        % Physical Review B: Solid State
+\newcommand\prc{Phys. Rev.~C}        % Physical Review C
+\newcommand\prd{Phys. Rev.~D}        % Physical Review D
+\newcommand\pre{Phys. Rev.~E}        % Physical Review E
+\newcommand\prl{Phys. Rev.~Lett.}    % Physical Review Letters
+\newcommand\pasa{Publ. Astron. Soc. Australia}  % Publications of the Astronomical Society of Australia
+\newcommand\pasp{PASP}               % Publications of the Astronomical Society of the Pacific
+\newcommand\pasj{PASJ}               % Publications of the Astronomical Society of Japan
+\newcommand\physrep{Phys.~Rep.}      % Physics Reports
+\newcommand\physscr{Phys.~Scr.}      % Physica Scripta
+\newcommand\planss{Planet. Space~Sci.} % Planetary Space Science
+\newcommand\procspie{Proc.~SPIE}     % Proceedings of the Society of Photo-Optical Instrumentation Engineers
+\newcommand\rmxaa{Rev. Mex. Astron. Astrofis.} % Revista Mexicana de Astronomia y Astrofisica
+\newcommand\qjras{QJRAS}             % Quarterly Journal of the RAS
+\newcommand\sci{Science}             % Science
+\newcommand\skytel{Sky \& Telesc.}   % Sky and Telescope
+\newcommand\solphys{Sol.~Phys.}      % Solar Physics
+\newcommand\sovast{Soviet~Ast.}      % Soviet Astronomy (aka Astronomy Reports)
+\newcommand\ssr{Space Sci. Rev.}     % Space Science Reviews
+\newcommand\zap{Z.~Astrophys.}       % Zeitschrift fuer Astrophysik
+
+% ----------------------------------
+% For plotting study methodology
+% ----------------------------------
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+
+% Defining Tickz Style
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm, text centered, text width = 10cm, draw=black, fill=white]
+
+% \tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=3cm, minimum height=1cm, text centered, text width = 4.5cm, draw=black, fill=blue!30]
+
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, text width = 6cm, draw=black, fill=white, text width = 10cm]
+
+% \tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+
+\tikzstyle{arrow} = [ultra thick,->,>=stealth]
+
+
+% ====================
+% Lengths
+% ====================
+
+% If you have N columns, choose \sepwidth and \colwidth such that
+% (N+1)*\sepwidth + N*\colwidth = \paperwidth
+\newlength{\sepwidth}
+\newlength{\colwidth}
+\setlength{\sepwidth}{0.025\paperwidth}
+\setlength{\colwidth}{0.45\paperwidth}
+
+\newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
+
+% ====================
+% Title
+% ====================
+
+\title{Bayesian characterization of the young open cluster NGC 6383 using HDBSCAN and Gaia DR3}
+
+\author{L.M. Pulgar-Escobar \inst{1} \and N.A. Henríquez-Salgado \inst{1}}
+
+\institute[UdeC]{\inst{1}~Departamento de Astronom{\'\i}a, Universidad de Concepci\'on, Chile}
+
+% ====================
+% Footer (optional)
+% ====================
+
+\footercontent{
+  \href{https://udec.cl}{\textbf{Universidad de Concepción}} \hfill
+  \textbf{65º Reunión Anual de la Asociación Argentina de Astronomía} \hfill
+  \href{mailto:lescobar2019@udec.cl}{\textbf{lescobar2019@udec.cl}}}
+% (can be left out to remove footer)
+
+
+% ====================
+% Logo (optional)
+% ====================
+
+% use this to include logos on the left and/or right side of the header:
+%\logoright{\includesvg[height=5.5cm]{logo-blanco_cata.svg}}
+\logoleft{\includegraphics[height=7cm]{escudo.png}}
+
+% ====================
+% Body
+% ====================
+
+\begin{document}
+% ----------------------------------3
+% Abstract
+% ----------------------------------
+\begin{frame}[t]
+\begin{columns}[t]
+\separatorcolumn
+\begin{column}{\colwidth}
+  \begin{block}{Abstract}
+    This study focuses on determining the characteristics of the young open cluster NGC 6383. To achieve this, the HDBSCAN clustering algorithm is utilized to identify potential cluster members based on galactic coordinates, proper motions, and parallaxes from {\sl Gaia Data Release 3}. Various parameters of NGC 6383, such as tidal radius, cluster radius, core radius, distance through parallax and isochrone-fitting, proper motion, age, metallicity, and relevant others, are assessed. To perform this analysis, we utilize an extension of Hamiltonian Monte Carlo, the No-U-Turn Sampler. The results of this analysis point out that NGC 6383 is a very young open cluster $(\sim 2.7 - 4~\mathrm{Myr})$. Furthermore, our investigation reveals that the central binary HD 159176 is not a member of the cluster, which was not discussed in previous studies, leading to a revision of its age and other characteristics. Overall, this study contributes to a more accurate and detailed understanding of NGC 6383's properties.
+  \end{block}
+% ----------------------------------
+% Section: Literature review
+% ----------------------------------
+  \begin{block}{Literature review}
+The identification of cluster membership has traditionally relied on methods such as the Color-Magnitude diagram proper motions, radial velocities, and parallax \citep{2018A&A...610A..30A,1930LicOB..14..154T}. More recently, Bayesian analysis has emerged as an advanced technique \citep{2018A&A...610A..30A}.
+
+Speaking of NGC 6383, it has been a subject of considerable debate in the literature. Distance estimates to the cluster have varied widely, ranging from 760 pc to as far as 2130 pc \citep{1930LicOB..14..154T, 1937LicOB..18...89Z, 1949ApJ...110..117S, 2018A&A...610A..30A}. This lack of consensus extends to the age of the cluster and reddening, with estimates varying from 1.7 Myr to 20 Myr \citep{1978MNRAS.182..607F,2007A&A...462..157P}, affecting our understanding of the cluster's environment.
+
+A particularly enigmatic object within NGC 6383 is the star HD 159176 \citep{2010A&A...511A..25R}. It is considered to be the ionizing source for the surrounding HII region and is notably older than the cluster itself \citep{1978MNRAS.182..607F}. This has led to theories suggesting that HD 159176 may have played a role in initiating star formation within NGC 6383 \citep{1978MNRAS.182..607F}.
+
+The cluster is also known for its Pre-Main Sequence Stars (PMS), identified through indicators like infrared excess and \(H\alpha\) emission lines \citep{1985A&A...151..391T, 2000A&A...362..580V}.
+
+  \end{block}
+
+% ----------------------------------
+% Section: Research objectives
+% ----------------------------------
+  \begin{alertblock}{Research objectives}
+
+    The present study investigates the following objectives:
+
+    \begin{itemize}
+      \item \textbf{Objective 1:} Characterize NGC 6383 parameters to contribute to the debate with a Bayesian approach.
+      
+      \item \textbf{Objective 2:} 
+      Determine the cluster's membership and the status of HD 159176 through clustering methods.
+    \end{itemize}
+
+  \end{alertblock}
+
+% ----------------------------------
+% Section: Study methodology
+% ----------------------------------
+ \begin{block}{Methodology}
+In this study, the Gaia DR3 were utilized to investigate the open cluster NGC 6383. The data was filtered and corrected based on parallax, astrometric fidelity and proper motions.
+
+For cluster membership determination, the HDBSCAN clustering algorithm was employed \citep{McInnes2017}. The algorithm was applied using five astrometric parameters $\ell,b,\mu_{\alpha},\mu_{\delta}$ and $\varpi$.
+
+Bayesian statistical modeling was conducted using an early version of \textbf{COSMIC}\footnote{Pulgar-Escobar et al. in prep.}, a set of functions to analyze big data from Gaia DR3, to determine various characteristics of NGC 6383, along with \textbf{AsTeCA}, a suite of tools designed for automated stellar cluster analysis, to determine the best isochrone fitting to the cluster \citep{2015A&A...576A...6P}.
+
+ \end{block}
+
+\begin{table}
+\centering
+\resizebox{\colwidth}{!}{%
+\begin{tabular}{lll|lll}
+\toprule
+Parameter                           & Value                  & Unit                        & Parameter                                            & Value                   & Unit                             \\ \midrule
+Tidal Radius \( R_t \)              & \( 21.952 \pm 4.447 \) & arcmin                      & Center density \( k \)                               & \( 10.267 \pm 0.445 \)  & stars \( \mathrm{arcmin}^{-2} \) \\
+Core Radius \( R_c \)               & \( 1.123 \pm 0.077 \)  & arcmin                      & Background Density \( b \)                           & \( 0.119 \pm 0.062 \)   & stars \( \mathrm{arcmin}^{-2} \) \\
+Cluster Radius \( R_{\text{cl}} \)  & \( 10.267 \)           & arcmin                      & Distance Modulus                                     & \( 10.05 \pm 0.27 \)    & Magnitude                        \\
+Parallax \( \varpi \)               & \( 0.9154 \pm 0.034 \) & mas                         & Numbers of members                                   & \( 268 \)               & Count of stars                   \\
+Distance (\( \varpi \))             & \( 1.0939 \pm 0.039 \) & kpc                         & Distance\footnote{Distance modulus} & \( 1.0230  \pm 0.127 \) & kpc                              \\
+Mass \( M \)                        & \( 565 \pm 158 \)      & \( M_\odot \)               & Extinction \( A_V \)                                 & \( 1.342 \)             & -                                \\
+Cluster center in RA \( c_\alpha \) & \( 263.6745 \)         & degrees                     & Cluster center in DEC \( c_\delta \)                 & \( -32.5763 \)          & degrees                          \\
+Age                                 & \( 6.475 \pm 0.180 \)  & log (age)                   & Metallicity \( z \)                                  & \( 0.0032 \pm 0.0020 \) & -                                \\
+Proper Motion RA \( \mu_{\alpha} \) & \( 2.534 \pm 0.014 \)  & \( \mathrm{mas\,yr^{-1}} \) & Proper Motion DEC \( \mu_{\delta} \)                 & \( -1.706 \pm 0.011 \)  & \( \mathrm{mas\,yr^{-1}} \)      \\ \bottomrule
+\end{tabular}
+}
+\caption{Detailed parameters of the open cluster NGC 6383.}
+\label{table:parameters}
+\end{table}
+
+ 
+\end{column}
+
+\separatorcolumn
+
+\begin{column}{\colwidth}
+
+% -------------------------------
+% Section: Results and discussion
+% -------------------------------
+
+\begin{block}{Results and discussion}
+Our study applied Bayesian analysis to the open cluster NGC 6383, revealing significant insights into its structure and membership. Out of 505 sources assigned to NGC 6383, 268 were retained as high-probability members, with probabilities greater than $80\%$. Interestingly, the clustering algorithm identified two clusters and noise, corresponding to NGC 6383 and a statistical cluster.
+
+One intriguing finding was the potential non-membership of HD 159176. The inconsistency in its parallax and proper motion measurements suggests that it may not be a part of NGC 6383. This highlights the need for caution when analyzing open clusters and considering the presence of chance alignments.
+
+The reliability of our analysis was further bolstered by the agreement between the derived astrometric parameters and values reported in existing literature. A summary of the cluster's characteristics is presented in the Table \ref{table:parameters}.
+
+% -------------------------------
+% Section: What does this study add?
+% -------------------------------
+  \end{block}
+\begin{exampleblock}{What does this study add?}
+	\begin{itemize}
+		\item Provides comprehensive parameters for NGC 6383, enhancing our understanding of its structure and dynamics.
+		\item The potential non-membership of HD 159175 underscores the need for caution in cluster analysis and stars in projection.
+	\end{itemize}
+\end{exampleblock}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\textwidth]{Figures/ngc6383_poster.pdf}
+    \caption{hola}
+    \label{fig:ngc6383}
+\end{figure}
+
+% -------------------------------
+% Section: Conclusions
+% -------------------------------
+   \begin{block}{Conclusions}
+   	The application of Bayesian analysis in this study has not only provided valuable insights into the structure and membership of NGC 6383 but also showcased the potential of Bayesian methods in the study of open clusters more broadly. The robustness of our analysis strengthens previous claims about the cluster's properties and highlights the need for caution due to the presence of potential non-members like HD 159176. The phenomenon of the central star being classified as a potential non-members points out for caution for future analysis. This methodology aligns with the new avenues for future research, enabling a more detailed and nuanced analysis of open clusters in the Milky Way.
+
+  \end{block}
+
+
+% -------------------------------
+% Section: Practical Implications
+% -------------------------------
+  \begin{exampleblock}{Practical implications}
+    \begin{itemize}
+	\item The methodology can be applied to other open clusters in the Milky Way for more nuanced analysis.
+	\item Highlights the importance of considering potential non-members in cluster analyses.
+    \end{itemize}
+
+  \end{exampleblock}
+
+% -------------------------------
+% Section: References
+% ------------------------------- 
+
+  \begin{block}{References}
+   \footnotesize{\bibliographystyle{plain}\bibliography{poster}}
+
+  \end{block}
+\end{column}
+\separatorcolumn
+\end{columns}
+\end{frame}
+\end{document}

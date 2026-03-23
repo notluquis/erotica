@@ -1,0 +1,452 @@
+\documentclass[fleqn,usenatbib,usedcolumn,useAMS]{mnras}
+
+\usepackage{amsmath,amsfonts}
+\usepackage{newtxtext,newtxmath}
+\usepackage[T1]{fontenc}
+\usepackage{orcidlink}
+\usepackage{pgf}
+\usepackage{import}
+\usepackage{booktabs}
+
+\DeclareRobustCommand{\VAN}[3]{#2}
+\let\VANthebibliography\thebibliography
+\def\thebibliography{\DeclareRobustCommand{\VAN}[3]{##3}\VANthebibliography}
+
+\newcommand{\kms}{\,km\,s^{-1}} % kilometres per second
+\newcommand{\bibtex}{\textsc{Bib}\!\TeX}
+
+% Title of the paper, and the short title which is used in the headers.
+% Keep the title short and informative.
+\title[Bayesian characterization of NGC 6383]{Bayesian characterization of the young open cluster NGC 6383 using HDBSCAN and Gaia DR3}
+
+\author[Escobar-Pulgar]{Lucas Escobar-Pulgar\orcidlink{0009-0008-4359-2444}$^{1}$\thanks{E-mail: \href{mailito:lescobar2019@udec.cl}{lescobar2019@udec.cl}}}
+
+% These dates will be filled out by the publisher
+\date{Accepted XXX. Received YYY; in original form ZZZ}
+
+% Enter the current year, for the copyright statements etc.
+\pubyear{2023}
+
+% Don't change these lines
+\begin{document}
+\label{firstpage}
+\pagerange{\pageref{firstpage}--\pageref{lastpage}}
+\maketitle
+
+% Abstract of the paper
+\begin{abstract}
+This study focuses on determining the characteristics of the young open cluster NGC 6383. To achieve this, the HDBSCAN clustering algorithm is utilized to identify potential cluster members based on galactic coordinates, proper motions, and parallaxes from {\sl Gaia Data Release 3}. Various parameters of NGC 6383, such as tidal radius, cluster radius, core radius, distance through parallax and isochrone-fitting, proper motion, age, metallicity, and relevant others, are assessed. To perform this analysis, we utilize an extension of Hamiltonian Monte Carlo, the No-U-Turn Sampler. The results of this analysis point out that NGC 6383 is a very young open cluster $(\sim 2.7 - 4~\mathrm{Myr})$. Furthermore, our investigation reveals that the central binary HD 159176 is not a member of the cluster, which was not discussed in previous studies, leading to a revision of its age and other characteristics. Overall, this study contributes to a more accurate and detailed understanding of NGC 6383's properties.
+\end{abstract}
+
+% Select between one and six entries from the list of approved keywords.
+% Don't make up new ones.
+\begin{keywords}
+open clusters and associations: individual — galaxies: star clusters: general — stars: distances — techniques: photometric — parallaxes — proper motions
+\end{keywords}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%% BODY OF PAPER %%%%%%%%%%%%%%%%%%
+
+\section{Introduction}
+
+An accurate determination of cluster membership is essential for understanding the cluster's physical properties, such as its age, distance, and chemical composition. Some techniques employed to determinate the membership of the sources are selection through the Color-Magnitude diagram (CMD), proper motions, radial velocities, parallax, and recently, Bayesian analysis. This mixture of different techniques results in a range of values from different investigations, sometimes agreed upon between each other and sometimes revealing some failures and errors in the methodology of previous authors. \citep{1930LicOB..14..154T, 1937LicOB..18...89Z, 1949ApJ...110..117S, 2018A&A...610A..30A, 1978MNRAS.182..607F, 1989MNRAS.236..263P, 1991MNRAS.249...76B, 2005A&A...438.1163K, 2007A&A...462..157P, 1968ArA.....5....1L}
+
+\subsection{NGC 6383}
+
+NGC 6383\footnote{NGC 6383, also referred to as NGC 6374 in the New General Catalog and classified as Collinder 334 and Collinder 335 in the Collinder catalog, was initially misclassified in the original Collinder catalog. \citep{1931AnLun...2....1C}} is a young open cluster located in the Carina-Sagittarius arm, situated in the \textit{Sh 2-012}\footnote{Also known as RCW 132 \citep{1960MNRAS.121..103R} or Gum 67} star formation region and forms part of the larger Sagittarius OB1 association together with NGC 6530 and NGC 6531 \citep{2008hsf2.book..497R}. The equatorial coordinates (ICRS)  of the cluster are $\alpha_{2015.5} = 17^h34^m41.5$ and $\delta_{2015.5} = -32^\circ34^m23$ \citep{2020A&A...633A..99C}, and the galactic coordinates are $\ell = 355.68$ and $b= 0.05$ \citep{2017A&A...600A.106C}, with a radial velocity of $-1.2 \pm 4.9\kms$ \citep{2017A&A...600A.106C} and a proper motion of $\mu_\alpha = 2.596 \pm 0.018\,mas\,yr^{-1}$ and $\mu_\delta = -1.708\pm 0.016\, mas\,yr^{-1}$ \citep{2020A&A...633A..99C}.
+
+Several authors have derived distances to the cluster, with an upper limit of $2130\,pc$ in \citet{1930LicOB..14..154T} and \citet{1937LicOB..18...89Z}, and a lower limit of $760\,pc$ and $834\,pc$ in \citet{1949ApJ...110..117S} and \citet{2018A&A...610A..30A}, respectively. It has an angular size of $20\,arcmin$ \citep{2013A&A...560A..76M} and an estimated age in the range of $1.7$ to $5\,Myr$ \citep{1978MNRAS.182..607F,1989MNRAS.236..263P,1991MNRAS.249...76B,2005A&A...438.1163K,2007A&A...462..157P}; however, \citet{1968ArA.....5....1L} calculates an age of $20\,Myr$. \citet{2008hsf2.book..497R} derived a reddening $E(B-V) = 0.32 \pm 0.02$, which is consistent with previous authors such as \citet{1971A&AS....4..241B,1978MNRAS.182..607F,1978MNRAS.184..661L,1985A&A...151..391T,1989MNRAS.236..263P,1994RMxAA..29..141F,2007A&A...462..157P}, but in disagreement with \citet{2018A&A...610A..30A} who determinate a reddening of $E(B-V) = 0.51 \pm 0.03$. This reddening is produced by a surrounding large shell-structured ionized HII with a radius of $\sim 1\deg$, that was likely ionized by its central star, HD 159176. 
+
+HD 159176 is a contact binary system composed of O7V type stars and is a well-studied X-ray double-line binary. This system is responsible for ionizing the HII region. The estimated age of HD 159176 is around $2.3-2.8$\,Myr \citep{2010A&A...511A..25R}. Through a careful analysis of both the ages of the cluster and its central star system, it is suggested that the center star is older than the cluster itself. Furthermore, \citet{1978MNRAS.182..607F} proposed that HD 159176 initiated star formation in the cluster's core and beyond.
+
+In the study by \citet{2018A&A...610A..30A}, it is hypothesized that if the stars numbered as \textit{Star No. 6} are considered to have started to evolve and if HD 159176 is a blue straggler, then the age of the cluster could be between $6$ and $10\,Myr$.
+
+The cluster parameters present a wide range of results depending on the methodology utilized by the authors in their research. The cluster has sources that have recently started the main sequence track, known as Pre-Main Sequence Stars (PMS). Thus, the age of the cluster has been the subject of much debate in the scientific community.
+
+\subsection{Overview of Previous Studies on NGC 6383}\label{literature}
+
+The study of the NGC 6383 cluster was initiated by \citet{1930LicOB..14..154T}, who initially estimated its distance as 2130 pc and suggested that it contained no more than 50 stars. However, in the same year, \citet{1930PASP...42..342T} revised his estimate studying the spectroscopic central binary, and highlighted the possibility of an overestimation. \citet{1937LicOB..18...89Z} identified the first color excess in NGC 6383, while \citet{bok_bester_wade_1953} reported the presence of a large spherical region with O8 star HD 159176 adjacent to the open cluster. The brightest member of the cluster was classified as an O7-type star by \citet{1954CoBAO..12....3M}. \citet{1959ApJS....4..257S} described the nebula as amorphous and of intermediate brightness, with lower intensity than the nebulae associated with NGC 6530 and NGC 6611. 
+
+The cluster was classified as an $H\alpha$ emission zone by \citet{1960MNRAS.121..103R}, and \citet{1961RGOB...27...61E} conducted the first photo-electric study and found that stars fainter than $V = 12\,mag$ fell above the Zero-Age Main Sequence (ZAMS), suggesting they were still contracting to the main sequence. He determined an uncorrected distance modulus of $(V - M_V) = 11.40\,mag$, which indicates a distance of $1260\,pc$. \citet{1962AJ.....67..491R} conducted a kinematic study of early-type stars and derived a radial velocity of $-5.5 \kms$, $A_V = 1.23$ for the central binary, and a modulus distance of $(m - M)_0 = 10 \,mag$. The similarities between NGC 6383 and NGC 2264 were highlighted by \citet{1965CoBos..32....0T}, who noted that \citet{1961RGOB...27...61E} color-magnitude diagram showed a normal main sequence and the presence of T Tauri stars, although these were not detected in this work.
+
+Following the previous studies, \citet{1968PhDT........29E} found a reddening of $E(B-V) = 0.36\,mag$ and $E(U-B) = 0.29\,mag$ from the spectral types of probable cluster members. Evans used the contact binary V701 Sco \citep{1961RGOB...27...61E,1965AJ.....70...19E}, V702 Sco eclipsing star \citep{1948AnLei..20....3P}, and V486 Sco \citep{1939PAAS....9R.233S} to make these determinations. Additionally, the author described that HD 159176 is near the center of a roughly circular emission nebula with a diameter of $2^\circ$ and is likely the principal exciting star \citep{1959ApJS....4..257S}.
+
+The article by \citet{1966CoBos..34....1T} reports that the cluster under investigation may harbor 21 stars of an earlier type than A, which are deemed to be plausible members on the contraction sequence. The authors also discovered potential T Tauri stars through a review of $H\alpha$ plates, while the presence of RW Aur variables was tentatively suggested.
+
+\citet{1967ApJ...150..435D} found from their measurements of the hydrogen recombination line $158\alpha$ that the radial velocity of the nebula is $-8.8 \pm 1.9 \kms$. The study derived a distance modulus of $(m-M)_0 = 10.6\,mag$, with a lower turn-off point of the main sequence at $M_V = 1.2\,mag$ and $(B-V)_0 = -0.05$, with a theoretical contraction time of $5\,Myr$.
+
+\citet{1970PDDO....4....1H} later made an atlas of available information on the cluster. Hagen determined a reddening of $E(B-V) = 0.32\,mag$, a distance modulus of $(m-M)_0 = 10.6$, a distance of $130\,pc$, an $R_V = 4$, and a radius of $10'$. Hagen also made remarks on the color-magnitude diagram, saying that it contains those stars within 10 arcminutes and that some possible late-type giants may exist outside of this region, but insufficient data was available to determine membership.
+
+\citet{1971A&AS....4..241B} derived a reddening of $E(B-V) = 0.26$ and an absorption of $0.78$, resulting in a distance modulus of $(m-M)_0 = 10.92$ and a distance of $1065\,pc$. They also noted that the cluster has a $z$ value of $+2\,pc$.
+
+With \citet{1972BAICz..23..126A}, NGC 6383 was described as an O-star cluster located in the first inner galactic arm and projected onto the central stellar cloud B. It belongs to the Sagittarius OB1 association along with NGC 6530 and NGC 6530. The brightest star in the cluster is a spectroscopic binary of spectral type O, with stars brighter than $10\,mag$ being of spectral types B3-B5. Seven red giants, fainter by $4 \,mag$ than the brightest star of the cluster, were found in its vicinity. Eight stars of an earlier type than B3 were also identified in the cluster, making it interesting.
+
+\citet{1973AuJPh..26..853T} confirmed the association of the hydrogen cloud with the cluster through hydrogen-line observations, with a radial velocity of the cloud similar to that of the cluster, and the angular extent of the region deficient in neutral hydrogen agrees well with that of the continuum source and the hydrogen in the immediate vicinity of NGC 6383 is ionized by emission from the cluster's hot stars.
+
+In their study, \citet{1978MNRAS.182..607F} used photoelectric UBV and MK spectroscopy to determine several properties of NGC 6383. They found a reddening of $E(B-V) = 0.33 \pm 0.02$, an apparent distance modulus of $V-M_V = 11.9 \pm 0.25$, a distance of $1.5 \pm 0.2 \,kpc$, and a radius of $1.25 \,arcmin$. They also estimated the age of the cluster to be $1.7 \pm 0.4\,Myr$ and identified the central star, HD 159176, as having a solar mass of $35 \pm 5\,M_\odot$, a radius of $15 \pm 2\,R_\odot$, and an age $2.8 \pm 0.5\,Myr$, which is older than the rest of the cluster core. This suggests that HD 159176 may have initiated star formation in the core and beyond. Additionally the authors determined the mean reddening by fitting the intrinsic two-color relations for the ZAMS stars, with no evidence for variable reddening, in contrast to the result of \citet{1972BAICz..23..126A}. Using this average color-excess, they fitted the ZAMS to the color-magnitude diagram to yield the $V-M_V$ previously mentioned. The distance found in this study is slightly larger than that found by \citet{1965AJ.....70...19E}, and the distance modulus is consistent with that found by \citet{1967MNRAS.135..377G} based on $H\beta$ photometry. Finally, the distance of NGC 6383 places it in the Sagittarius - I Arm shown by \citet{1975A&A....39..477V}, close to its intersection with the Sagittarius - I arm extension. About the binary, HD 159175 lies $1\,mag$ off the ZAMS for an O7V binary and about $0.4\,mag$ above the mean for two O7V stars, suggesting that it must have started to evolve. The age of the central binary suggests that its formation could have stimulated, rather than hindered, the formation of the cluster core stars and possibly the stars further out as well.
+
+In \citet{1978MNRAS.184..661L}, 334 stars located at a distance of $12\,arcsin$  from HD 159176 were used to set an upper limit to the cluster's age of $4-5\,Myr$ through a comparison with theoretical evolutionary calculations. $E(B-V) = 0.35$ and a distance modulus from main sequence fitting of $10.6\,mag$ were also derived, consistent with other objects in the I arm of the galaxy. Some of the stars contracting to it are irregular variables that often show emission line spectra of the T Tauri and related types. A central radius of $3.1 \,arcmin$ was defined, and NGC 6383 may be a case in which the formation of small stars ceased prematurely after the formation of the central cluster of massive stars, resulting in a relative lack of faint stars and the absence of T Tauri stars as bright as those found in regions where star formation has continued.
+
+A spectral energy distribution study of stars above the ZAMS in the central region of NGC 6383 was conducted by \citet{1985A&A...151..391T}. They found that the reddening toward the central region was uniform due to foreground interstellar matter and amounted to $E(B-V) = 0.12 \pm 0.003$, equivalent to $E(B-V)_J = 0.30 \pm 0.01\,mag$ in the Johnson system. The distance to NGC 6383 was derived as $1.4 \pm 0.15 \, kpc$ using this color excess. Infrared and near-infrared observations of stars above the ZAMS were conducted, revealing that three of them had excess infrared radiation most probably due to thermal emission of circumstellar dust grains, indicating that they are PMS objects. Furthermore, the authors declare that NGC 6383 is not associated with a star formation region and is located in a clean region of the Milky Way with an uncrowded central part. The question remains whether the members of this very young open cluster are older members leaving the ZAMS like classical Be-type stars or are very young members of an age of $1\,Myr$ that have just arrived on the ZAMS.
+
+In \citet{1993Obs...113..204S}, a spectroscopic study of HD 159176 found a systemic velocity close to $+10 \kms$, consistent with the other bright members of NGC 6383. \citet{1978MNRAS.184..661L} concluded that it is a member of the cluster based on positional coincidence and compatibility with the cluster HR diagram. The stars are likely not significantly evolved from the main sequence and have not yet exhibited significant mass loss, but the fast winds ($2500 \kms$) of these stars may collide and create the X-rays detected by the Einstein experiments.
+
+In a later study, \citet{2000A&A...362..580V} examined the central region of the cluster and found that 6 of the 14 stars exhibit an infrared excess due to the presence of circumstellar dust, which is heated up by the central stars. One of these stars also shows $H\alpha$ in emission and indicates the presence of circumstellar gas in its spectra, potentially indicating a newly unidentified Herbig Ae star.
+
+In their study using XMM-Newton observations, \citet{2003A&A...407..925R} investigate the star formation process. The authors use the advantage that low and intermediate mass PMS are known to be prominent X-ray sources. Rauw describes the cluster as not harboring large amounts of dust and being surrounded by a wake nebula S11 of $1^\circ$ radius, centered on HD 159176. The study reports that T Tauri PMS stars are usually variable X-ray emitters, exhibiting flares with a fast rising light curve followed by a slower decay. The concentration of faint X-ray sources around the central binary suggests a connection between the PMS objects and the massive binary, as \citet{1978MNRAS.182..607F} had proposed. The X-ray emission is much larger in the core than in the outer regions of the cluster. 
+
+The authors suggest that a crucial issue to address in future studies of this cluster will be an accurate determination of the ages of its various components. At first sight, the observation suggests that most of the PMS candidates may be weak-line T Tauri stars, which may be intrinsically X-ray brighter than classical T Tauri stars. Therefore, deep $H\alpha$ photometry is urgently needed to identify classical and weak-line T Tauri stars and, when the study was published, there was a lack of studies on very deep surveys for $H\alpha$ emission for NGC 6383, and only one $H\alpha$ emitting object was reported in this cluster, which was suggested to be a Herbig Ae/Be object \citep{2003A&A...407..925R}.
+
+In their papers, \citet{zwintz_marconi_kallinger_weiss_2004,2005MNRAS.357..345Z} discovered new pulsating PMS stars in NGC 6383. These stars are younger than $10\,Myr$, members later than spectral type A0, and still contracting toward the ZAMS. A dozen stars lie within the classical instability region in the HR diagram, but pulsation was detected for only two of them. During the contraction towards the main sequence, intermediate mass PMS stars possess temperatures and luminosities similar to evolved stars. Due to the main sequence reaching only to B9-type stars, cluster members of spectral types A-F are still in their PMS phase.
+
+The authors raise the question of the distribution of rotational velocities for these objects, as young open cluster members are believed to be fast rotators. However, the number of known PMS pulsators is insufficient to empirically determine the PMS instability strip. The PMS stars are characterized by a high degree of activity, strong near or far-infrared excesses, and in most cases, emission lines.
+
+In their study \citet{2007A&A...462..157P}, NGC 6383 was investigated for star formation. The authors found a distance of $1.7 kpc$ and a color excess of $E(B-V) = 0.29$. Several stars with NIR excess, Herbig Ae/Be and T Tauri stars were detected, and two previously known variables were identified as rapidly-rotating PMS stars. The authors defined a cluster radius of $10'$ to $15'$. The cluster's metallicity was not estimated due to the absence of ZAMS stars cooler than A0 and no giants or supergiants in NGC 6383. They place an upper limit of -0.12 dex using the mean abundance gradient of $-0.04\,dex\, kpc^{-1}$. Distance estimation was challenging since there were no turn-off points or red giants present in the cluster, resulting in widely varying distance estimates.
+
+In their review of NGC 6383, \citet{2008hsf2.book..497R} discussed the properties of the cluster, including the massive binary HD 159176, other early-type stars, reddening and distance estimation, proper motion and membership, star formation activity, infrared excess emission, variable PMS stars, X-ray selected PMS candidates, and the possibility of second-generation star formation through the combined action of PMS stellar winds and their intense radiation field.
+
+Meanwhile, \citet{2010A&A...511A..25R} uses spectroscopic data to reveal weak $H\alpha$ emission lines in a few X-ray selected PMS candidates, and identify several $H\alpha$ emission candidates photometrically, though their cluster membership is uncertain. They find that objects with fainter magnitudes have higher extinction, and suggest that the population of reddened objects are located at different depths within the molecular cloud of the cluster, similar with HD 159176. Their analysis also identifies a complex spatial distribution of $H\alpha$ emitters, which could indicate severe contamination by foreground and background stars.
+
+In their study, \citet{2018A&A...610A..30A} analyzed B stars in four open clusters, including NGC 6383, and found that the cluster age of $\sim 3\,Myr$ is consistent with previous literature, but could be between $6\,Myr$ and $10\,Myr$ if HD 159176 is a blue straggler and the other one has started to evolve. Their spectral classification is in agreement with those found in previous works, in particular with \citet{1978MNRAS.184..661L}.
+
+More recently, \citet{2019MNRAS.484.5102K} studied the comparatively poorly studied star-forming HII region \textit{Sh 2-012}, identifying 55 Classical T Tauri stars using optical-infrared photometry and Gaia astrometry. They found a median age of $2.8 \pm 1.6,Myr$, with a mass range between $0.3$ and $1\,M_\odot$. The stars exhibit evidence for accreting circumstellar discs and are concentrated around NGC 6383, suggesting a single burst of formation. $94$ per cent of the CCTTs fall on the near-infrared T Tauri locus.
+
+This work is structured as follows: Section \ref{methodology} describes the data quality controls and analysis techniques employed. Section \ref{results} presents the obtained results. Section \ref{discussion} provides the discussion of the study and a brief discussion on the central binary. Finally, in Section \ref{conclusions}, we provide a summary of the information obtained and discuss future perspectives.
+
+\section{Methodology}\label{methods}
+\subsection{Data and Quality process}
+\subsubsection{Data Acquisition}
+
+The data set used in this study was obtained from the third data release of the Gaia mission (DR3), which was made publicly available in early 2022 \citep{2016A&A...595A...1G,2022arXiv220800211G}. This data set contains comprehensive astrometric solutions, including positions, parallax, and proper motion for approximately $1.46$ billion sources, with a bright limit of $G \approx 3$ and a limiting magnitude of $G \approx 21$. The use of this data set provides numerous advantages, including high accuracy and precision in measurements, large sample sizes, and a wide range of astrophysical applications.
+
+To acquire the data, a cone search with a radius of $25\,arcmin$ was performed on the \href{https://gea.esac.esa.int/archive/}{Gaia Archive} using the name resolved by Sesame Strasbourg (Simbad-NED-VizieR). The search returned a total of $71847$ sources.
+
+Furthermore, for the study of infrared stars, we obtained data from Two Micron All-Sky Survey (2MASS) \citep{2006AJ....131.1163S}. This survey contains magnitude on the $J$-band $(1.235\,\mu m)$, $H$-band $(1.662\,\mu m)$, and $K_s$-band $(2.159\,\mu m)$. A cone search with the same $25\,arcmin$ radius was performed on the \href{https://irsa.ipac.caltech.edu/Missions/2mass.html}{NASA/IPAC Infrared Science Service} with the 2MASS All-Sky Point Source Catalog (PSC), using the name resolved by NED-Simbad, which returned a total of $66500$ sources.
+
+\subsubsection{Data Filtering}
+The dataset was filtered to include only sources with distances within the range of $500\,pc$ to $2500\,pc$, corresponding to the upper and lower distance limits reported in the literature (Section \ref{sec:literature}). This was accomplished by selecting sources with parallax measurements between $0.4\,mas$ and $2\,mas$. Sources with negative parallax measurements were excluded, as these may be the result of uncertainties in the Gaia DR3 data or even quasars, as suggested by \citet{2018A&A...616A...9L}.
+
+Only sources with parallax measurement uncertainties below $0.5\, mas$ were considered, resulting in a subset of $14002$ sources. A small fraction of these sources may have poor astrometric solutions, and the reported values and uncertainties may not be reliable. Therefore, following the \textit{astrometric fidelity} parameter provided by \citet{2022MNRAS.510.2597R}, sources with a value of \textit{astrometric fidelity} greater than $0.5$ were selected, leaving a final subset of $10951$ sources.
+
+This \textit{astrometric fidelity} parameter, is a metric that takes into account various aspects of the astrometric solution. It provides a measure of the reliability of the astrometric solution for a given source, and it was calculated using a neural network that was trained using 17 pertinent Gaia catalog entries and information, as described in detail in the respective paper.
+
+Among the $10951$ sources, it is important to select only the data that has valid parameters, in special the position $(\alpha,\delta,\ell,b)$, proper motions $(\mu_{\alpha*},\mu_\delta)$, parallax ($\varpi$) and the magnitudes $(G, G_{BP}, G_{RP})$, only $10867$ of the sources have valid parameters.
+
+\subsubsection{Crossmatch with 2MASS}
+A cross-match was performed with the remaining sources, to obtain a final list of sources. Gaia DR3 provides pre-computed crossmatch tables for a variety of catalogues, as explained in \citet{2022gdr3.reptE..15M}. The table used for the crossmatch was \texttt{tmass\_psc\_xsc\_best\_neighbour}, giving $6748$ crossmatched sources.
+
+The $J$, $H$, and $K_s$ magnitudes has been added to only those sources with a separation distance of less than $0.5\,arcsec$ to obtain a final list of sources. This process resulted in a total of $6587$ sources with 2MASS magnitudes. The separation distance between Gaia DR3 and 2MASS sources can be seen in Figure \ref{fig:error_crossmatch_NGC6383}. The join type was only adding the avalaible 2MASS data to the Gaia data, keeping the original $10867$ sources.
+
+
+\subsubsection{Systematic Gaia DR3 Parallax Offset}
+The Gaia DR3 parallax measurements exhibit a systematic offset as discussed in \citet{2021A&A...649A...4L}, and the zero-point correction for this offset was calculated using the \texttt{Gaiadr3\_zeropoint} package, which provides analytical functions to estimate the expected parallax zero-point based on factors such as ecliptic latitude, magnitude, and color for any Gaia (e)DR3 source.
+
+To obtain the corrected parallax, we apply the following formula:
+\begin{align*}
+\varpi_{\text{corr},i} = \varpi_i - Z(\boldsymbol{x}_i)
+\end{align*}
+where $\varpi_{\text{corr},i}$ represents the corrected parallax for the $i$-th source, $\varpi_i$ denotes the Gaia parallax for the $i$-th source, and $Z(\boldsymbol{x}_i)$ represents the zero-point correction calculated based on the ecliptic latitude, magnitude, and color of the $i$-th source.
+
+It should be noted that for sources whose apparent magnitude falls outside the expected range of $(6-21\,\text{mag})$, the offset correction is applied using the values at either $6$ or $21\,\text{mag}$. Similarly, sources with pseudocolor outside the expected range of $(1.24-1.72\,\text{mag})$ receive the correction corresponding to the values at $1.24$ or $1.72\,\text{mag}$. It is important to mention that beyond these ranges, no further interpolation is performed.
+
+For simplicity, we will refer to the corrected parallax $\varpi_{\text{corr},i}$ as the parallax $\varpi$ in the subsequent analysis. It is worth noting that Figure \ref{fig:zp_parallax} visually demonstrates the difference between the observed and corrected parallax, illustrating the impact of the factors used in the correction process.
+
+\subsubsection{Gaia Proper Motion}
+
+In this subsection, we describe the correction applied to the proper motions data to account for the rotational differences between the reference frames of bright and faint sources in the Gaia EDR3 catalog\footnote{The astrometry and photometry for the sources in the full DR3 is exactly the same.}. The correction is necessary to align the proper motions of bright stars with the International Celestial Reference Frame (ICRF).
+
+The study conducted by \citet{2021A&A...649A.124C} revealed that the reference frame of proper motions for bright Gaia EDR3 sources $(G < 13)$ exhibits a rotation relative to that of the faint EDR3 sources. This rotation introduces a proper motion bias, which can reach up to $80 \mu as yr^{-1}$ in the magnitude range $G = 11-13$. To mitigate this bias and align the proper motions of bright sources with the ICRF, a magnitude-based correction was derived.
+
+The correction involves computing the difference between the observed proper motions and the expected proper motions based on the spin parameters listed in the study.
+
+Applying this correction to the proper motions data ensures that the proper motions of bright stars are aligned with the ICRF and reduces the bias introduced by the rotational differences. The corrected proper motions can then be used for further analysis, such as determining kinematic properties, membership in stellar clusters, or studying the dynamics of the Milky Way.
+
+It is important to note that although the magnitude-based correction effectively aligns the proper motions, there may still be residual systematics of approximately $10 \mu as yr{-1}$ related to color dependence. Therefore, caution should be exercised when interpreting the proper motion data, particularly when considering sources with a wide range of colors.
+
+\subsection{Membership Determination}\label{Membership Determination}
+
+To identify potential members of the stellar cluster NGC 6383, we employed the HDBSCAN clustering algorithm in this study.
+
+HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications with Noise) is a density-based clustering algorithm that can identify clusters of varying densities and sizes in a dataset. This algorithm constructs a hierarchical representation of the data, where each level represents a different level of clustering granularity. It starts by computing the mutual reachability distance between points in the dataset, which measures the minimum density required for two points to be considered neighbors. This allows the algorithm to identify regions of high density, which are then merged into clusters \citep{McInnes2017}.
+
+HDBSCAN offers several advantages over other clustering algorithms. It can handle clusters of different sizes and shapes, it can identify noise points, and it can automatically determine the optimal number of clusters without requiring a predetermined value. Furthermore, HDBSCAN does not require the specification of a fixed number of clusters, which can be challenging to determine in advance.
+
+\begin{figure*}
+\centering
+\includegraphics[width=\textwidth]{Figures/ngc6383_pm_sky_cluster.pdf}
+\caption{The figure showcases the selection of sources according to HDBSCAN, with noise, a statistical cluster, and NGC 6383. The plot consists of three panels. The left panel displays the sky positions of the sources, with the right ascension ($\alpha$) represented on the x-axis and the declination ($\delta$) on the y-axis. Potential members of NGC 6383 are depicted as scatter points colored according to their membership probability, while field stars are shown in a different color. Noise sources are indicated as smaller scatter points. The middle panel illustrates the proper motion of the sources, with the proper motion in right ascension ($\mu_\alpha^*$) on the x-axis and the proper motion in declination ($\mu_\delta$) on the y-axis. Similar to the previous panel, noise sources, field stars, and potential members of NGC 6383 are represented by scatter points with different colors. The right panel showcases the parallax ($\varpi$) on the x-axis and the Gaia magnitude ($G_{\text{mag}}$) on the y-axis. The color-coded scatter points correspond to noise sources, field stars, and potential members of NGC 6383. This multi-panel plot provides a comprehensive visualization of the spatial and kinematic properties of the sources assigned to NGC 6383.}
+	\label{fig:general}
+\end{figure*}
+
+The HDBSCAN algorithm works by using an inexpensive estimate of density, known as the $k$th nearest neighbor. In simple terms, the goal is to find clusters in the data by identifying denser regions and differentiating them from sparser regions, which are considered noise. The density of points is estimated using the distance to the $k$th nearest neighbor, known as the core distance ($\text{core}_k(x)$) for a point $x$.
+
+To make the clustering algorithm more robust to noise, a new distance metric called the mutual reachability distance is defined. The mutual reachability distance between two points $a$ and $b$, denoted as $d_{\text{mreach}-k}(a, b)$, is calculated as the maximum value among the core distances of $a$ and $b$, as well as the original distance $d(a, b)$. In other words:
+
+\begin{equation*}
+d_{\text{mreach}-k}(a, b) = \text{max}\{\text{core}_k(a), \text{core}_k(b), d(a, b)\}
+\end{equation*}
+
+By using this metric, dense points (with low core distances) remain close to each other, while sparser points are pushed away to be at least their core distance away from any other point. This effectively separates denser regions from sparser regions.
+
+This approach helps identify clusters by distinguishing denser regions from noise, making the clustering algorithm more robust to outliers and noisy data.
+
+For our analysis, HDBSCAN was applied to the remaining $10951$ sources using all five astrometry parameters, including galactic coordinates ($\ell$, $b$), proper motion in Right Ascension and Declination, and parallax. However, we discarded the option to use Galactocentric coordinates ($X$, $Y$, $Z$) because converting between galactic coordinates and Galactocentric coordinates introduces uncertainties in the data, and HDBSCAN cannot handle errors. The following subsection provides a detailed explanation of the methodology employed in using HDBSCAN for this purpose.
+
+\subsubsection{HDBSCAN Hyperparameters}
+
+The hyperparameters used for HDBSCAN were as follows: Euclidean distance metric (\texttt{metric="euclidean"}), and a minimal cluster size of $120$ (\texttt{min\_cluster\_size=120}).
+
+The minimal cluster size was chosen according to \citet{2021A&A...646A.104H}. A smaller minimal cluster size value would split the hierarchical graph further, resulting in more nested solutions. On the other hand, a larger value would merge small groups and reduce the number of false-positive associations in the dataset. By selecting a minimal cluster size of 120, we balanced the sensitivity to small clusters while avoiding false positives.
+
+\subsection{PyMC}
+
+To determine various characteristics of NGC 6383, such as the mean parallax and the mean proper motion, the \texttt{PyMC} package is utilized.
+
+PyMC \footnote{Available at \href{https://github.com/pymc-devs/pymc}{https://github.com/pymc-devs/pymc}} is a Python package for Bayesian statistical modeling that focuses on advanced Markov chain Monte Carlo (MCMC) and variational inference (VI) algorithms. Its flexibility and extensibility make it applicable to a wide range of problems, making it an ideal choice for applying Bayesian analysis to NGC 6383 \citep{Wiecki}.
+
+PyMC aims to simplify Bayesian modeling, making it more modern, user-friendly, fast, and open-source. One of the key reasons for choosing PyMC is its user-friendly implementation, particularly when setting the prior distribution, which is generally a Normal distribution.
+
+In addition, the sampling process is performed using the No-U-Turn Sampler (NUTS) implementation. The "no U-turn" aspect refers to how proposals are generated. Hamiltonian Monte Carlo (HMC) generates a hypothetical physical system, akin to a ball with a certain kinetic energy rolling around a landscape characterized by the posterior distribution from which you want to sample. When taking a new MCMC sample, the kinetic energy is randomly chosen, and the ball starts rolling from its current position. The simulation occurs in discrete time steps, with a balanced exploration of the parameter space—taking steps in one direction and then twice as many in the opposite direction, and repeating. Eventually, the sampling process stops when a U-turn occurs, indicating that the ball has explored the parameter space sufficiently.
+
+At this point, the proposed next step of the Markov Chain is chosen from the previously visited points, subject to certain constraints. In other words, the simulation of the hypothetical physical system serves to generate a proposal that is either accepted (becoming the next MCMC sample) or rejected (with the starting point becoming the next MCMC sample).
+
+The clever aspect of NUTS is that the proposals are made based on the shape of the posterior distribution and can be located at different regions of the distribution. In contrast, the Metropolis-Hastings algorithm generates proposals within a possibly skewed ball, and Gibbs sampling only moves along one or a few dimensions at a time \citep{phan2019composable}.
+
+\subsection{Parallax and Distance}
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=\textwidth]{Figures/ngc6383_parallax_distance.pdf}
+    \caption{This scatter plot illustrates the relationship between parallax and distance for NGC 6383. The distribution of parallax values is presented as a histogram (orange) and a kernel density estimate (violet), highlighting the underlying density of measurements. Similarly, the distribution of distance estimates is shown as a histogram (orange) and a kernel density estimate (violet). The mean parallax ($\mu_\varpi$) is represented by the dashed blue line, along with its uncertainty. The mean distance ($d$) is depicted by the dashed blue line, also with its associated uncertainty. The data points of NGC 6383 sources are displayed as scattered points, where their parallax is plotted against their $G_{\text{mag}}$ magnitude. The color of each point indicates the probability assigned to the source. The green star marker and error bar represent the parallax and $G_{\text{mag}}$ magnitude of HD 159176.}
+    \label{fig:parallax}
+\end{figure*}
+
+Parallax measurements play a crucial role in determining astronomical distances, providing a valuable alternative to relying solely on assumptions about the inherent properties of celestial objects. However, estimating distances from parallaxes is not a straightforward process due to the presence of measurement errors. In practice, converting a parallax into a distance involves an inference process that requires making assumptions and can introduce significant uncertainties, even when the errors are relatively small.
+
+In the specific case of determining the distance to NGC 6383, we utilize parallax measurements and employ Bayesian inference techniques. A crucial aspect of this approach lies in establishing the prior distribution, which raises the fundamental question: \textit{What is the most probable distance to the cluster?} Although this question may seem deceptively simple, careful consideration of the prior distribution is essential. Given that the cluster exhibits a denser concentration towards its center, it is reasonable to assume a priori that the distances of the cluster members follow a normal distribution.
+
+Consequently, the probability distribution of a distance, denoted as $d$, given the observed parallax $\varpi$ with uncertainty $\sigma$, can be expressed as:
+
+\begin{equation*}
+P(d\mid \varpi,\sigma) = \frac{1}{Z}P(\varpi \mid d,\sigma)P(d)
+\end{equation*}
+
+Here, $Z$ represents the normalization constant:
+
+\begin{equation*}
+Z = \int_{0}^\infty P(\varpi \mid d',\sigma)P(d') dd'
+\end{equation*}
+
+To model the measurements, we assume that for a star located at the true distance $d_{\text{true}}$, the true but unknown parallax is $\frac{1}{r}$. The measured parallax $\varpi$ corresponds to a noisy estimation of $\frac{1}{r}$. We adopt a normal distribution to represent the distribution of $\varpi$, with an unknown mean of $\frac{1}{r}$ and a known standard deviation of $\sigma$. In other words, we assume that $\varpi$ is drawn from the following distribution:
+
+\begin{equation*}
+P(\varpi \mid d,\sigma) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp{\left[ - \frac{\left(\varpi - \frac{1}{d}\right)^2}{2\sigma^2}\right]}
+\end{equation*}
+
+A priori, $d$ follows a truncated normal distribution with a lower limit of $0$, since $d > 0$. We utilize frequentist estimates for the mean and standard deviation, determined through propagation formulas. Specifically, the mean distance $\overline{d}$ is estimated to be $1.1\,\text{kpc}$, with a corresponding standard deviation of $\sigma = 0.011\,\text{kpc}$.
+
+Figure \ref{fig:parallax_model} depicts the graphical representation of the parallax model implemented.
+
+\subsection{Proper Motions}
+
+To model the distribution of proper motions within the cluster, we assume a two-dimensional normal distribution. This choice is based on the understanding that the motions of individual cluster members in the plane of the sky exhibit both systematic and random components. By using a 2D normal distribution, we can effectively capture the typical motion patterns and dispersion of proper motions observed among the cluster members.
+
+The two-dimensional normal distribution provides a mathematical framework to describe the probability density function (PDF) of proper motions in both the right ascension ($\mu_{\alpha}$) and declination ($\mu_{\delta}$) directions. The PDF is characterized by two essential parameters: the mean vector ($\boldsymbol{\mu}$) and the covariance matrix ($\boldsymbol{\Sigma}$). The mean vector represents the average proper motion values in each direction, while the covariance matrix describes the dispersion and correlations between the proper motions in different directions.
+
+Estimating the mean vector and covariance matrix from the observed proper motion data allows us to determine the center and shape of the proper motion distribution, respectively. This information provides valuable insights into the overall motion behavior of the cluster, including any collective motions or substructures that may be present.
+
+The multivariate normal distribution can be mathematically represented as:
+
+\begin{equation*}
+p(\mathbf{\mu} \mid \boldsymbol{\overline{\mu}}, \boldsymbol{\Sigma}) = \frac{1}{2\pi |\boldsymbol{\Sigma}|^{1/2}} \exp{\left[-\frac{1}{2} (\mathbf{\mu} - \boldsymbol{\overline{\mu}})^T \boldsymbol{\Sigma}^{-1} (\mathbf{\mu} - \boldsymbol{\overline{\mu}})\right]}
+\end{equation*}
+
+In this equation, $\mathbf{\mu} = [\mu_\alpha, \mu_\delta]$ represents the vector of two-dimensional proper motion in right ascension and declination, $\boldsymbol{\overline{\mu}} = [\overline{\mu}_\alpha, \overline{\mu}_\delta]$ denotes the mean vector, and $\boldsymbol{\Sigma}$ is the $2 \times 2$ covariance matrix. A priori, $\boldsymbol{\mu}$ follows a normal distribution $\mathcal{N}(\boldsymbol{0}, \boldsymbol{\Sigma})$, where $\boldsymbol{\Sigma} \sim \text{Exp}(1)$.
+
+By fitting this multivariate normal distribution to the proper motion data, we can estimate the mean vector $\boldsymbol{\overline{\mu}}$ and the covariance matrix $\boldsymbol{\Sigma}$, enabling us to characterize the distribution of proper motions in the cluster along both the right ascension and declination axes.
+
+The graphical model representation of the proper motion distribution is shown in Figure \ref{fig:pm_model}.
+
+\subsection{Radius, Center, and Radial Density Profile}
+To determine the tidal cluster radius, we utilize the density profile introduced by King (1962). This profile provides insights into the spatial distribution of stars within the cluster, and we consider two types: the 3-parameter King profile and the 2-parameter King profile. Both profiles capture the gradual decrease in stellar density from the cluster center to its outskirts.
+
+The 3-parameter King profile is defined as follows:
+
+\begin{equation*}
+f(R) = k \left[\frac{1}{\sqrt{1 + \left(\frac{R}{R_c}\right)^2}} - \frac{1}{\sqrt{1 + \left(\frac{R_t}{R_c}\right)^2}}\right]^2 + b
+\end{equation*}
+
+On the other hand, the 2-parameter King profile is given by:
+
+\begin{equation*}
+f(R) = \frac{k}{1 + \left(\frac{R}{R_c}\right)^2} + b
+\end{equation*}
+
+In both equations, $R$ represents the radius, $R_c$ denotes the core radius, $R_t$ is the tidal radius, $k$ is a normalization constant related to the central density, and $b$ is the background density.
+
+The 2-parameter King profile is simpler compared to the 3-parameter profile but still provides valuable information about the density distribution within the cluster.
+
+Both density profiles are useful for analyzing open clusters, especially in cases where the number of stars is too low to calculate demonstrative densities. The 2-parameter King profile offers more flexibility and can effectively capture density variations within the cluster region. By fitting both models to the observed data, we can assess their performance and determine which profile better describes the spatial distribution of stars in the cluster.
+
+To calculate the density of stars per unit area, we divide the cluster region into concentric annuli. We use an annulus width of 0.4 arcmin for radii ranging from 0 to 6 arcmin and 1.5 arcmin for radii between 6 and 20 arcmin. This approach allows us to analyze the radial variations in stellar density throughout the cluster region.
+
+In our Bayesian analysis, we assume prior distributions for the parameters of the density profiles. The priors we consider are as follows:
+
+\begin{align*}
+\sigma & \sim \text{HalfNormal}(5) \\
+k & \sim \text{Normal}(5, 5) \\
+R_c & \sim \text{Normal}(2, 5) \\
+R_t & \sim \text{Normal}(20, 5) \\
+b & \sim \text{Normal}(0, 3)
+\end{align*}
+
+These priors were selected based on a visual selection and following the radius described in Astorga et al. (2018). The graphical model representations of both the 2-parameter King profile and the 3-parameter King profile are shown in Figures \ref{fig:2king_model} and \ref{fig:3king_model}.
+
+By fitting these models to the observed density data, we can estimate the posterior distributions of the model parameters and make inferences about the radial density profile of the cluster.
+
+\section{Results}
+\subsection{NGC 6383 Members}
+
+The clustering algorithm produced two clusters and noise, with cluster numbers $0$, $1$, and $-1$, respectively. Upon further analysis, it was found that cluster No. $0$ corresponded to a statistical cluster of field sources rather than a real cluster. NGC 6383 was identified as cluster No. $1$.
+
+After filtering for sources with a probability greater than $80$ percent, only 268 members out of the 505 sources assigned to NGC 6383 were retained.
+
+The distribution of the sources' probabilities can be seen in Figure \ref{fig:probabilities}. The condensed cluster tree of the sources is shown in Figure \ref{fig:condensed_cluster_tree}, and the selection according to HDBSCAN is shown in Figure \ref{fig:general}
+
+\begin{figure}
+\centering
+\includegraphics[width=\columnwidth]{Figures/probabilies.pdf}
+ \caption{This figure presents the distribution of probabilities for the sources assigned to NGC 6383. The plot shows the Gaia magnitude ($G_{\text{mag}}$) and the probability assigned to each source. The potential members of NGC 6383 are in blue, while the field stars are in orange. Additionally, noise sources are shown as gray scatter points. The dashed horizontal line at a probability threshold of 0.8 is included for reference. The x-axis is $G_{\text{mag}}$, and the y-axis is the probability.}
+ \label{fig:probabilities}
+\end{figure}
+\begin{figure}
+\centering
+\includegraphics[width=\columnwidth]{Figures/condensed_cluster_tree_NGC6383.pdf}
+ \caption{The condensed cluster tree exhibits the hierarchical structure of the cluster system, elucidating the proximity or potential merger of clusters as well as their degree of separation. The dendrogram representation displays the cluster hierarchy, wherein the width (and color) of each branch depicts the number of points in the cluster at that level. Specifically, the plot illustrates the NGC 6383 cluster sources on the left side, while the HDBSCAN-identified field sources are situated on the right side. The color bar corresponds to the number of sources at each level, while the $\lambda$ value corresponds to $\frac{1}{\texttt{distance}}$.}
+\label{fig:condensed_cluster_tree}
+\end{figure}
+
+\subsection{Parallax and Distance}
+
+The mean parallax of NGC 6383 corresponds to $0.9154 \pm 0.033 \,mas$, and the mean distance corresponds to $1.0939 \pm 0.039 \,kpc$, as shown in Figure \ref{fig:parallax}.
+
+\subsection{Proper motions}
+
+The estimated mean proper motion values are $\boldsymbol{\overline{\mu}} = (2.5341, -1.7058)\,\text{mas}\,\text{yr}^{-1}$, as shown in Figure \ref{fig:pm}.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/pm_ellipse.pdf}
+    \caption{This figure presents the distribution of proper motion for the cluster, depicted by an ellipse. The ellipse represents the mean proper motion $\boldsymbol{\overline{\mu}}$ and the covariance matrix ($\boldsymbol{\Sigma}$), reflecting the center and shape of the proper motion distribution, respectively. The color of each point in the scatter plot corresponds to the assigned probability of the source. The gray error bars indicate the measurement uncertainties in the proper motion coordinates. The $x$-axis represents the corrected proper motion in the $\alpha^*$ direction ($\mu_{\alpha*}$), while the $y$-axis represents the corrected proper motion in the $\delta$ direction ($\mu_\delta$). The green star marker and error bars represent the proper motion coordinates and their uncertainties for the source HD 159176. The ellipse encapsulates the estimated $95\%$ region of the proper motion distribution.}
+    \label{fig:pm}
+\end{figure}
+
+\subsection{Radius, Center, and Radial Density Profile}
+
+The resulting parameters obtained from the 2-parameter and 3-parameter King models are listed in Table \ref{tab:king}, and the density profiles based on these parameters are shown in Figure \ref{fig:king}.
+
+\begin{table*}
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tabular}{@{}cccccccccc@{}}
+\toprule
+Parameter & Mean   & SD    & $3\%$ HDI & $97\%$ HDI & Mean  & SD    & $3\%$ HDI & $97\%$ HDI & Units \\ \midrule
+          & \multicolumn{4}{c}{3-P King's model}    & \multicolumn{4}{c}{2-P King's model}   \\ \midrule
+$\sigma$  & 0.579  & 0.113 & 0.390     & 0.790      & 0.567 & 0.111 & 0.380     & 0.773      & $\text{stars}\,\text{arcmin}^{-2}$     \\
+$k$       & 10.188 & 0.663 & 8.944     & 11.430     & 9.156 & 0.532 & 8.143     & 10.158     & $\text{stars}\,\text{arcmin}^{-2}$     \\
+$R_c$     & 1.108  & 0.121 & 0.887     & 1.340      & 1.042 & 0.102 & 0.853     & 1.237      & $\text{arcmin}$    \\
+$R_t$     & 20.564 & 4.734 & 11.665    & 29.408     & -     & -     & -         & -          & $\text{arcmin}$     \\
+$b$       & 0.235  & 0.139 & 0.000     & 0.469      & 0.177 & 0.123 & 0.000     & 0.392      & $\text{stars}\,\text{arcmin}^{-2}$     \\ \bottomrule
+\end{tabular}%
+}
+\caption{Summary of parameter estimates for the density profiles. The table displays the mean, standard deviation (SD), and the $3\%$ and $97\%$ highest density intervals (HDI) for each estimated parameter in the 3-parameter King's model and the 2-parameter King's model. The parameters include $\sigma$, $k$, $R_c$, $R_t$, and $b$, representing the dispersion, central density, core radius, tidal radius, and background level, respectively.}
+\label{tab:king}
+\end{table*}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/king_rdp.pdf}
+    \caption{This figure illustrates the density profiles of the cluster based on the 2-parameter and 3-parameter King models, utilizing the obtained parameters. The black points represent the observed density profile (RDP), with error bars denoting the associated uncertainties. The fuchsia curve represents the 3-parameter King model, while the blue curve represents the 2-parameter King model. The $x$-axis represents the radial distance ($r$) in arcminutes, and the $y$-axis represents the stellar density ($\rho$) in units of stars per square arcminute. The shaded region around the 3-parameter King model curve indicates the uncertainty range. Red dashed lines indicate the estimated core radius ($R_c$), tidal radius ($R_t$), and cluster radius ($R_{cl}$). The green dashed line represents the mean background density ($b$).}
+    \label{fig:king}
+\end{figure}
+
+\section{Discussion and Conclusion}\label{discussion}
+
+This study employed Bayesian analysis to investigate the properties and membership of the open cluster NGC 6383, with particular attention given to the central binary system HD 159176. The analysis incorporated multiple observational parameters, including parallax and proper motion, to assess cluster membership and identify chance alignments. The results revealed a high-probability cluster membership for a significant number of stars within the NGC 6383 region, indicating a cohesive and dynamically bound stellar population.
+
+The derived astrometric parameters, such as parallax and proper motion, were compared with the values reported by the authors of the paper. The agreement between the observed and predicted values suggests that the astrometric measurements are reliable and accurate, providing a solid foundation for the analysis. This consistency further supports the authors' findings and strengthens the case for NGC 6383 being a genuine open cluster within the Milky Way.
+
+The Bayesian analysis also revealed that the measured mean parallax and proper motion values, along with their uncertainties, were in agreement with the values reported in the previous paper. This alignment between the two sets of measurements reinforces the robustness of the analysis and strengthens the previous authors claims regarding the cluster's properties.
+
+However, the analysis identified the central binary system HD 159176 as a potential outlier within NGC 6383. The clustering algorithm, HDBSCAN, did not include this binary system in the cluster, and the parallax and proper motion analysis also suggested that it may not be a true member of NGC 6383. This discrepancy is a notable and remarkable finding that warrants further investigation.
+
+The authors' findings, along with the results of the Bayesian analysis, support the notion that HD 159176 may not belong to NGC 6383. The lack of inclusion by HDBSCAN and the inconsistency in parallax and proper motion measurements further support this conclusion. The presence of this central binary system as a potential non-member highlights the need for caution when analyzing open clusters and considering the presence of chance alignments.
+
+The successful application of Bayesian analysis in this study enhances our understanding of NGC 6383 and its stellar population. The agreement between the derived astrometric parameters and the values reported in the literature improves the reliability of the analysis and the credibility of the results. The exclusion of HD 159176 as a potential non-member demonstrates the capability of Bayesian methods to identify and assess outlier objects within a cluster.
+
+This study not only provides valuable insights into NGC 6383 but also highlights the potential of Bayesian analysis in the analysis of open clusters more broadly. By considering the full probability distributions of astrometric parameters, Bayesian analysis offers a robust and comprehensive approach to assessing cluster membership and characterizing uncertainties. This methodology opens up new avenues for future research, enabling a more detailed and nuanced analysis of open clusters in the Milky Way.
+
+\section{Conclusion}
+
+In conclusion, the application of Bayesian analysis to the study of NGC 6383 has yielded compelling results. The analysis supports the cohesive nature of the cluster and its membership within the Milky Way. The identification of the central binary system HD 159176 as a potential non-member provides a notable finding and underscores the importance of cautious interpretation in cluster analyses. The successful application of Bayesian methods in this study establishes a solid foundation for future investigations into open clusters, expanding our understanding of the Milky Way's stellar populations and their dynamics.
+
+\bibliographystyle{mnras}
+\bibliography{cites}
+\appendix
+
+\section{Extra figures}
+
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{Figures/parallax_trace.pdf}
+    \caption{This figure displays the trace plot of parallax and distance for the Bayesian analysis. It provides insights into the posterior distribution of the proper motion parameter and allows for the assessment of convergence and uncertainty.}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{Figures/trace_pm.pdf}
+    \caption{This figure displays the trace plot of the proper motion parameter $\mu$ for the Bayesian analysis. It provides insights into the posterior distribution of the proper motion parameter and allows for the assessment of convergence and uncertainty.}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{Figures/trace_summary_king_2p.pdf}
+    \caption{This figure presents the trace plot and summary statistics for the two-parameter King profile obtained from the Bayesian analysis. It offers a visual representation of the posterior distribution of the parameters, along with important statistical summaries.}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=0.8\textwidth]{Figures/trace_summary_king.pdf}
+    \caption{This figure showcases the trace plot and summary statistics of the King profile parameters obtained from the Bayesian analysis. The trace plot illustrates the posterior distribution of the parameters, while the summary statistics provide key information such as mean, standard deviation, and credible intervals.}
+\end{figure*}
+\begin{figure*}
+	\centering
+	\includegraphics[width=\textwidth]{Figures/ngc6383_pm_sky_cluster_specific.pdf}
+    \caption{This figure depicts the equatorial coordinates and proper motions of the members of the NGC 6383 open cluster. The left panel shows the scatter plot of member positions in equatorial coordinates (right ascension, $\alpha$, and declination, $\delta$). The color-coded points represent the probability of cluster membership. Error bars indicate the uncertainties in the coordinates. The right panel displays the scatter plot of proper motions ($\mu_alpha*)$ and $\mu_\delta)$ for the cluster members. Again, the color of the points corresponds to the probability of membership, and error bars represent the uncertainties in the proper motions. The colorbar on the right indicates the probability values.}
+\end{figure*}
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/king_graph.pdf.pdf}
+    \caption{Graphical model representation of the 3-parameter King profile for the density distribution within the cluster.}
+    \label{fig:3king_model}
+\end{figure}
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/king_2p_graph.pdf.pdf}
+    \caption{Graphical model representation of the 2-parameter King profile for the density distribution within the cluster.}
+    \label{fig:2king_model}
+\end{figure}
+\begin{figure}
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/pm_model_graph.pdf.pdf}
+    \caption{Graphical model representation of the proper motion distribution within the cluster.}
+    \label{fig:pm_model}
+\end{figure}
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\columnwidth]{Figures/parallax_model_graph.pdf}
+    \caption{Graphical representation of the parallax model implemented for NGC 6383, showing the prior distribution of distance $d$ and the likelihood function $P(\varpi \mid d,\sigma)$.}
+    \label{fig:parallax_model}
+\end{figure}
+\bsp
+\label{lastpage}
+
+\end{document}

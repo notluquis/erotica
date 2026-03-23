@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+.jupyter/
+
+# Experiments - sensitive notebooks
+experiments/Download_data.ipynb
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+
+# mypy
+.mypy_cache/
+
+# Astronomy / data artifacts
+*.fits
+data/cache/
+data/precomp/
+
+# OS
+**/.DS_Store
+Thumbs.db

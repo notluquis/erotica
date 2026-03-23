@@ -1,0 +1,555 @@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ************************** AVISO IMPORTANTE **************************    %
+%                                                                            %
+% Éste es un documento de ayuda para los autores que deseen enviar           %
+% trabajos para su consideración en el Boletín de la Asociación Argentina    %
+% de Astronomía.                                                             %
+%                                                                            %
+% Los comentarios en este archivo contienen instrucciones sobre el formato   %
+% obligatorio del mismo, que complementan los instructivos web y PDF.        %
+% Por favor léalos.                                                          %
+%                                                                            %
+%  -No borre los comentarios en este archivo.                                %
+%  -No puede usarse \newcommand o definiciones personalizadas.               %
+%  -SiGMa no acepta artículos con errores de compilación. Antes de enviarlo  %
+%   asegúrese que los cuatro pasos de compilación (pdflatex/bibtex/pdflatex/ %
+%   pdflatex) no arrojan errores en su terminal. Esta es la causa más        %
+%   frecuente de errores de envío. Los mensajes de "warning" en cambio son   %
+%   en principio ignorados por SiGMa.                                        %
+%                                                                            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ************************** IMPORTANT NOTE ******************************  %
+%                                                                            %
+%  This is a help file for authors who are preparing manuscripts to be       %
+%  considered for publication in the Boletín de la Asociación Argentina      %
+%  de Astronomía.                                                            %
+%                                                                            %
+%  The comments in this file give instructions about the manuscripts'        %
+%  mandatory format, complementing the instructions distributed in the BAAA  %
+%  web and in PDF. Please read them carefully                                %
+%                                                                            %
+%  -Do not delete the comments in this file.                                 %
+%  -Using \newcommand or custom definitions is not allowed.                  %
+%  -SiGMa does not accept articles with compilation errors. Before submission%
+%   make sure the four compilation steps (pdflatex/bibtex/pdflatex/pdflatex) %
+%   do not produce errors in your terminal. This is the most frequent cause  %
+%   of submission failure. "Warning" messsages are in principle bypassed     %
+%   by SiGMa.                                                                %
+%                                                                            % 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[baaa]{baaa}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ******************** Paquetes Latex / Latex Packages *******************  %
+%                                                                            %
+%  -Por favor NO MODIFIQUE estos comandos.                                   %
+%  -Si su editor de texto no codifica en UTF8, modifique el paquete          %
+%  'inputenc'.                                                               %
+%                                                                            %
+%  -Please DO NOT CHANGE these commands.                                     %
+%  -If your text editor does not encodes in UTF8, please change the          %
+%  'inputec' package                                                         %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+\usepackage[pdftex]{hyperref}
+\usepackage{subfigure}
+\usepackage{natbib}
+\usepackage{helvet,soul}
+\usepackage[font=small]{caption}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  *************************** Idioma / Language **************************  %
+%                                                                            %
+%  -Ver en la sección 3 "Idioma" para mas información                        %
+%  -Seleccione el idioma de su contribución (opción numérica).               %
+%  -Todas las partes del documento (titulo, texto, figuras, tablas, etc.)    %
+%   DEBEN estar en el mismo idioma.                                          %
+%                                                                            %
+%  -Select the language of your contribution (numeric option)                %
+%  -All parts of the document (title, text, figures, tables, etc.) MUST  be  %
+%   in the same language.                                                    %
+%                                                                            %
+%  0: Castellano / Spanish                                                   %
+%  1: Inglés / English                                                       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\contriblanguage{1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  *************** Tipo de contribución / Contribution type ***************  %
+%                                                                            %
+%  -Seleccione el tipo de contribución solicitada (opción numérica).         %
+%                                                                            %
+%  -Select the requested contribution type (numeric option)                  %
+%                                                                            %
+%  1: Presentación mural / Poster                                            %
+%  2: Presentación oral / Oral contribution                                  %
+%  3: Informe invitado / Invited report                                      %
+%  4: Mesa redonda / Round table                                             %
+%  5: Presentación Premio Varsavsky / Varsavsky Prize contribution           %
+%  6: Presentación Premio Sahade / Sahade Prize contribution                 %
+%  7: Presentación Premio Sérsic / Sérsic Prize contribution                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\contribtype{1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ********************* Área temática / Subject area *********************  %
+%                                                                            %
+%  -Seleccione el área temática de su contribución (opción numérica).        %
+%                                                                            %
+%  -Select the subject area of your contribution (numeric option)            %
+%                                                                            %
+%  1 : SH    - Sol y Heliosfera / Sun and Heliosphere                        %
+%  2 : SSE   - Sistema Solar y Extrasolares  / Solar and Extrasolar Systems  %
+%  3 : AE    - Astrofísica Estelar / Stellar Astrophysics                    %
+%  4 : SE    - Sistemas Estelares / Stellar Systems                          %
+%  5 : MI    - Medio Interestelar / Interstellar Medium                      %
+%  6 : EG    - Estructura Galáctica / Galactic Structure                     %
+%  7 : AEC   - Astrofísica Extragaláctica y Cosmología /                      %
+%              Extragalactic Astrophysics and Cosmology                      %
+%  8 : OCPAE - Objetos Compactos y Procesos de Altas Energías /              %
+%              Compact Objetcs and High-Energy Processes                     %
+%  9 : ICSA  - Instrumentación y Caracterización de Sitios Astronómicos
+%              Instrumentation and Astronomical Site Characterization        %
+% 10 : AGE   - Astrometría y Geodesia Espacial
+% 11 : HEDA  - Historia, Enseñanza y Divulgación de la Astronomía
+% 12 : O     - Otros
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\thematicarea{4}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  *************************** Título / Title *****************************  %
+%                                                                            %
+%  -DEBE estar en minúsculas (salvo la primer letra) y ser conciso.          %
+%  -Para dividir un título largo en más líneas, utilizar el corte            %
+%   de línea (\\).                                                           %
+%                                                                            %
+%  -It MUST NOT be capitalized (except for the first letter) and be concise. %
+%  -In order to split a long title across two or more lines,                 %
+%   please use linebreaks (\\).                                              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{float}
+\usepackage{booktabs}
+\title{Bayesian characterization of the young open cluster NGC 6383 using HDBSCAN and Gaia DR3}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ******************* Título encabezado / Running title ******************  %
+%                                                                            %
+%  -Seleccione un título corto para el encabezado de las páginas pares.      %
+%                                                                            %
+%  -Select a short title to appear in the header of even pages.              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\titlerunning{Bayesian characterization of NGC 6383}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ******************* Lista de autores / Authors list ********************  %
+%                                                                            %
+%  -Ver en la sección 3 "Autores" para mas información                       % 
+%  -Los autores DEBEN estar separados por comas, excepto el último que       %
+%   se separar con \&.                                                       %
+%  -El formato de DEBE ser: S.W. Hawking (iniciales luego apellidos, sin     %
+%   comas ni espacios entre las iniciales).                                  %
+%                                                                            %
+%  -Authors MUST be separated by commas, except the last one that is         %
+%   separated using \&.                                                      %
+%  -The format MUST be: S.W. Hawking (initials followed by family name,      %
+%   avoid commas and blanks between initials).                               %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\author{
+L.M. Escobar-Pulgar \inst{1} \& N.A. Henríquez-Salgado\inst{1}}
+
+\authorrunning{Escobar-Pulgar et al.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  **************** E-mail de contacto / Contact e-mail *******************  %
+%                                                                            %
+%  -Por favor provea UNA ÚNICA dirección de e-mail de contacto.              %
+%                                                                            %
+%  -Please provide A SINGLE contact e-mail address.                          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\contact{lescobar2019@udec.cl}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ********************* Afiliaciones / Affiliations **********************  %
+%                                                                            %
+%  -La lista de afiliaciones debe seguir el formato especificado en la       %
+%   sección 3.4 "Afiliaciones".                                              %
+%                                                                            %
+%  -The list of affiliations must comply with the format specified in        %          
+%   section 3.4 "Afiliaciones".                                              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\institute{Departamento de Astronom{\'\i}a, Universidad de Concepci\'on, Chile
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  *************************** Resumen / Summary **************************  %
+%                                                                            %
+%  -Ver en la sección 3 "Resumen" para mas información                       %
+%  -Debe estar escrito en castellano y en inglés.                            %
+%  -Debe consistir de un solo párrafo con un máximo de 1500 (mil quinientos) %
+%   caracteres, incluyendo espacios.                                         %
+%                                                                            %
+%  -Must be written in Spanish and in English.                               %
+%  -Must consist of a single paragraph with a maximum  of 1500 (one thousand %
+%   five hundred) characters, including spaces.                              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\resumen{Este estudio se centra en determinar las características del joven cúmulo abierto NGC 6383. Para ello, se utiliza el algoritmo de clustering HDBSCAN para identificar posibles miembros del cúmulo basándose en coordenadas galácticas, movimientos propios y paralajes obtenidos de Gaia DR3. Evaluamos diversos parámetros, como el radio de marea, del cúmulo y del núcleo, la distancia mediante paralaje y ajuste de isocrona, el movimiento propio, la edad, la metalicidad y otros parámetros pertinentes de NGC 6383 utilizando una extensión de Hamiltonian Monte Carlo, el No-U-Turn Sampler. Los resultados de este análisis apuntan a que NGC 6383 es un cúmulo abierto muy joven. Además, nuestra investigación revela que la histórica binaria central HD 159176 no es miembro del cúmulo, lo que conduce a una revisión de su edad. Los hallazgos de este estudio contribuyen a nuestra comprensión de NGC 6383 al proporcionar una caracterización más precisa y detallada.}
+
+\abstract{This study focuses on determining the characteristics of the young open cluster NGC 6383. To achieve this, the HDBSCAN clustering algorithm is utilized to identify potential cluster members based on galactic coordinates, proper motions, and parallaxes sourced from Gaia DR3. We assess diverse parameters such as the tidal, cluster, and core radius, distance through parallax and isochrone-fitting, proper motion, age, metallicity, and other pertinent parameters of NGC 6383 using an extension to Hamiltonian Monte Carlo, the No-U-Turn Sampler. The results of this analysis point to NGC 6383 being a very young open cluster. Furthermore, our investigation reveals that the historical central binary HD 159176 is not a member of the cluster, leading to a revision of its age. The findings of this study contribute to our understanding of NGC 6383 by providing a more accurate and detailed characterization.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                            %
+%  Seleccione las palabras clave que describen su contribución. Las mismas   %
+%  son obligatorias, y deben tomarse de la lista de la American Astronomical %
+%  Society (AAS), que se encuentra en la página web indicada abajo.          %
+%                                                                            %
+%  Select the keywords that describe your contribution. They are mandatory,  %
+%  and must be taken from the list of the American Astronomical Society      %
+%  (AAS), which is available at the webpage quoted below.                    %
+%                                                                            %
+%  https://journals.aas.org/keywords-2013/                                   %
+%                                                                            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\keywords{open clusters and associations: individual --- galaxies: star clusters: general --- stars: distances --- techniques: photometric — parallaxes — proper motions}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+An accurate determination of cluster membership is essential for understanding the cluster's physical properties, such as its age, distance, and chemical composition. Some techniques employed to determinate the membership of the sources are the selection through the Color-Magnitude diagram (CMD), proper motions, radial velocities, parallax and recently, Bayesian analysis. This mixture of different techniques results in a range of values from different investigations, sometimes agreed between each other, and in other revealing some failures and errors on the methodology of previous authors. \citep{1930LicOB..14..154T, 1937LicOB..18...89Z, 1949ApJ...110..117S, 2018A&A...610A..30A, 1978MNRAS.182..607F, 1989MNRAS.236..263P, 1991MNRAS.249...76B, 2005A&A...438.1163K, 2007A&A...462..157P, 1968ArA.....5....1L}
+
+\subsection{NGC 6383}\label{sec:literature}
+
+NGC 6383\footnote{NGC 6383, also referred to as NGC 6374 in the New General Catalog and classified as Collinder 334 and Collinder 335 in the Collinder catalog, was initially misclassified in the original Collinder catalog. \citep{1931AnLun...2....1C}} is a young open cluster located in the Carina-Sagittarius arm, situated in the \textit{Sh 2-012}\footnote{Also known as RCW 132 \citep{1960MNRAS.121..103R} or Gum 67} star formation region and it forms part of the larger Sagittarius OB1 association together with NGC 6530 and NGC 6531 \citep{2008hsf2.book..497R}. The equatorial coordinates (ICRS)  of the cluster are $\alpha_{2015.5} = 17^h34^m41.5$ and $\delta_{2015.5} = -32^\circ34^m23$ \citep{2020A&A...633A..99C}, and the galactic coordinates are $\ell = 355.68$ and $b= 0.05$ \citep{2017A&A...600A.106C}, with a radial velocity of $-1.2 \pm 4.9\mathrm{km\,s^{-1}}$ \citep{2017A&A...600A.106C} and a proper motion of $\mu_\alpha = 2.596 \pm 0.018\,mas\,yr^{-1}$ and $\mu_\delta = -1.708\pm 0.016\, mas\,yr^{-1}$ \citep{2020A&A...633A..99C}.
+
+Several authors have derived distances to the cluster, an upper limit of $2130\,pc$ in \citet{1930LicOB..14..154T} and \citet{1937LicOB..18...89Z}, and a lower limit of $760\,pc$ and $834\,pc$ in \citet{1949ApJ...110..117S} and \citet{2018A&A...610A..30A}, respectively. It has an angular size of $20\,arcmin$ \citep{2013A&A...560A..76M} and an estimated age in the range of $1.7$ to $5\,Myr$ \citep{1978MNRAS.182..607F,1989MNRAS.236..263P,1991MNRAS.249...76B,2005A&A...438.1163K,2007A&A...462..157P}; however, \citet{1968ArA.....5....1L} calculates an age of $20\,Myr$. \citet{2008hsf2.book..497R} estimated  reddening $E(B-V) = 0.32 \pm 0.02$, which is consistent with previous authors such as \citet{1971A&AS....4..241B,1978MNRAS.182..607F,1978MNRAS.184..661L,1985A&A...151..391T,1989MNRAS.236..263P,1994RMxAA..29..141F,2007A&A...462..157P}, but in disagreement with \citet{2018A&A...610A..30A} who determinate a reddening of $E(B-V) = 0.51 \pm 0.03$. This reddening is produced by a surrounding large shell-structured ionized HII with a radius of $\sim 1\deg$, that was likely ionized by its central star, HD 159176. 
+
+\subsection{HD 159176}
+HD 159176 is a contact binary system composed of O7V type stars and is a well-studied X-ray double-line binary. This system is responsible for ionizing the HII region. The estimated age of HD 159176 is around $2.3-2.8$\,Myr \citep{2010A&A...511A..25R}. Through a careful analysis of both the ages of the cluster and its central star system, it is suggested that the center star is older than the cluster itself. Furthermore, \citet{1978MNRAS.182..607F} proposed that HD 159176 initiated star formation in the cluster's core and beyond.
+
+In the study by \citet{2018A&A...610A..30A}, it is hypothesized that if the stars numbered as \textit{Star No. 6} are considered to have started to evolve and if HD 159176 is a blue straggler, then the age of the cluster could be between $6$ and $10\,Myr$.
+
+Furthermore, NGC 6383 exhibits a population of Pre-Main Sequence Stars (PMS), which are sources that have recently started their main sequence evolution. The age of the cluster and the presence of PMS stars have been subjects of intense debate in the field.
+
+\subsection{Objectives}
+
+By applying Bayesian analysis techniques to the cluster, we aim to contribute to the understanding of NGC 6383, resolve uncertainties regarding its age, and shed light on the evolutionary processes occurring within the cluster.
+
+Despite extensive studies on NGC 6383, the determination of cluster parameters such as age, distance, and reddening still presents challenges due to variations in methodology and discrepancies among different studies. To date, there has been no application of Bayesian analysis to characterize the cluster and determine the membership of its stars. The inclusion of Bayesian analysis techniques in the investigation of NGC 6383 can provide valuable insights into the cluster's properties and improve our understanding of the stellar population within the cluster.
+
+In this study, we present a Bayesian characterization of the young open cluster NGC 6383 using HDBSCAN and Gaia DR3 data. We discuss the challenges involved in determining cluster membership and accurately estimating cluster properties. By employing a Bayesian framework, we aim to provide a robust and comprehensive analysis of NGC 6383, addressing the limitations of previous studies and offering new insights into the cluster's age, distance, reddening, and stellar population.
+
+The specific objectives of this study are as follows:
+\begin{itemize}
+    \item To apply the HDBSCAN clustering algorithm to the data from Gaia Data Release 3.
+\item To use various features such as coordinates, proper motions, and parallaxes to identify the membership of stars in NGC 6383.
+\item To obtain a more precise age and metallicity of NGC 6383.
+\item To provide accurate data on the properties and behavior of NGC 6383 for future investigations.
+\end{itemize}
+
+By fulfilling these specific objectives, the study aims to provide a more comprehensive understanding of the characteristics of NGC 6383 and contribute to the field of open cluster research. 
+
+The proposed application of the HDBSCAN clustering algorithm will allow for the identification of more precise membership probabilities, which will provide more reliable data for future investigations of this cluster.
+
+This work is structured as follows: Section \ref{methodology} describes the data quality controls and analysis techniques employed. Section \ref{results} presents the obtained results. Section \ref{discussion} provides the discussion of the study and a brief discussion on the central binary. Finally, in Section \ref{conclusions}, we provide a summary of the information obtained and discuss future perspectives.
+
+\section{Analysis and Results}
+\subsection{Data and Quality process}
+\subsubsection{Data Acquisition}
+
+The data set used in this study was obtained from the third data release of the Gaia mission (DR3), which was made publicly available in early 2022 \citep{2016A&A...595A...1G,2022arXiv220800211G}. This data set contains comprehensive astrometric solutions, including positions, parallax, and proper motion for approximately $1.46$ billion sources, with a bright limit of $G \approx 3$ and a limiting magnitude of $G \approx 21$. The use of this data set provides numerous advantages, including high accuracy and precision in measurements, large sample sizes, and a wide range of astrophysical applications.
+
+To acquire the data, a cone search with a radius of $25\,arcmin$ was performed on the \href{https://gea.esac.esa.int/archive/}{Gaia Archive} using the name resolved by Sesame Strasbourg (Simbad-NED-VizieR). The search returned a total of $71847$ sources.
+
+\subsubsection{Data Filtering}
+
+The dataset was filtered to include only sources with distances within the range of $500\,pc$ to $2500\,pc$, corresponding to the upper and lower distance limits reported in the literature (Section \ref{sec:literature}). This was accomplished by selecting sources with parallax measurements between $0.4\,mas$ and $2\,mas$. Sources with negative parallax measurements were excluded, as these may be the result of uncertainties in the Gaia DR3 data or even quasars, as suggested by \citet{2018A&A...616A...9L}.
+
+Only sources with parallax measurement uncertainties below $0.5\, mas$ were considered, resulting in a subset of $14002$ sources. A small fraction of these sources may have poor astrometric solutions, and the reported values and uncertainties may not be reliable. Therefore, following the \textit{astrometric fidelity} parameter provided by \citet{2022MNRAS.510.2597R}, sources with a value of \textit{astrometric fidelity} greater than $0.5$ were selected, leaving a final subset of $10951$ sources.
+
+This \textit{astrometric fidelity} parameter, is a metric that takes into account various aspects of the astrometric solution. It provides a measure of the reliability of the astrometric solution for a given source, and it was calculated using a neural network that was trained using 17 pertinent Gaia catalog entries and information, as described in detail in the respective paper.
+
+Among the $10951$ sources, it is important to select only the data that has valid parameters, in special the position $(\alpha,\delta,\ell,b)$, proper motions $(\mu_{\alpha*},\mu_\delta)$, parallax ($\varpi$) and the magnitudes $(G, G_{BP}, G_{RP})$, only $10867$ of the sources has valid parameters.
+
+\subsubsection{Systematic Gaia DR3 Parallax Offset}
+The Gaia DR3 parallax measurements exhibit a systematic offset as discussed in \citet{2021A&A...649A...4L}, and the zero-point correction for this offset was calculated using the \texttt{Gaiadr3\_zeropoint} package, which provides analytical functions to estimate the expected parallax zero-point based on factors such as ecliptic latitude, magnitude, and color for any Gaia (e)DR3 source.
+
+To obtain the corrected parallax, we apply the following formula:
+\begin{align*}
+\varpi_{\text{corr},i} = \varpi_i - Z(\boldsymbol{x}_i)
+\end{align*}
+where $\varpi_{\text{corr},i}$ represents the corrected parallax for the $i$-th source, $\varpi_i$ denotes the Gaia parallax for the $i$-th source, and $Z(\boldsymbol{x}_i)$ represents the zero-point correction calculated based on the ecliptic latitude, magnitude, and color of the $i$-th source.
+
+For simplicity, we will refer to the corrected parallax $\varpi_{\text{corr},i}$ as the parallax $\varpi$ in the subsequent analysis.
+
+\subsubsection{Gaia Proper Motion}
+
+A correction to the proper motions need to be  applied to account the rotational differences between the reference frames of bright and faint sources in the Gaia EDR3 catalog\footnote{The astrometry and photometry for the sources in the full DR3 is exactly the same.}. The correction is necessary to align the proper motions of bright stars with the International Celestial Reference Frame (ICRF), as is explained in the study conducted by \citet{2021A&A...649A.124C}.
+
+The correction involves computing the difference between the observed proper motions and the expected proper motions based on the spin parameters listed in the study.
+
+Applying this correction to the proper motions data ensures that the proper motions of bright stars are aligned with the ICRF and reduces the bias introduced by the rotational differences. The corrected proper motions can then be used for further analysis, such as determining kinematic properties, membership in stellar clusters, or studying the dynamics of the Milky Way.
+
+\subsection{Membership Determination}\label{Membership Determination}
+
+To identify potential members of the stellar cluster NGC 6383, we employed the HDBSCAN clustering algorithm in this study.
+
+HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications with Noise) is a density-based clustering algorithm that can identify clusters of varying densities and sizes in a dataset. This algorithm constructs a hierarchical representation of the data, where each level represents a different level of clustering granularity. It starts by computing the mutual reachability distance between points in the dataset, which measures the minimum density required for two points to be considered neighbors. This allows the algorithm to identify regions of high density, which are then merged into clusters \citep{McInnes2017}.
+
+HDBSCAN offers several advantages over other clustering algorithms. It can handle clusters of different sizes and shapes, it can identify noise points, and it can automatically determine the optimal number of clusters without requiring a predetermined value. Furthermore, HDBSCAN does not require the specification of a fixed number of clusters, which can be challenging to determine in advance.
+
+The HDBSCAN algorithm works by using an inexpensive estimate of density, known as the $k$th nearest neighbor. In simple terms, the goal is to find clusters in the data by identifying denser regions and differentiating them from sparser regions, which are considered as noise. The density of points is estimated using the distance to the $k$th nearest neighbor, known as the core distance ($\text{core}_k(x)$) for a point $x$.
+
+To make the clustering algorithm more robust to noise, a new distance metric called the mutual reachability distance is defined. The mutual reachability distance between two points $a$ and $b$, denoted as $d_{\text{mreach}-k}(a, b)$, is calculated as the maximum value among the core distances of $a$ and $b$, as well as the original distance $d(a, b)$. In other words:
+
+\begin{equation*}
+d_{\text{mreach}-k}(a, b) = \text{max}\{\text{core}_k(a), \text{core}_k(b), d(a, b)\}
+\end{equation*}
+
+By using this metric, dense points (with low core distances) remain close to each other, while sparser points are pushed away to be at least their core distance away from any other point. This effectively separates denser regions from sparser regions.
+
+This approach helps identify clusters by distinguishing denser regions from noise, making the clustering algorithm more robust to outliers and noisy data.
+
+For our analysis, HDBSCAN was applied to the remaining $10,951$ sources using all five astrometry parameters, including galactic coordinates ($\ell$, $b$), proper motion in Right Ascension and Declination, and parallax. However, we discarded the option to use Galactocentric coordinates ($X$, $Y$, $Z$) because converting between galactic coordinates and Galactocentric coordinates introduces uncertainties in the data, and HDBSCAN cannot handle errors. The following subsection provides a detailed explanation of the methodology employed in using HDBSCAN for this purpose.
+
+\subsubsection{HDBSCAN Hyperparameters}
+
+The hyperparameters used for HDBSCAN were as follows: the best algorithm (\texttt{algorithm="best"}), Euclidean distance metric (\texttt{metric="euclidean"}), and a minimal cluster size of $120$ (\texttt{min\_cluster\_size=120}).
+
+HDBSCAN offers algorithm variants specialized for different data characteristics, such as \texttt{prims\_kdtree}, \texttt{prims\_balltree}, \texttt{boruvka\_kdtree}, and \texttt{boruvka\_balltree}. By selecting \texttt{best}, HDBSCAN automatically chooses the best algorithm based on the nature of the data.
+
+The minimal cluster size was chosen according to \citet{2021A&A...646A.104H}. A smaller minimal cluster size value would split the hierarchical graph further, resulting in more nested solutions. On the other hand, a larger value would merge small groups and reduce the number of false-positive associations in the dataset. By selecting a minimal cluster size of 120, we balanced the sensitivity to small clusters while avoiding false positives.
+
+\subsubsection{NGC 6383 Members}
+
+The clustering algorithm produced two clusters and noise, with cluster numbers $0$, $1$, and $-1$, respectively. Upon further analysis, it was found that cluster No. $0$ corresponded to a statistical cluster of field sources rather than a real cluster. NGC 6383 was identified as cluster No. $1$.
+
+After filtering for sources with a probability greater than $80$ percent, only 268 members out of the 505 sources assigned to NGC 6383 were retained.
+
+The distribution of the sources' probabilities can be seen in Figure \ref{fig:probabilities}, and the condensed cluster tree of the sources is shown in Figure \ref{fig:condensed_cluster_tree}.
+
+\begin{figure}[H]
+	\includegraphics[width=\columnwidth]{Figures/condensed_cluster_tree_NGC6383.pdf}
+    \caption{The condensed cluster tree exhibits the hierarchical structure of the cluster system, elucidating the proximity or potential merger of clusters as well as their degree of separation. The dendrogram representation displays the cluster hierarchy, wherein the width (and color) of each branch depicts the number of points in the cluster at that level. Specifically, the plot illustrates the NGC 6383 cluster sources on the left side, while the HDBSCAN-identified field sources are situated on the right side. The color bar corresponds to the number of sources at each level, while the $\lambda$ value corresponds to $\frac{1}{\texttt{distance}}$.}
+    \label{fig:condensed_cluster_tree}
+\end{figure}
+
+\begin{figure}[H]
+	\includegraphics[width=\columnwidth]{Figures/probabilies.pdf}
+    \caption{Distribution of probabilities for the sources assigned to NGC 6383.}
+    \label{fig:probabilities}
+\end{figure}
+
+\subsection{PyMC}
+
+To determine various characteristics of NGC 6383, such as the mean parallax and the mean proper motion, the \texttt{PyMC} package is utilized.
+
+PyMC \footnote{Available at \href{https://github.com/pymc-devs/pymc}{https://github.com/pymc-devs/pymc}} is a Python package for Bayesian statistical modeling that focuses on advanced Markov chain Monte Carlo (MCMC) and variational inference (VI) algorithms. Its flexibility and extensibility make it applicable to a wide range of problems, making it an ideal choice for applying Bayesian analysis to NGC 6383 \citep{Wiecki}.
+
+PyMC aims to simplify Bayesian modeling, making it more modern, user-friendly, fast, and open-source. One of the key reasons for choosing PyMC is its user-friendly implementation, particularly when setting the prior distribution, which is generally a Normal distribution.
+
+In addition, the sampling process is performed using the No-U-Turn Sampler (NUTS) implementation. The "no U-turn" aspect refers to how proposals are generated. Hamiltonian Monte Carlo (HMC) generates a hypothetical physical system, akin to a ball with a certain kinetic energy rolling around a landscape characterized by the posterior distribution from which you want to sample. When taking a new MCMC sample, the kinetic energy is randomly chosen, and the ball starts rolling from its current position. The simulation occurs in discrete time steps, with a balanced exploration of the parameter space—taking steps in one direction and then twice as many in the opposite direction, and repeating. Eventually, the sampling process stops when a U-turn occurs, indicating that the ball has explored the parameter space sufficiently.
+
+At this point, the proposed next step of the Markov Chain is chosen from the previously visited points, subject to certain constraints. In other words, the simulation of the hypothetical physical system serves to generate a proposal that is either accepted (becoming the next MCMC sample) or rejected (with the starting point becoming the next MCMC sample).
+
+The clever aspect of NUTS is that the proposals are made based on the shape of the posterior distribution and can be located at different regions of the distribution. In contrast, the Metropolis-Hastings algorithm generates proposals within a possibly skewed ball, and Gibbs sampling only moves along one or a few dimensions at a time \citep{phan2019composable}.
+
+\subsection{Parallax and Distance}
+
+Parallax measurements play a crucial role in determining astronomical distances, providing a valuable alternative to relying solely on assumptions about the inherent properties of celestial objects. However, estimating distances from parallaxes is not a straightforward process due to the presence of measurement errors. In practice, converting a parallax into a distance involves an inference process that requires making assumptions and can introduce significant uncertainties, even when the errors are relatively small.
+
+In the specific case of determining the distance to NGC 6383, we utilize parallax measurements and employ Bayesian inference techniques. A crucial aspect of this approach lies in establishing the prior distribution, which raises the fundamental question: \textit{What is the most probable distance to the cluster?} Although this question may seem deceptively simple, careful consideration of the prior distribution is essential. Given that the cluster exhibits a denser concentration towards its center, it is reasonable to assume a priori that the distances of the cluster members follow a normal distribution.
+
+Consequently, the probability distribution of a distance, denoted as $d$, given the observed parallax $\varpi$ with uncertainty $\sigma$, can be expressed as:
+
+\begin{equation*}
+P(d\mid \varpi,\sigma) = \frac{1}{Z}P(\varpi \mid d,\sigma)P(d)
+\end{equation*}
+
+Here, $Z$ represents the normalization constant:
+
+\begin{equation*}
+Z = \int_{0}^\infty P(\varpi \mid d',\sigma)P(d') dd'
+\end{equation*}
+
+To model the measurements, we assume that for a star located at the true distance $d_{\text{true}}$, the true but unknown parallax is $\frac{1}{r}$. The measured parallax $\varpi$ corresponds to a noisy estimation of $\frac{1}{r}$. We adopt a normal distribution to represent the distribution of $\varpi$, with an unknown mean of $\frac{1}{r}$ and a known standard deviation of $\sigma$. In other words, we assume that $\varpi$ is drawn from the following distribution:
+
+\begin{equation*}
+P(\varpi \mid d,\sigma) = \frac{1}{\sqrt{2\pi \sigma^2}} \exp{\left[ - \frac{\left(\varpi - \frac{1}{d}\right)^2}{2\sigma^2}\right]}
+\end{equation*}
+
+A priori, $d$ follows a truncated normal distribution with a lower limit of $0$, since $d > 0$. We utilize frequentist estimates for the mean and standard deviation, determined through propagation formulas. Specifically, the mean distance $\overline{d}$ is estimated to be $1.1\,\text{kpc}$, with a corresponding standard deviation of $\sigma = 0.011\,\text{kpc}$.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.7\columnwidth]{Figures/parallax_model_graph.pdf}
+    \caption{Graphical representation of the parallax model implemented for NGC 6383, showing the prior distribution of distance $d$, the likelihood function $P(\varpi \mid d,\sigma)$.}
+    \label{fig:parallax_model}
+\end{figure}
+
+Figure \ref{fig:parallax_model} depicts the graphical representation of the parallax model implemented.
+
+The mean parallax of NGC 6383 corresponds to $0.9154 \pm 0.033 \,mas$, and the mean distance corresponds to $1.0939 \pm 0.039 \,kpc$, as shown in Figure \ref{fig:parallax}.
+
+\begin{figure*}[H]
+	\centering
+	\includegraphics[width=\textwidth]{Figures/ngc6383_parallax_distance.pdf}
+    \caption{Scatter plot showing the relationship between parallax and distance for NGC 6383. The mean parallax and distance are indicated by horizontal and vertical lines, respectively. The spread in the data reflects the uncertainties in the parallax measurements and their conversion to distance estimates.}
+    \label{fig:parallax}
+\end{figure*}
+\subsection{Proper Motions}
+
+To model the distribution of proper motions within the cluster, we assume a two-dimensional normal distribution. This choice is based on the understanding that the motions of individual cluster members in the plane of the sky exhibit both systematic and random components. By using a 2D normal distribution, we can effectively capture the typical motion patterns and dispersion of proper motions observed among the cluster members.
+
+The two-dimensional normal distribution provides a mathematical framework to describe the probability density function (PDF) of proper motions in both the right ascension ($\mu_{\alpha}$) and declination ($\mu_{\delta}$) directions. The PDF is characterized by two essential parameters: the mean vector ($\boldsymbol{\mu}$) and the covariance matrix ($\boldsymbol{\Sigma}$). The mean vector represents the average proper motion values in each direction, while the covariance matrix describes the dispersion and correlations between the proper motions in different directions.
+
+Estimating the mean vector and covariance matrix from the observed proper motion data allows us to determine the center and shape of the proper motion distribution, respectively. This information provides valuable insights into the overall motion behavior of the cluster, including any collective motions or substructures that may be present.
+
+The multivariate normal distribution can be mathematically represented as:
+
+\begin{equation*}
+p(\mathbf{\mu} \mid \boldsymbol{\overline{\mu}}, \boldsymbol{\Sigma}) = \frac{1}{2\pi |\boldsymbol{\Sigma}|^{1/2}} \exp{\left[-\frac{1}{2} (\mathbf{\mu} - \boldsymbol{\overline{\mu}})^T \boldsymbol{\Sigma}^{-1} (\mathbf{\mu} - \boldsymbol{\overline{\mu}})\right]}
+\end{equation*}
+
+In this equation, $\mathbf{\mu} = [\mu_\alpha, \mu_\delta]$ represents the vector of two-dimensional proper motion in right ascension and declination, $\boldsymbol{\overline{\mu}} = [\overline{\mu}_\alpha, \overline{\mu}_\delta]$ denotes the mean vector, and $\boldsymbol{\Sigma}$ is the $2 \times 2$ covariance matrix. A priori, $\boldsymbol{\mu}$ follows a normal distribution $\mathcal{N}(\boldsymbol{0}, \boldsymbol{\Sigma})$, where $\boldsymbol{\Sigma} \sim \text{Exp}(1)$.
+
+By fitting this multivariate normal distribution to the proper motion data, we can estimate the mean vector $\boldsymbol{\overline{\mu}}$ and the covariance matrix $\boldsymbol{\Sigma}$, enabling us to characterize the distribution of proper motions in the cluster along both the right ascension and declination axes.
+
+The graphical model representation of the proper motion distribution is shown in Figure \ref{fig:pm_model}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/pm_model_graph.pdf.pdf}
+    \caption{Graphical model representation of the proper motion distribution within the cluster.}
+    \label{fig:pm_model}
+\end{figure}
+
+The estimated mean proper motion values are $\boldsymbol{\overline{\mu}} = (2.5341, -1.7058)\,\text{mas}\,\text{yr}^{-1}$, as shown in Figure \ref{fig:pm}.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/pm_ellipse.pdf}
+    \caption{The proper motion distribution of the cluster, represented by an ellipse. The ellipse displays the mean proper motion $\boldsymbol{\overline{\mu}}$and the covariance matrix ($\boldsymbol{\Sigma}$), representing the center and shape of the distribution, respectively.}
+    \label{fig:pm}
+\end{figure}
+
+\subsection{Radius, Center, and Radial Density Profile}
+
+To determine the tidal cluster radius, we utilize the density profile introduced by King (1962). This profile provides insights into the spatial distribution of stars within the cluster, and we consider two types: the 3-parameter King profile and the 2-parameter King profile. Both profiles capture the gradual decrease in stellar density from the cluster center to its outskirts.
+
+The 3-parameter King profile is defined as follows:
+
+\begin{equation*}
+f(R) = k \left[\frac{1}{\sqrt{1 + \left(\frac{R}{R_c}\right)^2}} - \frac{1}{\sqrt{1 + \left(\frac{R_t}{R_c}\right)^2}}\right]^2 + b
+\end{equation*}
+
+On the other hand, the 2-parameter King profile is given by:
+
+\begin{equation*}
+f(R) = \frac{k}{1 + \left(\frac{R}{R_c}\right)^2} + b
+\end{equation*}
+
+In both equations, $R$ represents the radius, $R_c$ denotes the core radius, $R_t$ is the tidal radius, $k$ is a normalization constant related to the central density, and $b$ is the background density.
+
+The 2-parameter King profile is a simpler form compared to the 3-parameter profile but still provides valuable information about the density distribution within the cluster.
+
+Both density profiles are useful for analyzing open clusters, especially in cases where the number of stars is too low to calculate demonstrative densities. The 2-parameter King profile offers more flexibility and can effectively capture density variations within the cluster region. By fitting both models to the observed data, we can assess their performance and determine which profile better describes the spatial distribution of stars in the cluster.
+
+To calculate the density of stars per unit area, we divide the cluster region into concentric annuli. We use an annulus width of 0.4 arcmin for radii ranging from 0 to 6 arcmin and 1.5 arcmin for radii between 6 and 20 arcmin. This approach allows us to analyze the radial variations in stellar density throughout the cluster region.
+
+In our Bayesian analysis, we assume prior distributions for the parameters of the density profiles. The priors we consider are as follows:
+
+\begin{align*}
+\sigma & \sim \text{HalfNormal}(5) \\
+k & \sim \text{Normal}(5, 5) \\
+R_c & \sim \text{Normal}(2, 5) \\
+R_t & \sim \text{Normal}(20, 5) \\
+b & \sim \text{Normal}(0, 3)
+\end{align*}
+
+These priors were selected based on a visual selection and following the radius described in Astorga et al. (2018). The graphical model representations of both the 2-parameter King profile and the 3-parameter King profile are shown in Figures \ref{fig:2king_model} and \ref{fig:3king_model}.
+
+By fitting these models to the observed density data, we can estimate the posterior distributions of the model parameters and make inferences about the radial density profile of the cluster.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/king_graph.pdf.pdf}
+    \caption{Graphical model representation of the 3-parameter King profile for the density distribution within the cluster.}
+    \label{fig:3king_model}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/king_2p_graph.pdf.pdf}
+    \caption{Graphical model representation of the 2-parameter King profile for the density distribution within the cluster.}
+    \label{fig:2king_model}
+\end{figure}
+
+The resulting parameters obtained from the 2-parameter and 3-parameter King models are listed in Table \ref{tab:king}, and the density profiles based on these parameters are shown in Figure \ref{fig:king}.
+
+\begin{table*}[H]
+\centering
+\resizebox{0.85\textwidth}{!}{%
+\begin{tabular}{@{}cccccccccc@{}}
+\toprule
+Parameter & Mean   & SD    & $3\%$ HDI & $97\%$ HDI & Mean  & SD    & $3\%$ HDI & $97\%$ HDI & Units \\ \midrule
+          & \multicolumn{4}{c}{3-P King's model}    & \multicolumn{4}{c}{2-P King's model}   \\ \midrule
+$\sigma$  & 0.579  & 0.113 & 0.390     & 0.790      & 0.567 & 0.111 & 0.380     & 0.773      & $stars\,arcmin^{-1}$     \\
+$k$       & 10.188 & 0.663 & 8.944     & 11.430     & 9.156 & 0.532 & 8.143     & 10.158     & $stars\,arcmin^{-1}$     \\
+$R_c$     & 1.108  & 0.121 & 0.887     & 1.340      & 1.042 & 0.102 & 0.853     & 1.237      & $arcmin$    \\
+$R_t$     & 20.564 & 4.734 & 11.665    & 29.408     & -     & -     & -         & -          & $arcmin$     \\
+$b$       & 0.235  & 0.139 & 0.000     & 0.469      & 0.177 & 0.123 & 0.000     & 0.392      &$stars\,arcmin^{-1}$     \\ \bottomrule
+\end{tabular}%
+}
+\caption{Summary of parameter estimates for the density profiles. The table displays the mean, standard deviation (SD), and the $3\%$ and $97\%$ highest density intervals (HDI) for each estimated parameter in the 3-parameter King's model and the 2-parameter King's model. The parameters include $\sigma$, $k$, $R_c$, $R_t$, and $b$, representing the dispersion, central density, core radius, tidal radius, and background level, respectively.}
+\label{tab:king}
+\end{table*}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\columnwidth]{Figures/king_rdp.pdf}
+    \caption{Density profiles based on the 2-parameter and 3-parameter King models with the obtained parameters.}
+    \label{fig:king}
+\end{figure}
+
+
+\section{Discussion and Conclusion}\label{discussion}
+\subsection{Binary HD 159176}
+
+\begin{acknowledgement}
+This work has made use of data from the European Space Agency (ESA) mission {\it Gaia} (\url{https://www.cosmos.esa.int/gaia}), processed by the {\it Gaia} Data Processing and Analysis Consortium (DPAC, \url{https://www.cosmos.esa.int/web/gaia/dpac/consortium}). Funding for the DPAC has been provided by national institutions, in particular the institutions participating in the {\it Gaia} Multilateral Agreement, and makes use of data products from the Two Micron All Sky Survey, which is a joint project of the University of Massachusetts and the Infrared Processing and Analysis Center/California Institute of Technology, funded by the National Aeronautics and Space Administration and the National Science Foundation.
+\end{acknowledgement}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  ******************* Bibliografía / Bibliography ************************  %
+%                                                                            %
+%  -Ver en la sección 3 "Bibliografía" para mas información.                 %
+%  -Debe usarse BIBTEX.                                                      %
+%  -NO MODIFIQUE las líneas de la bibliografía, salvo el nombre del archivo  %
+%   BIBTEX con la lista de citas (sin la extensión .BIB).                    %
+%                                                                            %
+%  -BIBTEX must be used.                                                     %
+%  -Please DO NOT modify the following lines, except the name of the BIBTEX  %
+%  file (whithout the .BIB extension).                                       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\bibliographystyle{baaa}
+\small
+\bibliography{bibliografia}
+ 
+\end{document}

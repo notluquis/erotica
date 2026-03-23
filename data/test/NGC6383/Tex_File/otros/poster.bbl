@@ -1,0 +1,64 @@
+\begin{thebibliography}{10}
+
+\bibitem{2018A&A...610A..30A}
+Y.~{Aidelman}, L.~S. {Cidale}, J.~{Zorec}, and J.~A. {Panei}.
+\newblock {Open clusters. III. Fundamental parameters of B stars in NGC 6087,
+  NGC 6250, NGC 6383, and NGC 6530 B-type stars with circumstellar envelopes}.
+\newblock {\em \aap}, 610:A30, February 2018.
+
+\bibitem{1978MNRAS.182..607F}
+M.~P. {Fitzgerald}, P.~D. {Jackson}, M.~{Luiken}, E.~J. {Grayzeck}, and
+  A.~F.~J. {Moffat}.
+\newblock {NGC 6383 - I. The central core.}
+\newblock {\em \mnras}, 182:607, March 1978.
+
+\bibitem{McInnes2017}
+Leland McInnes, John Healy, and Steve Astels.
+\newblock hdbscan: Hierarchical density based clustering.
+\newblock {\em The Journal of Open Source Software}, 2(11), mar 2017.
+
+\bibitem{2007A&A...462..157P}
+E.~{Paunzen}, M.~{Netopil}, and K.~{Zwintz}.
+\newblock {Investigating star formation in the young open cluster NGC 6383}.
+\newblock {\em \aap}, 462(1):157--162, January 2007.
+
+\bibitem{2015A&A...576A...6P}
+G.~I. {Perren}, R.~A. {V{\'a}zquez}, and A.~E. {Piatti}.
+\newblock {ASteCA: Automated Stellar Cluster Analysis}.
+\newblock {\em \aap}, 576:A6, April 2015.
+
+\bibitem{2010A&A...511A..25R}
+G.~{Rauw}, J.~{Manfroid}, and M.~{De Becker}.
+\newblock {A photometric and spectroscopic investigation of star formation in
+  the very young open cluster NGC 6383}.
+\newblock {\em \aap}, 511:A25, February 2010.
+
+\bibitem{1949ApJ...110..117S}
+Roscoe~F. {Sanford}.
+\newblock {Interstellar Calcium Lines in the Spectra of Stars in Open
+  Clusters.}
+\newblock {\em \apj}, 110:117, September 1949.
+
+\bibitem{1985A&A...151..391T}
+P.~S. {The}, T.~{Hageman}, B.~E. {Westerlund}, and H.~R.~E. {Tjin-A-Djie}.
+\newblock {The spectral energy distribution of stars above the ZAMS in the
+  central part of the open cluster NGC 6383.}
+\newblock {\em \aap}, 151:391--398, October 1985.
+
+\bibitem{1930LicOB..14..154T}
+Robert~Julius {Trumpler}.
+\newblock {Preliminary results on the distances, dimensions and space
+  distribution of open star clusters}.
+\newblock {\em Lick Observatory Bulletin}, 420:154--188, January 1930.
+
+\bibitem{2000A&A...362..580V}
+M.~E. {van den Ancker}, P.~S. {Th{\'e}}, and D.~{de Winter}.
+\newblock {The central part of the young open cluster NGC 6383}.
+\newblock {\em \aap}, 362:580--584, October 2000.
+
+\bibitem{1937LicOB..18...89Z}
+Richard~Seth {Zug}.
+\newblock {Color excess in three open clusters in Sagittarius}.
+\newblock {\em Lick Observatory Bulletin}, 489:89--91, January 1937.
+
+\end{thebibliography}

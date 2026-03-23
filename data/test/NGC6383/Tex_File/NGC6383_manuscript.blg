@@ -1,0 +1,60 @@
+This is BibTeX, Version 0.99d (TeX Live 2023)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: NGC6383_manuscript.aux
+The style file: mnras.bst
+Database file #1: cites.bib
+Repeated entry---line 300 of file cites.bib
+ : @article{2024arXiv240301030P
+ :                             ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 1751 of file cites.bib
+ : @misc{2022gdr3.reptE..15M
+ :                          ,
+I'm skipping whatever remains of this entry
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--empty booktitle in 10.1007/978-3-642-37456-2_14
+Warning--empty booktitle in 2008hsf2.book..497R
+Warning--empty publisher in 2008hsf2.book..497R
+You've used 68 entries,
+            2881 wiz_defined-function locations,
+            1321 strings with 55031 characters,
+and the built_in function-call counts, 32577 in all, are:
+= -- 2760
+> -- 2212
+< -- 171
++ -- 992
+- -- 300
+* -- 3998
+:= -- 5012
+add.period$ -- 0
+call.type$ -- 68
+change.case$ -- 136
+chr.to.int$ -- 68
+cite$ -- 71
+duplicate$ -- 1628
+empty$ -- 1588
+format.name$ -- 506
+if$ -- 5688
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 66
+newline$ -- 217
+num.names$ -- 458
+pop$ -- 330
+preamble$ -- 1
+purify$ -- 272
+quote$ -- 0
+skip$ -- 1063
+stack$ -- 0
+substring$ -- 1951
+swap$ -- 923
+text.length$ -- 277
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 612
+warning$ -- 3
+while$ -- 513
+width$ -- 0
+write$ -- 692
+(There were 2 error messages)

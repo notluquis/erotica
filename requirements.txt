@@ -1,0 +1,10 @@
+pytest
+hdbscan
+optuna
+numpy
+scipy
+pandas
+astropy
+scikit-learn
+tqdm
+matplotlib

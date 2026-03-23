@@ -1,0 +1,17 @@
+digraph {
+	sigma [label="sigma
+~
+HalfNormal" shape=ellipse]
+	mu [label="mu
+~
+Normal" shape=ellipse]
+	subgraph cluster270 {
+		parallax [label="parallax
+~
+Normal" shape=ellipse style=filled]
+		label=270 labeljust=r labelloc=b style=rounded
+	}
+	sigma -> mu
+	sigma -> parallax
+	mu -> parallax
+}

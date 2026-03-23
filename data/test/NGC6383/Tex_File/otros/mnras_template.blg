@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2023)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: mnras_template.aux
+The style file: mnras.bst
+Database file #1: cites.bib
+Warning--I didn't find a database entry for ""
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Warning--empty publisher in 2008hsf2.book..497R
+You've used 56 entries,
+            2881 wiz_defined-function locations,
+            1216 strings with 42954 characters,
+and the built_in function-call counts, 26127 in all, are:
+= -- 2126
+> -- 1862
+< -- 148
++ -- 849
+- -- 251
+* -- 3230
+:= -- 4134
+add.period$ -- 0
+call.type$ -- 56
+change.case$ -- 112
+chr.to.int$ -- 56
+cite$ -- 57
+duplicate$ -- 1288
+empty$ -- 1280
+format.name$ -- 407
+if$ -- 4462
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 55
+newline$ -- 183
+num.names$ -- 385
+pop$ -- 284
+preamble$ -- 1
+purify$ -- 224
+quote$ -- 0
+skip$ -- 791
+stack$ -- 0
+substring$ -- 1452
+swap$ -- 706
+text.length$ -- 227
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 501
+warning$ -- 1
+while$ -- 424
+width$ -- 0
+write$ -- 574
+(There were 2 warnings)
