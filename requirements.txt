@@ -8,3 +8,4 @@ astropy
 scikit-learn
 tqdm
 matplotlib
+adjustText
