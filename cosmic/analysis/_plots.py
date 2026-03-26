@@ -120,7 +120,7 @@ def plot_persistence_vs_members(
         y=working["count"],
         ax=ax,
         expand=plot_kwargs.get("expand", (3.4, 3.4)),
-        force_points=plot_kwargs.get("force_points", 0.4),
+        force_static=plot_kwargs.get("force_static", (0.4, 0.4)),
         arrowprops=plot_kwargs.get(
             "arrowprops",
             dict(
@@ -133,7 +133,6 @@ def plot_persistence_vs_members(
                 zorder=1,
             ),
         ),
-        return_objects=True,
     )
     for arrow in arrows:
         arrow.set_alpha(plot_kwargs.get("arrow_alpha", 0.7))
