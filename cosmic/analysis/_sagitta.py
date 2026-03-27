@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import warnings
 from pathlib import Path
 
@@ -9,6 +10,20 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, join
+
+
+def _compute_table_hash(table: QTable) -> str:
+    """Return an MD5 hex digest of the key photometric columns, sorted by source_id.
+
+    Used to detect whether the input data has changed since the last Sagitta run
+    so we can skip the expensive CLI call when the data is identical.
+    """
+    sidx = np.argsort(np.asarray(table["source_id"], dtype=np.int64))
+    h = hashlib.md5()
+    for col in ("source_id", "parallax", "g", "bp", "rp", "j", "h", "k"):
+        arr = np.asarray(table[col], dtype=np.float64)[sidx]
+        h.update(arr.tobytes())
+    return h.hexdigest()
 
 
 def _ensure_sagitta() -> None:
@@ -21,6 +36,80 @@ def _ensure_sagitta() -> None:
             ["pip", "install", "git+https://github.com/hutchresearch/Sagitta.git"],
             check=True,
         )
+
+
+def _run_sagitta_pipeline(
+    input_fits: Path,
+    output_fits: Path,
+    av_uncertainty: int,
+    pms_uncertainty: int,
+    age_uncertainty: int,
+    av_scatter_range: float,
+) -> None:
+    """Execute the Sagitta inference pipeline in-process."""
+    import argparse
+
+    from sagitta.data_tools import DataTools  # type: ignore[import-untyped]
+    from sagitta.sagitta import SagittaPipeline  # type: ignore[import-untyped]
+
+    args = argparse.Namespace(
+        tableIn=str(input_fits),
+        tableOut=str(output_fits),
+        version="edr3",
+        device="cpu",
+        batch_size=5000,
+        test=False,
+        download_only=False,
+        single_object=False,
+        no_av_prediction=False,
+        no_pms_prediction=False,
+        no_age_prediction=False,
+        av_uncertainty=av_uncertainty,
+        pms_uncertainty=pms_uncertainty,
+        age_uncertainty=age_uncertainty,
+        av_scatter_range=av_scatter_range,
+        source_id="source_id",
+        ra="ra",
+        dec="dec",
+        l="l",
+        b="b",
+        parallax="parallax",
+        g="g",
+        bp="bp",
+        rp="rp",
+        j="j",
+        h="h",
+        k="k",
+        av=None,
+        eg="eg",
+        ebp="ebp",
+        erp="erp",
+        eparallax="eparallax",
+        ej="ej",
+        eh="eh",
+        ek="ek",
+        av_out="av_sagitta",
+        pms_out="pms_sagitta",
+        age_out="age",
+    )
+
+    pipeline = SagittaPipeline(args=args)
+    pipeline.get_naming_changes()
+    pipeline.load_input_table()
+    pipeline.data_frame = DataTools.fix_and_mark_nans(
+        data_frame=pipeline.data_frame,
+        nan_column_extension=pipeline.nan_column_suffix,
+    )
+    pipeline.predict_av()
+    if pipeline.should_generate_av_uncertainties():
+        pipeline.generate_av_uncertainties()
+    pipeline.predict_pms()
+    if pipeline.should_generate_pms_uncertainties():
+        pipeline.generate_pms_uncertainties()
+    pipeline.predict_age()
+    if pipeline.should_generate_age_uncertainties():
+        pipeline.generate_age_uncertainties()
+    pipeline.save_output_table()
 
 
 def pms_characterization(
@@ -144,77 +233,40 @@ def pms_characterization(
 
     sagitta_input.write(input_fits, overwrite=overwrite_inputs, format="fits")
 
+    # ------------------------------------------------------------------
+    # Cache check — skip the expensive CLI when the data is unchanged.
+    # ------------------------------------------------------------------
+    hash_file = out_dir / f"{prefix}.hash"
+    current_hash = _compute_table_hash(sagitta_input)
+
+    data_unchanged = (
+        output_fits.exists()
+        and hash_file.exists()
+        and hash_file.read_text().strip() == current_hash
+    )
+
     if run_cli:
-        import argparse
-
-        from sagitta.sagitta import SagittaPipeline  # type: ignore[import-untyped]
-
-        from sagitta.data_tools import DataTools  # type: ignore[import-untyped]
-
-        args = argparse.Namespace(
-            tableIn=str(input_fits),
-            tableOut=str(output_fits),
-            version="edr3",
-            device="cpu",
-            batch_size=5000,
-            test=False,
-            download_only=False,
-            single_object=False,
-            no_av_prediction=False,
-            no_pms_prediction=False,
-            no_age_prediction=False,
-            av_uncertainty=av_uncertainty,
-            pms_uncertainty=pms_uncertainty,
-            age_uncertainty=age_uncertainty,
-            av_scatter_range=av_scatter_range,
-            source_id="source_id",
-            ra="ra",
-            dec="dec",
-            l="l",
-            b="b",
-            parallax="parallax",
-            g="g",
-            bp="bp",
-            rp="rp",
-            j="j",
-            h="h",
-            k="k",
-            av=None,  # no pre-existing extinction column in input
-            eg="eg",
-            ebp="ebp",
-            erp="erp",
-            eparallax="eparallax",
-            ej="ej",
-            eh="eh",
-            ek="ek",
-            av_out="av_sagitta",
-            pms_out="pms_sagitta",
-            age_out="age",
+        _run_sagitta_pipeline(input_fits, output_fits, av_uncertainty, pms_uncertainty,
+                              age_uncertainty, av_scatter_range)
+        hash_file.write_text(current_hash)
+    elif data_unchanged:
+        print(
+            f"[pms_characterization] Data unchanged — loading cached results from "
+            f"{output_fits.name}"
         )
-
-        pipeline = SagittaPipeline(args=args)
-        pipeline.get_naming_changes()
-        pipeline.load_input_table()
-        # No download: all columns already provided; NaN = no crossmatch
-        pipeline.data_frame = DataTools.fix_and_mark_nans(
-            data_frame=pipeline.data_frame,
-            nan_column_extension=pipeline.nan_column_suffix,
+    elif output_fits.exists():
+        warnings.warn(
+            f"[pms_characterization] Input data has changed since the last Sagitta run "
+            f"but run_cli=False. Loading stale results from {output_fits.name}. "
+            "Re-run with run_cli=True to update.",
+            UserWarning,
+            stacklevel=2,
         )
-        pipeline.predict_av()
-        if pipeline.should_generate_av_uncertainties():
-            pipeline.generate_av_uncertainties()
-        pipeline.predict_pms()
-        if pipeline.should_generate_pms_uncertainties():
-            pipeline.generate_pms_uncertainties()
-        pipeline.predict_age()
-        if pipeline.should_generate_age_uncertainties():
-            pipeline.generate_age_uncertainties()
-        pipeline.save_output_table()
-
-    if not output_fits.exists():
+    else:
         raise FileNotFoundError(
             f"Expected Sagitta output not found: {output_fits}.\n"
-            "If run_cli=False, ensure the output was generated externally."
+            "This looks like a first run (or the data changed). "
+            "Use run_cli=True to generate it."
         )
 
     pms_table = QTable.read(output_fits)

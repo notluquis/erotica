@@ -440,6 +440,9 @@ class IsochroneFitter:
         *,
         prob_threshold: float = 0.6,
         precompute_grid: bool = True,
+        pms_column: str | None = None,
+        pms_max: float = 0.5,
+        ms_weight: float = 1.0,
     ) -> None:
         """Prepare binning, error model, and optionally the H_grid.
 
@@ -453,6 +456,18 @@ class IsochroneFitter:
             Minimum membership probability.
         precompute_grid : bool
             ``False`` skips the expensive H_grid build; use when loading from cache.
+        pms_column : str, optional
+            Column name with PMS probability (e.g. ``"pms_sagitta"``).
+            Used together with ``ms_weight`` to upweight MS stars in the Hess.
+        pms_max : float
+            Stars with ``pms_column >= pms_max`` are treated as PMS (weight 1).
+            Stars below this threshold are treated as MS (weight ``ms_weight``).
+        ms_weight : float
+            Multiplicative weight applied to MS stars in the Hess histogram.
+            ``ms_weight=1`` (default) → uniform weights, no preference.
+            ``ms_weight=3`` → MS stars count 3× more than PMS in the likelihood,
+            anchoring the isochrone fit to the main sequence while still
+            allowing PMS stars to contribute.
         """
         col1_name, col2_name = self.color
         self._isochs = MISTIsochrones(
@@ -466,6 +481,20 @@ class IsochroneFitter:
         members = cluster_data[mask]
         self._N_obs = int(mask.sum())
 
+        # Per-star Hess weights: MS stars get ms_weight, PMS stars get 1.0.
+        # When pms_column is None or ms_weight==1, all weights are uniform.
+        hess_weights = np.ones(len(members), dtype=float)
+        if pms_column is not None and pms_column in members.colnames and ms_weight != 1.0:
+            pms_prob = np.asarray(members[pms_column], dtype=float)
+            is_ms    = ~(np.isfinite(pms_prob) & (pms_prob >= pms_max))
+            hess_weights[is_ms] = ms_weight
+            n_ms  = int(is_ms.sum())
+            n_pms = int((~is_ms).sum())
+            print(f"[setup] Weighted Hess: {n_ms} MS stars (w={ms_weight}) + "
+                  f"{n_pms} PMS stars (w=1.0).")
+        ms_members = members   # all stars still enter the histogram
+
+        # Use ALL members for range, error model, and posterior_cmd
         obs_mag = np.asarray(members["Gmag"],    dtype=float)
         bp      = np.asarray(members["G_BPmag"], dtype=float)
         rp      = np.asarray(members["G_RPmag"], dtype=float)
@@ -481,19 +510,29 @@ class IsochroneFitter:
 
         self._obs_mag = obs_mag
         self._obs_col = obs_col
-        # Error model: quadratic fit of log(e) vs apparent magnitude
+        # Error model fitted on all members (wider magnitude baseline)
         self._e_mag_fn, self._e_col_fn = _fit_error_model(obs_mag, e_mag, e_col)
+
+        # MS-only photometry for the Hess histogram (the fit target)
+        ms_obs_mag = np.asarray(ms_members["Gmag"],    dtype=float)
+        ms_bp      = np.asarray(ms_members["G_BPmag"], dtype=float)
+        ms_rp      = np.asarray(ms_members["G_RPmag"], dtype=float)
+        ms_obs_col = ms_bp - ms_rp
 
         # Extinction coefficients (A_lambda / A_V)
         self._kG, self._kBP, self._kRP = self._compute_ext_coefs()
         self._k_col1 = self._kBP - self._kRP
 
-        # Histogram range: observed + reference synthetic at (dm_mu, Av_mean)
-        Av_mid = float(np.mean(self.Av_range))
+        # Histogram range: observed + reference synthetic at (dm_mu, Av_mean).
+        # Use the midpoint of the *prior* loga_range (not the full file range) so
+        # that the reference isochrone has the right age — otherwise a young-cluster
+        # prior (loga~6) gets compared against a median-file isochrone (loga~7.6),
+        # which misses the bright OB sequence and sets mag_min too faint.
+        Av_mid   = float(np.mean(self.Av_range))
         met_arr  = self._isochs.met_age_dict["met"]
-        loga_arr = self._isochs.met_age_dict["loga"]
+        loga_mid = float(np.mean(self.loga_range))
         _, ref_G, ref_BP, ref_RP = self._isochs.get_isochrone(
-            float(np.median(met_arr)), float(np.median(loga_arr))
+            float(np.median(met_arr)), loga_mid
         )
         ref_app_mag = ref_G  + self.dm_mu + self._kG    * Av_mid
         ref_app_col = (ref_BP - ref_RP) + self._k_col1 * Av_mid
@@ -518,12 +557,23 @@ class IsochroneFitter:
             np.arange(Nb_col, dtype="float64").reshape(1, Nb_col), name="J_bins"
         )
 
-        from fast_histogram import histogram2d as _h2d
-        cl_histo = _h2d(
-            obs_mag, obs_col,
-            bins=[Nb_mag, Nb_col],
-            range=[[mag_min, mag_max], [col_min, col_max]],
-        ).astype(np.float64)
+        # Build weighted Hess: numpy.histogram2d supports weights;
+        # fast_histogram does not, so we only fall back to it for the uniform case.
+        if np.all(hess_weights == 1.0):
+            from fast_histogram import histogram2d as _h2d
+            cl_histo = _h2d(
+                ms_obs_mag, ms_obs_col,
+                bins=[Nb_mag, Nb_col],
+                range=[[mag_min, mag_max], [col_min, col_max]],
+            ).astype(np.float64)
+        else:
+            cl_histo, _, _ = np.histogram2d(
+                ms_obs_mag, ms_obs_col,
+                bins=[Nb_mag, Nb_col],
+                range=[[mag_min, mag_max], [col_min, col_max]],
+                weights=hess_weights,
+            )
+            cl_histo = cl_histo.astype(np.float64)
         # Store as plain numpy — passed directly to pm.Poisson(observed=...)
         # so PyMC wraps it in ConstantData internally (idiomatic, no graph bloat).
         self._obs_hess = cl_histo.ravel()
@@ -676,6 +726,66 @@ class IsochroneFitter:
 
         self._H_grid = H_grid
         print(f"  H_grid complete: {H_grid.shape}")
+
+    # ------------------------------------------------------------------
+    # Prior configuration
+    # ------------------------------------------------------------------
+
+    def set_priors(self, priors: dict) -> None:
+        """Update prior parameters before building the model.
+
+        Parameters
+        ----------
+        priors : dict
+            Any subset of: ``dm_mu``, ``dm_sigma``, ``dm_range``,
+            ``loga_range``, ``Av_range``.
+        """
+        valid = {"dm_mu", "dm_sigma", "dm_range", "loga_range", "Av_range"}
+        unknown = set(priors) - valid
+        if unknown:
+            raise ValueError(f"Unknown prior keys: {unknown!r}. Valid: {valid}")
+        for k, v in priors.items():
+            setattr(self, k, v)
+
+    # ------------------------------------------------------------------
+    # Grid construction (step 3 of the step-by-step workflow)
+    # ------------------------------------------------------------------
+
+    def build_grid(
+        self,
+        M_met: int | None = None,
+        M_loga: int | None = None,
+        *,
+        grid_cache: str | Path | None = None,
+    ) -> None:
+        """Precompute (or load from cache) the H_grid and set up tensors.
+
+        Call this after ``setup(precompute_grid=False)`` and (optionally)
+        ``set_priors()``.  Loading from cache is much faster than recomputing.
+
+        Parameters
+        ----------
+        M_met, M_loga : int, optional
+            Override the grid resolution set in ``__init__``.
+        grid_cache : path, optional
+            If the file exists, load from it; otherwise compute and save.
+        """
+        import pytensor
+
+        if M_met is not None:
+            self.M_met = M_met
+        if M_loga is not None:
+            self.M_loga = M_loga
+
+        if grid_cache is not None and Path(grid_cache).exists():
+            print(f"Loading H_grid from cache: {grid_cache}")
+            self.load_grid(grid_cache)
+        else:
+            self._precompute_H_grid()
+            self._H_tensor = pytensor.shared(self._H_grid, name="H_grid")
+            if grid_cache is not None:
+                self.save_grid(grid_cache)
+                print(f"H_grid saved to: {grid_cache}")
 
     # ------------------------------------------------------------------
     # Grid cache
@@ -832,13 +942,59 @@ class IsochroneFitter:
         *,
         draws: int = 2000,
         tune: int = 1000,
-        chains: int = 4,
-        target_accept: float = 0.95,
+        chains: int | None = None,
+        cores: int | None = None,
+        target_accept: float = 0.8,
         nuts_sampler: str = "blackjax",
         random_seed: int | None = None,
         progressbar: bool = True,
+        # Initialisation
+        init: str = "auto",
+        initvals: dict | None = None,
+        # Posterior log-likelihood (needed for LOO / WAIC)
+        log_likelihood: bool = False,
+        # Extra kwargs forwarded verbatim to the chosen NUTS backend
+        nuts_sampler_kwargs: dict | None = None,
     ) -> Any:
-        """Run NUTS sampling and return ArviZ InferenceData."""
+        """Run NUTS sampling and return ArviZ InferenceData.
+
+        Parameters
+        ----------
+        draws : int
+            Number of posterior samples per chain.
+        tune : int
+            Number of tuning (warm-up) steps.  Increase to 2000+ for
+            complex posteriors; blackjax window-adaptation uses this budget.
+        chains : int or None
+            Number of independent chains.  ``None`` delegates to PyMC's
+            default: ``max(2, cores)``.  Use ≥ 4 for reliable R̂ / ESS.
+        cores : int or None
+            Number of parallel processes.  ``None`` delegates to PyMC's
+            default: ``min(4, cpu_count())``.
+        target_accept : float
+            Dual-averaging target acceptance rate.  PyMC default is 0.8.
+            Raise to 0.9–0.99 if you see divergences.
+        nuts_sampler : str
+            ``"blackjax"`` (JAX/GPU-friendly), ``"numpyro"``, or ``"pymc"``
+            (default PyMC C++ implementation).
+        init : str
+            Initialisation strategy passed to ``pm.sample``.  Options:
+            ``"auto"`` (default), ``"advi"``, ``"advi+adapt_diag"``,
+            ``"map"``, ``"adapt_diag"``, ``"adapt_full"``.
+            ``"advi"`` finds a variational approximation first and uses it
+            to seed the chains — helps on difficult posteriors.
+        initvals : dict, optional
+            Explicit starting values, e.g. from ``pm.find_MAP()``.
+            Overrides ``init`` for the initial point.
+        log_likelihood : bool
+            Store the pointwise log-likelihood in ``idata``.  Required for
+            ``az.loo()`` / ``az.waic()`` model comparison.  Adds memory and
+            post-processing time proportional to ``draws × Nb_mag × Nb_col``.
+        nuts_sampler_kwargs : dict, optional
+            Extra keyword arguments forwarded verbatim to the backend sampler.
+            For blackjax: ``{"step_size": 0.01}`` to override the initial
+            step size; for numpyro: ``{"adapt_step_size": True}``.
+        """
         import pymc as pm
 
         model = self.build_model()
@@ -847,10 +1003,15 @@ class IsochroneFitter:
                 draws=draws,
                 tune=tune,
                 chains=chains,
+                cores=cores,
                 nuts_sampler=nuts_sampler,
                 target_accept=target_accept,
                 random_seed=random_seed,
                 progressbar=progressbar,
+                init=init,
+                initvals=initvals,
+                nuts_sampler_kwargs=nuts_sampler_kwargs or {},
+                idata_kwargs={"log_likelihood": log_likelihood},
             )
         return idata
 
@@ -954,6 +1115,353 @@ class IsochroneFitter:
             cmds.append((mag_s[valid], col_s[valid]))
 
         return self._obs_mag, self._obs_col, cmds   # type: ignore[return-value]
+
+    # ------------------------------------------------------------------
+    # Diagnostic plots
+    # ------------------------------------------------------------------
+
+    def cmd_distances(
+        self,
+        idata: Any,
+        cluster_table: QTable,
+        *,
+        prob_threshold: float = 0.6,
+        pms_column: str | None = "pms_sagitta",
+    ) -> Any:
+        """For each cluster member compute its distance to the posterior median isochrone.
+
+        PMS stars that fall close to the PMS portion of the isochrone AND have
+        high ``pms_sagitta`` probability are the most physically self-consistent
+        PMS candidates.
+
+        Parameters
+        ----------
+        idata : arviz.InferenceData
+            Posterior from ``fit()``.
+        cluster_table : QTable
+            Full cluster member table (same one passed to ``setup()``).
+        prob_threshold : float
+            Membership probability cut.
+        pms_column : str or None
+            Column with PMS probability to include in the output.
+
+        Returns
+        -------
+        pandas.DataFrame
+            One row per member star with columns:
+
+            - ``source_id``
+            - ``Gmag``, ``BP_RP`` (observed)
+            - ``iso_Gmag``, ``iso_BP_RP`` (nearest isochrone point)
+            - ``d_cmd``  — Euclidean distance in CMD space (mag)
+            - ``delta_col`` — observed BP-RP minus isochrone BP-RP at same G
+                             (positive = redder than MS → PMS side)
+            - ``mass_est`` — primary mass of nearest isochrone point (M☉)
+            - ``pms_prob`` — pms_sagitta value (NaN if column absent)
+            - ``pms_score`` — combined score = pms_prob / (1 + d_cmd)
+                              (higher → better PMS candidate)
+        """
+        import arviz as az
+        import pandas as pd
+
+        # Posterior median parameters
+        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
+        med  = {v: float(np.median(np.asarray(post[v]).ravel()))
+                for v in ["met", "loga", "dm", "Av"]}
+
+        # Apparent isochrone at posterior median
+        mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(  # type: ignore[union-attr]
+            med["met"], med["loga"]
+        )
+        G_app   = G_abs  + med["dm"] + self._kG  * med["Av"]   # type: ignore[operator]
+        BP_app  = BP_abs + med["dm"] + self._kBP * med["Av"]   # type: ignore[operator]
+        RP_app  = RP_abs + med["dm"] + self._kRP * med["Av"]   # type: ignore[operator]
+        col_app = BP_app - RP_app
+
+        # Observed members
+        mask    = np.array(cluster_table["probability_hdbscan"]) >= prob_threshold
+        members = cluster_table[mask]
+        obs_g   = np.asarray(members["Gmag"],    dtype=float)
+        obs_col = np.asarray(members["G_BPmag"], dtype=float) \
+                - np.asarray(members["G_RPmag"], dtype=float)
+
+        # Normalise CMD space by typical observed spreads so both axes contribute equally
+        sig_g   = float(np.nanstd(obs_g))   or 1.0
+        sig_col = float(np.nanstd(obs_col)) or 1.0
+
+        iso_g_n   = G_app   / sig_g
+        iso_col_n = col_app / sig_col
+
+        rows = []
+        for i in range(len(members)):
+            g_n   = obs_g[i]   / sig_g
+            c_n   = obs_col[i] / sig_col
+            dists = np.hypot(iso_g_n - g_n, iso_col_n - c_n)
+            j     = int(np.argmin(dists))
+
+            d_cmd     = float(np.hypot(G_app[j]   - obs_g[i],
+                                       col_app[j] - obs_col[i]))
+            delta_col = float(obs_col[i] - col_app[j])   # + = redder than MS
+
+            pms_prob = float("nan")
+            if pms_column and pms_column in members.colnames:
+                val = members[pms_column][i]
+                pms_prob = float(val) if np.isfinite(float(val)) else float("nan")
+
+            pms_score = (pms_prob / (1.0 + d_cmd)
+                         if np.isfinite(pms_prob) else float("nan"))
+
+            rows.append(dict(
+                source_id = int(members["source_id"][i]),
+                Gmag      = float(obs_g[i]),
+                BP_RP     = float(obs_col[i]),
+                iso_Gmag  = float(G_app[j]),
+                iso_BP_RP = float(col_app[j]),
+                mass_est  = float(mass[j]),
+                d_cmd     = d_cmd,
+                delta_col = delta_col,
+                pms_prob  = pms_prob,
+                pms_score = pms_score,
+            ))
+
+        df = pd.DataFrame(rows)
+        df.sort_values("pms_score", ascending=False, inplace=True, ignore_index=True)
+        return df
+
+    def plot_pms_selection(
+        self,
+        idata: Any,
+        cluster_table: QTable,
+        *,
+        prob_threshold: float = 0.6,
+        pms_column: str | None = "pms_sagitta",
+        pms_threshold: float = 0.5,
+        top_n: int | None = None,
+        figsize: tuple[float, float] = (7, 8),
+        save: str | None = None,
+    ) -> Any:
+        """CMD plot highlighting PMS stars by their isochrone-fit quality.
+
+        Stars are colour-coded by ``pms_score`` (pms_prob / (1 + d_cmd)).
+        The posterior median isochrone is overlaid.
+
+        Parameters
+        ----------
+        top_n : int, optional
+            If given, circle the top-N PMS candidates.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Same as :meth:`cmd_distances`, sorted by ``pms_score`` descending.
+        """
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as mcm
+        import matplotlib.colors as mcolors
+
+        df = self.cmd_distances(
+            idata, cluster_table,
+            prob_threshold=prob_threshold,
+            pms_column=pms_column,
+        )
+
+        import arviz as az
+        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
+        med  = {v: float(np.median(np.asarray(post[v]).ravel()))
+                for v in ["met", "loga", "dm", "Av"]}
+        mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(  # type: ignore[union-attr]
+            med["met"], med["loga"]
+        )
+        G_app   = G_abs  + med["dm"] + self._kG  * med["Av"]   # type: ignore[operator]
+        col_app = (BP_abs - RP_abs) + self._k_col1 * med["Av"]  # type: ignore[operator]
+        cut = G_app < float(df["Gmag"].max()) + 0.5
+
+        # Separate MS and PMS stars
+        if pms_column and pms_column in df.columns:
+            is_pms = df["pms_prob"] >= pms_threshold
+        else:
+            is_pms = df["delta_col"] > 0.1   # fallback: redder than isochrone
+
+        ms_df  = df[~is_pms]
+        pms_df = df[is_pms]
+
+        scores = pms_df["pms_score"].values
+        finite = np.isfinite(scores)
+        if finite.any():
+            norm = mcolors.Normalize(vmin=float(np.nanmin(scores[finite])),
+                                     vmax=float(np.nanmax(scores[finite])))
+        else:
+            norm = mcolors.Normalize(0, 1)
+        cmap = mcm.get_cmap("plasma")
+
+        fig, ax = plt.subplots(figsize=figsize)
+
+        ax.scatter(ms_df["BP_RP"], ms_df["Gmag"],
+                   s=10, alpha=0.4, color="steelblue", label="MS members", zorder=2)
+
+        sc = ax.scatter(pms_df["BP_RP"], pms_df["Gmag"],
+                        c=pms_df["pms_score"], cmap=cmap, norm=norm,
+                        s=20, alpha=0.8, zorder=3, label="PMS members")
+
+        if top_n is not None:
+            top = pms_df.head(top_n)
+            ax.scatter(top["BP_RP"], top["Gmag"],
+                       s=80, facecolors="none", edgecolors="red",
+                       linewidths=1.5, zorder=5, label=f"Top {top_n} PMS")
+
+        ax.plot(col_app[cut], G_app[cut],
+                color="k", lw=1.5, zorder=4, label="Median isochrone")
+
+        ax.invert_yaxis()
+        ax.set_xlabel("BP − RP")
+        ax.set_ylabel("G")
+        ax.legend(fontsize=9, framealpha=0.4)
+        cbar = fig.colorbar(sc, ax=ax, pad=0.02)
+        cbar.set_label("pms_score  (pms_prob / (1 + d_cmd))")
+        fig.tight_layout()
+        if save:
+            fig.savefig(save, dpi=200, bbox_inches="tight")
+        plt.show()
+        return df
+
+    def plot_cmd(
+        self,
+        idata: Any,
+        *,
+        num_samples: int = 30,
+        figsize: tuple[float, float] = (6, 7),
+        obs_kw: dict | None = None,
+        syn_kw: dict | None = None,
+        median_kw: dict | None = None,
+        save: str | None = None,
+    ) -> None:
+        """CMD with observed stars and posterior synthetic draws.
+
+        Parameters
+        ----------
+        idata : arviz.InferenceData
+            Posterior from ``fit()``.
+        num_samples : int
+            Number of posterior draws to overlay as faint scatter.
+        save : str, optional
+            File path to save the figure (e.g. ``"cmd.pdf"``).
+        """
+        import matplotlib.pyplot as plt
+        import arviz as az
+
+        obs_kw    = {"s": 8,  "alpha": 0.6, "color": "steelblue",  "zorder": 3, **(obs_kw    or {})}
+        syn_kw    = {"s": 3,  "alpha": 0.15, "color": "tomato",    "zorder": 2, **(syn_kw    or {})}
+        median_kw = {"s": 4,  "alpha": 0.6,  "color": "firebrick", "zorder": 4, **(median_kw or {})}
+
+        obs_mag, obs_col, cmds = self.posterior_cmd(idata, num_samples=num_samples)
+
+        # Median posterior isochrone (noiseless, no IMF sampling)
+        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
+        med  = {v: float(np.median(np.asarray(post[v]).ravel()))
+                for v in ["met", "loga", "dm", "Av"]}
+        mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(med["met"], med["loga"])  # type: ignore[union-attr]
+        G_med  = G_abs  + med["dm"] + self._kG  * med["Av"]   # type: ignore[operator]
+        col_med = (BP_abs + med["dm"] + self._kBP * med["Av"]) \
+                - (RP_abs + med["dm"] + self._kRP * med["Av"])
+        cut = G_med < self._obs_mag.max() + 0.5   # type: ignore[union-attr]
+
+        fig, ax = plt.subplots(figsize=figsize)
+
+        for syn in cmds:
+            ax.scatter(syn[1], syn[0], **syn_kw, label="_nolegend_")
+
+        ax.scatter(obs_col, obs_mag, label="Observed", **obs_kw)
+        ax.scatter(col_med[cut], G_med[cut], label="Median posterior", **median_kw)
+
+        ax.invert_yaxis()
+        ax.set_xlabel("BP − RP")
+        ax.set_ylabel("G")
+        ax.legend(fontsize=10, framealpha=0.4)
+        fig.tight_layout()
+        if save:
+            fig.savefig(save, dpi=200, bbox_inches="tight")
+        plt.show()
+
+    def plot_hess(
+        self,
+        idata: Any,
+        *,
+        figsize: tuple[float, float] = (13, 4),
+        cmap_hess: str = "Blues",
+        cmap_residual: str = "RdBu_r",
+        save: str | None = None,
+    ) -> None:
+        """Three-panel Hess diagram: observed | synthetic | residuals.
+
+        Parameters
+        ----------
+        idata : arviz.InferenceData
+            Posterior from ``fit()``.
+        save : str, optional
+            File path to save the figure.
+        """
+        import matplotlib.pyplot as plt
+        import arviz as az
+        from fast_histogram import histogram2d as _h2d
+
+        if self._obs_hess is None or self._H_grid is None:
+            raise RuntimeError("Call setup() and build_grid() first.")
+
+        Nb_mag, Nb_col     = self._Nbins           # type: ignore[misc]
+        mag_min, mag_max   = self._mag_range        # type: ignore[misc]
+        col_min, col_max   = self._col_range        # type: ignore[misc]
+
+        # Observed Hess (2-D, not flat)
+        H_obs = _h2d(
+            self._obs_mag, self._obs_col,           # type: ignore[arg-type]
+            bins=[Nb_mag, Nb_col],
+            range=[[mag_min, mag_max], [col_min, col_max]],
+        ).astype(np.float64)
+
+        # Synthetic Hess @ posterior median
+        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
+        med  = {v: float(np.median(np.asarray(post[v]).ravel()))
+                for v in ["met", "loga", "dm", "Av"]}
+        H0   = self._interp_H(med["met"], med["loga"]).eval()
+        dmag = med["dm"] + self._kG  * med["Av"]   # type: ignore[operator]
+        dcol = self._k_col1          * med["Av"]   # type: ignore[operator]
+        # Use scipy.ndimage.shift for the numpy context (avoids PyTensor indexing)
+        from scipy.ndimage import shift as _ndshift
+        su   = dmag / self._binw_mag   # type: ignore[operator]
+        sv   = dcol / self._binw_col   # type: ignore[operator]
+        Hsyn = _ndshift(H0, [su, sv], order=1, mode="constant", cval=0.0)
+
+        # Scale synthetic to observed counts
+        scale = H_obs.sum() / max(Hsyn.sum(), 1e-12)
+        Hsyn_scaled = Hsyn * scale
+
+        residual = H_obs - Hsyn_scaled
+        vlim = np.nanpercentile(np.abs(residual), 98)
+
+        fig, axes = plt.subplots(1, 3, figsize=figsize, sharex=True, sharey=True)
+
+        extent = [col_min, col_max, mag_max, mag_min]   # imshow: origin top-left → invert Y
+
+        im0 = axes[0].imshow(H_obs,       extent=extent, aspect="auto",
+                             cmap=cmap_hess, origin="upper")
+        im1 = axes[1].imshow(Hsyn_scaled, extent=extent, aspect="auto",
+                             cmap=cmap_hess, origin="upper")
+        im2 = axes[2].imshow(residual,    extent=extent, aspect="auto",
+                             cmap=cmap_residual, origin="upper",
+                             vmin=-vlim, vmax=vlim)
+
+        titles = ["Observed", "Synthetic @ median", "Obs − Syn"]
+        ims    = [im0, im1, im2]
+        for ax, title, im in zip(axes, titles, ims):
+            ax.set_title(title)
+            ax.set_xlabel("BP − RP")
+            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+        axes[0].set_ylabel("G")
+        fig.tight_layout()
+        if save:
+            fig.savefig(save, dpi=200, bbox_inches="tight")
+        plt.show()
 
 
 __all__ = ["IsochroneFitter", "MISTIsochrones"]
