@@ -14,6 +14,7 @@ from clustering import Clustering
 from ._clipping import sigma_clip_parallax as _sigma_clip_parallax
 from ._io import load_dataset
 from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probability_vs_gmag
+from ._isochrone import IsochroneFitter
 from ._sagitta import pms_characterization as _pms_characterization
 
 
@@ -205,6 +206,92 @@ class ClusterAnalyzer:
             return_data=return_data,
         )
         return joined
+
+    # ------------------------------------------------------------------
+    # Isochrone fitting
+    # ------------------------------------------------------------------
+
+    def fit_isochrone(
+        self,
+        *,
+        isochs_path: str | Path,
+        cluster: int | None = None,
+        prob_threshold: float = 0.6,
+        loga_range: tuple[float, float] = (6.0, 7.0),
+        Av_range: tuple[float, float] = (0.0, 3.0),
+        dm_mu: float = 10.2,
+        dm_sigma: float = 0.3,
+        dm_range: tuple[float, float] = (9.5, 10.7),
+        M_met: int = 200,
+        M_loga: int = 200,
+        grid_cache: str | Path | None = None,
+        draws: int = 2000,
+        tune: int = 1000,
+        chains: int = 4,
+        target_accept: float = 0.95,
+        nuts_sampler: str = "blackjax",
+        random_seed: int | None = None,
+    ) -> tuple[IsochroneFitter, Any]:
+        """Fit an isochrone to the CMD of a cluster via Bayesian inference.
+
+        Returns
+        -------
+        fitter : IsochroneFitter
+            Configured fitter (holds grid, synthcl, extinction coefficients).
+        idata : arviz.InferenceData
+            Full posterior, including diagnostics.
+
+        Examples
+        --------
+        >>> fitter, idata = ca.fit_isochrone(
+        ...     isochs_path="./MIST/",
+        ...     cluster=12,
+        ...     dm_mu=10.3,
+        ...     dm_sigma=0.2,
+        ...     loga_range=(6.0, 7.0),
+        ...     draws=2000,
+        ...     tune=1000,
+        ... )
+        """
+        from pathlib import Path as _Path
+
+        cid = cluster if cluster is not None else self.selected_cluster
+        if cid is None:
+            raise ValueError(
+                "No cluster specified; call select_cluster() first or pass `cluster`."
+            )
+        cluster_data = self.data[self.data["cluster"] == cid]
+
+        fitter = IsochroneFitter(
+            isochs_path=isochs_path,
+            loga_range=loga_range,
+            Av_range=Av_range,
+            dm_mu=dm_mu,
+            dm_sigma=dm_sigma,
+            dm_range=dm_range,
+            M_met=M_met,
+            M_loga=M_loga,
+        )
+
+        if grid_cache is not None and _Path(grid_cache).exists():
+            print(f"Loading H_grid from cache: {grid_cache}")
+            fitter.setup(cluster_data, prob_threshold=prob_threshold, precompute_grid=False)
+            fitter.load_grid(grid_cache)
+        else:
+            fitter.setup(cluster_data, prob_threshold=prob_threshold)
+            if grid_cache is not None:
+                fitter.save_grid(grid_cache)
+                print(f"H_grid saved to: {grid_cache}")
+
+        idata = fitter.fit(
+            draws=draws,
+            tune=tune,
+            chains=chains,
+            target_accept=target_accept,
+            nuts_sampler=nuts_sampler,
+            random_seed=random_seed,
+        )
+        return fitter, idata
 
 
 __all__ = ["ClusterAnalyzer"]

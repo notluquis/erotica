@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 import warnings
 from pathlib import Path
 
@@ -10,6 +9,18 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable, join
+
+
+def _ensure_sagitta() -> None:
+    import importlib.util
+
+    if importlib.util.find_spec("sagitta") is None:
+        import subprocess as _sp
+
+        _sp.run(
+            ["pip", "install", "git+https://github.com/hutchresearch/Sagitta.git"],
+            check=True,
+        )
 
 
 def pms_characterization(
@@ -22,7 +33,13 @@ def pms_characterization(
     overwrite_inputs: bool,
     run_cli: bool,
     return_data: bool,
+    av_uncertainty: int = 50,
+    pms_uncertainty: int = 50,
+    age_uncertainty: int = 50,
+    av_scatter_range: float = 0.1,
 ) -> QTable | None:
+    _ensure_sagitta()
+
     mask_cluster = table["cluster"] == cluster
     if mask_cluster.sum() == 0:
         raise ValueError(f"Cluster {cluster} has zero rows in `table`.")
@@ -74,7 +91,7 @@ def pms_characterization(
             work[col] = np.full(len(cluster_table), np.nan)
             warnings.warn(f"[pms_characterization] Missing column '{col}', filled with NaN.")
 
-    sagitta = work[
+    sagitta_input = work[
         "source_id",
         "parallax",
         "l",
@@ -94,8 +111,8 @@ def pms_characterization(
         "ks_msigcom",
     ].copy()
 
-    sagitta.rename_columns(
-        sagitta.colnames,
+    sagitta_input.rename_columns(
+        sagitta_input.colnames,
         [
             "source_id",
             "parallax",
@@ -125,41 +142,80 @@ def pms_characterization(
     input_fits = out_dir / f"{prefix}.fits"
     output_fits = out_dir / f"{prefix}-sagitta.fits"
 
-    sagitta.write(input_fits, overwrite=overwrite_inputs, format="fits")
+    sagitta_input.write(input_fits, overwrite=overwrite_inputs, format="fits")
 
     if run_cli:
-        cmd = [
-            "sagitta",
-            str(input_fits),
-            "--tableOut",
-            str(output_fits),
-            "--av_out",
-            "av_sagitta",
-            "--pms_out",
-            "pms_sagitta",
-            "--age_out",
-            "age",
-            "--av_uncertainty",
-            "50",
-            "--pms_uncertainty",
-            "50",
-            "--age_uncertainty",
-            "50",
-            "--av_scatter_range",
-            "0.1",
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            message = (
-                "Sagitta CLI failed (code {code}).\n" "STDOUT:\n{stdout}\nSTDERR:\n{stderr}"
-            ).format(code=result.returncode, stdout=result.stdout, stderr=result.stderr)
-            raise RuntimeError(message)
-    if not output_fits.exists():
-        message = (
-            f"Expected output FITS not found: {output_fits}.\n"
-            "If you did not run the CLI here, ensure the Sagitta output was generated externally."
+        import argparse
+
+        from sagitta.sagitta import SagittaPipeline  # type: ignore[import-untyped]
+
+        from sagitta.data_tools import DataTools  # type: ignore[import-untyped]
+
+        args = argparse.Namespace(
+            tableIn=str(input_fits),
+            tableOut=str(output_fits),
+            version="edr3",
+            device="cpu",
+            batch_size=5000,
+            test=False,
+            download_only=False,
+            single_object=False,
+            no_av_prediction=False,
+            no_pms_prediction=False,
+            no_age_prediction=False,
+            av_uncertainty=av_uncertainty,
+            pms_uncertainty=pms_uncertainty,
+            age_uncertainty=age_uncertainty,
+            av_scatter_range=av_scatter_range,
+            source_id="source_id",
+            ra="ra",
+            dec="dec",
+            l="l",
+            b="b",
+            parallax="parallax",
+            g="g",
+            bp="bp",
+            rp="rp",
+            j="j",
+            h="h",
+            k="k",
+            av=None,  # no pre-existing extinction column in input
+            eg="eg",
+            ebp="ebp",
+            erp="erp",
+            eparallax="eparallax",
+            ej="ej",
+            eh="eh",
+            ek="ek",
+            av_out="av_sagitta",
+            pms_out="pms_sagitta",
+            age_out="age",
         )
-        raise FileNotFoundError(message)
+
+        pipeline = SagittaPipeline(args=args)
+        pipeline.get_naming_changes()
+        pipeline.load_input_table()
+        # No download: all columns already provided; NaN = no crossmatch
+        pipeline.data_frame = DataTools.fix_and_mark_nans(
+            data_frame=pipeline.data_frame,
+            nan_column_extension=pipeline.nan_column_suffix,
+        )
+        pipeline.predict_av()
+        if pipeline.should_generate_av_uncertainties():
+            pipeline.generate_av_uncertainties()
+        pipeline.predict_pms()
+        if pipeline.should_generate_pms_uncertainties():
+            pipeline.generate_pms_uncertainties()
+        pipeline.predict_age()
+        if pipeline.should_generate_age_uncertainties():
+            pipeline.generate_age_uncertainties()
+        pipeline.save_output_table()
+
+    if not output_fits.exists():
+        raise FileNotFoundError(
+            f"Expected Sagitta output not found: {output_fits}.\n"
+            "If run_cli=False, ensure the output was generated externally."
+        )
 
     pms_table = QTable.read(output_fits)
     for col in ("av_sagitta", "pms_sagitta", "age"):
@@ -173,9 +229,6 @@ def pms_characterization(
         keys="source_id",
         join_type="left",
     )
-
-    if "pms_sagitta" in joined.colnames:
-        joined["pms_sagitta"] = np.nan_to_num(joined["pms_sagitta"], nan=0.0)
 
     for col in ("av_sagitta", "pms_sagitta", "age"):
         if col not in table.colnames:
