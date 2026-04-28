@@ -45,6 +45,7 @@ dev = [
   "flake8>=6.0",
   "mypy>=1.5",
   "pre-commit>=3.0",
+  "nbstripout>=0.7",
 ]
 docs = [
   "sphinx>=7.0",

@@ -23,6 +23,8 @@ ENV/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
 .jupyter/
+.virtual_documents/
+**/.virtual_documents/
 
 # Sensitive notebooks
 experiments/Download_data.ipynb
@@ -74,6 +76,7 @@ data/test/NGC6383/PARSEC/
 *.nc
 *.h5
 *.hdf5
+*.npz
 
 # Optuna SQLite databases
 *.db
