@@ -6,6 +6,7 @@ from typing import Iterable, Sequence
 
 import numpy as np
 from astropy.table import QTable
+from tqdm.auto import tqdm
 
 from ._constants import DEFAULT_SCORE_METHOD, DEFAULT_SEARCH_METHOD, SUPPORTED_SEARCH_METHODS
 from ._estimator import HDBSCANEstimator
@@ -47,6 +48,9 @@ class Clustering:
         self.best_params_ = None
         self.best_score_ = None
         self.combined_data = None
+        self.pseudoprobability_results_ = None
+        self.pseudoprobability_selected_ = None
+        self.pseudoprobability_sweep_track_ = None
         self._study = None
         self._pareto_trials = []
 
@@ -106,6 +110,112 @@ class Clustering:
         self.best_score_ = results.get("best_score")
 
         self._annotate_results()
+
+    # ------------------------------------------------------------------
+    # Pseudoprobability search
+    # ------------------------------------------------------------------
+    def search_pseudoprobability(
+        self,
+        columns: Sequence[str] = ("pmra", "pmdec"),
+        *,
+        min_cluster_size_samples: Iterable[int] = range(10, 300),
+        min_samples: int | None = None,
+        probability_threshold: float = 0.5,
+        min_cluster_members: int | None = None,
+        max_cluster_members: int | None = None,
+        selection: str = "max_members",
+        select_cluster: bool = True,
+        hdbscan_kwargs: dict | None = None,
+    ) -> None:
+        """Sweep min_cluster_size, build pseudoprobability, select best cluster.
+
+        probability_times = fraction of iterations each source was in any cluster.
+        probability = probability_hdbscan * probability_times.
+        Best mcs selected by ``selection`` ('max_members' or 'max_lambda').
+        """
+        base_kwargs = {
+            "algorithm": "best",
+            "cluster_selection_method": "eom",
+            "allow_single_cluster": False,
+            "metric": "euclidean",
+            "match_reference_implementation": True,
+            **(hdbscan_kwargs or {}),
+        }
+        # MST not needed during sweep — skip to save ~20% per iteration
+        sweep_kwargs = {**base_kwargs, "gen_min_span_tree": False}
+        final_kwargs = {**base_kwargs, "gen_min_span_tree": True}
+
+        samples = list(min_cluster_size_samples)
+        X = self.data[list(columns)].to_pandas().values
+        n_sources = len(self.data)
+        n_samples = len(samples)
+        labels_matrix = np.full((n_sources, n_samples), -1, dtype=np.int32)
+        results: list[dict] = []
+        sweep_track: list[dict] = []  # all mcs → cluster size, for plotting
+
+        for i, min_cluster_size in enumerate(tqdm(samples, desc="mcs sweep", unit="mcs")):
+            estimator = HDBSCANEstimator(
+                min_cluster_size=int(min_cluster_size),
+                min_samples=min_samples,
+                **sweep_kwargs,
+            ).fit(X)
+            model = estimator.model_
+            labels = np.asarray(model.labels_, dtype=np.int32)
+            labels_matrix[:, i] = labels
+
+            probability_times = np.mean(labels_matrix[:, : i + 1] != -1, axis=1)
+            probability = np.asarray(model.probabilities_, dtype=float) * probability_times
+            tree = model.condensed_tree_.to_pandas()
+            if tree.empty or "lambda_val" not in tree or "parent" not in tree:
+                continue
+
+            lambda_value = float(tree["lambda_val"].max())
+            desired_len = self._desired_tree_branch_size(tree)
+            sweep_track.append({"min_cluster_size": int(min_cluster_size), "desired_len": int(desired_len)})
+            if min_cluster_members is not None and desired_len < min_cluster_members:
+                continue
+            if max_cluster_members is not None and desired_len > max_cluster_members:
+                continue
+            if len(np.unique(labels)) <= 1:
+                continue
+            if np.count_nonzero(probability > probability_threshold) < 1:
+                continue
+
+            results.append(
+                {
+                    "min_cluster_size": int(min_cluster_size),
+                    "desired_len": int(desired_len),
+                    "lambda_value": lambda_value,
+                    "relative_validity": float(getattr(model, "relative_validity_", np.nan)),
+                    "cluster_persistence": np.asarray(
+                        getattr(model, "cluster_persistence_", []), dtype=float
+                    ),
+                }
+            )
+
+        if not results:
+            raise RuntimeError("Pseudo-probability search did not find candidate clusters.")
+
+        selected = self._select_pseudoprobability_result(results, selection)
+        final_probability_times = np.mean(labels_matrix != -1, axis=1)
+        final_estimator = HDBSCANEstimator(
+            min_cluster_size=selected["min_cluster_size"],
+            min_samples=min_samples,
+            **final_kwargs,
+        ).fit(X)
+
+        self.clusterer = final_estimator.model_
+        self.best_params_ = {"min_cluster_size": selected["min_cluster_size"], "min_samples": min_samples, **final_kwargs}
+        self.best_score_ = selected["lambda_value"]
+        self.pseudoprobability_results_ = results
+        self.pseudoprobability_sweep_track_ = sweep_track
+        self.pseudoprobability_selected_ = {**selected, "probability_times": final_probability_times.copy()}
+        self._annotate_pseudoprobability_results(
+            probability_times=final_probability_times,
+            desired_len=selected["desired_len"],
+            probability_threshold=probability_threshold,
+            select_cluster=select_cluster,
+        )
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -168,6 +278,31 @@ class Clustering:
         summary = self.get_cluster_summary(include_noise=True)
         plot_cluster_persistence(summary)
 
+    def plot_mcs_sweep(self, figsize=(7, 5), save_path: str | None = None) -> None:
+        """Plot cluster size vs min_cluster_size from pseudoprobability sweep."""
+        if self.pseudoprobability_sweep_track_ is None:
+            raise RuntimeError("Run search_pseudoprobability first.")
+        import matplotlib.pyplot as plt
+
+        mcs_vals = [r["min_cluster_size"] for r in self.pseudoprobability_sweep_track_]
+        sizes    = [r["desired_len"]       for r in self.pseudoprobability_sweep_track_]
+        best_mcs = self.pseudoprobability_selected_["min_cluster_size"]
+        max_size = max(sizes)
+
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.plot(mcs_vals, sizes, color="steelblue")
+        ax.axvline(best_mcs, color="steelblue", linestyle="--",
+                   label=f"Optimal Min Cluster Size: {best_mcs}")
+        ax.axhline(max_size, color="olivedrab", linestyle="--",
+                   label=f"Max Cluster Size: {max_size}")
+        ax.set_xlabel("Min Cluster Size")
+        ax.set_ylabel("Cluster Size")
+        ax.legend()
+        fig.tight_layout()
+        if save_path:
+            fig.savefig(save_path, bbox_inches="tight")
+        plt.show()
+
     def plot_members_vs_persistence(self, show_outliers: bool = False) -> None:
         summary = self.get_cluster_summary(include_noise=show_outliers)
         plot_members_vs_persistence(summary)
@@ -197,6 +332,72 @@ class Clustering:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+    def _annotate_pseudoprobability_results(
+        self,
+        *,
+        probability_times: np.ndarray,
+        desired_len: int,
+        probability_threshold: float,
+        select_cluster: bool,
+    ) -> None:
+        if self.clusterer is None:
+            raise RuntimeError("No clustering model available.")
+        labels = np.asarray(self.clusterer.labels_, dtype=int)
+        self.data["cluster_hdbscan"] = labels
+        self.data["probability_hdbscan"] = self.clusterer.probabilities_
+        self.data["probability_times"] = probability_times
+        self.data["probability"] = np.asarray(self.clusterer.probabilities_, dtype=float) * probability_times
+        self.data["outlier_score"] = self.clusterer.outlier_scores_
+
+        if select_cluster:
+            selected_label = self._cluster_label_for_size(labels, desired_len)
+            retained = np.asarray(self.data["probability"], dtype=float) > probability_threshold
+            self.data["cluster"] = np.where((labels == selected_label) & retained, labels, -1)
+            self.pseudoprobability_selected_ = {
+                **self.pseudoprobability_selected_,
+                "selected_cluster": selected_label,
+                "probability_threshold": probability_threshold,
+            }
+        else:
+            self.data["cluster"] = labels
+
+        self.combined_data = combine_datasets(self.data, self.bad_data)
+
+    @staticmethod
+    def _build_pseudoprobability(labels_storage: list[list[int]]) -> np.ndarray:
+        return np.array(
+            [
+                np.count_nonzero(np.asarray(labels, dtype=int) != -1) / len(labels) if labels else 0.0
+                for labels in labels_storage
+            ],
+            dtype=float,
+        )
+
+    @staticmethod
+    def _desired_tree_branch_size(tree) -> int:
+        max_lambda_val_row = tree["lambda_val"].idxmax()
+        desired_parent = tree.at[max_lambda_val_row, "parent"]
+        return int(len(tree[tree["parent"] == desired_parent]))
+
+    @staticmethod
+    def _select_pseudoprobability_result(results: list[dict], selection: str) -> dict:
+        if selection == "max_members":
+            return max(results, key=lambda item: (item["desired_len"], item["lambda_value"]))
+        if selection == "max_lambda":
+            return max(results, key=lambda item: (item["lambda_value"], item["desired_len"]))
+        raise ValueError("selection must be 'max_members' or 'max_lambda'.")
+
+    @staticmethod
+    def _cluster_label_for_size(labels: np.ndarray, desired_len: int) -> int:
+        clusters, counts = np.unique(labels, return_counts=True)
+        matching = clusters[counts == desired_len]
+        if matching.size:
+            return int(matching[0])
+        non_noise = clusters[clusters != -1]
+        if non_noise.size == 0:
+            return -1
+        return int(non_noise[np.argmax(counts[clusters != -1])])
+
     def _annotate_results(self) -> None:
         if self.clusterer is None:
             raise RuntimeError("No clustering model available.")
