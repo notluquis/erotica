@@ -123,6 +123,75 @@ def plot_cluster_persistence(summary: pd.DataFrame) -> None:
     plt.show()
 
 
+def plot_condensed_tree(
+    clusterer,
+    *,
+    figsize: tuple[float, float] = (8, 6),
+    cmap: str = "viridis",
+    select_clusters: bool = True,
+    label_clusters: bool = False,
+    save_path: str | None = None,
+) -> None:
+    """Plot condensed cluster tree (icicle plot) from HDBSCAN.
+
+    Delegates bars/lines/colorbar/axis styling to hdbscan's CondensedTree.plot()
+    (with select_clusters=False), then overlays cluster ellipses ourselves.
+    Workaround for hdbscan bug: np.diff(np.percentile(..., q=[10,90])) returns a
+    shape-(1,) array that propagates into Ellipse width/height and crashes
+    Affine2D.scale() in matplotlib. Fix: explicit float() on all Ellipse arguments.
+    """
+    from matplotlib.patches import Ellipse
+
+    apply_default_style()
+    fig, ax = plt.subplots(figsize=figsize, layout="constrained")
+
+    # hdbscan handles bars, split lines, colorbar, inverted y-axis, spine removal
+    clusterer.condensed_tree_.plot(
+        axis=ax, cmap=cmap, select_clusters=False, colorbar=True,
+    )
+
+    if select_clusters:
+        chosen = clusterer.condensed_tree_._select_clusters()
+        plot_data = clusterer.condensed_tree_.get_plot_data()
+        cb_all = plot_data["cluster_bounds"]
+
+        plot_range = np.array(plot_data["bar_tops"] + plot_data["bar_bottoms"], dtype=float)
+        plot_range = plot_range[np.isfinite(plot_range)]
+        mean_y = float(np.mean([plot_range.max(), plot_range.min()]))
+        # hdbscan bug: np.diff returns shape-(1,) — add [0] to get scalar
+        max_h = float(np.diff(np.percentile(plot_range, [10, 90]))[0])
+        min_h = 0.1 * max_h
+
+        palette = _cluster_colors(len(chosen))
+        for i, c in enumerate(chosen):
+            cb = cb_all[c]
+            # CB order: [LEFT=0, RIGHT=1, BOTTOM=2, TOP=3]
+            width  = float(cb[1] - cb[0])
+            height = float(cb[3] - cb[2])
+            cx     = float((cb[0] + cb[1]) / 2.0)
+            cy     = float((cb[2] + cb[3]) / 2.0)
+
+            if not np.isfinite(cy):
+                cy = mean_y
+            if not np.isfinite(height) or height < min_h:
+                height = max(max_h, min_h)
+
+            ax.add_artist(Ellipse(
+                (cx, cy), 2.0 * width, 1.2 * height,
+                facecolor="none", edgecolor=palette[i], linewidth=2,
+            ))
+            if label_clusters:
+                ax.annotate(
+                    str(i), xy=(cx, cy),
+                    xytext=(cx - 4.0 * width, cy + 0.65 * height),
+                    horizontalalignment="left", verticalalignment="bottom",
+                )
+
+    if save_path:
+        fig.savefig(save_path, bbox_inches="tight")
+    plt.show()
+
+
 def plot_members_vs_persistence(summary: pd.DataFrame) -> None:
     apply_default_style()
     fig, ax = plt.subplots(figsize=(10, 6), tight_layout=True)
@@ -147,5 +216,6 @@ __all__ = [
     "plot_probability_histogram",
     "plot_cluster_members",
     "plot_cluster_persistence",
+    "plot_condensed_tree",
     "plot_members_vs_persistence",
 ]

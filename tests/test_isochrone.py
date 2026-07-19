@@ -14,6 +14,7 @@ TestPyTensorCompat     — tensor dtype / attribute consistency
 
 from __future__ import annotations
 
+import importlib.util
 import textwrap
 from pathlib import Path
 
@@ -30,6 +31,16 @@ from cosmic.analysis._isochrone import (
     _fit_error_model,
     _mag_combine,
     _smooth2d,
+)
+
+
+_BAYES_EXTRA_MISSING = [
+    name for name in ("pymc", "pytensor", "arviz") if importlib.util.find_spec(name) is None
+]
+requires_bayes_extra = pytest.mark.skipif(
+    bool(_BAYES_EXTRA_MISSING),
+    reason="requires COSMIC's optional bayes extra: missing "
+    + ", ".join(_BAYES_EXTRA_MISSING),
 )
 
 
@@ -303,6 +314,7 @@ class TestFitErrorModel:
 # TestIsochroneFitter
 # ---------------------------------------------------------------------------
 
+@requires_bayes_extra
 class TestIsochroneFitter:
     @pytest.fixture
     def fitter_and_data(self, tmp_path):
@@ -431,6 +443,7 @@ class TestIsochroneFitter:
 # TestPyTensorCompat
 # ---------------------------------------------------------------------------
 
+@requires_bayes_extra
 class TestPyTensorCompat:
     """Verify PyTensor tensors are correctly initialized in all code paths."""
 
@@ -759,6 +772,7 @@ class TestFitErrorModelExtended:
 # TestIsochroneFitterExtended
 # ---------------------------------------------------------------------------
 
+@requires_bayes_extra
 class TestIsochroneFitterExtended:
     @pytest.fixture
     def setup_fitter(self, tmp_path):

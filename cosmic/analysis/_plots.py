@@ -192,7 +192,7 @@ def plot_probability_vs_gmag(
         subset["probability_hdbscan"],
         s=plot_kwargs.get("s", 9),
         c=subset["fidelity_v2"],
-        cmap=plot_kwargs.get("cmap", "coolwarm"),
+        cmap=plot_kwargs.get("cmap", "viridis"),
         vmin=subset["fidelity_v2"].min(),
         vmax=subset["fidelity_v2"].max(),
     )

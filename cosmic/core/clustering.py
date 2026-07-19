@@ -13,6 +13,7 @@ from ._estimator import HDBSCANEstimator
 from ._plots import (
     plot_cluster_members,
     plot_cluster_persistence,
+    plot_condensed_tree,
     plot_grid_search_results,
     plot_members_vs_persistence,
     plot_pm_scatter,
@@ -277,6 +278,25 @@ class Clustering:
     def plot_cluster_persistence(self) -> None:
         summary = self.get_cluster_summary(include_noise=True)
         plot_cluster_persistence(summary)
+
+    def plot_condensed_tree(
+        self,
+        figsize: tuple[float, float] = (8, 6),
+        cmap: str = "viridis",
+        select_clusters: bool = True,
+        label_clusters: bool = False,
+        save_path: str | None = None,
+    ) -> None:
+        if self.clusterer is None:
+            raise RuntimeError("Run search or search_pseudoprobability first.")
+        plot_condensed_tree(
+            self.clusterer,
+            figsize=figsize,
+            cmap=cmap,
+            select_clusters=select_clusters,
+            label_clusters=label_clusters,
+            save_path=save_path,
+        )
 
     def plot_mcs_sweep(self, figsize=(7, 5), save_path: str | None = None) -> None:
         """Plot cluster size vs min_cluster_size from pseudoprobability sweep."""

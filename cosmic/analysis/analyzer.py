@@ -9,13 +9,19 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 from astropy.table import QTable
 
-from clustering import Clustering
+from cosmic.core.clustering import Clustering
 
 from ._clipping import sigma_clip_parallax as _sigma_clip_parallax
 from ._io import load_dataset
 from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probability_vs_gmag
 from ._isochrone import IsochroneFitter
 from ._sagitta import pms_characterization as _pms_characterization
+from .figures import plot_cumulative as _plot_cumulative
+from .figures import plot_distance_pathway_overlap as _plot_distance_pathway_overlap
+from .kinematics import pm_amplitude as _pm_amplitude
+from .structure import calculate_half_light_radius as _calculate_half_light_radius
+from .structure import center_determination as _center_determination
+from .structure import half_mass_radius as _half_mass_radius
 
 
 class ClusterAnalyzer:
@@ -206,6 +212,48 @@ class ClusterAnalyzer:
             return_data=return_data,
         )
         return joined
+
+    # ------------------------------------------------------------------
+    # Migrated paper-analysis conveniences
+    # ------------------------------------------------------------------
+    def center_determination(self, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs):
+        """Estimate the center for the selected cluster using the migrated KDE helper."""
+        cid = cluster if cluster is not None else self.selected_cluster
+        table = self.data if cid is None else self.data[self.data["cluster"] == cid]
+        if prob_threshold is not None and "probability" in table.colnames:
+            table = table[table["probability"] >= prob_threshold]
+        return _center_determination(table, **kwargs)
+
+    def half_mass_radius(self, center, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs):
+        """Calculate half-mass radius for the selected cluster."""
+        cid = cluster if cluster is not None else self.selected_cluster
+        table = self.data if cid is None else self.data[self.data["cluster"] == cid]
+        if prob_threshold is not None and "probability" in table.colnames:
+            table = table[table["probability"] >= prob_threshold]
+        return _half_mass_radius(table, center, **kwargs)
+
+    def half_light_radius(self, center, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs):
+        """Calculate half-light radius for the selected cluster."""
+        cid = cluster if cluster is not None else self.selected_cluster
+        table = self.data if cid is None else self.data[self.data["cluster"] == cid]
+        if prob_threshold is not None and "probability" in table.colnames:
+            table = table[table["probability"] >= prob_threshold]
+        return _calculate_half_light_radius(table, center, **kwargs)
+
+    def add_pm_amplitude(self, *, pmra_column: str = "pmra", pmdec_column: str = "pmdec", output_column: str = "projected_velocity"):
+        """Annotate ``self.data`` with total proper-motion amplitude."""
+        self.data[output_column] = _pm_amplitude(self.data[pmra_column], self.data[pmdec_column])
+        return self.data[output_column]
+
+    def plot_cumulative(self, centers, *, filename: str = "integred_magnitude.pdf", **kwargs):
+        """Plot cumulative integrated magnitude into ``output_dir`` by default."""
+        savefig = kwargs.pop("savefig", self.output_dir / filename)
+        return _plot_cumulative(self.data, centers, savefig=savefig, **kwargs)
+
+    def plot_distance_pathway_overlap(self, *, filename: str = "distance_pathway_overlap.pdf", **kwargs):
+        """Plot distance-pathway comparison into ``output_dir`` by default."""
+        savefig = kwargs.pop("savefig", self.output_dir / filename)
+        return _plot_distance_pathway_overlap(savefig=savefig, **kwargs)
 
     # ------------------------------------------------------------------
     # Isochrone fitting

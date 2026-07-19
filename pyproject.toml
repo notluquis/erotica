@@ -60,6 +60,23 @@ examples = [
   "ipywidgets>=8.0",
   "seaborn>=0.12",
 ]
+bayes = [
+  "pymc>=5",
+  "arviz>=0.16",
+  "xarray>=2023",
+  "blackjax>=1",
+]
+asteca = [
+  "asteca>=0.6",
+]
+paper = [
+  "pymc>=5",
+  "arviz>=0.16",
+  "xarray>=2023",
+  "blackjax>=1",
+  "asteca>=0.6",
+  "seaborn>=0.12",
+]
 
 [project.urls]
 Homepage = "https://github.com/notluquis/COSMIC"

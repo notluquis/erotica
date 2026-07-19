@@ -975,8 +975,8 @@ class IsochroneFitter:
             Dual-averaging target acceptance rate.  PyMC default is 0.8.
             Raise to 0.9–0.99 if you see divergences.
         nuts_sampler : str
-            ``"blackjax"`` (JAX/GPU-friendly), ``"numpyro"``, or ``"pymc"``
-            (default PyMC C++ implementation).
+            ``"blackjax"`` (JAX/GPU-friendly) or ``"pymc"``
+            (default PyMC implementation).
         init : str
             Initialisation strategy passed to ``pm.sample``.  Options:
             ``"auto"`` (default), ``"advi"``, ``"advi+adapt_diag"``,
@@ -993,7 +993,7 @@ class IsochroneFitter:
         nuts_sampler_kwargs : dict, optional
             Extra keyword arguments forwarded verbatim to the backend sampler.
             For blackjax: ``{"step_size": 0.01}`` to override the initial
-            step size; for numpyro: ``{"adapt_step_size": True}``.
+            step size.
         """
         import pymc as pm
 
