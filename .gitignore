@@ -88,6 +88,10 @@ data/test/NGC6383/PARSEC/
 *.pkl
 *clustering_results.ecsv
 
+# NGC 6383 referee-response generated robustness outputs
+data/test/NGC6383/comments_paper/radius_robustness/generated/
+data/test/NGC6383/comments_paper/clustering_audit/generated/
+
 # Backup files
 *.bak
 *.orig
@@ -114,3 +118,10 @@ data/test/NGC6383/PARSEC/
 *.tmp
 *.temp
 Thumbs.db
+
+# --- slimmed 2026-07-19: bulky/regenerable paper artifacts kept out of git ---
+data/test/NGC6383/comments_paper/_legacy/
+data/test/NGC6383/comments_paper/6383_old_paper/
+data/test/NGC6383/Tex_File/aanda.pdf
+data/test/NGC6383/comments_paper/submission_package/clean_source.zip
+data/test/NGC6383/comments_paper/submission_package/aa52082-24_source.zip

@@ -1,0 +1,76 @@
+J/A+A/xxxx/xxxx     NGC 6383 likely members from Gaia DR3 and 2MASS     Pulgar-Escobar et al.
+================================================================================
+Characterizing NGC 6383: A study of fundamental properties, pre-main sequence
+stars, mass segregation, and age using Gaia DR3 and 2MASS.
+    Pulgar-Escobar L.M., Henriquez-Salgado N.A., Mennickent R.E., Cerulo P.
+    <Astron. Astrophys., in revision, aa52082-24>
+================================================================================
+ADC_Keywords: Open clusters and associations; Proper motions; Parallaxes;
+              Photometry, infrared; Stars, pre-main sequence
+Keywords: open clusters and associations: individual: NGC 6383 -
+          stars: pre-main sequence -
+          stars: distances - techniques: photometric - parallaxes -
+          proper motions
+
+Abstract:
+  This table lists likely NGC 6383 candidates selected from Gaia DR3 and
+  2MASS with the 40 arcmin cone-search workflow described in the paper. HDBSCAN was run in
+  the proper-motion plane only. The membership quantity pMember is a
+  composite pseudo-probability, pHDBSCAN*pFreq, not a calibrated Bayesian
+  posterior membership probability. Rows are post-parallax-clipping
+  candidates with pMember>0.5; Ref=1 marks the pMember>=0.6 reference
+  sample used for the main cluster parameters.
+
+Description:
+  The catalogue was produced from a Gaia DR3 cone search centred on NGC 6383,
+  cross-matched to 2MASS where available. Gaia parallaxes were corrected for
+  the DR3 zero point, and proper motions for bright-source frame rotation
+  where applicable. The preprocessing retained sources with astrometric
+  fidelity_v2>0.5. Missing 2MASS photometric values are encoded as
+  '...' in the fixed-width table.
+
+File Summary:
+--------------------------------------------------------------------------------
+ FileName              Lrecl  Records  Explanations
+--------------------------------------------------------------------------------
+ ngc6383_members.dat    213      321  Likely member candidates
+--------------------------------------------------------------------------------
+
+Byte-by-byte Description of file: ngc6383_members.dat
+--------------------------------------------------------------------------------
+ Bytes Format Units   Label     Explanations
+--------------------------------------------------------------------------------
+   1-19   I19    ---     GaiaDR3   Gaia DR3 source identifier
+  21-32   F12.8  deg     RAdeg     Right ascension, ICRS, Gaia DR3
+  34-46   F13.8  deg     DEdeg     Declination, ICRS, Gaia DR3
+  48-55   F8.4   mas     Plx       Zero-point corrected Gaia DR3 parallax
+  57-64   F8.4   mas     e_Plx     Gaia DR3 parallax uncertainty
+  66-73   F8.4   mas/yr  pmRA      Corrected proper motion in right ascension, mu_alpha*
+  75-82   F8.4   mas/yr  e_pmRA    Gaia DR3 proper-motion uncertainty in right ascension
+  84-91   F8.4   mas/yr  pmDE      Corrected proper motion in declination
+  93-100  F8.4   mas/yr  e_pmDE    Gaia DR3 proper-motion uncertainty in declination
+ 102-109  F8.4   mag     Gmag      Gaia DR3 G-band magnitude
+ 111-118  F8.4   mag     BPmag     Gaia DR3 GBP magnitude
+ 120-127  F8.4   mag     RPmag     Gaia DR3 GRP magnitude
+ 129-136  F8.4   mag     Jmag      2MASS J magnitude
+ 138-145  F8.4   mag     Hmag      2MASS H magnitude
+ 147-154  F8.4   mag     Ksmag     2MASS Ks magnitude
+ 156-162  F7.4   ---     Fidelity  Rybizki et al. astrometric fidelity v2
+ 164-170  F7.4   ---     pHDBSCAN  Native HDBSCAN membership probability for the selected branch
+ 172-178  F7.4   ---     pFreq     Fraction of HDBSCAN sweeps in which the source was recovered
+ 180-186  F7.4   ---     pMember   Composite membership pseudo-probability pHDBSCAN*pFreq
+ 188      I1     ---     Ref       Reference-sample flag: 1 if pMember >= 0.6 after clipping
+ 190-196  F7.4   ---     PMSProb   Sagitta PMS probability
+ 198-204  F7.4   mag     AvSag     Sagitta visual extinction estimate
+ 206-213  F8.4   [yr] logAgeSag Sagitta logarithmic age estimate
+--------------------------------------------------------------------------------
+Notes:
+  Ref=1 identifies the 254-source reference sample with pMember>=0.6 after
+  parallax-mode sigma clipping. Ref=0 rows are retained likely candidates
+  with 0.5<pMember<0.6.
+  PMSProb, AvSag, and logAgeSag are Sagitta outputs and are
+  not used as HDBSCAN clustering coordinates.
+
+Acknowledgements:
+  This table uses Gaia DR3 and 2MASS data products.
+================================================================================

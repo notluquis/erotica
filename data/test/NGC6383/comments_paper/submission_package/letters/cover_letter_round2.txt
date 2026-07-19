@@ -1,0 +1,17 @@
+# Cover letter, round 2
+
+Dear Editor,
+
+We submit the second revised version of manuscript aa52082-24, "Characterizing NGC 6383: A study of fundamental properties, pre-main sequence stars, mass segregation, and age using Gaia DR3 and 2MASS."
+
+We thank the referee for the second report. We agree with its central criticism, that the previous organization made the paper hard to read, and have reorganized the manuscript accordingly: the paper is now structured thematically (Data; Analysis framework and cluster membership; Astrometric parameters; Cluster structure; Age, extinction, and stellar content; Luminosity, mass, and dynamical state; Comparison with previous studies), so that each result immediately follows the description of the method that produces it, every figure and table sits next to the text that discusses it, and a new overview paragraph states the purpose of each tool and the logic connecting the analysis steps. All seventeen specific points are addressed in the enclosed point-by-point response, which opens with a mapping between the old and new section numbers.
+
+The main scientific change follows the referee's suggestion on the extraction radius: the King outer radius is now measured on the widest (70 arcmin) extraction, the only one whose radial profile reaches a fitted background annulus beyond the cluster, giving R_t = 54 (+7/-11) arcmin; the core radius and all membership-based quantities remain tied to the 40 arcmin reference catalog, whose lower field contamination the wider runs do not match. The dependence of all quoted R_t intervals on the physically motivated prior bound is now stated explicitly, together with a relaxed-bound sensitivity refit.
+
+While re-verifying every numerical claim for this revision we also found and corrected, on our own initiative, three errors inherited from the originally submitted version, all disclosed in the response letter and visible in the marked-up PDF: the half-mass relaxation-time coefficient (0.17 -> 0.138, Spitzer & Hart 1971; t_rh = 24.7 +/- 7.6 Myr), the Galactic enclosed mass used for the Hill radius (now from the McMillan 2017 potential; R_Hill = 33.6 +/- 2.2 arcmin), and the distance-modulus uncertainty (a duplicated extinction uncertainty; now +/-0.09 mag). None of these changes affects any conclusion; none weakens the dynamical-youth argument.
+
+The upload contains the clean revised source, the marked-change PDF (latexdiff against the previously submitted revision, so only round-2 changes are highlighted), and the point-by-point response. The CDS table package is unchanged from the previous submission.
+
+Sincerely,
+
+L.M. Pulgar-Escobar, on behalf of the authors

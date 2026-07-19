@@ -1,0 +1,167 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - name: source_id
+#   datatype: int64
+#   description: Unique source identifier (unique within a particular Data Release)
+#   meta: !!omap
+#   - {ucd: meta.id}
+# - name: designation
+#   datatype: string
+#   description: Unique source designation (unique across all Data Releases)
+#   meta: !!omap
+#   - {ucd: meta.id;meta.main}
+#   - {_votable_string_dtype: char}
+#   - {_votable_arraysize: '*'}
+#   subtype: json
+# - name: ra
+#   unit: deg
+#   datatype: float64
+#   description: Right ascension
+#   meta: !!omap
+#   - {ucd: pos.eq.ra;meta.main}
+#   - {utype: 'stc:AstroCoords.Position3D.Value3.C1'}
+# - name: dec
+#   unit: deg
+#   datatype: float64
+#   description: Declination
+#   meta: !!omap
+#   - {ucd: pos.eq.dec;meta.main}
+#   - {utype: 'stc:AstroCoords.Position3D.Value3.C2'}
+# - name: phot_g_mean_mag
+#   unit: mag
+#   datatype: float32
+#   description: G-band mean magnitude
+#   meta: !!omap
+#   - {ucd: phot.mag;em.opt}
+# - name: bp_rp
+#   unit: mag
+#   datatype: float32
+#   description: BP - RP colour
+#   meta: !!omap
+#   - {ucd: phot.color;em.opt.B;em.opt.R}
+# - name: parallax
+#   unit: mas
+#   datatype: float64
+#   description: Parallax
+#   meta: !!omap
+#   - {ucd: pos.parallax.trig}
+# - name: parallax_error
+#   unit: mas
+#   datatype: float32
+#   description: Standard error of parallax
+#   meta: !!omap
+#   - {ucd: stat.error;pos.parallax.trig}
+# - name: pmra
+#   unit: mas / yr
+#   datatype: float64
+#   description: Proper motion in right ascension direction
+#   meta: !!omap
+#   - {ucd: pos.pm;pos.eq.ra}
+#   - {utype: 'stc:AstroCoords.Velocity3D.Value3.C1'}
+# - name: pmra_error
+#   unit: mas / yr
+#   datatype: float32
+#   description: Standard error of proper motion in right ascension direction
+#   meta: !!omap
+#   - {ucd: stat.error;pos.pm;pos.eq.ra}
+#   - {utype: 'stc:AstroCoords.Velocity3D.Error3.C1'}
+# - name: pmdec
+#   unit: mas / yr
+#   datatype: float64
+#   description: Proper motion in declination direction
+#   meta: !!omap
+#   - {ucd: pos.pm;pos.eq.dec}
+#   - {utype: 'stc:AstroCoords.Velocity3D.Value3.C2'}
+# - name: pmdec_error
+#   unit: mas / yr
+#   datatype: float32
+#   description: Standard error of proper motion in declination direction
+#   meta: !!omap
+#   - {ucd: stat.error;pos.pm;pos.eq.dec}
+#   - {utype: 'stc:AstroCoords.Velocity3D.Error3.C2'}
+# - name: ruwe
+#   datatype: float32
+#   description: Renormalised unit weight error
+#   meta: !!omap
+#   - {ucd: stat.error}
+# - name: astrometric_excess_noise
+#   unit: mas
+#   datatype: float32
+#   description: Excess noise of the source
+#   meta: !!omap
+#   - {ucd: stat.value}
+# - name: astrometric_excess_noise_sig
+#   datatype: float32
+#   description: Significance of excess noise
+#   meta: !!omap
+#   - {ucd: stat.value}
+# - name: visibility_periods_used
+#   datatype: int16
+#   description: Number of visibility periods used in Astrometric solution
+#   meta: !!omap
+#   - {ucd: meta.number}
+# - name: duplicated_source
+#   datatype: bool
+#   description: Source with multiple source identifiers
+#   meta: !!omap
+#   - {ucd: meta.code.status}
+# - name: astrometric_params_solved
+#   datatype: int16
+#   description: Which parameters have been solved for?
+#   meta: !!omap
+#   - {ucd: meta.number}
+# - name: astrometric_gof_al
+#   datatype: float32
+#   description: Goodness of fit statistic of model wrt along-scan observations
+#   meta: !!omap
+#   - {ucd: stat.fit.goodness}
+# - name: astrometric_chi2_al
+#   datatype: float32
+#   description: AL chi-square value
+#   meta: !!omap
+#   - {ucd: stat.fit.chi2}
+# - name: astrometric_n_good_obs_al
+#   datatype: int16
+#   description: Number of good observations in the along-scan (AL) direction
+#   meta: !!omap
+#   - {ucd: meta.number}
+# - name: astrometric_n_bad_obs_al
+#   datatype: int16
+#   description: Number of bad observations in the along-scan (AL) direction
+#   meta: !!omap
+#   - {ucd: meta.number}
+# - name: astrometric_sigma5d_max
+#   unit: mas
+#   datatype: float32
+#   description: The longest semi-major axis of the 5-d error ellipsoid
+#   meta: !!omap
+#   - {ucd: stat;pos.errorEllipse}
+# - name: ipd_gof_harmonic_amplitude
+#   datatype: float32
+#   description: Amplitude of the IPD GoF versus position angle of scan
+#   meta: !!omap
+#   - {ucd: stat.value}
+# - name: ipd_frac_multi_peak
+#   datatype: int16
+#   description: Percent of successful-IPD windows with more than one peak
+#   meta: !!omap
+#   - {ucd: stat.value}
+# - name: ipd_frac_odd_win
+#   datatype: int16
+#   description: Percent of transits with truncated windows or multiple gate
+#   meta: !!omap
+#   - {ucd: stat.value}
+# - name: phot_bp_rp_excess_factor
+#   datatype: float32
+#   description: BP/RP excess factor
+#   meta: !!omap
+#   - {ucd: arith.factor;phot.flux;em.opt}
+# - {name: p_member, datatype: float64}
+# - {name: is_reference_sample, datatype: bool}
+# - {name: fidelity_v2, datatype: float64}
+# - {name: pms_probability, datatype: float64}
+# - {name: is_ngc_candidate, datatype: bool}
+# schema: astropy-2.0
+source_id designation ra dec phot_g_mean_mag bp_rp parallax parallax_error pmra pmra_error pmdec pmdec_error ruwe astrometric_excess_noise astrometric_excess_noise_sig visibility_periods_used duplicated_source astrometric_params_solved astrometric_gof_al astrometric_chi2_al astrometric_n_good_obs_al astrometric_n_bad_obs_al astrometric_sigma5d_max ipd_gof_harmonic_amplitude ipd_frac_multi_peak ipd_frac_odd_win phot_bp_rp_excess_factor p_member is_reference_sample fidelity_v2 pms_probability is_ngc_candidate
+4054618559611164288 """Gaia DR3 4054618559611164288""" 263.6770643830179 -32.581668948056866 5.710343 0.10796404 1.1665960545745782 0.070691876 2.621237985225208 0.083297305 -0.7976120518953652 0.058472384 0.9369331 0.40461153 135.61977 13 False 31 -1.0808053 3086.2417 159 1 0.11583338 0.08509651 39 0 1.2296993 nan False nan nan False

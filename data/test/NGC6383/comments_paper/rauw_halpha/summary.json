@@ -1,0 +1,67 @@
+{
+  "rauw_catalog": "J/A+A/511/A25/table2",
+  "match_radius_arcsec": 1.0,
+  "n_rauw_rows": 5726,
+  "n_rauw_good_halpha_photometry": 4500,
+  "empirical_catalog_classification": {
+    "n": 5726,
+    "candidate": 476,
+    "emitter": 203,
+    "none": 5047,
+    "candidate_or_emitter": 679
+  },
+  "n_candidates_input": 321,
+  "n_matches": 141,
+  "median_separation_arcsec": 0.1566319788864372,
+  "max_separation_arcsec": 0.5951523143841698,
+  "matched_all": {
+    "n": 141,
+    "candidate": 22,
+    "emitter": 29,
+    "none": 90,
+    "candidate_or_emitter": 51
+  },
+  "matched_reference": {
+    "n": 124,
+    "candidate": 19,
+    "emitter": 22,
+    "none": 83,
+    "candidate_or_emitter": 41
+  },
+  "matched_sagitta_pms": {
+    "n": 57,
+    "candidate": 9,
+    "emitter": 19,
+    "none": 29,
+    "candidate_or_emitter": 28
+  },
+  "matched_reference_sagitta_pms": {
+    "n": 51,
+    "candidate": 7,
+    "emitter": 16,
+    "none": 28,
+    "candidate_or_emitter": 23
+  },
+  "matched_q_yso": {
+    "n": 32,
+    "candidate": 5,
+    "emitter": 7,
+    "none": 20,
+    "candidate_or_emitter": 12
+  },
+  "matched_reference_q_yso": {
+    "n": 29,
+    "candidate": 4,
+    "emitter": 6,
+    "none": 19,
+    "candidate_or_emitter": 10
+  },
+  "matched_sagitta_pms_q_yso": {
+    "n": 16,
+    "candidate": 4,
+    "emitter": 6,
+    "none": 6,
+    "candidate_or_emitter": 10
+  },
+  "classification_note": "The VizieR table gives photometry but no published source-by-source H-alpha emitter flag. HaClass is not a recovery of the original Rauw et al. emitter list; it is a reproducible diagnostic classification using the Rauw et al. thresholds of 0.12--0.24 mag for candidates and >0.24 mag for emitters above an empirical non-emitter Rc-Halpha locus derived from their table."
+}

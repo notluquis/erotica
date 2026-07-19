@@ -1,0 +1,50 @@
+Asunto: Segundo informe del referee: versión revisada para tu revisión
+
+Hola Pierluigi:
+
+Espero que te encuentres bien. Llegó el segundo informe del referee para el
+artículo de NGC 6383 (aa52082-24). El informe es duro con la estructura,
+dice que el paper es "extremely hard to read", pero todos sus 17 puntos
+específicos son abordables y ya preparé la versión revisada. Antes de
+reenviar a A&A me gustaría tu feedback.
+
+Resumen de los cambios principales:
+
+1. Reestructura completa: el paper ahora está organizado temáticamente
+   (Datos; Membresía; Parámetros astrométricos; Estructura; Edad y contenido
+   estelar; Masas y estado dinámico; Comparación), con cada resultado
+   inmediatamente después de su método y cada figura junto al texto que la
+   discute, que es exactamente lo que pidió el referee.
+
+2. Radio de King: siguiendo la sugerencia del referee, R_t ahora se mide en
+   la extracción de 70 arcmin (la única con anillo de fondo ajustado más
+   allá del cúmulo): R_t = 54 (+7/-11) arcmin. El radio del núcleo y toda la
+   membresía siguen atados al catálogo de referencia de 40 arcmin (las
+   extracciones anchas están más contaminadas). Se declara explícitamente la
+   dependencia del prior.
+
+3. Al re-verificar cada número contra la literatura encontré y corregí tres
+   errores heredados de la versión original (declarados al referee en la
+   carta): el coeficiente del tiempo de relajación (0.17 -> 0.138, Spitzer &
+   Hart 1971; t_rh = 24.7 +/- 7.6 Myr), la masa galáctica encerrada para el
+   radio de Hill (ahora con el potencial de McMillan 2017; R_Hill = 33.6
+   arcmin), y la incertidumbre del módulo de distancia (+/-0.09, no +/-0.26;
+   era la de la extinción duplicada). Ninguno cambia las conclusiones.
+
+Adjunto: PDF limpio (23 pp), PDF con cambios marcados (diff contra la versión
+que leyó el referee), la respuesta punto por punto y la cover letter.
+
+Sobre el límite de 12 páginas: el cuerpo principal quedó en ~14 páginas
+(el total de 23 incluye referencias y 4 apéndices). Las adiciones son
+precisamente las aclaraciones que el referee exigió, así que en la cover
+letter mantengo el argumento de que el envío es previo a la política; si
+A&A insiste, tengo identificado qué comprimir sin tocar lo que pidió el
+referee (varias de tus sugerencias de mayo ya quedaron incorporadas con la
+reestructura: figuras junto a su discusión y las suplementarias en el
+apéndice C).
+
+Cualquier comentario me sirve. Si prefieres, márcalo directamente sobre el
+PDF como la vez pasada.
+
+Saludos cordiales,
+Lucas

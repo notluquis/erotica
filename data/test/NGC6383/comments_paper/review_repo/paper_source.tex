@@ -1,0 +1,521 @@
+
+\documentclass{aa}
+\usepackage{graphicx}
+\usepackage{txfonts}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue}
+\begin{document}
+\raggedbottom
+\hbadness=6000
+
+   \title{Characterizing NGC 6383: A study of fundamental properties, pre-main sequence stars, mass segregation, and age using Gaia DR3 and 2MASS}
+
+   \author{L.M Pulgar-Escobar
+          \inst{1}\thanks{E-mail: \texttt{lescobar2019@udec.cl}}
+          \and
+        N.A Henríquez-Salgado\inst{1}
+        \and 
+        R.E. Mennickent\inst{1}
+        \and
+        Pierluigi Cerulo\inst{2}
+          }
+
+   \institute{Departamento de Astronomía, Universidad de Concepción, Casilla 160-C, Concepción, Chile
+         \and
+             Departamento de Ingeniería Informática y Ciencias de la Computación, Universidad de Concepción, Chile
+             }
+
+   \date{Received XXXX; accepted YYYY}
+
+  \abstract
+   {This study focuses on the young open cluster NGC 6383, situated in the Carina-Sagittarius arm within the Sh 2-012 star formation region. Previous studies have provided estimates of the distance, age, and structural properties of the cluster. The presence of pre-main-sequence and low-mass stars, combined with the new data from Gaia DR3 and with 2MASS, significantly enhances the relevance of studying this cluster.}
+   {We aim to accurately identify cluster members, determine fundamental parameters, assess mass segregation, and establish precise age and distance using Gaia DR3 and 2MASS data.}
+   {We employed Bayesian analysis and machine learning techniques, including the Hierarchical Density-Based Spatial Clustering of Applications with Noise (HDBSCAN) for member identification, the No-U-Turn Sampler (NUTS) from PyMC for modeling, the Sagitta neural network for the identification and age estimation of pre-main sequence stars, and ASteCA for isochrone fitting.}   
+   {We identified 321 likely cluster candidates with $\tilde{p}>0.5$ and used a reference sample of 254 sources with $\tilde{p}\geq0.6$ to derive the cluster parameters. The mode cluster age is $3.53^{+1.40}_{-1.00}$ Myr and the distance is $1.11\pm 0.06$ kpc. The fitted core and King outer radii are $1.95 \pm 0.19$ and $40.4 \pm 14.3\,\mathrm{arcmin}$, respectively, with the outer radius weakly constrained by the search-field size. The analysis suggests primordial mass segregation among binary stars, indicating that NGC 6383 is not fully relaxed. The color magnitude diagram (CMD) shows a well-defined main sequence and a population of pre-main sequence stars, suggesting recent star formation activity from approximately 1.6 to 6.3 Myr. The software used for this investigation is released with the paper.}
+   {Our analysis provides updated parameters for NGC 6383, confirming relatively recent star formation and mass segregation, and demonstrating the effectiveness of combining advanced computational techniques with traditional methods for studying stellar clusters.}
+
+   \keywords{open clusters and associations: individual -- galaxies: star clusters: general -- stars: distances -- techniques: photometric -- parallaxes -- proper motions}
+
+    \titlerunning{Bayesian characterization of NGC 6383}
+   \authorrunning{L.M Pulgar-Escobar et al.}
+
+   \maketitle
+\nolinenumbers
+
+\section{Introduction}\label{S_intro}
+The estimation of membership is a crucial step in the identification and characterization of star clusters. Classical analyses have relied on photometry, astrometry, and proper motions \citep{1930LicOB..14..154T,1949ApJ...110..117S,1978MNRAS.182..607F,1968ArA.....5....1L}, while later studies introduced probabilistic and multi-parameter approaches \citep{1989MNRAS.236..263P,1991MNRAS.249...76B,2005AA...438.1163K,2007AA...462..157P,2018AA...610A..30A}. These different choices can lead either to consensus or to discrepancies. Bayesian membership analysis therefore provides a complementary way to compare the previous determinations.
+
+NGC 6383\footnote{NGC 6383, also known as NGC 6374 in the New General Catalog \citep{2008hsf2.book..497R} and classified as Collinder 334 and Collinder 335 in the Collinder catalog, was initially misclassified in the original Collinder catalog \citep{1931AnLun...2....1C}.} is a young open cluster located in the Carina-Sagittarius arm, within the Sh 2-012 star formation region \citep{1959ApJS....4..257S}. It is commonly associated with the broader Sgr OB1 star-forming complex \citep{2008hsf2.book..497R}. The galactic coordinates are $\ell = 355.68^{\circ}$ and $b = 0.05^{\circ}$ \citep{2017A&A...600A.106C}.
+
+Distance estimates range from $2.13~\mathrm{kpc}$ \citep{1930LicOB..14..154T} down to $0.760$ \citep{1949ApJ...110..117S} and $0.840~\mathrm{kpc}$ \citep{2018AA...610A..30A}, and the cluster spans $20.0\,\textrm{arcmin}$ \citep{2013A&A...560A..76M}. Age estimates are typically $1.70$--$5.00\,\textrm{Myr}$ \citep{1978MNRAS.182..607F,1989MNRAS.236..263P,1991MNRAS.249...76B,2005AA...438.1163K,2007AA...462..157P}, except for the $20.0\,\textrm{Myr}$ of \citet{1968ArA.....5....1L}. The reddening $E(B-V) = 0.320 \pm 0.020$ \citep{2008hsf2.book..497R} agrees with most prior estimates \citep{1971AAS....4..241B,1978MNRAS.182..607F,1978MNRAS.184..661L,1985AA...151..391T,1989MNRAS.236..263P,1994RMxAA..29..141F,2007AA...462..157P} but exceeds the $0.51 \pm 0.03$ of \citet{2018AA...610A..30A}; it traces the surrounding shell-like H{\sc ii} region of radius $\sim1.00\deg$.
+
+HD 159176 is a double-lined O-type spectroscopic binary projected close to the center of NGC 6383 \citep{1993Obs...113..204S,2007A&A...474..193L,2016ApJ...832..211P}. Its estimated age is $2.30-2.80$\,\textrm{Myr} \citep{2010AA...511A..25R}. \citet{2010AA...511A..25R} found that the age of the most likely low-mass PMS candidates, $2-3$ Myr, is in reasonable agreement with the estimated age of HD 159176, consistent with a common star-formation event if the binary is assumed to be a cluster member. Historically, \citet{1978MNRAS.182..607F} proposed that HD 159176 initiated star formation in the core and beyond the cluster.
+
+In a study by \citet{2018AA...610A..30A}, it was hypothesized that if the stars numbered as \textit{Star No. 6} have begun to evolve and if HD 159176 is a blue straggler, the age of the cluster should be between $6.00$ and $10.0\,\textrm{Myr}$. We treat this interpretation with caution because it depends on the membership and evolutionary status of HD 159176; modern spectroscopic studies classify the system as an O-type main-sequence binary rather than in the Be/X-ray-binary category implied by that label \citep{1993Obs...113..204S,2007A&A...474..193L,2016ApJ...832..211P}. The cluster parameters vary widely because they were obtained with different methodologies. The cluster hosts sources that have recently entered the main sequence track, while pre-main sequence stars (PMS) are also present \citep{2019MNRAS.484.5102K}, leading to considerable debate regarding the cluster's age. A summary of the historical results can be seen in Table \ref{tab:literature}.
+
+This paper is structured as follows: Section \ref{sec:methodology} outlines the methodology, covering data acquisition and processing methods, including the use of the Gaia DR3 and 2MASS catalogs, and describes the membership determination using HDBSCAN and the Bayesian analysis for parameter estimation. Section \ref{sec:results} presents the results, including the determination of the cluster's age, distance, and structural properties, the analysis of mass segregation, and the color-magnitude diagram. It also discusses the findings in the context of previous studies, addressing peculiar stars and comparisons with historical data. Finally, Section \ref{sec:conclusion} concludes the study, summarizing the key results and their implications. The adopted photometric system includes the Gaia DR3 photometric bands ($G, G_{BP}, G_{RP}$) and the 2MASS bands ($J, H, K_s$).
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/probabilies_post_sigmaclip.pdf}}
+		\caption{Membership pseudo-probability of potential NGC 6383 members ($\tilde{p}>0.5$) plotted against their $G$ magnitudes, with colors representing astrometric fidelity. Each data point corresponds to a star, using a color gradient from blue to red to reflect the varying reliability of astrometric measurements. Sources with $0.6\leq\tilde{p}<0.8$ are treated as probable members, while sources with $\tilde{p}\geq0.8$ are treated as members. Stars with fainter magnitudes tend to have lower astrometric fidelity, especially at $G > 18~\mathrm{mag}$.}
+	\label{fig:probabilities}
+\end{figure}
+
+\section{Methodology}\label{sec:methodology}
+We acquired data from the \textit{Gaia} third Data Release (DR3) \citep{2016A&A...595A...1G,2023A&A...674A...1G}, executing a cone search of $40.0~\mathrm{arcmin}$ radius in the \textit{Gaia} archive, which yielded $23740$ sources. We restricted the initial selection of the filtered sources to parallax ranges between $0.750$ and $1.10~\mathrm{mas}$-based on the limits established in \citet{2024arXiv240301030P}.
+
+To improve data reliability, we applied the astrometric fidelity parameter of \citet{2022MNRAS.510.2597R}. This parameter, derived from a neural network analysis of 17 \textit{Gaia} catalog metrics, assesses the trustworthiness of the astrometric solution. Sources with an astrometric fidelity above 0.5 were retained, narrowing the selection to 15480 sources, which represent 65\% of the initial data set.
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/center_determination_paper.pdf}}
+		\caption{Spatial distribution of probable members and members of NGC 6383 in Right Ascension $(\alpha)$ and Declination $(\delta)$, color-coded according to their membership pseudo-probability $\tilde{p}$. The contours represent levels of Kernel Density Estimation (KDE) with an exponential kernel. The central coordinates of the cluster are marked by yellow dashed lines at $ \alpha = 263.683^\circ $ and $ \delta = -32.584^\circ $, which correspond to the density peak within the plotted area.}
+	\label{fig:center}
+\end{figure}
+
+Subsequent refinement ensured the inclusion of only sources for which all parameters $(\alpha,\delta,\ell,b)$, proper motions $(\mu_{\alpha*},\mu_\delta)$, parallax ($\varpi$), and magnitudes $(G, G_\mathrm{BP}, G_\mathrm{RP})$ were available, reducing the dataset to $15276$ sources. Systematic parallax offsets identified in \citet{2021A&A...649A...4L} were corrected using the \textsc{Gaiadr3\_zeropoint} package\footnote{\url{https://pypi.org/project/gaiadr3-zeropoint/}}. To correct the proper-motion bias for bright sources ($\mathrm{G}<13~\mathrm{mag}$) reported by \citet{2021A&A...649A.124C}, we applied a magnitude-based correction for sources with $\mathrm{G} = 11-13\,\mathrm{mag}$, compensating for up to $80~\mathrm{\mu as\,yr^{-1}}$ discrepancy between the frames of reference for bright and faint sources.
+
+We also obtained the $J$, $H$, and $K_s$ magnitudes from the \textsc{Two Micron All-Sky Survey} (2MASS) \citep{2006AJ....131.1163S}. A left-join cross-match\footnote{The left join keeps all Gaia sources and appends the available 2MASS data for those with a counterpart, preserving the original $15276$ sources.} was performed using the pre-computed Gaia DR3 cross-match \citep{2022gdr3.reptE..15M}, with the \texttt{tmass\_psc\_xsc\_best\_neighbour} table and a separation $\leq0.3~\textrm{arcsec}$, giving $5333$ cross-matched sources.
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/proper_motion_2d_paper.pdf}}
+		\caption{Proper motions of probable members and members of NGC 6383, with symbols color-coded according to the membership pseudo-probability $\tilde{p}$. The contours illustrate the density gradient of the proper motions. The center of proper motion distribution is marked with a blue cross, indicating the inferred mean proper motion values $(\mu_{\alpha}^*, \mu_{\delta}) = (2.54, -1.71)~\mathrm{mas}\,\mathrm{yr^{-1}}$, with corresponding orange dashed lines highlighting these central coordinates.}
+	\label{fig:proper_motion}
+\end{figure}
+
+\begin{figure*}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/parallax_determination_paper.pdf}}
+	\caption{\emph{Left panel:} Parallax distribution in NGC 6383, split by fractional parallax error: sources with $\delta\varpi/\varpi<0.1$ (used for the estimate), all sources, and $\delta\varpi/\varpi>0.1$ (not used). The blue curve is a Gaussian fit and the dashed green line marks the mean parallax, $\mu_{\varpi}=0.908\,\mathrm{mas}$. \emph{Middle panel:} $G$ magnitude versus parallax with the same $\delta\varpi/\varpi$ split; gray bars show the parallax uncertainties, especially pronounced at fainter magnitudes. \emph{Right panel:} Bailer-Jones geometric distances \citep{2021AJ....161..147B} with the same split; the dashed blue line marks the mode distance ($1.110\,\mathrm{kpc}$), shaded by its $\pm0.060\,\mathrm{kpc}$ dispersion.}
+    \label{fig:parallax_distance}
+\end{figure*}
+
+\subsection{\sc COSMIC}
+The Characterization Of Star clusters using Machine learning Inference and Clustering (\textsc{COSMIC}) is an open-source \textsc{Python}~3.12 suite that applies unsupervised machine learning and Bayesian estimation to identify open-cluster parameters from large surveys such as \textit{Gaia}, using \textsc{PyMC}~5\footnote{\url{https://www.pymc.io}} for the Bayesian modelling.
+
+For sampling we use the No-U-Turn Sampler (NUTS), a Hamiltonian Monte Carlo variant that adapts its trajectory length by terminating when the path begins to fold back on itself, providing efficient exploration of high-dimensional posteriors without the tuning constraints of Metropolis-Hastings or Gibbs sampling \citep{phan2019composable}.
+
+\subsubsection{Membership determination}\label{subsubsec:membership}
+
+To identify potential members of NGC 6383, we employed the Hierarchical Density-Based Spatial Clustering of Applications with Noise (\textsc{HDBSCAN}) algorithm \citep{10.1007/978-3-642-37456-2_14,McInnes2017}, which identifies clusters of arbitrary shape and density without a predetermined cluster number and is robust against noise and outliers \citep{2021A&A...646A.104H}.
+
+After narrowing the data to a final subset of $15276$ sources, \textsc{HDBSCAN} was applied only in the two-dimensional proper-motion plane $(\mu_{\alpha*},\mu_\delta)$. Parallax, angular position, and photometry were not used as clustering coordinates; they were used only in the filtering and subsequent characterization steps described below. The clustering used the Euclidean metric in proper-motion space. We also tested the Haversine metric, but it produced nonphysical groupings for this data set.
+
+To refine our selection of hyperparameters for optimal cluster identification, we tested the grid $m_{\mathrm{cl}}=10,\ldots,299$, setting \texttt{min\_cluster\_size}=\texttt{min\_samples}=$m_{\mathrm{cl}}$ in each run, and inspected both the number of recovered sources and the stability of the selected cluster. The \textsc{HDBSCAN} condensed tree is parameterized by the density level $\lambda=1/d_{\mathrm{mreach}}$, where $d_{\mathrm{mreach}}$ is the mutual-reachability distance; larger $\lambda$ values correspond to denser, smaller-distance levels in the hierarchy. The \texttt{lambda\_val} values inspected in the sweep are therefore diagnostics of branch persistence and separation, not fitted physical parameters of the cluster. We adopted \texttt{min\_cluster\_size}=43, \texttt{min\_samples}=43, and the \texttt{leaf} cluster-selection method. These settings maximize the recovered NGC 6383 branch while preserving a high separation from the field population in the condensed tree. The variation in cluster size as a function of the minimum cluster size is included with the HDBSCAN diagnostics in the appendix.
+
+Because a single \textsc{HDBSCAN} run can overstate the significance of dense fluctuations in noisy data \citep{2021A&A...646A.104H}, we derived a membership pseudo-probability from the same $m_{\mathrm{cl}}=10,\ldots,299$ sweep. For each source, we computed the recovery frequency $f_i$, defined as the number of iterations in which the source was assigned to the selected NGC 6383 branch divided by the total number of iterations, and multiplied it by the native \textsc{HDBSCAN} membership probability $p_{\mathrm{HDBSCAN},i}$. The final value is therefore $\tilde{p}_i=f_i\,p_{\mathrm{HDBSCAN},i}$. This quantity is an operational ranking statistic and not a calibrated posterior membership probability. Sources with $\tilde{p}>0.5$ were retained as likely cluster candidates. The reference sample used for most cluster parameters adopts $\tilde{p}\geq0.6$; sources with $0.6\leq\tilde{p}<0.8$ are referred to as probable members, while sources with $\tilde{p}\geq0.8$ are referred to as members.
+
+As a final filtering step, we applied a $2\sigma$ rejection around the mode of the parallax distribution with the sigma-clipping implementation in \textsc{AstroPy} \citep{astropy:2013,astropy:2018,astropy:2022}. This step provided the reference sample used for the cluster characterization.
+
+The $40\,\mathrm{arcmin}$ run defines the production catalog used throughout this paper. To test whether the membership recovery was limited by this original search field, we repeated the complete preprocessing, HDBSCAN sweep, pseudo-probability calculation, and parallax clipping using input radii of $50$, $60$, and $70\,\mathrm{arcmin}$. These wider-field runs are diagnostic checks only; the adopted cluster parameters remain tied to the $40\,\mathrm{arcmin}$ reference catalog unless explicitly stated. The setup and source counts of the robustness runs are reported in Sect. \ref{sec:results}.
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/king_profile_logscale.pdf}}
+	\caption{Radial density profile of NGC 6383 shown in logarithmic scale. The plot overlays the observed stellar density (blue points) against the King model (solid fuchsia line). Dashed red and dotted red lines mark the core radius ($ R_c = 1.95 \, \text{arcmin} $) and the fitted King outer radius ($ R_t = 40.4 \, \text{arcmin} $), respectively. The dash-dot green line represents the $ b $ parameter of the background level. The shaded area in blue indicates the $ 1\sigma $ uncertainty range of the King profile.}
+	\label{fig:king}
+\end{figure}
+
+	\subsubsection{Parallax and Distance Estimation}
+Because measurement errors make the simple inverse parallax-to-distance conversion unreliable \citep{2015PASP..127..994B,2021AJ....161..147B}, the choice of prior is crucial. We model the cluster parallaxes as normally distributed and adopt a gamma prior for the distances.
+
+We adopted the geometric distances of \citet{2021AJ....161..147B}, whose direction-dependent Bayesian prior improves Gaia EDR3 distances; we did not use their photogeometric distances because cluster PMS stars and gas can distort the photometry.
+
+In the hierarchical model we take $\mu_{\mathrm{prior}}$ as the mean of the frequentist parallax-based and catalog distances and adopt $\mathcal{U}(0.5\mu_{\mathrm{prior}},1.5\mu_{\mathrm{prior}})$ for the cluster mean distance, restricting the fit to members with fractional parallax error below $0.1$.
+
+\subsubsection{Proper motions}
+Proper motions are modeled with a 2D Gaussian: normal priors on the mean $[\overline{\mu_\alpha},\overline{\mu_\delta}]$ (from frequentist means and dispersions), half-normal priors on the dispersions, and a uniform $[-1,1]$ prior on the correlation coefficient. We also estimate the mean projected velocity as the quadrature sum of the proper-motion components.
+\begin{table}
+		\caption{Summary of derived parameters for NGC 6383, focusing on sources with at least a 60\% membership pseudo-probability. Unless otherwise stated, the quoted uncertainties correspond to the 1$\sigma$ posterior uncertainty or to the 1$\sigma$ dispersion of the relevant member distribution. For the astrometric quantities, the proper-motion uncertainties are the observed member dispersions, and the parallax uncertainty is the 1$\sigma$ dispersion of the subsample with fractional parallax errors below 0.1; the smaller errors on the mean are given in the text where relevant.}
+	\centering
+	\resizebox{\columnwidth}{!}{%
+		\begin{tabular}{llc}
+			\hline
+			\textbf{Parameter}                      & \textbf{Value}      & \textbf{Unit}                      \\ \hline
+				Distance $(\varpi)$                     & $1.11 \pm 0.06$   & $\mathrm{kpc}$                     \\
+			Distance (D.M.)                         & $1.15_{-0.13}^{+0.15}$   & $\mathrm{kpc}$                     \\
+			Distance modulus                        & $10.30 \pm 0.26$    & $\mathrm{mag}$                     \\
+			Age                                     & $3.53^{+1.40}_{-1.00}$           & $\mathrm{Myr}$                     \\
+			Stellar formation range                 & $1.6 - 6.3$             & $\mathrm{Myr}$                     \\
+			Metallicity ($Z$)                       & $0.024 \pm 0.008$   & -                                  \\
+				Parallax $(\varpi)$                     & $0.908 \pm 0.046$   & $\mathrm{mas}$                     \\
+			Number of members                       & $254$               & $\mathrm{stars}$                   \\
+			Absorption $(A_V)$                      & $1.24 \pm 0.26$   & $\mathrm{mag}$                     \\
+				Galactocentric distance $R_\mathrm{GC}$ & $7.19 \pm 0.07$             & $\mathrm{kpc}$                     \\
+			Core radius $(R_c)$                     & $1.95 \pm 0.19$  & $\mathrm{arcmin}$                  \\
+			Background $(b)$                        & $0.011 \pm 0.006$  & $\mathrm{stars\,arcmin^{-2}}$      \\
+			King outer radius $(R_t)$               & $40.4 \pm 14.3$ & $\mathrm{arcmin}$                  \\
+			Center density $(k)$                    & $4.91 \pm 0.44$   & $\mathrm{stars\,arcmin^{-2}}$      \\
+			Hill radius                             & $28.3 \pm 1.0$            & $\mathrm{arcmin}$                  \\
+			Gravitational bound radius              & $42.8 \pm 1.6$            & $\mathrm{arcmin}$                  \\
+			Cluster center R.A.                     & $263.683 \pm 0.112$ & $\mathrm{deg}$                     \\
+			Cluster center Dec.                     & $-32.584 \pm 0.112$ & $\mathrm{deg}$                     \\
+				Proper motion R.A.                      & $2.542 \pm 0.152$  & $\mathrm{mas\,yr^{-1}}$            \\
+				Proper motion Dec.                      & $-1.713 \pm 0.138$ & $\mathrm{mas\,yr^{-1}}$            \\
+			Half-mass relaxation time               & $18.5 \pm 5.7$             & $\mathrm{Myr}$                     \\
+			Radial velocity                         & $-15.1 \pm 31.1$  & $\mathrm{km\,s^{-1}}$              \\
+			Concentration parameter $(C)$           & $1.32 \pm 0.16$    & -                                  \\
+			Young stellar objects (YSOs)            & $53$                & $\mathrm{stars}$                   \\
+			$Y_{\text{frac}}$                       & $0.28^{+0.06}_{-0.06}$              & -                                  \\
+			Minimum segregation time                & $1.78 \pm 0.55$             & $\mathrm{Myr}$                     \\ \hline
+		\end{tabular}%
+	}
+	\label{tab:ngc6383_results}
+\end{table}
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_cmd.pdf}}
+		\caption{CMD of NGC 6383 depicting the classification of cluster members and their evolutionary states, determined using Sagitta. The best-fit isochrones are represented by three lines: the dashed black curve for the mean fit, the dotted black line for the median fit, and the long-dashed line for the mode fit. Symbols encode the PMS classification and membership: red stars (PMS, $\tilde{p}\geq0.8$) and orange diamonds (PMS, $0.6\leq\tilde{p}<0.8$) have a PMS probability $\geq0.6$; blue stars ($\tilde{p}\geq0.8$) and blue-violet diamonds ($0.6\leq\tilde{p}<0.8$) have a PMS probability $<0.6$ (not necessarily confirmed MS stars); black symbols mark members and probable members lacking 2MASS data. The shaded area around the isochrone visualizes the uncertainty in the parameter fits, represented by a normal distribution. Error bars at regular intervals along the color axis show the median magnitude and color errors.}
+	\label{fig:cmd}
+\end{figure}
+\begin{figure*}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_cmd_various.pdf}}
+	\caption{\emph{Left panel:} CMD of NGC 6383 showing $G_{\text{mag}}$ against $G_{\text{BP}} - G_{\text{RP}}$ with isochrones for $\log(\mathrm{age}~\mathrm{yr}^{-1})$ ranging from $6.20$ to $7.00$. \emph{Middle panel:} CMD using $G_{\text{mag}}$ versus $G_{\text{RP}} - J$. \emph{Right panel:} Color-color diagram $G_{\text{BP}} - G_{\text{RP}}$ against $G_{\text{RP}} - J$ with the equivalent color-color isochrones. The symbol notation follows that of Fig. \ref{fig:cmd}. Isochrones are color-coded according to age. Each plot includes a legend indicating the initial metallicity ($Z_{\text{ini}} = 0.024$).}
+	\label{fig:cmd_ngc6383_various}
+\end{figure*}
+\subsubsection{Center determination}
+To determine the cluster's center, we used a weighted Kernel Density Estimation (KDE) from the Python library \textsc{sci-kit learn} \citep{scikit-learn}, assigning weights inversely proportional to the distance from the mean proper motion. Optimal KDE parameters were determined through Grid Search Cross-Validation within the package, exploring a range of bandwidths—from the mean positional error to the search cone radius—and all kernel types. The maximum density location was taken as the center of the cluster.
+
+\subsubsection{Radial density profile}
+To determine the structural parameters of the cluster, we utilized the \citet{1962AJ.....67..471K} density profile. The numerical density $\rho$, was calculated by dividing the cluster area into concentric annuli, each containing an equal number of stars. The number of annuli, $K$, adheres to the equiprobable bin rule ($K = 2n^{2/5}$), where $n$ is the star count within the cluster. Fitting the King model to the density data allows for estimating the posterior distribution of the structural parameters.
+
+The priors are $b \sim \mathcal{U}(0, 2\rho_{\mathrm{min}})$, $k \sim \mathcal{U}(0, 2\rho_{\mathrm{max}})$, $R_c \sim \mathcal{U}(0, 0.8R_t)$, and $R_t \sim \mathcal{U}(R_c, 1.5T_{\mathrm{max}})$, where $b$ is the background density, $k$ the central normalization, $\rho_{\mathrm{min}}$ and $\rho_{\mathrm{max}}$ the observed surface-density extrema, and $T_{\mathrm{max}}$ the larger of the Hill and gravitationally bound radii. They keep the radii astrophysically plausible while letting the outer radius remain data-driven.
+
+The Hill Radius $(R_\mathrm{hill})$, which defines the region around a star cluster where its gravitational influence dominates over that of the Galaxy, can be calculated following \citet{2019A&A...627A.119C}:
+\begin{equation}
+R_\mathrm{hill} = R_{\mathrm{gc}} \times \left(\frac{m_c}{3M_{\mathrm{gc}}}\right)^{1/3}
+\end{equation}
+where $ R_{\mathrm{gc}} = 7.19 \pm 0.07\,\mathrm{kpc} $ denotes the galactocentric distance, $ m_c $ the cluster mass from \citet{2024arXiv240305143H}, with a value of $902.27 \pm 92.3~\mathrm{M_{\odot}}$, and $ M_{\mathrm{gc}} = 1.43 \times 10^{11} \pm 9.71 \times 10^7\,~\mathrm{M_{\odot}} $ the Galactic mass within the cluster's orbit, calculated as
+\begin{equation}
+	M_{\mathrm{gc}} = 2  \times 10^8\,M_\odot \left(\frac{R_{\mathrm{gc}}}{30\,\mathrm{pc}}\right)^{1.20}.
+\end{equation}
+
+The gravitationally bound radius was estimated following \citet{1998MNRAS.299..955P}, from the cluster mass and the Oort constants:
+\begin{equation}
+	r_\mathrm{bound} = \left( \frac{Gm_{\mathrm{c}}}{2(A-B)^2} \right)^{1/3},
+\end{equation}
+where $G$ is the gravitational constant, and $A$ and $B$ are the Oort constants, with values from \citet{2017MNRAS.468L..63B}.
+
+\subsection{ASteCA}
+Automated Stellar Cluster Analysis (ASteCA) \citep{2015A&A...576A...6P}, is an open source Python tool designed to automate standard tests to determine the basic parameters of stellar clusters. For an accurate estimation of a cluster's metallicity, age, and extinction values, we employed ASteCA's isochrone fitting process. We utilized \textsc{MIST} isochrones \citep{2016ApJS..222....8D, 2016ApJ...823..102C} along with the photometric systems of \textsc{Gaia} EDR3 and \textsc{2MASS}. The Initial Mass Function (IMF) settings followed \citet{2014ApJ...796...75C}, with fixed values for $\alpha = 0.090$, $\beta = 0.940$, and the differential reddening set to zero.
+
+The priors for metallicity $Z$, logarithmic age, and absorption $A_V$ were defined as uniform distributions ranging from $[0.001, 0.045]$, $[6.00, 7.00]$, and $[0.5, 2]$, respectively, aligned with the findings of \cite{2024arXiv240301030P}. The distance modulus was modeled as $\mathcal{N}(10.3, 0.2)$, with the mean value corresponding to the expected distance modulus obtained from the parallax. We used only the \textsc{MIST} PMS evolutionary models for the present fit; therefore, the quoted age uncertainty reflects the posterior uncertainty within this model family and does not include the systematic differences that can arise from alternative PMS tracks. We chose to use the mode of the posterior distribution for our analysis and utilized the NUTS from PyMC, prioritizing its efficiency over the Approximate Bayesian Computation (ABC) suggested by ASteCA. The nuisance parameter $\sigma$ shown in the posterior diagnostic plot is the likelihood-scatter term used in the PyMC diagnostic implementation that generated this figure; it is not a physical velocity, spatial, or age dispersion of the cluster.
+
+\subsection{Sagitta}
+Sagitta is a neural network designed to classify stars as PMS and estimate their ages. It is trained with data from Gaia DR2 and the 2MASS. It incorporates three convolutional neural networks each dedicated to determining stellar extinction ($A_v$), PMS probability, and estimating stellar ages. Sagitta's age estimation is applicable for young stars up to $\sim 80~\mathrm{Myr}$ and relies on inputs including Gaia parallaxes, and average line-of-sight extinction \citep{2021AJ....162..282M}.
+
+Sagitta is trained on a curated sample of PMS stars in moving groups \citep{2020AJ....160..279K}, supplemented with literature ages \citep{2023AJ....165..182K}. Because the network was trained on Gaia DR2 photometry, we apply it here to the corresponding Gaia DR3 bands.
+
+Identifying the PMS stars and estimating their ages helps trace the cluster's star-formation history. Sagitta is most reliable for PMS stars, since the photometry of higher-mass stars that have reached the main sequence is not indicative of their age, limiting the model's applicability to stars that remain in the PMS stage.
+
+\section{Results}\label{sec:results}
+In this section, we report the results of our study, focusing on the mode of the distributions for the reference sample with a membership pseudo-probability of at least $60$\%.
+
+Table \ref{tab:ngc6383_results} summarizes the parameters derived for sources with $\tilde{p}>0.6$. The figures referenced below illustrate the membership (Figs. \ref{fig:probabilities}, \ref{fig:center}, \ref{fig:proper_motion}), distance and parallax (Fig. \ref{fig:parallax_distance}), structural fit (Figs. \ref{fig:king}, \ref{fig:real_sky}), CMD and ages (Figs. \ref{fig:cmd}, \ref{fig:cmd_ngc6383_various}), masses and binarity (Fig. \ref{fig:cmd_mass_binary}), luminosity function (Fig. \ref{fig:lf}), and mass segregation (Figs. \ref{fig:cumulative_luminosity}, \ref{fig:mass_seg}, \ref{fig:mass_tseg}, \ref{fig:mst}). The Sagitta outputs (Fig. \ref{fig:pms_sagitta_stats}), radial velocities (Fig. \ref{fig:radial_velocities}), and HDBSCAN diagnostics (Figs. \ref{fig:min_cluster_size}, \ref{fig:condensed_cluster_tree}) are shown in the appendix.
+
+Applying the HDBSCAN algorithm in the proper-motion plane returned several clusters. A major flaw of HDBSCAN, as shown in \citet{2021A&A...646A.104H}, is its high false positive rate. This is due to the overconfidence of the algorithm, which often reports dense random fluctuations of a given data set as clusters. We therefore selected the branch that is both stable in the condensed cluster tree and centered on the known proper-motion overdensity of NGC 6383. This group initially contained 701 sources and, after applying the $2\sigma$ parallax clipping described in Section \ref{subsubsec:membership}, 321 sources were retained.
+
+The cone-search robustness experiment in Table \ref{tab:cone_robustness} shows how this selection behaves when the input field is widened. The NGC 6383-like proper-motion branch is recovered in every run, but the recovered reference sample is not invariant with radius. In the $40$ and $50\,\mathrm{arcmin}$ runs the generic sweep-selected branch coincides with the NGC-like branch. In the $60$ and $70\,\mathrm{arcmin}$ runs, however, the generic branch selected by the sweep differs from the branch closest to the NGC 6383 proper-motion overdensity, showing that the automated branch selection becomes field-window dependent in larger cones. This interpretation is consistent with recent \textit{Gaia} DR3 open-cluster studies in which structural analyses use fields substantially larger than the cluster radius to constrain the background level \citep{2025MNRAS.539.2513A}, and in which extended tidal features require additional photometric, dynamical, or three-dimensional checks before being classified as physical tails rather than field contamination \citep{2025A&A...694A.258R,2025A&A...698A.156X}. We therefore use the $40\,\mathrm{arcmin}$ catalog as the reference sample for the present analysis, while treating the outer membership and any quantity tied to the cluster boundary as search-window sensitive.
+
+\begin{table*}
+		\caption{Robustness of the membership recovery against the input cone-search radius. The $40\,\mathrm{arcmin}$ row is the production catalog used for the adopted cluster parameters, while the $50$--$70\,\mathrm{arcmin}$ rows are wider-field robustness checks. Each run used the same preprocessing, the same proper-motion-only HDBSCAN feature space, the same paper-faithful pseudo-probability construction, and the same parallax-mode sigma clipping. The algorithm-selected branch is the branch selected by the generic sweep rule, while the NGC-like branch is the final HDBSCAN label closest to the reference proper motion of NGC 6383, $(\mu_{\alpha*},\mu_{\delta})=(2.54,-1.71)\,\mathrm{mas\,yr^{-1}}$.}
+	\centering
+	\begin{tabular}{cccccccc}
+		\hline
+		Radius & Preprocessed & Best $m_\mathrm{cl}$ & Algorithm & NGC-like & NGC branch & $\tilde{p}>0.5$ & $\tilde{p}\geq0.6$ \\
+		(arcmin) & sources &  & label & label & size & after clip & reference sample \\
+		\hline
+		40 & 15276 & 43  & 0  & 0  & 701 & 321 & 254 \\
+		50 & 23844 & 18  & 28 & 28 & 767 & 355 & 236 \\
+		60 & 33309 & 143 & 1  & 0  & 696 & 476 & 443 \\
+		70 & 44438 & 177 & 1  & 0  & 798 & 650 & 628 \\
+		\hline
+	\end{tabular}
+	\label{tab:cone_robustness}
+\end{table*}
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_mass_binary.pdf}}
+	\caption{\emph{Upper Panel:} CMD displaying probable members and members of NGC 6383, color-coded by total mass, ranging from lower (red) to higher mass (blue). The dashed black line represents the best mode fit isochrone, illustrating the evolutionary track inferred for the cluster. The total mass is calculated as the sum of the two components if the binary probability is greater than $0.7$. Black stars represent members and probable members with no available 2MASS data, and thus no calculated mass. \emph{Lower Panel:} The same stars as in the upper panel, now color-coded according to binary probability, illustrating the likelihood of binary systems within these stars, from low (red) to high (blue). The black dashed line again represents the best mode fit isochrone.}
+	\label{fig:cmd_mass_binary}
+\end{figure}
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/luminosity_function.pdf}}
+		\caption{Luminosity function of NGC 6383: histogram of absolute magnitudes ($ G_{\text{abs}} $) for stars with a membership pseudo-probability of at least $0.6$.}
+	\label{fig:lf}
+\end{figure}
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_brightness_paper.pdf}}
+	\caption{Normalized cumulative counts of stars within NGC 6383 are plotted against radial distance from the cluster center for different brightness ranges, segmented into quartiles of $G_{\text{mag}}$ from the brightest at $8.80$ mag to the faintest at $\sim20.7$ mag. The green dashed line at $R_c = 1.95\,\mathrm{arcmin}$ marks the core radius, and the red dashed line at $R_t = 40.4\,\mathrm{arcmin}$ denotes the fitted King outer radius, illustrating the spatial distribution of stars with varying brightness within these fitted scales. The corresponding K-S test is discussed in Sect. \ref{subsec:lum_mass_dyn}.}
+	\label{fig:cumulative_luminosity}
+\end{figure}
+Regarding membership pseudo-probabilities, NGC 6383 has $321$, $254$, $202$, and $161$ candidate members with $\tilde{p}$ above $50$, $60$, $70$, and $80$\%, respectively. Correspondingly, $288$, $236$, $191$, and $153$ of these candidates are brighter than $G=19\,\mathrm{mag}$. Table \ref{tab:cds_members} shows a five-row excerpt of the likely-member catalog; the complete 321-source catalog will be made available at the CDS. The printed excerpt displays only selected columns for readability; the complete set of column labels is described in the table note and in the CDS ReadMe.
+
+\begin{table*}
+\caption{Excerpt of the likely-member catalog for NGC 6383. The complete machine-readable table is available at the CDS. Only selected columns and five rows are printed here for guidance regarding the table form and content.}
+\label{tab:cds_members}
+\centering
+\resizebox{\hsize}{!}{%
+\begin{tabular}{llllllll}
+\hline\hline
+GaiaDR3 & RAdeg & DEdeg & Gmag & pHDBSCAN & pFreq & pMember & Ref \\
+ & (deg) & (deg) & (mag) & & & & \\
+\hline
+4053793547964747904 & 264.16939344 & -33.03325935 & 17.9052 & 0.7959 & 0.9793 & 0.7795 & 1 \\
+4054500465190725632 & 263.10710918 & -32.96962071 & 20.1954 & 0.6985 & 0.9793 & 0.6840 & 1 \\
+4054501599068361216 & 263.08486813 & -32.91805440 & 15.1189 & 0.8585 & 0.9793 & 0.8407 & 1 \\
+4054514449600386304 & 263.64147648 & -33.22555846 & 16.3805 & 0.9110 & 0.9828 & 0.8953 & 1 \\
+4054518023012382592 & 264.01601176 & -33.15455344 & 14.6423 & 0.6760 & 0.9793 & 0.6620 & 1 \\
+\hline
+\end{tabular}}
+\tablefoot{The complete CDS table contains the following columns: GaiaDR3, RAdeg, DEdeg, Plx, e\_Plx, pmRA, e\_pmRA, pmDE, e\_pmDE, Gmag, BPmag, RPmag, Jmag, Hmag, Ksmag, Fidelity, pHDBSCAN, pFreq, pMember, Ref, PMSProb, AvSag, and logAgeSag. Here pMember is the composite membership pseudo-probability $\tilde{p}=p_{\mathrm{HDBSCAN}}f_i$. The column Ref is equal to one for sources belonging to the $\tilde{p}\geq0.6$ reference sample used for the main cluster parameters, and zero otherwise.}
+\end{table*}
+
+The central position of the cluster in equatorial coordinates is $263.6826 \pm 0.1122\,^\circ$ in RA and $-32.5838 \pm 0.1122\,^\circ$ in DEC. These errors are calculated from the quadratic sum of the mean errors in RA and DEC and the optimal KDE bandwidth. This center is consistent, within the quoted uncertainty, with the projected coordinates of HD 159176; the positional coincidence is therefore not sufficient by itself to establish membership. The mean proper motion values are $2.542\,\mathrm{mas\,yr^{-1}}$ in RA and $-1.713\,\mathrm{mas\,yr^{-1}}$ in DEC, with member dispersions of $0.152$ and $0.138\,\mathrm{mas\,yr^{-1}}$, respectively. The corresponding standard errors on the means are $0.0096$ and $0.0086\,\mathrm{mas\,yr^{-1}}$, but these smaller values are not used as the physical width of the cluster when comparing individual stars. The calculated projected velocity is $3.070 \pm 0.010\,\mathrm{mas\,yr^{-1}}$.
+
+The mean parallax of the subsample used for the distance estimate is $0.908\,\mathrm{mas}$, with a 1$\sigma$ dispersion of $0.046\,\mathrm{mas}$ and a standard error on the mean of $0.004\,\mathrm{mas}$. The mode sampled distance is $1.1100 \pm 0.0600\,\mathrm{kpc}$. These values slightly deviate from older determinations \citep{1930LicOB..14..154T,1949ApJ...110..117S,1978MNRAS.182..607F,1985AA...151..391T,2007AA...462..157P}. They are, however, consistent with more recent studies \citep{1971AAS....4..241B,2005AA...438.1163K,2008AA...477..165P,2021ApJ...923..129J,2022ApJS..262....7H,2024arXiv240301030P,2024arXiv240305143H}.
+
+Radial velocities have a median, mean, and standard deviation of $-6.11$, $-15.1$, and $31.1 \,\mathrm{km}\,\mathrm{s}^{-1}$, respectively, from 16 sources with $\tilde{p}>0.6$ and a binary probability below $0.6$. The large dispersion reflects the scarce radial-velocity data (only $11.4$\% of our sources) and possible unresolved binaries; restricting the estimate to low-binary-probability sources reduces such outliers, but the value remains only indicative of the cluster dynamics. Figure \ref{fig:radial_velocities} shows the members with available radial velocities.
+
+\begin{figure*}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_mass_and_type.pdf}}
+    \caption{\emph{Left panel:} The cumulative distributions of single stars within NGC 6383 are segmented into four mass quartiles ranging from $0.19 - 0.58\,M_\odot$ to $1.44 - 13.56\,M_\odot$, illustrating the spatial distribution across different mass ranges. \emph{Middle panel:} The same distributions as in the left panel for binary stars only, where binaries are defined as sources with a binary probability greater than $0.6$. \emph{Right panel:} The normalized cumulative distributions compare single stars to binary stars, with masses between $0.19\,M_\odot$ and $13.56\,M_\odot$. All plots are based on stars with a membership pseudo-probability of at least $0.6$. See Sect. \ref{subsec:lum_mass_dyn} for a discussion.}
+	\label{fig:mass_seg}
+\end{figure*}
+
+\subsection{Structural Parameters}
+
+The King-profile fit gives an outer radius of $40.4 \pm 14.3\,\mathrm{arcmin}$ ($13.10 \pm 4.71\,\mathrm{pc}$) and a core radius of $1.950 \pm 0.190\,\mathrm{arcmin}$ ($0.632 \pm 0.070\,\mathrm{pc}$). The King model parameters $k$ and $b$, representing structural constants, are $4.910 \pm 0.437$ and $0.01110 \pm 0.00630$ stars per square arcminute, respectively. The concentration parameter $C$, defined as $\log_{10}(R_t/R_c)$ following \citet{1975AJ.....80..427P}, is $1.32 \pm 0.16$. The half-light radius is determined to be $6.02 \pm 1.07\,\mathrm{arcmin}$ ($1.94 \pm 0.36\,\mathrm{pc}$, bootstrap uncertainty) and the half-mass radius is $6.26 \pm 1.23\,\mathrm{arcmin}$ $(2.02 \pm 0.41\,\mathrm{pc})$. Part of these results are represented in Fig. \ref{fig:king}.
+
+The fitted tidal radius is close to the initial $40.0\,\mathrm{arcmin}$ cone-search radius and is therefore weakly constrained by the spatial window; it should be read as the model-dependent outer scale preferred by the King fit, not a sharp physical boundary, and is sensitive to the adopted background density \citep{2025MNRAS.539.2513A}. The wider-field tests (Table \ref{tab:cone_robustness}) recover the NGC 6383-like branch in all runs but show that the number of outer candidates changes with the input field, so we do not classify the larger-radius additions as confirmed halo members or contaminants; \textit{Gaia} tail searches similarly require contamination diagnostics beyond co-motion and projected radius \citep{2025A&A...694A.258R,2025A&A...698A.156X}. We identify $39$ sources between the Hill and fitted tidal radii (pseudo-probabilities $0.6$--$1.0$, mean $0.82$; Fig. \ref{fig:real_sky}) with cluster-like proper motions but not necessarily gravitationally bound.
+
+\subsection{Age, Extinction, and Color-Magnitude Diagram}
+
+The CMD of NGC 6383 is displayed in Fig. \ref{fig:cmd}, including PMS stars and the median, mean and mode isochrones. The mode indicates a logarithmic age in years of $6.550 \pm 0.145$, a distance modulus of $10.300\pm 0.262\,\mathrm{mag}$ corresponding to a distance of $1.150_{-0.130}^{+0.147}\,\mathrm{kpc}$, and a metallicity $Z $ of $0.024 \pm 0.008$. An estimated extinction correction of $A_V = 1.240 \pm 0.262$ was applied. The model’s distance modulus aligns with our parallax-derived estimates.
+
+The CMD, particularly for sources brighter than $G=12.0\,\mathrm{mag}$, displays a well-defined main sequence. The presence of PMS stars and lower-mass main sequence stars broadens the lower part of the CMD, complicating the fit of a single isochrone. Figure \ref{fig:cmd_ngc6383_various} presents various isochrones for Gaia and 2MASS data, considering ages between $6.20$ and $7.00$ in logarithmic scale and initial metallicities $ Z $ of $0.024$. The isochrones that best bracket the PMS locus correspond approximately to $\log(\mathrm{age})=6.20-6.80$, equivalent to about $1.6-6.3$ Myr, although older isochrones are plotted to show the sensitivity of the fit.
+
+Figure \ref{fig:cmd_ngc6383_various} also includes color-color diagrams $(G_\mathrm{BP} - G_\mathrm{RP})$ showing a clearer segregation of PMS stars, which tend to be at redder colors, as expected. The Sagitta outputs (Fig. \ref{fig:pms_sagitta_stats}) give the per-star PMS probability, age, and $A_V$. These histograms are individual-star Sagitta estimates and should not be read as the same posterior summarized in Table \ref{tab:ngc6383_results}. The broader Sagitta distributions, including the high-extinction tail and older age tail, reflect star-to-star extinction, photometric scatter, unresolved binaries, and the fact that Sagitta is applied to individual PMS candidates, whereas the ASteCA values in Table \ref{tab:ngc6383_results} are cluster-level isochrone-fit parameters. The posterior distribution of the inferred ASteCA parameters can be seen as a plot pair in Fig. \ref{fig:plot_pair_trace}.
+\subsection{Identification of YSOs}
+
+Young stellar Objects (YSOs) are early-stage stars still accreting material from their surrounding disks. They are characterized by significant variability due to the accretion processes. YSOs include both protostars and PMS stars. PMS stars, which encompass both classical T Tauri stars and Herbig Ae/Be stars, represent a later stage in stellar evolution. Thus, while PMS stars are a type of YSO, they are more evolved than protostars.
+
+Our analysis aims to quantify the fraction of YSOs within the cluster, noted as $ Y_{\text{frac}} $, which serves as an age indicator. We determined the reddening-free parameter $ Q $ for each star using
+\begin{equation}
+	Q = (J - H) - \frac{E(J-H)}{E(H - K)} (H-K),
+\end{equation}
+where $ E(J-H)/E(H-K) $ is assumed to be $1.55$ \citep{1990ARA&A..28...37M}. Following \citet{2013MNRAS.436.1465B}, a star is considered a YSO if its $ Q $ value is less than $-0.050\,\mathrm{mag}$.
+
+We followed the method of \citet{2011PASA...28..128C} to estimate $ Y_{\text{frac}} $ and its uncertainty. Using a non-informative $\mathcal{B}(1, 1)$ prior, the posterior distribution for $ Y_{\text{frac}} $ is modeled as
+\begin{equation}
+	Y_{\text{frac}} = \frac{N_{\text{YSO}}}{N_{\text{cl}}},
+\end{equation}
+where $ N_{\text{YSO}} $ is the number of YSOs and $ N_{\text{cl}} $ is the total number of cluster members. The $95\%$ credible interval for $ Y_{\text{frac}} $ was then derived from the posterior Beta distribution.
+
+We identified 53 YSOs, with a mean $ Q $ value of $-0.520$, a median of $-0.380$, and a standard deviation of $0.420$ for sources below $-0.050\,\mathrm{mag}$.
+
+The resulting $ Y_{\text{frac}} $ is $0.280$, with a $95\%$ credible interval of [$0.220$, $0.340$]. This is higher than the values reported by \citet{2013MNRAS.436.1465B}, who found only 18 of 397 cluster candidates with $ Y_{\text{frac}} > 0.100 $ and no cluster with $ Y_{\text{frac}} > 0.200 $. This suggests that NGC 6383 is relatively younger or has higher recent star-formation activity than most clusters in their study.
+
+\subsection{Luminosity, Mass, and Dynamical State}\label{subsec:lum_mass_dyn}
+
+We converted the apparent $G$ magnitudes to absolute magnitudes using the parallax-derived distance and derived the luminosity function (LF), shown in Fig. \ref{fig:lf}, which increases toward dimmer magnitudes.
+
+The radial cumulative distributions of cluster members at various magnitude levels, illustrated in Fig. \ref{fig:cumulative_luminosity}, show that fainter stars, ranging from $17.93$ to $20.66\,\mathrm{mag}$, are less concentrated around the cluster's center. This observation is consistent with Gaia's completeness limit for magnitudes between $18$ and $19$ at distances around $1\,\mathrm{kpc}$ \citep{2020MNRAS.497.4246B,2023AA...677A..37C}. A Kolmogorov-Smirnov (K-S) test comparing the faintest bin to the brighter ranges yields $p=0.009$--$0.052$, indicating that the faint stars are less centrally concentrated.
+
+Figure \ref{fig:cmd_mass_binary} shows the binary probabilities and total masses estimated with ASteCA. These values, particularly for PMS stars, should be interpreted with caution because the PMS CMD is poorly defined \citep{2010ApJ...723..166D}, which limits isochrone-based mass and binarity estimates. The average mass of the stars is $1.31\,M_\odot$. 
+
+To investigate mass segregation, we constructed radial normalized cumulative mass distributions for single stars, binary stars, and the combination of both, as shown in Fig. \ref{fig:mass_seg}. A two-sample KS test comparing binary and single stars yields $D=0.221$ and $p=0.010$, indicating that binary stars are significantly more centrally concentrated. Across single-star mass quartiles the KS results vary ($D=0.12$--$0.33$, $p=0.03$--$0.86$); given the width of these bins and the spread in $p$-values, we do not rely on any single quartile, and instead confirm the segregation with the bin-free $\Lambda_{\mathrm{MSR}}$ analysis (Fig. \ref{fig:mst}) below.
+
+To contextualize these findings, we calculated the half-mass relaxation time $t_{\mathrm{rh}}$ \citep{1969ApJ...158L.139S}, which is crucial to estimate the minimum mass segregation time $t_{\mathrm{seg}}$. The half-mass relaxation time is given by:
+
+\begin{equation}
+t_{\mathrm{rh}} = \frac{0.17N}{\ln(\lambda N)}\sqrt{\frac{r_{hm}^3}{GM}}
+\end{equation}
+
+where $N$ is the number of cluster members, $\lambda = 0.110$ is a constant \citep{1994MNRAS.268..257G}, and $r_\mathrm{hm} = 2.02 \pm 0.41\,\mathrm{pc}$ is the half-mass radius, derived from the radial cumulative mass distribution. The calculated half-mass relaxation time for NGC 6383 is $18.5\pm 5.7\,\mathrm{Myr}$.
+
+Using the half-mass relaxation time, we can estimate $t_{\mathrm{seg}}$ for the cluster's most massive star by following the approach of \citet{1969ApJ...158L.139S}:
+
+\begin{equation}
+t_{\mathrm{seg}} = \frac{\langle m \rangle}{m} t_{\mathrm{rh}}
+\end{equation}
+
+where $\langle m \rangle$ is the average mass of a star in the cluster, and $m$ is the mass of the most massive star. This results in a segregation time of $1.78 \pm 0.55\,\mathrm{Myr}$ for the most massive star of $13.6\,M_\odot$, indicating it has had sufficient time to undergo mass segregation.
+
+We evaluated the potential for primordial mass segregation by comparing the radial distributions of stars with a $t_{\mathrm{seg}}$ greater than $3.53\,\mathrm{Myr}$, which corresponds to the age of the cluster. The sample includes stars with masses ranging from $0.19\,M_\odot$ to $6.81\,M_\odot$, which corresponds to $98.4$\% of the original sample. The results, shown in Fig. \ref{fig:mass_tseg}, reveal a similar behavior to Fig. \ref{fig:mass_seg}, where the highest mass bin has a distinct distribution. This similarity is expected, given that the sample is nearly identical to the one used in the previous analysis. Within this subsample the single-star quartile KS results range over $D=0.15$--$0.34$ and $p=0.02$--$0.67$, with the upper mass quartile ($1.38$--$5.97\,M_\odot$) showing the largest separation. In this sample, the average mass is $1.16\,M_\odot$. The distributions of single and binary stars are similar up to approximately $5\,\mathrm{arcmin}$, beyond which single stars show less concentration compared to binary stars.
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/mass_segregation_mst.pdf}}
+	\caption{Mass-segregation ratio $\Lambda_{\mathrm{MSR}}$ \citep{2009MNRAS.395.1449A} of NGC 6383 as a function of the number of most-massive members $N_{\mathrm{MST}}$. Values $\Lambda_{\mathrm{MSR}}>1$ indicate that the most massive stars are more centrally concentrated than random members; the dashed line marks $\Lambda_{\mathrm{MSR}}=1$ (no segregation). Error bars are the $1\sigma$ scatter of $500$ random samples.}
+	\label{fig:mst}
+\end{figure}
+As an independent, bin-free check of mass segregation, we computed the mass-segregation ratio $\Lambda_{\mathrm{MSR}}$ of \citet{2009MNRAS.395.1449A}, which compares the minimum-spanning-tree length of the $N_{\mathrm{MST}}$ most massive members with that of random sets of the same size. As shown in Fig. \ref{fig:mst}, $\Lambda_{\mathrm{MSR}}$ reaches $\approx2.5$--$3$ for the $5$--$15$ most massive members and decreases toward unity for larger samples, confirming that the most massive members are significantly more centrally concentrated than typical members. This bin-independent result supports the mass-segregation signal seen in the cumulative distributions.
+
+Given the cluster's dynamical state and member number (presumably larger at birth), there has likely been insufficient time for dynamical mass segregation, suggesting that binaries formed closer to the center than single stars. Simulations \citep{2007ApJ...655L..45M} show this can arise if the cluster assembled from clumps that were initially mass-segregated, or had short enough relaxation times to segregate, before merging --- a configuration largely preserved through merging; initial mass segregation and gas expulsion are likewise key to cluster evolution \citep{2008MNRAS.386.2047M}. Regardless of mechanism, this points to a primordial or near-primordial central concentration of binaries, as seen in other young open clusters \citep{2007AJ....134.1368C,2007MNRAS.381L..40D,2008AJ....135..173S}.
+
+\subsection{Comparative analysis with cluster members and PMS study}
+\subsubsection{HD 159176}
+HD 159176 is a double-lined O-type spectroscopic binary projected close to the center of NGC 6383 and is responsible for ionizing the surrounding HII region \citep{1993Obs...113..204S,2007A&A...474..193L,2016ApJ...832..211P}. The estimated age of HD 159176 is $2.30-2.80$\,Myr \citep{2010AA...511A..25R}. This is compatible with the $2-3$ Myr age of the most likely low-mass PMS candidates found by \citet{2010AA...511A..25R}, if the binary is assumed to be associated with the same star-formation event.
+
+In the study by \citet{2018AA...610A..30A}, it was hypothesized that if HD 159176 were a blue straggler, it would imply an older age for NGC 6383, ranging between $6.00$ and $10.0$\,Myr. We do not use this assumption in the present analysis. HD 159176 is classified in modern spectroscopic work as an O-type main-sequence binary, and its X-ray emission is naturally associated with massive-star winds and wind interaction rather than with an accreting Be-binary scenario \citep{2003AA...407..925R,1993Obs...113..204S,2007A&A...474..193L,2016ApJ...832..211P}.
+
+The Gaia DR3 values of HD 159176 are $\varpi = 1.167 \pm 0.071\,\mathrm{mas}$, $\mu_{\alpha*}=2.621 \pm 0.083$, and $\mu_{\delta}=-0.798 \pm 0.058\,\mathrm{mas\,yr^{-1}}$. These must be treated cautiously: at $G\simeq5.7$ (vs $G_{\min}=8.80$ and median $G\simeq17.0$ for the reference sample) the star lies in the bright-source regime prone to saturation and magnitude-dependent astrometric systematics \citep{2021A&A...649A...2L,2021A&A...649A...4L,2021A&A...649A.124C,2022A&A...657A.130M}. The $\mu_{\alpha*}$ agrees with the cluster mean and the parallax offset is not by itself conclusive; the strongest tension is in $\mu_{\delta}$, which differs from the cluster mean ($-1.713\,\mathrm{mas\,yr^{-1}}$, dispersion $0.138$) by $\Delta\mu_{\delta}\simeq0.91\,\mathrm{mas\,yr^{-1}}$, about $6.6\sigma$.
+
+Gaia DR3 astrometric-quality indicators reinforce this: HD 159176 has a normal $\mathrm{RUWE}=0.937$, 13 visibility periods, and no duplicated-source flag, but an excess-noise significance of 135.6 and an IPD multi-peak fraction of 39, far above the reference-sample medians of zero (84th percentiles 1.53 and 0). These are not used as a membership criterion but confirm that HD 159176 must be treated as a special bright-source astrometric case \citep{2022MNRAS.510.2597R}.
+
+We therefore exclude HD 159176 from the member sample used to characterize NGC 6383. Its projected central position remains noteworthy, but the Gaia DR3 proper motion, especially in declination, argues against treating it as a secure member in the present analysis. The age quoted for NGC 6383 in this paper is derived from the selected low-mass and PMS population and does not rely on the evolutionary status of HD 159176.
+
+\subsubsection{NGC 6383 22}
+NGC 6383 22\footnote{Cataloged in Simbad as \textsc{Gaia DR3 4054615634716139264}}, is identified as a $\lambda$ Bootis star. These stars are chemically peculiar A-type stars with abundance anomalies attributed to the accretion of metal-poor material. In a spectroscopic survey of metal-weak and emission-line stars in the Southern Hemisphere, \citet{2020MNRAS.499.2701M} found that $\lambda$ Boo stars, including NGC 6383 22, exhibit excesses at longer wavelengths, suggestive of circumstellar discs. This characteristic aligns with other stars in NGC 6383 and those studied in \citet{2019MNRAS.484.5102K}. However, NGC 6383 22 is not retained in our Gaia-selected member sample because, despite matching the position and parallax of the cluster, its proper motion ($\mu_\alpha^* = 1.790 \pm 0.030$ mas yr$^{-1}$, $\mu_\delta = -2.710 \pm 0.024$ mas yr$^{-1}$) is more than $3\sigma$ away from the mean of the posterior distribution of $\mu$. This result indicates that this star is likely passing near or through the cluster.
+
+\subsubsection{PMS studies using \texorpdfstring{H$\alpha$}{H-alpha} photometry and VPHAS+}
+
+\citet{2019MNRAS.484.5102K} examined 55 classical T-Tauri stars (CTTS) in the star-forming region Sh 2-012 and NGC 6383, utilizing optical photometry and Gaia astrometry. They reported a median age of $2.80 \pm 1.60\,\mathrm{Myr}$ for these stars, with masses ranging from $0.3$ to $1.0\,M_\odot$. Notably, $94\%$ of CTTS with near-infrared cross-matches conform to the near-infrared T-Tauri locus, and all stars with mid-infrared photometry showed signs of accreting circumstellar discs concentrated around NGC 6383.
+
+We also cross-matched our 321 likely candidates with the UBVRI H$\alpha$ photometric catalog of \citet{2010AA...511A..25R}. Using a $1.0\,\mathrm{arcsec}$ matching radius, we found 141 counterparts, including 124 sources from the $\tilde{p}\geq0.6$ reference sample. Their CDS table provides the $R_C-\mathrm{H}\alpha$ index but not a published source-by-source H$\alpha$ emitter flag. We therefore do not treat the match as a recovery of the original Rauw et al. emitter list. Instead, we used their published $R_C-\mathrm{H}\alpha$ color offsets, $0.12$--$0.24$ mag above the main-sequence $R_C-\mathrm{H}\alpha$ relation for candidates and $>0.24$ mag for emitters, as a diagnostic relative to an empirical non-emitter locus derived from their catalog. Under this diagnostic classification, 51 of the 141 matched sources show H$\alpha$ excesses, including 28 of the 57 matched Sagitta PMS candidates. For the reference sample alone, 23 of the 51 matched Sagitta PMS candidates show such an excess. These matches support the presence of an emission-line subset among the PMS candidates, but the absence of diagnostic H$\alpha$ excess for the remaining PMS candidates is not decisive because \citet{2010AA...511A..25R} emphasized that H$\alpha$ emission is variable, can be weak for part of the PMS population, and that H$\alpha$-selected samples can be contaminated by foreground and background objects.
+
+Out of the 55 CTTS kinematic members of Sh 2-012, only 15 are cataloged as members or potential members of the cluster in this study, with most having a PMS probability over $0.6$\footnote{The four exceptions have pseudo-probabilities of 16, 12, 55, and 45\% and are identified in the CDS table.}. The difference in member selection is mainly methodological: \citet{2019MNRAS.484.5102K} selected CTTS primarily from photometric H$\alpha$ equivalent widths and then refined membership with a double-peaked Gaussian fit to the Gaia proper motions, whereas our selection rests on proper-motion clustering. Only one T-Tauri source\footnote{Cataloged as Gaia DR3 4054567805963940352} is likely a binary, with a $0.94$ probability of being a binary star according to our analysis; this source belongs to both our $\tilde{p}\geq0.6$ reference sample and the \citet{2019MNRAS.484.5102K} CTTS list.
+
+\subsubsection{Comparison with published catalogs}
+We compared our membership with the catalogs of \citet{2020AA...640A...1C}, \citet{2021ApJ...923..129J}, \citet{2022ApJS..262....7H}, \citet{2024arXiv240305143H}, and SIMBAD. Listing in each case the sources in common, those only in the other catalog, and those only in ours, we find $148$, $97$, and $173$ for \citet{2020AA...640A...1C}; $161$, $123$, and $160$ for \citet{2021ApJ...923..129J}; $90$, $47$, and $231$ for \citet{2022ApJS..262....7H}; $202$, $120$, and $119$ for \citet{2024arXiv240305143H}; and $168$, $163$, and $153$ for SIMBAD. Because all rely at least partly on Gaia astrometry, the differences mainly reflect methodological choices, spatial windows, probability thresholds, and whether PMS or photometric information enters the selection.
+
+\section{Conclusions}\label{sec:conclusion}
+
+This study presents an analysis of the young open cluster NGC 6383, employing Bayesian analysis and machine learning techniques to identify cluster members and determine key parameters. Using the HDBSCAN algorithm in proper-motion space followed by parallax clipping, we identified 321 likely members with $\tilde{p}>0.5$. The reference sample used for the cluster parameters contains 254 sources with membership pseudo-probabilities exceeding 60\%.
+
+Our findings indicate that the cluster has a mode age of $3.53^{+1.40}_{-1.00}~\mathrm{Myr}$, with a distance of $1.110 \pm 0.060\,\mathrm{kpc}$ derived from the parallax-based distance estimation. The fitted core and King outer radii are $1.950 \pm 0.190\,\mathrm{arcmin}$ and $40.4 \pm 14.3\,\mathrm{arcmin}$, respectively. Wider-field tests with $50$, $60$, and $70\,\mathrm{arcmin}$ input cones recover a NGC 6383-like proper-motion branch in all cases, but the selected outer membership is not invariant with field size. In line with recent \textit{Gaia}-based work on open-cluster structure and tidal features \citep{2025MNRAS.539.2513A,2025A&A...694A.258R,2025A&A...698A.156X}, this outer radius should therefore be regarded as a model-dependent scale rather than as an independently measured physical boundary. We also observed mass segregation among binary stars, indicating that NGC 6383 is not fully relaxed.
+
+The CMD analysis revealed a well-defined main sequence and a population of PMS stars, indicating an age spread of star formation within the cluster ranging from $1.6$ to $6.3$ Myr, suggesting ongoing star formation. The Sagitta neural network provided additional insights into the probabilities of PMS stars, their ages, and the extinction affecting cluster members. A cross-match with the UBVRI H$\alpha$ catalog of \citet{2010AA...511A..25R} identifies a diagnostic H$\alpha$-excess subset among the matched PMS candidates, consistent with an emission-line or accreting component.
+
+Our analysis aligns with recent studies, offering updated parameters for NGC 6383. HD 159176 is projected near the cluster center, but its Gaia DR3 proper motion in declination is inconsistent with the selected cluster population. Because HD 159176 lies well outside the magnitude range of the Gaia-selected candidates, we interpret its Gaia astrometry cautiously; nevertheless, we do not include it in the member sample used for the cluster characterization. The age estimate reported here is derived from the selected PMS and low-mass population, as in previous PMS-based studies, and does not depend on assuming any particular evolutionary state for HD 159176.
+
+We also find binary stars more centrally concentrated than single stars, indicating primordial mass segregation. The calculated half-mass relaxation time indicates that NGC 6383 is not yet fully relaxed. The observed central concentration of binaries, even for those with segregation times longer than the cluster’s age, suggests these stars may have formed closer to the cluster center. This finding is consistent with other studies and simulations where initial mass segregation and gas expulsion play critical roles in star cluster evolution, which is in agreement with the studies of \citet{2007ApJ...655L..45M,2008MNRAS.386.2047M,2007AJ....134.1368C,2007MNRAS.381L..40D,2008AJ....135..173S}. Regardless of the specific mechanism, this suggests a primordial, or near-primordial, central concentration of binaries during the formation process of the cluster, which is consistent with other young open clusters in those studies and simulations.
+
+Overall, this study demonstrates the effectiveness of combining advanced computational techniques with traditional astronomical methods to enhance our understanding of stellar clusters. The characterization of NGC 6383 provides a solid foundation for future investigations into its formation history and evolution. This study is a precursor for future work investigating mass segregation, pre-main sequence stars, age, and membership of new open cluster candidates in the Gaia era. The software used in this study is available on GitHub\footnote{\url{https://github.com/notluquis/COSMIC}}, and the catalog will be archived at the CDS.
+
+\begin{acknowledgements}
+We gratefully acknowledge support by the ANID BASAL project FB210003 and the SOCHIAS GEMINI project 32230014.
+
+L.P. gratefully acknowledges the invaluable comments and guidance of Dr. Robert Mathieu in the preparation of this investigation.
+
+This work has made use of data from the European Space Agency (ESA) mission {\it Gaia} (\url{https://www.cosmos.esa.int/gaia}), processed by the {\it Gaia} Data Processing and Analysis Consortium (DPAC, \url{https://www.cosmos.esa.int/web/gaia/dpac/consortium}). Funding for the DPAC has been provided by national institutions, in particular the institutions participating in the {\it Gaia} Multilateral Agreement. 
+
+This publication makes use of data products from the Two Micron All Sky Survey, which is a joint project of the University of Massachusetts and the Infrared Processing and Analysis Center/California Institute of Technology, funded by the National Aeronautics and Space Administration and the National Science Foundation. The DSS2-red background image used in Fig. \ref{fig:real_sky} is based on the Digitized Sky Survey, produced at the Space Telescope Science Institute under U.S. Government grant NAG W-2166. This work made use of Astropy:\footnote{http://www.astropy.org} a community-developed core Python package and an ecosystem of tools and resources for astronomy \citep{astropy:2013, astropy:2018, astropy:2022}.
+\end{acknowledgements}
+
+\bibliographystyle{aa}
+\bibliography{cites} 
+
+\begin{appendix}
+
+\section{Historical parameters of NGC 6383}
+
+\begin{table*}
+\caption{Historical review of observed parameters for the open cluster NGC 6383, compiled from the literature. The table details the number of cluster members, core and tidal radii, parallax, distance, E(B-V) color excess, distance modulus $(m - M)$, and estimated ages. This summary provides a view on how measurements and interpretations of NGC 6383 have evolved over time.}
+\label{tab:literature}
+\centering
+\resizebox{\hsize}{!}{%
+\begin{tabular}{llllllllllll}
+\hline\hline
+Reference & Members & Core Radius & Tidal Radius & Parallax & Distance & E(B-V) & $(m - M)$ & Age\\
+& & arcmin & arcmin & mas & kpc & mag & mag & Myr\\
+\hline
+\citet{1930LicOB..14..154T} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 2.13 & $\cdots$ & $\cdots$ & $\cdots$\\
+\citet{1949ApJ...110..117S} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 0.76 & $\cdots$ & $\cdots$ & $\cdots$\\
+\citet{1961RGOB...27...61E} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 0.30 & $\cdots$ & $\cdots$\\
+\citet{1967MNRAS.135..377G} & 74 & $\cdots$ & $\cdots$ & $\cdots$ & 1.38 & $\cdots$ & 10.7$\pm$0.5 & $\cdots$\\
+\citet{1968PhDT........29E} & At least 21 & $\cdots$ & $\cdots$ & $\cdots$ & 1.30 & 0.35 & 10.6 & 5.0\\
+\citet{1968ArA.....5....1L} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 1.25 & $\cdots$ & 10.5 & $\sim$ 20\\
+\citet{1971AAS....4..241B} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 1.07 & 0.26 & 10.9 & $\cdots$\\
+\citet{1978MNRAS.182..607F} & $\cdots$ & 1.25 & $\cdots$ & $\cdots$ & 1.50$\pm$0.20 & 0.33$\pm$0.02 & 10.9 & 1.7$\pm$0.4\\
+\citet{1978MNRAS.184..661L} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 1.35 & 0.35 & 10.6 & Up to 5.0\\
+\citet{1985AA...151..391T} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 1.40$\pm$0.15 & 0.30$\pm$0.01 & $\cdots$ & $\cdots$\\
+\citet{1989MNRAS.236..263P} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 0.35 & 11.7 & $\sim$ 4.5\\
+\citet{1991MNRAS.249...76B} & 27 & $\cdots$ & $\cdots$ & $\cdots$ & 1.38 & 0.34 & $\cdots$ & $\sim$ 20\\
+\citet{1994RMxAA..29..141F} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 1.40 & 0.33 & $\cdots$ & $\cdots$\\
+\citet{2003AA...407..925R} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 0.33 & 10.7 & $\cdots$\\
+\citet{2005AA...438.1163K} & 13 & 4.80 & 15.0 & $\cdots$ & 0.99 & 0.30 & 10.9 & 5.0\\
+\citet{2007AA...462..157P} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 1.70$\pm$0.30 & 0.29$\pm$0.05 & $\cdots$ & Less than 4.0\\
+\citet{2008AA...477..165P} & $\cdots$ & $\cdots$ & 29.0$\pm$6.6 & $\cdots$ & 0.99 & 0.30 & 10.9 & 5.0\\
+\citet{2010AA...511A..25R} & 55 PMS candidates & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 0.32 & $\cdots$ & 2--3\\
+\citet{2018AA...610A..30A} & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 0.83$\pm$0.16 & 0.51$\pm$0.03 & 9.61$\pm$0.38 & $\sim$ 3-10\\
+\citet{2019MNRAS.484.5102K} & At least 55 & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & $\cdots$ & 2.8$\pm$1.6\\
+\citet{2021ApJ...923..129J} & 284 & $\cdots$ & $\cdots$ & 0.93$\pm$0.09 & 1.07 & $\cdots$ & $\cdots$ & $\cdots$\\
+\citet{2022ApJS..262....7H} & $\cdots$ & $\cdots$ & $\cdots$ & 0.88$\pm$0.05 & $\cdots$ & 0.45 & $\cdots$ & 3.5\\
+\citet{2024arXiv240305143H} & 322 & 2.49 & 22.7 & 0.89$\pm$0.08 & 1.10 & 0.38 & 10.2 & $\sim$ 4.0\\
+\citet{2024arXiv240301030P} & 266 & 1.21$\pm$0.13 & 29.7$\pm$7.7 & 0.92$\pm$0.06 & 1.10$\pm$0.04 & 0.47$\pm$0.03 & 10.9$\pm$0.33 & $\sim$ 1-4\\
+\hline
+\end{tabular}}
+\end{table*}
+
+\section{HDBSCAN diagnostic and ASteCA posterior corner plots}
+
+The present section describes the HDBSCAN runs and presents the resulting plots, providing a comprehensive visualization of the clustering process. These figures illustrate the cluster size variation as a function of minimum cluster size, the hierarchical structure of the cluster system through a condensed cluster tree, and the posterior distributions of inferred parameters.
+
+\begin{figure}
+\centering
+\resizebox{\hsize}{!}{\includegraphics{Figures/min_cluster_size.pdf}}
+\caption{Cluster size variation as a function of minimum cluster size, determined through HDBSCAN clustering on the proper motion data of the sources. The blue line represents cluster sizes achieved at various minimum cluster sizes. The dashed blue line highlights the optimal minimum cluster size of 43, where the cluster size reaches a peak. The dashed green line indicates the maximum observed cluster size of 701.}
+\label{fig:min_cluster_size}
+\end{figure}
+
+Figure \ref{fig:min_cluster_size} shows how the size of clusters varies with different minimum cluster size parameters in HDBSCAN. This plot helps visualizing the optimal minimum cluster size, marked by the dashed blue line, where the cluster size reaches its maximum efficiency. The dashed green line represents the maximum observed cluster size, providing a benchmark for comparison.
+
+\begin{figure}
+\resizebox{\hsize}{!}{\includegraphics{Figures/condensed_cluster_tree_NGC6383.pdf}}
+\caption{The condensed cluster tree exhibits the hierarchical structure of the cluster system, elucidating the proximity or potential merger of clusters as well as their degree of separation. The dendrogram representation displays the cluster hierarchy, wherein the width (and color) of each branch depicts the number of points in the cluster at that level. Specifically, the plot illustrates the NGC 6383 cluster sources on the left side, while the HDBSCAN-identified field sources are situated on the right side. The color bar corresponds to the number of sources at each level, while the $\lambda$ value corresponds to $1/d_{\mathrm{mreach}}$, the inverse mutual-reachability distance.}
+\label{fig:condensed_cluster_tree}
+\end{figure}
+
+Figure \ref{fig:condensed_cluster_tree} presents the condensed cluster tree, which visually represents the hierarchical structure of the clusters. This dendrogram highlights the proximity or potential mergers of clusters and their degree of separation. The left side of the plot focuses on the NGC 6383 cluster sources, while the right side shows the HDBSCAN-identified field sources. The color bar indicates the number of sources at each hierarchical level, with $\lambda$ values representing the inverse mutual-reachability distance.
+
+\begin{figure*}
+\resizebox{\hsize}{!}{\includegraphics{Figures/plot_pair_trace.pdf}}
+\caption{Posterior distributions of the parameters $A_v$ (visual extinction), $dm$ (distance modulus), $loga$ (logarithmic age), $met$ (metallicity), and the nuisance likelihood-scatter parameter $\sigma$. The $\sigma$ parameter is the likelihood-scatter term used in the PyMC diagnostic implementation that generated this figure and should not be interpreted as a physical cluster dispersion. The diagonals display the marginal distributions for each parameter, showing their individual probability densities. The off-diagonal hexbin plots illustrate the joint distributions, highlighting correlations between parameters. The black lines represent the mode of the distributions.}
+\label{fig:plot_pair_trace}
+\end{figure*}
+
+Figure \ref{fig:plot_pair_trace} displays the posterior distributions of key parameters: visual extinction ($A_v$), distance modulus ($dm$), logarithmic age ($loga$), and metallicity ($met$). The diagonal plots show the marginal distributions for each parameter, providing insights into their individual probability densities. The off-diagonal hexbin plots illustrate the joint distributions, in which it is possible to see correlations between the parameters. The black lines indicate the mode of the distributions, highlighting the most probable values.
+
+\section{Supplementary figures}
+
+\begin{figure*}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/real_sky.pdf}}
+	\caption{Spatial distribution of probable members and members overlaid on a DSS2-red background image, centered on the derived cluster center marked by a blue cross. The image shows several fitted or derived scale radii: the King outer radius $ R_t $ is depicted with a dashed dark slate gray line, the core radius $ R_c $ with a solid dark blue line, the half-light radius $ R_{\mathrm{hl}} $ with a dash-dot burgundy line, the half-mass radius $ R_{\mathrm{hm}} $ with a solid magenta line, the Hill radius $ R_{\mathrm{hill}} $ with a dashed yellow line, and the gravitational bound radius $ R_{\mathrm{bound}}$ with a solid orange line. A scale bar indicating $5\,\mathrm{pc}$ is positioned at the bottom right to provide spatial reference relative to the cluster scale.}
+	\label{fig:real_sky}
+\end{figure*}
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/pms_stats.pdf}}
+	\caption{Histograms of the parameters obtained with Sagitta for NGC 6383 probable members, including all data, members with a PMS probability over $60\%$, members with a PMS probability under $60\%$, and stars with missing 2MASS data. The upper panel shows the distribution of PMS probability values, the middle panel the distribution of logarithmic age values, and the lower panel the distribution of visual extinction values ($A_V$).}
+	\label{fig:pms_sagitta_stats}
+\end{figure}
+
+\begin{figure*}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_mass_and_type_mseg.pdf}}
+	\caption{Same as Fig. \ref{fig:mass_seg}, but for stars with $M < 6.81~M_\odot$ (segregation time $>3.53~\mathrm{Myr}$, the cluster age). See Sect. \ref{subsec:lum_mass_dyn} for a discussion.}
+	\label{fig:mass_tseg}
+\end{figure*}
+
+\begin{figure}
+	\centering
+	\resizebox{\hsize}{!}{\includegraphics{Figures/radial_velocity_amplitude.pdf}}
+	\caption{Radial velocity plotted against G-band magnitude for NGC 6383 sources. Yellow circles indicate sources without amplitude measurements, displaying radial velocity uncertainties with error bars. Blue circles represent sources with amplitude data, color-coded by amplitude value according to the scale on the right.}
+	\label{fig:radial_velocities}
+\end{figure}
+
+\end{appendix}
+\end{document}
