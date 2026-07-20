@@ -27,14 +27,20 @@ def _compute_table_hash(table: QTable) -> str:
 
 
 def _ensure_sagitta() -> None:
+    """Verify Sagitta is importable, else raise with install instructions.
+
+    Sagitta is an optional dependency for pre-main-sequence classification. It is
+    not on PyPI, so COSMIC never installs it automatically (silently shelling out
+    to ``pip install`` a moving git ref modifies the user's environment without
+    consent and is not reproducible). Install it manually.
+    """
     import importlib.util
 
     if importlib.util.find_spec("sagitta") is None:
-        import subprocess as _sp
-
-        _sp.run(
-            ["pip", "install", "git+https://github.com/hutchresearch/Sagitta.git"],
-            check=True,
+        raise ImportError(
+            "Sagitta is required for pre-main-sequence classification but is not "
+            "installed. COSMIC does not install it automatically. Install it with:\n"
+            "    pip install 'sagitta @ git+https://github.com/hutchresearch/Sagitta.git'"
         )
 
 
