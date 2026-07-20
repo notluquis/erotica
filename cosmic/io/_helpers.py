@@ -22,6 +22,18 @@ from ._constants import (
 
 AliasMap = Mapping[str, Iterable[str]]
 
+# Integer identifier columns (e.g. Gaia ``source_id``, WISE ``allwise_oid``) hold
+# 64-bit values that exceed 2**53 and therefore cannot be represented exactly as
+# float64.  They must never be promoted to float when unmasking, otherwise the
+# identifiers are silently corrupted and every downstream crossmatch breaks.
+_IDENTIFIER_COLUMNS = frozenset({"source_id", "allwise_oid"})
+
+
+def _is_identifier_column(name: str) -> bool:
+    """Return ``True`` when *name* denotes an integer identifier column."""
+    lowered = name.lower()
+    return name in _IDENTIFIER_COLUMNS or lowered.endswith(("_id", "_oid"))
+
 
 def resolve_alias(
     available_cols: Iterable[str], canonical_name: str, aliases: AliasMap | None = None
@@ -104,14 +116,28 @@ def collect_requested_columns(
 
 
 def handle_masked_columns(table: QTable) -> None:
-    """Replace masked values by NaN, promoting integer columns to float when needed."""
+    """Replace masked values by NaN, promoting integer columns to float when needed.
+
+    Integer *identifier* columns (e.g. ``source_id``) are exempt from the float
+    promotion: their 64-bit values exceed 2**53 and would be silently corrupted
+    by a float64 cast.  Such columns keep integer dtype when nothing is masked,
+    or become ``object`` (integers preserved exactly, missing entries set to NaN)
+    when some values are masked.
+    """
     for column_name in table.colnames:
         column = table[column_name]
-        if hasattr(column, "mask"):
-            if np.issubdtype(column.dtype, np.integer):
-                table[column_name] = column.astype(float)
-                column = table[column_name]
-            table[column_name] = column.filled(np.nan)
+        if not hasattr(column, "mask"):
+            continue
+        if _is_identifier_column(column_name) and np.issubdtype(column.dtype, np.integer):
+            if np.any(column.mask):
+                table[column_name] = column.astype(object).filled(np.nan)
+            else:
+                table[column_name] = column.filled()
+            continue
+        if np.issubdtype(column.dtype, np.integer):
+            table[column_name] = column.astype(float)
+            column = table[column_name]
+        table[column_name] = column.filled(np.nan)
 
 
 def apply_unit_corrections(table: QTable, *, logger=None) -> None:
@@ -135,10 +161,11 @@ def compute_valid_source_counts(table: QTable) -> dict[str, int]:
     """Return counts of valid entries per photometric category."""
     counts: dict[str, int] = {}
 
-    if "source_id" in table.colnames:
-        counts["Gaia IDs"] = int(np.sum(~np.isnan(table["source_id"])))
-    else:
-        counts["Gaia IDs"] = 0
+    # ``source_id`` is a 64-bit integer identifier and is no longer promoted to
+    # float64, so count present values via the dtype-agnostic helper (which also
+    # handles the ``object``/NaN representation used when some IDs are masked)
+    # instead of ``np.isnan`` (which raises on object/integer dtypes).
+    counts["Gaia IDs"] = _count_single_column(table, "source_id")
 
     counts["Gaia Photometry"] = _count_any_finite(table, GAIA_PHOTOMETRY_COLUMNS)
     counts["Gaia Parallaxes"] = _count_single_column(table, "parallax")

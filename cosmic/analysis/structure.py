@@ -386,31 +386,46 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
 
 
 def _summarize_king_trace(trace):
+    # NOTE: the point estimate reported for each King parameter is the posterior
+    # *median* (robust to the skewed, prior-bounded R_t/R_c marginals). It is
+    # exposed under two key families:
+    #   ``*_median`` -- correctly named accessors (prefer these in new code);
+    #   ``*_mean``   -- deprecated back-compat aliases holding the SAME median
+    #                   value, kept so existing readers (paper figure notebooks,
+    #                   ``graph_king``) reproduce identical numbers. Do not
+    #                   "fix" these to arithmetic means -- that would silently
+    #                   shift published paper quantities.
     values = {}
     for key in ("k", "b", "R_c", "R_t", "sigma"):
         arr = np.asarray(trace.posterior[key].values, dtype=float)
-        values[f"{key}_mean"] = float(np.nanmedian(arr))
+        median = float(np.nanmedian(arr))
+        values[f"{key}_median"] = median
+        values[f"{key}_mean"] = median  # deprecated alias, equals the median
         values[f"{key}_std"] = float(np.nanstd(arr))
-    k_mean = values["k_mean"]
-    b_mean = values["b_mean"]
-    rc_mean = values["R_c_mean"]
-    rt_mean = values["R_t_mean"]
+    k_median = values["k_median"]
+    b_median = values["b_median"]
+    rc_median = values["R_c_median"]
+    rt_median = values["R_t_median"]
     b_std = values["b_std"]
-    bg_level = b_mean + 3 * b_std
+    bg_level = b_median + 3 * b_std
     return {
-        "k_mean": k_mean,
-        "b_mean": b_mean,
-        "R_c_mean": rc_mean * u.arcmin,
-        "R_t_mean": rt_mean * u.arcmin,
+        "k_median": k_median,
+        "b_median": b_median,
+        "R_c_median": rc_median * u.arcmin,
+        "R_t_median": rt_median * u.arcmin,
+        "k_mean": k_median,  # deprecated alias of k_median
+        "b_mean": b_median,  # deprecated alias of b_median
+        "R_c_mean": rc_median * u.arcmin,  # deprecated alias of R_c_median
+        "R_t_mean": rt_median * u.arcmin,  # deprecated alias of R_t_median
         "k_std": values["k_std"],
         "b_std": b_std,
         "R_c_std": values["R_c_std"],
         "R_t_std": values["R_t_std"],
-        "king_std": values["sigma_mean"],
+        "king_std": values["sigma_median"],
         "bg_level": bg_level,
-        "C": float(np.log(rt_mean / rc_mean)),
-        "d_c": float(1 + k_mean / bg_level) if bg_level else np.nan,
-        "r_lim": float(rc_mean * np.sqrt(k_mean / (3 * b_std) - 1)) if b_std > 0 else np.nan,
+        "C": float(np.log(rt_median / rc_median)),
+        "d_c": float(1 + k_median / bg_level) if bg_level else np.nan,
+        "r_lim": float(rc_median * np.sqrt(k_median / (3 * b_std) - 1)) if b_std > 0 else np.nan,
     }
 
 

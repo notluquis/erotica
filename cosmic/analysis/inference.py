@@ -327,11 +327,19 @@ class ClusterInferenceAnalyzer:
         traces = []
         for threshold in thresholds:
             subset = self.select(float(threshold))
-            useful = subset[
-                quantity_values(subset[parallax_error_column], u.mas)
-                / quantity_values(subset[parallax_column], u.mas)
-                <= fractional_parallax_error_max
-            ]
+            parallax = quantity_values(subset[parallax_column], u.mas)
+            parallax_error = quantity_values(subset[parallax_error_column], u.mas)
+            # Only positive parallaxes are physical distance estimators. Requiring
+            # parallax > 0 (not just abs(error/parallax)) excludes negative parallaxes,
+            # which would otherwise pass the ratio cut, and guards against div-by-zero.
+            positive_parallax = parallax > 0
+            fractional_error = np.divide(
+                parallax_error,
+                parallax,
+                out=np.full_like(parallax, np.inf),
+                where=positive_parallax,
+            )
+            useful = subset[positive_parallax & (fractional_error <= fractional_parallax_error_max)]
             distance_result = distance_model(
                 useful,
                 distance_column=distance_column,
