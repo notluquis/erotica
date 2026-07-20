@@ -12,12 +12,14 @@ abstract: >-
   with ArviZ InferenceData provenance for every fit.
 type: software
 authors:
-  # TODO: confirm list, ORDER, ORCIDs, affiliations before release.
+  # TODO: confirm final list + ORDER + ORCIDs before release. Affiliation confirmed (UdeC).
   - family-names: "Pulgar-Escobar"
     given-names: "Lucas"
+    affiliation: "Universidad de Concepción, Chile"
     orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO
   - family-names: "Henríquez Salgado"
     given-names: "Nicolás"
+    affiliation: "Universidad de Concepción, Chile"
     orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO
 repository-code: "https://github.com/notluquis/COSMIC"
 license: AGPL-3.0-or-later

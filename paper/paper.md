@@ -12,16 +12,17 @@ tags:
   - Bayesian inference
   - stellar populations
 authors:
-  # TODO(author): confirm author list, ORDER, affiliations, and ORCIDs before submission.
-  # git/pyproject show two emails for the first author (outlook.cl vs udec.cl) — reconcile.
+  # TODO(author): confirm final author list + ORDER + ORCIDs before submission.
+  # Affiliation confirmed: Universidad de Concepción (work developed during the first
+  # author's MSc there; udec email lescobar2019@udec.cl is canonical).
   - name: Lucas Pulgar-Escobar
-    orcid: 0000-0000-0000-0000  # TODO
+    orcid: 0000-0000-0000-0000  # TODO: add ORCID
     affiliation: 1
   - name: Nicolás Henríquez Salgado
-    orcid: 0000-0000-0000-0000  # TODO
+    orcid: 0000-0000-0000-0000  # TODO: add ORCID
     affiliation: 1
 affiliations:
-  - name: Universidad de Concepción, Chile  # TODO confirm
+  - name: Universidad de Concepción, Chile
     index: 1
 date: 19 July 2026
 bibliography: paper.bib
@@ -50,15 +51,22 @@ observed member frequencies. `COSMIC` addresses two gaps: (1) a single pipeline
 from raw Gaia catalog to characterized cluster with per-fit posterior provenance,
 and (2) membership probabilities accompanied by calibration diagnostics
 (reliability diagram / Hosmer–Lemeshow). To our knowledge, no released
-open-cluster pipeline reports per-star membership calibration.
+open-cluster pipeline reports per-star membership calibration, though probability
+calibration is standard practice for photometric-redshift PDFs [@myles2023].
 
 # State of the field
 
 The closest integrated tool is `ASteCA` [@perren2015], which since v0.5.0 is
 sampler-agnostic (a Poisson likelihood-ratio object; the user supplies the
 sampler) and, in its current version, provides no gradient sampler, no King/radius
-fit, and no automated test suite. Recent Bayesian isochrone work is directly
-relevant and cited head-on: @chi2026 apply a No-U-Turn Sampler with differentiable
+fit, and no automated test suite. `COSMIC`'s membership statistic
+$\tilde{p} = f_i\,p_\mathrm{HDBSCAN}$ was introduced in @pulgar2024b; the new
+contribution here is its *calibration* (the closest open-cluster work,
+@jackson2022, validates by discrimination, not calibration). For isochrone
+fitting, `COSMIC` samples the binned Poisson Hess-diagram likelihood [@dolphin2002]
+with a No-U-Turn Sampler; Bayesian single-cluster CMD fitting is itself established
+(`BASE-9` [@vonhippel2014], non-gradient MCMC), and the gradient-based combination
+is recent and cited head-on: @chi2026 apply a No-U-Turn Sampler with differentiable
 PARSEC isochrones to an open cluster, but as a per-star rotation+binarity model
 rather than a binned Hess-diagram likelihood; @garling2025 sample a Poisson
 Hess-diagram likelihood with Hamiltonian Monte Carlo, but over *linear*
