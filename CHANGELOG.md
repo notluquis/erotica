@@ -8,9 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Planned: PyPI distribution setup
-- Planned: Comprehensive documentation and tutorials
-- Planned: Extended test coverage
+- `cosmic.__version__`, sourced from installed package metadata (`importlib.metadata`).
+- Real test coverage replacing placeholder stubs: preprocessing corrections
+  (Cantat-Gaudin & Brandt proper-motion spin correction, photometric errors,
+  fidelity splitting, parallax zero-point), data loading (alias resolution,
+  `DataLoader`), plus regression tests for dynamics, inference, King structure,
+  I/O helpers, and the Sagitta guard.
+- GitHub Actions CI workflow (pytest on Python 3.11–3.13).
+- JOSS software-paper scaffolding (`paper/paper.md`, `paper/paper.bib`) and
+  `CITATION.cff`.
+- King-profile summaries now expose correctly named `*_median` keys.
+
+### Changed
+- Declared previously-undeclared runtime dependencies `gaiadr3-zeropoint` and
+  `fast-histogram` (fixes `import cosmic.preprocess` failing on a clean install).
+- Reconciled `LICENSE` to AGPL-3.0 to match `pyproject.toml`.
+- Provenance metadata now records the real package version instead of a
+  hardcoded `"0.0.1"`.
+
+### Fixed
+- `AttributeError` crash in the Galactic branch of
+  `calculate_galactocentric_distance` (`Angle.radians` → `.radian`).
+- Fractional parallax-error selection admitted unphysical negative parallaxes and
+  divided by zero at `parallax == 0`; now requires `parallax > 0`.
+- Masked 64-bit identifier columns (e.g. Gaia `source_id`) were promoted to
+  `float64`+NaN, silently corrupting IDs above 2^53 and breaking crossmatches.
+- King-trace point estimates were medians mislabeled as `*_mean`.
+
+### Security
+- Removed a silent runtime `pip install` of an unpinned git ref in
+  `cosmic.analysis._sagitta`; it now raises `ImportError` with install
+  instructions instead of modifying the user's environment.
+
+### Removed
+- Fake "build passing" / "docs" status badges from the README.
 
 ## [0.0.1] - 2025-10-03
 
