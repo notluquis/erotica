@@ -35,7 +35,7 @@ Clustering) is a Python package for identifying and characterizing open clusters
 in Gaia data. It combines density-based membership (an HDBSCAN pseudo-probability
 sweep with Bayesian proper-motion/parallax refinement), Bayesian structural
 fitting (King profile), gradient-based isochrone fitting (a No-U-Turn Sampler over
-a Poisson Hess-diagram likelihood), and dynamical diagnostics — in a single API
+a Poisson Hess-diagram likelihood; under validation), and dynamical diagnostics — in a single API
 that emits standardized ArviZ `InferenceData` posteriors for every fit. It was
 developed for and validated on the young cluster NGC 6383 [@pulgar2024a; @pulgar2024b].
 
@@ -52,7 +52,7 @@ from raw Gaia catalog to characterized cluster with per-fit posterior provenance
 and (2) membership probabilities accompanied by calibration diagnostics
 (reliability diagram / Hosmer–Lemeshow). To our knowledge, no released
 open-cluster pipeline reports per-star membership calibration, though probability
-calibration is standard practice for photometric-redshift PDFs [@myles2023].
+calibration is standard practice for photometric-redshift PDFs [@myles2021; @myles2023].
 
 # State of the field
 
@@ -65,7 +65,7 @@ contribution here is its *calibration* (the closest open-cluster work,
 @jackson2022, validates by discrimination, not calibration). For isochrone
 fitting, `COSMIC` samples the binned Poisson Hess-diagram likelihood [@dolphin2002]
 with a No-U-Turn Sampler; Bayesian single-cluster CMD fitting is itself established
-(`BASE-9` [@vonhippel2014], non-gradient MCMC), and the gradient-based combination
+(`BASE-9` [@vonhippel2006], non-gradient MCMC), and the gradient-based combination
 is recent and cited head-on: @chi2026 apply a No-U-Turn Sampler with differentiable
 PARSEC isochrones to an open cluster, but as a per-star rotation+binarity model
 rather than a binned Hess-diagram likelihood; @garling2025 sample a Poisson
