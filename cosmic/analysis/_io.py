@@ -11,9 +11,9 @@ import dill
 import pandas as pd
 from astropy.table import QTable, Table
 
-from clustering import Clustering
+from cosmic.core.clustering import Clustering
 from cosmic.io._helpers import apply_unit_corrections, handle_masked_columns
-from data_loader import DataLoader
+from cosmic.io.loader import DataLoader
 
 
 @contextmanager
