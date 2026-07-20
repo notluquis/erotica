@@ -9,6 +9,8 @@ import astropy.units as u
 import numpy as np
 from astropy.table import QTable
 
+from cosmic.io._helpers import fill_masked_columns
+
 from ._constants import (
     COLUMN_MAPPING,
     DEFAULT_DROP_COLUMNS,
@@ -18,46 +20,14 @@ from ._constants import (
 )
 
 
-# Integer identifier columns (e.g. Gaia ``source_id``, WISE ``allwise_oid``) hold
-# 64-bit values that exceed 2**53 and therefore cannot be represented exactly as
-# float64.  They must never be promoted to float when unmasking, otherwise the
-# identifiers are silently corrupted and every downstream crossmatch breaks.
-_IDENTIFIER_COLUMNS = frozenset({"source_id", "allwise_oid"})
-
-
-def _is_identifier_column(name: str) -> bool:
-    """Return ``True`` when *name* denotes an integer identifier column."""
-    lowered = name.lower()
-    return name in _IDENTIFIER_COLUMNS or lowered.endswith(("_id", "_oid"))
-
-
 def fill_missing_values(table: QTable) -> int:
     """Replace masked values with NaN, casting integer columns to float when needed.
 
-    Integer *identifier* columns (e.g. ``source_id``) are exempt from the float
-    cast: their 64-bit values exceed 2**53 and would be silently corrupted by a
-    float64 promotion, breaking every downstream crossmatch.  Identifier columns
-    keep integer dtype when nothing is masked, or become ``object`` (integers
-    preserved exactly, missing entries set to NaN) when some values are masked.
+    Delegates to :func:`cosmic.io._helpers.fill_masked_columns` (identifier
+    columns such as ``source_id`` are exempt from the float cast to avoid 64-bit
+    precision loss). Returns the number of masked columns processed.
     """
-    updated = 0
-    for column_name in table.colnames:
-        column = table[column_name]
-        if not hasattr(column, "mask"):
-            continue
-        if _is_identifier_column(column_name) and np.issubdtype(column.dtype, np.integer):
-            if np.any(column.mask):
-                table[column_name] = column.astype(object).filled(np.nan)
-            else:
-                table[column_name] = column.filled()
-            updated += 1
-            continue
-        if np.issubdtype(column.dtype, np.integer):
-            table[column_name] = column.astype(float)
-            column = table[column_name]
-        table[column_name] = column.filled(np.nan)
-        updated += 1
-    return updated
+    return fill_masked_columns(table)
 
 
 def rename_columns(table: QTable, mapping: dict[str, str] | None = None) -> list[str]:

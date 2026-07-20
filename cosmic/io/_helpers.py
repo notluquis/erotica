@@ -115,15 +115,19 @@ def collect_requested_columns(
     return requested
 
 
-def handle_masked_columns(table: QTable) -> None:
+def fill_masked_columns(table: QTable) -> int:
     """Replace masked values by NaN, promoting integer columns to float when needed.
 
-    Integer *identifier* columns (e.g. ``source_id``) are exempt from the float
-    promotion: their 64-bit values exceed 2**53 and would be silently corrupted
-    by a float64 cast.  Such columns keep integer dtype when nothing is masked,
-    or become ``object`` (integers preserved exactly, missing entries set to NaN)
-    when some values are masked.
+    Returns the number of masked columns processed. Integer *identifier* columns
+    (e.g. ``source_id``) are exempt from the float promotion: their 64-bit values
+    exceed 2**53 and would be silently corrupted by a float64 cast.  Such columns
+    keep integer dtype when nothing is masked, or become ``object`` (integers
+    preserved exactly, missing entries set to NaN) when some values are masked.
+
+    Shared by :func:`handle_masked_columns` (I/O) and
+    ``cosmic.preprocess._helpers.fill_missing_values`` (preprocessing).
     """
+    updated = 0
     for column_name in table.colnames:
         column = table[column_name]
         if not hasattr(column, "mask"):
@@ -133,11 +137,19 @@ def handle_masked_columns(table: QTable) -> None:
                 table[column_name] = column.astype(object).filled(np.nan)
             else:
                 table[column_name] = column.filled()
+            updated += 1
             continue
         if np.issubdtype(column.dtype, np.integer):
             table[column_name] = column.astype(float)
             column = table[column_name]
         table[column_name] = column.filled(np.nan)
+        updated += 1
+    return updated
+
+
+def handle_masked_columns(table: QTable) -> None:
+    """Replace masked values by NaN in-place (see :func:`fill_masked_columns`)."""
+    fill_masked_columns(table)
 
 
 def apply_unit_corrections(table: QTable, *, logger=None) -> None:
@@ -244,6 +256,7 @@ __all__ = [
     "map_requested_columns",
     "collect_requested_columns",
     "handle_masked_columns",
+    "fill_masked_columns",
     "apply_unit_corrections",
     "compute_valid_source_counts",
     "build_available_systems",
