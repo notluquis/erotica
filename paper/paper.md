@@ -45,14 +45,20 @@ Gaia DR3 has made open clusters a large-sample statistical enterprise, but the
 open-source tooling is fragmented. Membership finders (`UPMASK`/`pyUPMASK`
 [@pera2021], HDBSCAN pipelines [@hunt2021]) and parameter fitters (`ASteCA`
 [@perren2015], `BASE-9`, `isochrones`) are separate tools with separate data
-models, and none reports **calibrated** per-star membership probabilities — their
-outputs are rankings or heuristic scores, not probabilities validated against
-observed member frequencies. `COSMIC` addresses two gaps: (1) a single pipeline
+models. More decisively, a 2026 review of every open-cluster membership method
+[@ramezani2026] — spatial, kinematic, photometric, maximum-likelihood, Bayesian,
+and machine-learning — never once asks whether the probabilities they produce are
+*calibrated*: whether a stated membership probability of 0.7 corresponds to a
+~70% true-member frequency. Their outputs are rankings or heuristic scores, not
+probabilities validated against observed member frequencies. `COSMIC` addresses two gaps: (1) a single pipeline
 from raw Gaia catalog to characterized cluster with per-fit posterior provenance,
 and (2) membership probabilities accompanied by calibration diagnostics
-(reliability diagram / Hosmer–Lemeshow). To our knowledge, no released
+(reliability diagram / Hosmer–Lemeshow / Brier score) and, where they are
+miscalibrated, an explicit recalibration recipe. To our knowledge no released
 open-cluster pipeline reports per-star membership calibration, though probability
-calibration is standard practice for photometric-redshift PDFs [@myles2021; @myles2023].
+calibration is standard practice for photometric-redshift PDFs [@myles2021].
+Completeness-dependent results (luminosity/mass functions, spatial statistics) are
+corrected with the Gaia DR3 open-cluster selection function [@hunt2026sf].
 
 # State of the field
 
@@ -71,11 +77,27 @@ PARSEC isochrones to an open cluster, but as a per-star rotation+binarity model
 rather than a binned Hess-diagram likelihood; @garling2025 sample a Poisson
 Hess-diagram likelihood with Hamiltonian Monte Carlo, but over *linear*
 star-formation-history coefficients rather than nonlinear single-population
-isochrone parameters. `COSMIC`'s isochrone module targets the specific
-combination — NUTS over nonlinear single-population isochrone parameters through a
-differentiable Poisson–Hess forward model — while its principal novelty is the
-membership-calibration protocol and the end-to-end integration with reproducible
-provenance.
+isochrone parameters; and Bayesian fundamental-parameter fitting of open clusters
+is now performed at survey scale [5056 clusters via nested sampling, @plevne2026].
+`COSMIC` therefore frames its isochrone module as a *capability* within an
+integrated, calibrated pipeline — NUTS over nonlinear single-population isochrone
+parameters through a differentiable Poisson–Hess forward model — not as a
+standalone advance; its principal novelty is the membership-calibration protocol
+and the end-to-end integration with reproducible provenance.
+
+`COSMIC` is built to *complement* this ecosystem, not to displace it. `ASteCA`
+[@perren2015] — whose synthetic-CMD forward-modelling design directly inspired
+this work — and `pyUPMASK` [@pera2021] remain references for their respective
+tasks, and `COSMIC` ships an `ASteCA` adapter (`cosmic.analysis.external.asteca`)
+so the tools compose rather than fragment the ecosystem further. Following field
+practice, the companion methods paper reports an honest cross-comparison on shared
+clusters — including NGC 6383, one of the 20 validation clusters of @perren2015 —
+verifying that `COSMIC` *agrees* with `ASteCA`, `pyUPMASK`, and the survey-scale
+fits of @plevne2026 on the axes they share (membership assignment,
+fundamental-parameter recovery, runtime), and contributing the one axis none of
+them currently reports: per-star membership calibration. The contribution is the
+missing calibration layer and its integration into a reproducible pipeline — a
+step toward *less* fragmentation — not a claim of superiority.
 
 # Acknowledgements
 
