@@ -119,8 +119,8 @@ def calculate_galactocentric_distance(
     b = third if b is None else b
     dist = ensure_units(cluster_distance, u.kpc)
     coords = SkyCoord(l=l, b=b, distance=dist, frame=Galactic)
-    l_rad = coords.l.radians
-    b_rad = coords.b.radians
+    l_rad = coords.l.radian
+    b_rad = coords.b.radian
     return np.sqrt(
         solar_radius**2 + dist**2 - 2 * solar_radius * dist * np.cos(l_rad) * np.cos(b_rad)
     ).to(u.kpc)

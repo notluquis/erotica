@@ -4,6 +4,13 @@ This package exposes the main classes from the legacy flat module layout so
 existing imports continue to work after we refactor files into subpackages.
 """
 
+from importlib.metadata import PackageNotFoundError, version as _version
+
+try:
+    __version__ = _version("cosmic-cluster-analysis")
+except PackageNotFoundError:  # running from a source tree with no install metadata
+    __version__ = "0.0.1"
+
 _ANALYSIS_EXPORTS = {
     "ClusterAnalyzer",
     "ClusterDynamicsAnalyzer",
@@ -15,6 +22,7 @@ _ANALYSIS_EXPORTS = {
 }
 
 __all__ = [
+    "__version__",
     "DataLoader",
     "Clustering",
     "DataPreprocessor",

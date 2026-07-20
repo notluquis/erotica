@@ -3,8 +3,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/COSMIC)
-[![Build Status](https://img.shields.io/badge/build-passing-green.svg)](https://github.com/notluquis/COSMIC)
-[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](docs/README.md)
+[![CI](https://github.com/notluquis/COSMIC/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/COSMIC/actions/workflows/ci.yml)
 
 COSMIC is a professional Python package for analyzing star clusters using machine learning techniques and Bayesian inference. Built specifically for processing Gaia satellite data, COSMIC employs unsupervised clustering algorithms and statistical analysis to identify and characterize open star clusters.
 

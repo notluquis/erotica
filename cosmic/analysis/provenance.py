@@ -10,6 +10,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from cosmic import __version__ as _COSMIC_VERSION
+
 
 @dataclass(frozen=True)
 class TraceSummary:
@@ -145,7 +147,7 @@ def build_metadata(**kwargs: Any) -> dict[str, Any]:
     """Build a small provenance dictionary."""
     return {
         "created_at": datetime.now(tz=timezone.utc).isoformat(),
-        "cosmic_version": "0.0.1",
+        "cosmic_version": _COSMIC_VERSION,
         **kwargs,
     }
 
