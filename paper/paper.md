@@ -1,0 +1,76 @@
+<!-- DRAFT — NOT SUBMITTABLE. JOSS hard-requires automated tests + CI + an
+archived DOI, none of which COSMIC has yet (see ~/phd/cosmic-package.md
+release-blockers). This is scaffolding for P02, not a ready submission.
+Author list, order, and ORCIDs are PLACEHOLDERS — confirm before use. -->
+---
+title: 'COSMIC: an integrated, calibrated Bayesian pipeline for Gaia-era open-cluster analysis'
+tags:
+  - Python
+  - astronomy
+  - open clusters
+  - Gaia
+  - Bayesian inference
+  - stellar populations
+authors:
+  # TODO(author): confirm author list, ORDER, affiliations, and ORCIDs before submission.
+  # git/pyproject show two emails for the first author (outlook.cl vs udec.cl) — reconcile.
+  - name: Lucas Pulgar-Escobar
+    orcid: 0000-0000-0000-0000  # TODO
+    affiliation: 1
+  - name: Nicolás Henríquez Salgado
+    orcid: 0000-0000-0000-0000  # TODO
+    affiliation: 1
+affiliations:
+  - name: Universidad de Concepción, Chile  # TODO confirm
+    index: 1
+date: 19 July 2026
+bibliography: paper.bib
+---
+
+# Summary
+
+`COSMIC` (Characterization Of Star clusters using Machine-learning Inference and
+Clustering) is a Python package for identifying and characterizing open clusters
+in Gaia data. It combines density-based membership (an HDBSCAN pseudo-probability
+sweep with Bayesian proper-motion/parallax refinement), Bayesian structural
+fitting (King profile), gradient-based isochrone fitting (a No-U-Turn Sampler over
+a Poisson Hess-diagram likelihood), and dynamical diagnostics — in a single API
+that emits standardized ArviZ `InferenceData` posteriors for every fit. It was
+developed for and validated on the young cluster NGC 6383 [@pulgar2024a; @pulgar2024b].
+
+# Statement of need
+
+Gaia DR3 has made open clusters a large-sample statistical enterprise, but the
+open-source tooling is fragmented. Membership finders (`UPMASK`/`pyUPMASK`
+[@pera2021], HDBSCAN pipelines [@hunt2021]) and parameter fitters (`ASteCA`
+[@perren2015], `BASE-9`, `isochrones`) are separate tools with separate data
+models, and none reports **calibrated** per-star membership probabilities — their
+outputs are rankings or heuristic scores, not probabilities validated against
+observed member frequencies. `COSMIC` addresses two gaps: (1) a single pipeline
+from raw Gaia catalog to characterized cluster with per-fit posterior provenance,
+and (2) membership probabilities accompanied by calibration diagnostics
+(reliability diagram / Hosmer–Lemeshow). To our knowledge, no released
+open-cluster pipeline reports per-star membership calibration.
+
+# State of the field
+
+The closest integrated tool is `ASteCA` [@perren2015], which since v0.5.0 is
+sampler-agnostic (a Poisson likelihood-ratio object; the user supplies the
+sampler) and, in its current version, provides no gradient sampler, no King/radius
+fit, and no automated test suite. Recent Bayesian isochrone work is directly
+relevant and cited head-on: @chi2026 apply a No-U-Turn Sampler with differentiable
+PARSEC isochrones to an open cluster, but as a per-star rotation+binarity model
+rather than a binned Hess-diagram likelihood; @garling2025 sample a Poisson
+Hess-diagram likelihood with Hamiltonian Monte Carlo, but over *linear*
+star-formation-history coefficients rather than nonlinear single-population
+isochrone parameters. `COSMIC`'s isochrone module targets the specific
+combination — NUTS over nonlinear single-population isochrone parameters through a
+differentiable Poisson–Hess forward model — while its principal novelty is the
+membership-calibration protocol and the end-to-end integration with reproducible
+provenance.
+
+# Acknowledgements
+
+<!-- TODO: funding, Gaia/DPAC acknowledgement, collaborators. -->
+
+# References

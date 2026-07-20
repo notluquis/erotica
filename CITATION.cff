@@ -1,0 +1,26 @@
+# CITATION.cff — DRAFT. Confirm author list/order/ORCIDs and mint the Zenodo DOI
+# before release. License here matches pyproject (AGPL-3.0-or-later); note the
+# LICENSE file currently contains GPL-3.0 text — reconcile (release-blocker).
+cff-version: 1.2.0
+message: "If you use COSMIC, please cite it using these metadata."
+title: "COSMIC: Characterization Of Star clusters using Machine-learning Inference and Clustering"
+abstract: >-
+  An integrated, calibrated Bayesian Python pipeline for identifying and
+  characterizing open clusters in Gaia data: HDBSCAN pseudo-probability
+  membership with Bayesian PM/parallax refinement, Bayesian King structural
+  fitting, NUTS Poisson-Hess isochrone fitting, and dynamical diagnostics,
+  with ArviZ InferenceData provenance for every fit.
+type: software
+authors:
+  # TODO: confirm list, ORDER, ORCIDs, affiliations before release.
+  - family-names: "Pulgar-Escobar"
+    given-names: "Lucas"
+    orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO
+  - family-names: "Henríquez Salgado"
+    given-names: "Nicolás"
+    orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO
+repository-code: "https://github.com/notluquis/COSMIC"
+license: AGPL-3.0-or-later
+version: 0.0.1
+date-released: "2026-07-19"
+# doi: 10.5281/zenodo.XXXXXXX   # TODO: mint on first tagged release
