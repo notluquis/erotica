@@ -5,6 +5,12 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.13"
+  jobs:
+    # Explicit build so the source dir is unambiguously docs/ (RTD otherwise
+    # invoked sphinx-build with the repo root as source and failed to find conf.py).
+    build:
+      html:
+        - python -m sphinx -T -b html docs $READTHEDOCS_OUTPUT/html
 
 sphinx:
   configuration: docs/conf.py
@@ -18,11 +24,6 @@ python:
       path: .
       extras:
         - docs
-
-# Offline download of the whole site (reliable; PDF/ePub skipped — the design
-# notes use combining/astronomical unicode that pdflatex can't typeset).
-formats:
-  - htmlzip
 
 # Surface the user guide over internal design notes in on-site search.
 search:
