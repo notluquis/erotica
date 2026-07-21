@@ -1,10 +1,10 @@
 # Hierarchical isochrone fitter — design, Chi-2026 comparison, credit
 
-_2026-07-21. Strategy + implementation blueprint for COSMIC's JAX/NumPyro hierarchical
+_2026-07-21. Strategy + implementation blueprint for PUMPS's JAX/NumPyro hierarchical
 isochrone fitter. Companion to `isochrone_sampler_fix.md` (why the old PyMC NUTS fitter
 failed). `[S]`=sourced, `[I]`=inferred/standard-method (flagged per the research)._
 
-## 1. COSMIC vs Chi et al. 2026 — and the credit
+## 1. PUMPS vs Chi et al. 2026 — and the credit
 
 **Chi et al. 2026, A&A 710, A160** (`2026A&A...710A.160C`; H. Chi, F. Wang, X. Tian, X. Zhu —
 Yunnan Open Univ. + Guangzhou Univ.; code public at github.com/chihuanbin/r147) is the SOTA
@@ -18,22 +18,22 @@ cluster.** `[S]`
 **Chi explicitly does NOT do:** young / pre-main-sequence clusters; membership (assumed);
 selection function / completeness; spots / magnetic activity; multiple clusters. `[S]`
 
-**COSMIC's honest position** — the JAX-`map_coordinates` emulator + NUTS/NumPyro per-star
+**PUMPS's honest position** — the JAX-`map_coordinates` emulator + NUTS/NumPyro per-star
 mixture *is Chi's design*, built on **public tools** (JAX, NumPyro, PARSEC/MIST — nobody's
 invention) and Chi's **public code**. So: **adopt it, cite Chi 2026 as the method reference,
-and contribute a genuine extension** — no priority claim (COSMIC's NUTS fitter is still broken;
+and contribute a genuine extension** — no priority claim (PUMPS's NUTS fitter is still broken;
 Chi's works and is published). The differentiation is on the **science**:
 
-| | Chi 2026 | **COSMIC's extension** |
+| | Chi 2026 | **PUMPS's extension** |
 |---|---|---|
 | Regime | intermediate-age (2.3 Gyr) MS | **young / PMS (~3.5 Myr)** — harder; spots/magnetic (P05) |
-| Membership | assumed | **calibrated p̃ pipeline** (COSMIC's lead novelty) |
-| Selection function | none | `cosmic.selection` (gaiaunlimited + Hunt 2026) |
+| Membership | assumed | **calibrated p̃ pipeline** (PUMPS's lead novelty) |
+| Selection function | none | `pumps.selection` (gaiaunlimited + Hunt 2026) |
 | Scope | single cluster | **multi-cluster hierarchical** (Sgr OB1 / 10-cluster programme) |
 | Model choice | PARSEC only | MIST/PARSEC/SPOTS + KOH discrepancy budget (P05) |
 
 That wedge (young-PMS + calibrated membership + selection-function-aware + population-level) is
-real, unoccupied, and matches COSMIC's actual clusters. Frame P02/P05 as building on Chi 2026.
+real, unoccupied, and matches PUMPS's actual clusters. Frame P02/P05 as building on Chi 2026.
 
 ## 2. Hierarchical blueprint — per-star latents ARE the bottom plate
 
@@ -48,7 +48,7 @@ Three plates (data attach only at the bottom; information flows *up* via shared 
   differentiable isochrone → predicted (G, color) vs Gaia + per-star errors.
 
 **Precedents (disaggregated + sourced):** per-star *mass along a physical isochrone* = Chi 2026
-`[S]` (COSMIC's target); per-star *distance* = Kalkayotl / Olivares 2020 `2020A&A...644A...7O`
+`[S]` (PUMPS's target); per-star *distance* = Kalkayotl / Olivares 2020 `2020A&A...644A...7O`
 `[S]`; per-star *membership* = Sarro 2014 `2014A&A...563A..45S` + DANCe (Olivares 2018/2019,
 empirical isochrone) `[S]`; partial pooling/shrinkage = Gelman BDA3 `[S]`; **multi-cluster
 hierarchical (the frontier)** = Si 2018 (arXiv:1806.06733), Wen 2023 (arXiv:2311.03704) `[S]`.
@@ -141,8 +141,8 @@ Gate unchanged: injection-recovery + Vehtari 2021 before paper use.
 
 ## 5. Credit / attribution (integrity)
 Cite **Chi et al. 2026** as the method reference for the differentiable-emulator + NUTS/NumPyro
-per-star-mixture architecture; acknowledge their public code if COSMIC ports the emulator design.
-Cite the public tools (JAX, NumPyro, PARSEC/MIST, corner) via `\software{}`. COSMIC's claim is
+per-star-mixture architecture; acknowledge their public code if PUMPS ports the emulator design.
+Cite the public tools (JAX, NumPyro, PARSEC/MIST, corner) via `\software{}`. PUMPS's claim is
 the **young-PMS + calibrated-membership + selection-function-aware + population-hierarchical
 extension**, not the base method. This is standard science: build on published work + public
 packages, contribute a genuine, differently-scoped result.

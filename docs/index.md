@@ -1,10 +1,9 @@
-# COSMIC
+# PUMPS
 
-**C**haracterization **O**f **S**tar clusters using **M**achine-learning **I**nference
-and **C**lustering — Gaia open-cluster membership, isochrone fitting, and structural
-analysis.
+**P**robabilistic **U**nsupervised **M**embership & **P**arameter **S**ampling — Gaia
+open-cluster membership, isochrone fitting, and structural analysis.
 
-COSMIC is built on a philosophy of **options with disclosure**: for each choice that
+PUMPS is built on a philosophy of **options with disclosure**: for each choice that
 affects the science (which features to cluster on, whether to fold in measurement errors,
 whether membership is a number or a posterior) the package offers the alternatives and
 documents their trade-offs. The scientist chooses what fits their cluster — the package

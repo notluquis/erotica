@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the COSMIC project will be documented in this file.
+All notable changes to the PUMPS project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `cosmic.__version__`, sourced from installed package metadata (`importlib.metadata`).
+- `pumps.__version__`, sourced from installed package metadata (`importlib.metadata`).
 - Real test coverage replacing placeholder stubs: preprocessing corrections
   (Cantat-Gaudin & Brandt proper-motion spin correction, photometric errors,
   fidelity splitting, parallax zero-point), data loading (alias resolution,
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Declared previously-undeclared runtime dependencies `gaiadr3-zeropoint` and
-  `fast-histogram` (fixes `import cosmic.preprocess` failing on a clean install).
+  `fast-histogram` (fixes `import pumps.preprocess` failing on a clean install).
 - Reconciled `LICENSE` to AGPL-3.0 to match `pyproject.toml`.
 - Provenance metadata now records the real package version instead of a
   hardcoded `"0.0.1"`.
@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Removed a silent runtime `pip install` of an unpinned git ref in
-  `cosmic.analysis._sagitta`; it now raises `ImportError` with install
+  `pumps.analysis._sagitta`; it now raises `ImportError` with install
   instructions instead of modifying the user's environment.
 
 ### Removed
@@ -46,17 +46,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - 2025-10-03
 
 ### Added
-- Initial alpha release of COSMIC
+- Initial alpha release of PUMPS
 - Core clustering functionality with HDBSCAN and Optuna optimization
 - Data loading utilities for Gaia, 2MASS, and WISE photometric systems
 - Comprehensive data preprocessing and cleaning tools
 - Statistical analysis and visualization capabilities
 - Modular package structure with organized submodules:
-  - `cosmic.core` - Clustering algorithms and core functionality
-  - `cosmic.io` - Data loading and I/O operations
-  - `cosmic.preprocess` - Data preprocessing and quality control
-  - `cosmic.analysis` - Statistical analysis and characterization
-  - `cosmic.utils` - General utility functions
+  - `pumps.core` - Clustering algorithms and core functionality
+  - `pumps.io` - Data loading and I/O operations
+  - `pumps.preprocess` - Data preprocessing and quality control
+  - `pumps.analysis` - Statistical analysis and characterization
+  - `pumps.utils` - General utility functions
 - Backward-compatible shims for legacy import patterns
 - Professional package configuration with `pyproject.toml`
 - Comprehensive README with installation and usage instructions

@@ -1,6 +1,6 @@
-# COSMIC Development Tools
+# PUMPS Development Tools
 
-This directory contains development and maintenance tools for the COSMIC project.
+This directory contains development and maintenance tools for the PUMPS project.
 
 ## Structure
 

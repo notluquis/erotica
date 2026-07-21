@@ -1,4 +1,4 @@
-"""Regression tests for :mod:`cosmic.analysis.inference`.
+"""Regression tests for :mod:`pumps.analysis.inference`.
 
 Focus: the fractional parallax-error selection cut in
 ``ClusterInferenceAnalyzer.distance_and_parallax_by_probability`` must reject
@@ -15,8 +15,8 @@ import numpy as np
 from astropy import units as u
 from astropy.table import QTable
 
-import cosmic.analysis.inference as inference
-from cosmic.analysis.inference import (
+import pumps.analysis.inference as inference
+from pumps.analysis.inference import (
     ClusterInferenceAnalyzer,
     DistanceFitResult,
     ParallaxFitResult,

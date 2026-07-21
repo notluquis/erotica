@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run comprehensive test suite for COSMIC."""
+"""Run comprehensive test suite for PUMPS."""
 import subprocess
 import sys
 from pathlib import Path
@@ -21,7 +21,7 @@ def run_command(cmd, description):
 def main():
     """Run comprehensive test suite."""
     project_root = Path(__file__).parent.parent.parent
-    print(f"🚀 Running comprehensive tests for COSMIC in {project_root}")
+    print(f"🚀 Running comprehensive tests for PUMPS in {project_root}")
     
     os.chdir(project_root)
     
@@ -35,25 +35,25 @@ def main():
     
     # Code formatting
     tests.append((
-        "black --check cosmic/ tests/",
+        "black --check pumps/ tests/",
         "Code formatting (Black)"
     ))
     
     # Import sorting
     tests.append((
-        "isort --check-only cosmic/ tests/",
+        "isort --check-only pumps/ tests/",
         "Import sorting (isort)"
     ))
     
     # Linting
     tests.append((
-        "flake8 cosmic/ tests/",
+        "flake8 pumps/ tests/",
         "Code linting (flake8)"
     ))
     
     # Type checking
     tests.append((
-        "mypy cosmic/ --ignore-missing-imports",
+        "mypy pumps/ --ignore-missing-imports",
         "Type checking (mypy)"
     ))
     
@@ -65,7 +65,7 @@ def main():
     
     # Import test
     tests.append((
-        "python -c 'import cosmic; print(\"COSMIC imports successfully\")'\n",
+        "python -c 'import pumps; print(\"PUMPS imports successfully\")'\n",
         "Import test"
     ))
     

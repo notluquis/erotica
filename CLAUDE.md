@@ -1,9 +1,10 @@
-# COSMIC — repo guidance
+# PUMPS — repo guidance
 
-Python package `cosmic/` (clustering, isochrone, dynamics, kinematics,
+Python package `pumps/` (clustering, isochrone, dynamics, kinematics,
 photometry, structure, analysis) **plus** the full source of the NGC 6383 A&A
-paper (aa52082-24) under `data/test/NGC6383/`. Remote: `notluquis/COSMIC`,
-working branch `dev`.
+paper (aa52082-24) under `data/test/NGC6383/`. Remote: `notluquis/pumps`,
+working branch `dev`. (Package renamed COSMIC→PUMPS 2026-07-21; the local dir
+stays `/Users/notluquis/COSMIC` — 26 figure scripts hardcode that path.)
 
 Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 `--add-dir`): `~/phd/PIPELINE.md` (state), `~/phd/ROADMAP.md` (plan),

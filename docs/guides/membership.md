@@ -1,7 +1,7 @@
 # Membership
 
-How COSMIC decides which Gaia sources belong to an open cluster, what choices you have,
-and what each choice costs. COSMIC's stance: **maximize what HDBSCAN can tell you, offer
+How PUMPS decides which Gaia sources belong to an open cluster, what choices you have,
+and what each choice costs. PUMPS's stance: **maximize what HDBSCAN can tell you, offer
 the alternatives, and document the trade-offs** — the scientist picks what fits their
 cluster. Nothing here throws random noise at the problem; every option is a defensible
 method with a known failure mode, spelled out.
@@ -13,7 +13,7 @@ marks the documented upgrade path, so you always know what you are actually runn
 
 ## 1. What the pseudo-probability means
 
-COSMIC does not read HDBSCAN's cluster label as a hard yes/no. It builds a
+PUMPS does not read HDBSCAN's cluster label as a hard yes/no. It builds a
 **pseudo-probability** p̃ per source. Two definitions live in the code, and they answer
 different questions:
 
@@ -37,7 +37,7 @@ soft membership (§6). Keep the two p̃ definitions distinct in any table you pu
 
 ## 2. Feature space — what you cluster on
 
-This is the single most consequential choice, and in COSMIC it is **one argument**: the
+This is the single most consequential choice, and in PUMPS it is **one argument**: the
 `columns=` passed to `search`/`search_pseudoprobability`. Each option is legitimate; they
 differ in what they let through and what they reject.
 
@@ -47,7 +47,7 @@ differ in what they let through and what they reject.
 | **PM + parallax** (velocity space) {bdg-success}`now` | `("pmra","pmdec","parallax")` | Adds distance separation → rejects PM-sharing interlopers at other distances. The **field standard** (Tarricq+2022 run HDBSCAN on exactly this) | Parallax error explodes at faint magnitudes (§3); without error handling this **biases against low-mass members** |
 | **5D** (position + PM + parallax) {bdg-success}`now` | `("ra","dec","pmra","pmdec","parallax")` | Best field rejection for **compact** clusters (Hunt & Reffert 2023); position tightens a concentrated core | **Dilutes dispersed members.** Equal-weighted sky position penalizes coronae and tidal tails — which can hold **up to half an evolved cluster's stellar mass** — and hits faint low-mass stars hardest (mass segregation evaporates them outward) |
 
-```{admonition} COSMIC clusters on raw column values — it does not rescale for you
+```{admonition} PUMPS clusters on raw column values — it does not rescale for you
 :class: important
 HDBSCAN uses a Euclidean metric, so the axis with the largest numeric spread dominates.
 The moment you mix units you **must standardize the features yourself** before clustering —
@@ -101,7 +101,7 @@ parallax enters the metric, faint-star error must be handled, or the completenes
 
 ## 4. Making membership error-aware
 
-The fix drops onto COSMIC's existing machinery with no re-architecting, because the sweep
+The fix drops onto PUMPS's existing machinery with no re-architecting, because the sweep
 in §1 is already a resampling loop.
 
 **MC-over-errors resampling of the sweep** {bdg-success}`now`. For each of `n_mc` draws,
@@ -121,7 +121,7 @@ f_mean, f_std = clu.search_pseudoprobability_error_aware(
 
 This extends UPMASK's resampling (Krone-Martins & Moitinho 2014; pyUPMASK, Pera+2021) two
 ways: it samples the **full correlated covariance** (not each observable independently), and
-it **fuses the error draws with COSMIC's multi-resolution sweep**, so $f_i$ is stable against
+it **fuses the error draws with PUMPS's multi-resolution sweep**, so $f_i$ is stable against
 *both* measurement error and clustering resolution. Injection-tested — a star given a large
 error scores a lower, higher-variance frequency than its tight-error peers.
 
@@ -154,10 +154,10 @@ The two layers are complementary: **§4 MC-resampling = error-aware candidate ge
 
 ### Calibration is checkable {bdg-success}`now`
 
-`cosmic.calibration` already provides the tooling: `reliability_diagram`,
+`pumps.calibration` already provides the tooling: `reliability_diagram`,
 `hosmer_lemeshow`, `brier_score`, `expected_calibration_error`, plus isotonic/Platt
 recalibration. Ground-truth against the published **Hunt & Reffert DR3 members**
-(CDS `J/A+A/673/A114`) by Gaia `source_id`: a reliability diagram of COSMIC p̃ vs
+(CDS `J/A+A/673/A114`) by Gaia `source_id`: a reliability diagram of PUMPS p̃ vs
 H&R-membership frequency tells you whether "p̃ = 0.8" really means "80% are members."
 
 ```{admonition} Calibration caveat
@@ -171,7 +171,7 @@ available.
 
 ## 6. Getting more out of HDBSCAN
 
-HDBSCAN exposes richer objects than the single label COSMIC currently reads. Each is a
+HDBSCAN exposes richer objects than the single label PUMPS currently reads. Each is a
 concrete upgrade, none require abandoning the sweep. {bdg-warning}`planned` unless noted.
 
 - **Soft clustering — `all_points_membership_vectors`.** The true soft membership:
@@ -182,7 +182,7 @@ concrete upgrade, none require abandoning the sweep. {bdg-warning}`planned` unle
   vectors, so this **appears to be novel** (to be confirmed against the literature before
   claiming it in print).
 - **Cluster significance test (CST).** Nearest-neighbour distances of members vs surrounding
-  field → S/N; keep clusters > 3σ (> 5σ = real beyond doubt; Hunt & Reffert 2021). COSMIC
+  field → S/N; keep clusters > 3σ (> 5σ = real beyond doubt; Hunt & Reffert 2021). PUMPS
   selects a cluster but never tests it against random fields. Bonus: the **tidal radius is
   the radius that maximizes CST** — a membership-boundary tool for free.
 - **GLOSH `outlier_scores_` as a field-star flag.** Flag members above ~the 90th percentile
@@ -193,7 +193,7 @@ concrete upgrade, none require abandoning the sweep. {bdg-warning}`planned` unle
   elongation / substructure. Prototype-and-see; recovery of known subgroups is not guaranteed.
 - **`exemplars_` + `approximate_predict`** (`prediction_data=True`). Freeze the clustering,
   then score *new* sources (a wider Gaia query, tidal-tail candidates) without re-running.
-- **Decouple `min_samples`.** COSMIC leaves `min_samples=None`, which ties it to
+- **Decouple `min_samples`.** PUMPS leaves `min_samples=None`, which ties it to
   `min_cluster_size`. H&R fix `min_samples = 10` and sweep only `min_cluster_size` — decouple
   the two knobs.
 
@@ -216,7 +216,7 @@ concrete upgrade, none require abandoning the sweep. {bdg-warning}`planned` unle
 |-----------|-------|
 | 2D-PM / PM+ϖ / 5D via `columns=` | {bdg-success}`now` |
 | Sweep-based `pFreq` / `pMember` p̃ | {bdg-success}`now` |
-| Calibration tooling (`cosmic.calibration`) | {bdg-success}`now`, validated on synthetic |
+| Calibration tooling (`pumps.calibration`) | {bdg-success}`now`, validated on synthetic |
 | MC-over-errors resampling (`search_pseudoprobability_error_aware`) | {bdg-success}`now`, injection-tested |
 | Bayesian field+cluster posterior | {bdg-warning}`planned` |
 | Soft clustering / CST / GLOSH flag / branch detection | {bdg-warning}`planned` |

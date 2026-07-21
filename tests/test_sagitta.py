@@ -10,7 +10,7 @@ import subprocess
 
 import pytest
 
-from cosmic.analysis._sagitta import _ensure_sagitta
+from pumps.analysis._sagitta import _ensure_sagitta
 
 
 @pytest.mark.skipif(

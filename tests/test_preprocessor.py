@@ -1,10 +1,10 @@
-"""Value-checking tests for the COSMIC scientific preprocessing corrections.
+"""Value-checking tests for the PUMPS scientific preprocessing corrections.
 
-These exercise the physics/astrometry helpers in ``cosmic/preprocess/_helpers.py``:
+These exercise the physics/astrometry helpers in ``pumps/preprocess/_helpers.py``:
 
 * ``correct_proper_motion`` -- the Cantat-Gaudin & Brandt (2021) proper-motion
   "spin" correction applied to bright (G < 13) Gaia sources, using the tabulated
-  omega vector in :data:`cosmic.preprocess._constants.PM_CORRECTION_ROWS`.
+  omega vector in :data:`pumps.preprocess._constants.PM_CORRECTION_ROWS`.
 * ``add_photometric_errors`` / its nested ``_calculate_mag_error`` -- magnitude
   errors propagated from Gaia flux / flux_error.
 * ``split_by_fidelity`` -- high/low fidelity partition at a threshold.
@@ -12,11 +12,11 @@ These exercise the physics/astrometry helpers in ``cosmic/preprocess/_helpers.py
   driven by an injectable ``zpt_module`` (so no external ``gaiadr3-zeropoint``
   package is needed).
 
-IMPORT TRAP: ``import cosmic.preprocess`` runs ``preprocess/__init__`` which
+IMPORT TRAP: ``import pumps.preprocess`` runs ``preprocess/__init__`` which
 imports ``preprocessor`` -> ``from zero_point import zpt``.  The external
 ``gaiadr3-zeropoint`` package is not installed in the test environment, so that
 import raises ``ModuleNotFoundError``.  We dodge it exactly like
-``tests/test_io_helpers.py``: stub a bare ``cosmic.preprocess`` package in
+``tests/test_io_helpers.py``: stub a bare ``pumps.preprocess`` package in
 ``sys.modules`` (so the relative ``from ._constants import ...`` still resolves
 through ``__path__``) and load ``_helpers`` directly from its file, never
 executing the package ``__init__``.
@@ -34,23 +34,23 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-import cosmic
+import pumps
 
 
 def _load_preprocess_helpers():
-    """Load ``cosmic.preprocess._helpers`` without executing the package
+    """Load ``pumps.preprocess._helpers`` without executing the package
     ``__init__`` (which would trip the missing ``zero_point`` import)."""
-    pkg_name = "cosmic.preprocess"
+    pkg_name = "pumps.preprocess"
     if pkg_name not in sys.modules:
         pkg = types.ModuleType(pkg_name)
-        pkg.__path__ = [str(Path(cosmic.__file__).parent / "preprocess")]
+        pkg.__path__ = [str(Path(pumps.__file__).parent / "preprocess")]
         pkg.__package__ = pkg_name
         sys.modules[pkg_name] = pkg
-    mod_name = "cosmic.preprocess._helpers"
+    mod_name = "pumps.preprocess._helpers"
     if mod_name in sys.modules:
         return sys.modules[mod_name]
     spec = importlib.util.spec_from_file_location(
-        mod_name, Path(cosmic.__file__).parent / "preprocess" / "_helpers.py"
+        mod_name, Path(pumps.__file__).parent / "preprocess" / "_helpers.py"
     )
     module = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = module

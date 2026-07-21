@@ -11,10 +11,10 @@ from astropy.table import QTable, Table
 from astropy.coordinates import SkyCoord, angular_separation
 import arviz as az
 
-from cosmic.analysis.inference import (
+from pumps.analysis.inference import (
     SamplingConfig, fit_parallax_model, distance_model, proper_motion_2d_gaussian,
 )
-from cosmic.analysis import structure
+from pumps.analysis import structure
 
 B = "/Users/notluquis/COSMIC/data/test/NGC6383"
 OUT = f"{B}/comments_paper/review_repo"

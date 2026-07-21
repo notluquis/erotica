@@ -1,4 +1,4 @@
-"""Regression tests for :mod:`cosmic.analysis.structure`.
+"""Regression tests for :mod:`pumps.analysis.structure`.
 
 Guards backlog #8: ``_summarize_king_trace`` historically stored the posterior
 *median* under keys named ``*_mean`` (a reporting-label bug). The fix adds
@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 from astropy import units as u
 
-from cosmic.analysis.structure import _summarize_king_trace
+from pumps.analysis.structure import _summarize_king_trace
 
 
 class _FakeVar:

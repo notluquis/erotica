@@ -1,9 +1,9 @@
 <!-- DRAFT — NOT SUBMITTABLE. JOSS hard-requires automated tests + CI + an
-archived DOI, none of which COSMIC has yet (see ~/phd/cosmic-package.md
+archived DOI, none of which PUMPS has yet (see ~/phd/cosmic-package.md
 release-blockers). This is scaffolding for P02, not a ready submission.
 Author list, order, and ORCIDs are PLACEHOLDERS — confirm before use. -->
 ---
-title: 'COSMIC: an integrated, calibrated Bayesian pipeline for Gaia-era open-cluster analysis'
+title: 'PUMPS: an integrated, calibrated Bayesian pipeline for Gaia-era open-cluster analysis'
 tags:
   - Python
   - astronomy
@@ -30,7 +30,7 @@ bibliography: paper.bib
 
 # Summary
 
-`COSMIC` (Characterization Of Star clusters using Machine-learning Inference and
+`PUMPS` (Characterization Of Star clusters using Machine-learning Inference and
 Clustering) is a Python package for identifying and characterizing open clusters
 in Gaia data. It combines density-based membership (an HDBSCAN pseudo-probability
 sweep with Bayesian proper-motion/parallax refinement), Bayesian structural
@@ -50,7 +50,7 @@ models. More decisively, a 2026 review of every open-cluster membership method
 and machine-learning — never once asks whether the probabilities they produce are
 *calibrated*: whether a stated membership probability of 0.7 corresponds to a
 ~70% true-member frequency. Their outputs are rankings or heuristic scores, not
-probabilities validated against observed member frequencies. `COSMIC` addresses two gaps: (1) a single pipeline
+probabilities validated against observed member frequencies. `PUMPS` addresses two gaps: (1) a single pipeline
 from raw Gaia catalog to characterized cluster with per-fit posterior provenance,
 and (2) membership probabilities accompanied by calibration diagnostics
 (reliability diagram / Hosmer–Lemeshow / Brier score) and, where they are
@@ -65,11 +65,11 @@ corrected with the Gaia DR3 open-cluster selection function [@hunt2026sf].
 The closest integrated tool is `ASteCA` [@perren2015], which since v0.5.0 is
 sampler-agnostic (a Poisson likelihood-ratio object; the user supplies the
 sampler) and, in its current version, provides no gradient sampler, no King/radius
-fit, and no automated test suite. `COSMIC`'s membership statistic
+fit, and no automated test suite. `PUMPS`'s membership statistic
 $\tilde{p} = f_i\,p_\mathrm{HDBSCAN}$ was introduced in @pulgar2024b; the new
 contribution here is its *calibration* (the closest open-cluster work,
 @jackson2022, validates by discrimination, not calibration). For isochrone
-fitting, `COSMIC` samples the binned Poisson Hess-diagram likelihood [@dolphin2002]
+fitting, `PUMPS` samples the binned Poisson Hess-diagram likelihood [@dolphin2002]
 with a No-U-Turn Sampler; Bayesian single-cluster CMD fitting is itself established
 (`BASE-9` [@vonhippel2006], non-gradient MCMC), and the gradient-based combination
 is recent and cited head-on: @chi2026 apply a No-U-Turn Sampler with differentiable
@@ -79,20 +79,20 @@ Hess-diagram likelihood with Hamiltonian Monte Carlo, but over *linear*
 star-formation-history coefficients rather than nonlinear single-population
 isochrone parameters; and Bayesian fundamental-parameter fitting of open clusters
 is now performed at survey scale [5056 clusters via nested sampling, @plevne2026].
-`COSMIC` therefore frames its isochrone module as a *capability* within an
+`PUMPS` therefore frames its isochrone module as a *capability* within an
 integrated, calibrated pipeline — NUTS over nonlinear single-population isochrone
 parameters through a differentiable Poisson–Hess forward model — not as a
 standalone advance; its principal novelty is the membership-calibration protocol
 and the end-to-end integration with reproducible provenance.
 
-`COSMIC` is built to *complement* this ecosystem, not to displace it. `ASteCA`
+`PUMPS` is built to *complement* this ecosystem, not to displace it. `ASteCA`
 [@perren2015] — whose synthetic-CMD forward-modelling design directly inspired
 this work — and `pyUPMASK` [@pera2021] remain references for their respective
-tasks, and `COSMIC` ships an `ASteCA` adapter (`cosmic.analysis.external.asteca`)
+tasks, and `PUMPS` ships an `ASteCA` adapter (`pumps.analysis.external.asteca`)
 so the tools compose rather than fragment the ecosystem further. Following field
 practice, the companion methods paper reports an honest cross-comparison on shared
 clusters — including NGC 6383, one of the 20 validation clusters of @perren2015 —
-verifying that `COSMIC` *agrees* with `ASteCA`, `pyUPMASK`, and the survey-scale
+verifying that `PUMPS` *agrees* with `ASteCA`, `pyUPMASK`, and the survey-scale
 fits of @plevne2026 on the axes they share (membership assignment,
 fundamental-parameter recovery, runtime), and contributing the one axis none of
 them currently reports: per-star membership calibration. The contribution is the

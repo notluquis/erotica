@@ -3,9 +3,9 @@ requires = ["setuptools>=65", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cosmic-cluster-analysis"
+name = "pumps"
 version = "0.0.1"
-description = "COSMIC: Characterization Of Star clusters using Machine-learning Inference and Clustering"
+description = "PUMPS: Probabilistic Unsupervised Membership & Parameter Sampling for Gaia open clusters"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "AGPL-3.0-or-later"
@@ -87,10 +87,10 @@ paper = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/notluquis/COSMIC"
-Repository = "https://github.com/notluquis/COSMIC"
-Issues = "https://github.com/notluquis/COSMIC/issues"
-Changelog = "https://github.com/notluquis/COSMIC/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/notluquis/pumps"
+Repository = "https://github.com/notluquis/pumps"
+Issues = "https://github.com/notluquis/pumps/issues"
+Changelog = "https://github.com/notluquis/pumps/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 py-modules = [
@@ -102,7 +102,7 @@ py-modules = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["cosmic*"]
+include = ["pumps*"]
 exclude = ["legacy*", "tests*", "notebooks*", "backups*", "data*"]
 
 [tool.black]

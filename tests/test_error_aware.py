@@ -1,4 +1,4 @@
-"""Tests for cosmic.core._error_aware — error-aware pseudo-probability."""
+"""Tests for pumps.core._error_aware — error-aware pseudo-probability."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-from cosmic.core._error_aware import (
+from pumps.core._error_aware import (
     _cholesky_factors,
     error_aware_pseudoprobability,
     gaia_covariance,

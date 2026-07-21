@@ -1,11 +1,11 @@
-# 🚀 COSMIC v0.0.1 Release Instructions
+# 🚀 PUMPS v0.0.1 Release Instructions
 
-¡Felicidades! El proyecto COSMIC está completamente preparado para el release v0.0.1. Aquí tienes las instrucciones finales para completar el lanzamiento:
+¡Felicidades! El proyecto PUMPS está completamente preparado para el release v0.0.1. Aquí tienes las instrucciones finales para completar el lanzamiento:
 
 ## ✅ Lo que ya está listo:
 
 1. **Estructura del proyecto organizada**:
-   - Paquete `cosmic/` con submodulos organizados
+   - Paquete `pumps/` con submodulos organizados
    - Shims de compatibilidad en la raíz
    - Tests y documentación
    - **NUEVO**: Funcionalidad legacy migrada completamente
@@ -55,9 +55,9 @@ git push origin main
 ### 2. Crear el tag de release
 ```bash
 # Crear tag anotado
-git tag -a v0.0.1 -m "Release v0.0.1: Initial alpha release of COSMIC
+git tag -a v0.0.1 -m "Release v0.0.1: Initial alpha release of PUMPS
 
-This is the first alpha release of COSMIC featuring:
+This is the first alpha release of PUMPS featuring:
 - HDBSCAN-based clustering with Optuna optimization
 - Comprehensive data loading and preprocessing
 - Statistical analysis and visualization tools
@@ -69,16 +69,16 @@ git push origin v0.0.1
 ```
 
 ### 3. Crear el GitHub Release
-1. Ve a: https://github.com/notluquis/COSMIC/releases
+1. Ve a: https://github.com/notluquis/pumps/releases
 2. Click "Create a new release"
 3. Selecciona el tag "v0.0.1"
-4. Título del release: "COSMIC v0.0.1 - Initial Alpha Release"
+4. Título del release: "PUMPS v0.0.1 - Initial Alpha Release"
 5. Descripción del release:
 
 ```markdown
-# 🌟 COSMIC v0.0.1 - Initial Alpha Release
+# 🌟 PUMPS v0.0.1 - Initial Alpha Release
 
-This is the first alpha release of **COSMIC** (Characterization Of Star clusters using Machine-learning Inference and Clustering), a Python package for analyzing star clusters using machine learning and Gaia data.
+This is the first alpha release of **PUMPS** (Characterization Of Star clusters using Machine-learning Inference and Clustering), a Python package for analyzing star clusters using machine learning and Gaia data.
 
 ## ⚠️ Alpha Release Notice
 This is an **alpha release** intended for development and testing. The API may change significantly in future versions. Not recommended for production scientific work yet.
@@ -93,34 +93,34 @@ This is an **alpha release** intended for development and testing. The API may c
 ## 📦 Installation
 ```bash
 # From source (recommended for v0.0.1)
-git clone https://github.com/notluquis/COSMIC.git
-cd COSMIC
+git clone https://github.com/notluquis/pumps.git
+cd PUMPS
 pip install -e ".[dev]"
 ```
 
 ## 🚀 Quick Start
 ```python
-import cosmic
+import pumps
 
 # Load and preprocess data
-loader = cosmic.DataLoader("catalog.ecsv")
+loader = pumps.DataLoader("catalog.ecsv")
 data = loader.load_data(systems=["Gaia", "TMASS"])
 
-preprocessor = cosmic.DataPreprocessor(data)
+preprocessor = pumps.DataPreprocessor(data)
 good_data, bad_data = preprocessor.process()
 
 # Perform clustering
-clusterer = cosmic.Clustering(good_data, bad_data)
+clusterer = pumps.Clustering(good_data, bad_data)
 clusterer.search(['pmra', 'pmdec', 'parallax'])
 
 # Analyze results
-analyzer = cosmic.ClusterAnalyzer(clusterer.combined_data)
+analyzer = pumps.ClusterAnalyzer(clusterer.combined_data)
 analyzer.run_analysis()
 ```
 
 ## 📋 What's New
 - Initial public release with complete clustering workflow
-- Organized package structure (`cosmic.core`, `cosmic.io`, `cosmic.preprocess`, etc.)
+- Organized package structure (`pumps.core`, `pumps.io`, `pumps.preprocess`, etc.)
 - Backward-compatible shims for legacy import patterns
 - Professional documentation and contribution guidelines
 - Comprehensive test suite and development tools
@@ -135,8 +135,8 @@ analyzer.run_analysis()
 - Nicolás Henríquez Salgado (Universidad de Concepción, Chile)
 
 ## 📞 Support
-- [GitHub Issues](https://github.com/notluquis/COSMIC/issues)
-- [Discussions](https://github.com/notluquis/COSMIC/discussions)
+- [GitHub Issues](https://github.com/notluquis/pumps/issues)
+- [Discussions](https://github.com/notluquis/pumps/discussions)
 - Email: lescobar2019@udec.cl
 ```
 
@@ -171,17 +171,17 @@ Después del release, verifica que funciona:
 
 ```bash
 # Clonar en un directorio nuevo
-git clone https://github.com/notluquis/COSMIC.git cosmic-test
+git clone https://github.com/notluquis/pumps.git cosmic-test
 cd cosmic-test
 
 # Instalar y probar
 pip install -e .
-python -c "import cosmic; print('✅ COSMIC v0.0.1 instalado correctamente!')"
+python -c "import pumps; print('✅ PUMPS v0.0.1 instalado correctamente!')"
 ```
 
 ## 🎉 ¡Felicidades!
 
-¡Tu proyecto COSMIC v0.0.1 está listo para el mundo! Has creado:
+¡Tu proyecto PUMPS v0.0.1 está listo para el mundo! Has creado:
 
 - ✅ Un paquete Python profesional y bien organizado
 - ✅ Documentación completa y guías de contribución

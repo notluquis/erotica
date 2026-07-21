@@ -1,16 +1,16 @@
 # Installation
 
-COSMIC targets Python ≥ 3.11.
+PUMPS targets Python ≥ 3.11.
 
 ```bash
-pip install cosmic-cluster-analysis
+pip install pumps
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/notluquis/COSMIC
-cd COSMIC
+git clone https://github.com/notluquis/pumps
+cd pumps
 pip install -e .
 ```
 
@@ -28,5 +28,5 @@ opt-in:
 | `dev` | pytest, black, mypy | contributing |
 
 ```bash
-pip install "cosmic-cluster-analysis[bayes]"
+pip install "pumps[bayes]"
 ```

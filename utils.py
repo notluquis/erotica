@@ -1,6 +1,6 @@
-"""Public entry point for COSMIC utility functions."""
+"""Public entry point for PUMPS utility functions."""
 from __future__ import annotations
 
-from cosmic.utils.utils import compare_datasets
+from pumps.utils.utils import compare_datasets
 
 __all__ = ['compare_datasets']

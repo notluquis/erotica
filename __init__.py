@@ -1,4 +1,4 @@
-"""Top-level package for the COSMIC project."""
+"""Top-level package for the PUMPS project."""
 
 __all__ = [
     'DataLoader',
@@ -47,7 +47,7 @@ def __getattr__(name):
         "IsochroneFitter",
         "PhotometricMassEstimator",
     }:
-        from . import cosmic as _cosmic
+        from . import pumps as _pkg
 
-        return getattr(_cosmic, name)
-    raise AttributeError(f"module 'COSMIC' has no attribute {name!r}")
+        return getattr(_pkg, name)
+    raise AttributeError(f"module 'PUMPS' has no attribute {name!r}")

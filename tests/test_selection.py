@@ -1,4 +1,4 @@
-"""Tests for :mod:`cosmic.selection`.
+"""Tests for :mod:`pumps.selection`.
 
 These tests never touch the real optional dependencies. They exercise:
 
@@ -23,7 +23,7 @@ import pytest
 from astropy import units as u
 from astropy.table import QTable
 
-from cosmic import selection
+from pumps import selection
 
 
 # ---------------------------------------------------------------------------

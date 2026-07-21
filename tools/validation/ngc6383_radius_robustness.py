@@ -125,14 +125,14 @@ def _ngc_like_label(table, labels: np.ndarray, reference_pm: tuple[float, float]
 
 def _import_cosmic_runtime():
     try:
-        from cosmic.analysis import histogram_mode
-        from cosmic.core import Clustering
-        from cosmic.io import DataLoader
-        from cosmic.preprocess import DataPreprocessor
+        from pumps.analysis import histogram_mode
+        from pumps.core import Clustering
+        from pumps.io import DataLoader
+        from pumps.preprocess import DataPreprocessor
     except ModuleNotFoundError as exc:
         if exc.name == "zero_point":
             raise SystemExit(
-                "Missing dependency 'zero_point'. Activate/install the COSMIC "
+                "Missing dependency 'zero_point'. Activate/install the PUMPS "
                 "astronomy environment before running this Gaia preprocessing "
                 "check."
             ) from exc

@@ -1,4 +1,4 @@
-"""Regression tests for masked-column handling in the COSMIC helpers.
+"""Regression tests for masked-column handling in the PUMPS helpers.
 
 Backlog #5 (scientifically critical): masked integer identifier columns such as
 Gaia ``source_id`` were promoted to ``float64`` when unmasked/filled.  Gaia
@@ -22,29 +22,29 @@ import numpy as np
 import pytest
 from astropy.table import MaskedColumn, QTable
 
-import cosmic
-from cosmic.io._helpers import compute_valid_source_counts, handle_masked_columns
+import pumps
+from pumps.io._helpers import compute_valid_source_counts, handle_masked_columns
 
 
 def _load_preprocess_helpers():
-    """Load ``cosmic.preprocess._helpers`` without executing the package
+    """Load ``pumps.preprocess._helpers`` without executing the package
     ``__init__``.
 
-    ``cosmic.preprocess.__init__`` eagerly imports ``preprocessor``, which needs
+    ``pumps.preprocess.__init__`` eagerly imports ``preprocessor``, which needs
     the optional external ``zero_point`` package that is not installed in the
     test environment.  The masked-fill logic under test lives in ``_helpers`` and
     only depends on ``_constants``, so we import it directly via a bare package
     stub (relative ``from ._constants import`` still resolves through ``__path__``).
     """
-    pkg_name = "cosmic.preprocess"
+    pkg_name = "pumps.preprocess"
     if pkg_name not in sys.modules:
         pkg = types.ModuleType(pkg_name)
-        pkg.__path__ = [str(Path(cosmic.__file__).parent / "preprocess")]
+        pkg.__path__ = [str(Path(pumps.__file__).parent / "preprocess")]
         pkg.__package__ = pkg_name
         sys.modules[pkg_name] = pkg
-    mod_name = "cosmic.preprocess._helpers"
+    mod_name = "pumps.preprocess._helpers"
     spec = importlib.util.spec_from_file_location(
-        mod_name, Path(cosmic.__file__).parent / "preprocess" / "_helpers.py"
+        mod_name, Path(pumps.__file__).parent / "preprocess" / "_helpers.py"
     )
     module = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = module

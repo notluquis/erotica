@@ -1,8 +1,8 @@
-"""Test cosmic.calibration (P02 lead novelty) end-to-end on a synthetic field+cluster
+"""Test pumps.calibration (P02 lead novelty) end-to-end on a synthetic field+cluster
 mixture with a deliberately MISCALIBRATED p-tilde. Shows the reliability diagram catches
 it + isotonic recalibration fixes it. Visual: reliability curve before/after."""
 import numpy as np, matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-import cosmic.calibration as cal
+import pumps.calibration as cal
 rng=np.random.default_rng(7)
 N=2000
 # true membership: latent score -> true prob -> label
@@ -31,7 +31,7 @@ ax.plot([0,1],[0,1],'k--',lw=1,label='perfect calibration')
 ax.plot(px0,py0,'o-',c='C3',label=f'p̃ before (H-L p={hl.pvalue:.3f}, Brier {b0:.3f})')
 ax.plot(px1,py1,'s-',c='C0',label=f'after isotonic (p={hl2.pvalue:.3f}, Brier {b1:.3f})')
 ax.set_xlabel('predicted membership probability'); ax.set_ylabel('observed member fraction')
-ax.set_title('cosmic.calibration: reliability diagram\n(synthetic mixture, overconfident p̃ -> isotonic recalibration)')
+ax.set_title('pumps.calibration: reliability diagram\n(synthetic mixture, overconfident p̃ -> isotonic recalibration)')
 ax.legend(fontsize=8); ax.grid(alpha=0.3); ax.set_aspect('equal')
 out="/private/tmp/claude-501/-Users-notluquis-phd/9a0f9b71-83f6-46ec-ba5e-2fc967bc6851/scratchpad/reliability.png"
 plt.tight_layout(); plt.savefig(out,dpi=110); print("saved",out)

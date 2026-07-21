@@ -1,4 +1,4 @@
-"""Tests for ``cosmic.utils.utils``.
+"""Tests for ``pumps.utils.utils``.
 
 The module's sole public function is :func:`compare_datasets`, a print-only
 diagnostic that compares ``source_id`` overlap (and per-column value
@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-from cosmic.utils.utils import compare_datasets
+from pumps.utils.utils import compare_datasets
 
 
 def _table(source_ids, values):

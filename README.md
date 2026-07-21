@@ -1,30 +1,30 @@
-# COSMIC: Characterization Of Star clusters using Machine-learning Inference and Clustering
+# PUMPS: Probabilistic Unsupervised Membership & Parameter Sampling for Gaia open clusters
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/COSMIC)
-[![CI](https://github.com/notluquis/COSMIC/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/COSMIC/actions/workflows/ci.yml)
+[![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/pumps)
+[![CI](https://github.com/notluquis/pumps/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/pumps/actions/workflows/ci.yml)
 
-COSMIC is a professional Python package for analyzing star clusters using machine learning techniques and Bayesian inference. Built specifically for processing Gaia satellite data, COSMIC employs unsupervised clustering algorithms and statistical analysis to identify and characterize open star clusters.
+PUMPS is a professional Python package for analyzing star clusters using machine learning techniques and Bayesian inference. Built specifically for processing Gaia satellite data, PUMPS employs unsupervised clustering algorithms and statistical analysis to identify and characterize open star clusters.
 
 ## 🚀 Quick Start
 
 ```python
-import cosmic
+import pumps
 
 # Load and preprocess data
-loader = cosmic.DataLoader("your_gaia_catalog.ecsv")
+loader = pumps.DataLoader("your_gaia_catalog.ecsv")
 data = loader.load_data(systems=["Gaia", "TMASS"])
 
-preprocessor = cosmic.DataPreprocessor(data)
+preprocessor = pumps.DataPreprocessor(data)
 good_data, bad_data = preprocessor.process()
 
 # Perform clustering
-clusterer = cosmic.Clustering(good_data, bad_data)
+clusterer = pumps.Clustering(good_data, bad_data)
 clusterer.search(['pmra', 'pmdec', 'parallax'])
 
 # Analyze results
-analyzer = cosmic.ClusterAnalyzer(clusterer.combined_data)
+analyzer = pumps.ClusterAnalyzer(clusterer.combined_data)
 analyzer.run_analysis()
 ```
 
@@ -33,8 +33,8 @@ analyzer.run_analysis()
 ### From Source (Current)
 
 ```bash
-git clone https://github.com/notluquis/COSMIC.git
-cd COSMIC
+git clone https://github.com/notluquis/pumps.git
+cd pumps
 pip install -e ".[dev,docs,examples]"
 ```
 
@@ -46,8 +46,8 @@ pip install -e ".[dev,docs,examples]"
 ## 🏗️ Project Structure
 
 ```
-COSMIC/
-├── cosmic/                 # 📦 Main package
+PUMPS/
+├── pumps/                 # 📦 Main package
 │   ├── core/              # 🔧 Clustering algorithms
 │   ├── io/                # 📊 Data loading and I/O
 │   ├── preprocess/        # 🧹 Data preprocessing
@@ -144,12 +144,12 @@ python tools/testing/run_comprehensive_tests.py
 
 ```bash
 # Format code
-black cosmic/ tests/ examples/
-isort cosmic/ tests/ examples/
+black pumps/ tests/ examples/
+isort pumps/ tests/ examples/
 
 # Check code quality
-flake8 cosmic/ tests/
-mypy cosmic/ --ignore-missing-imports
+flake8 pumps/ tests/
+mypy pumps/ --ignore-missing-imports
 
 # Run all quality checks
 python tools/testing/run_comprehensive_tests.py
@@ -181,7 +181,7 @@ We welcome contributions! Please see our [Contributing Guide](docs/contributing/
 
 ## 📄 License
 
-COSMIC is licensed under the [GNU Affero General Public License v3.0](LICENSE). This ensures that any modifications or derivative works remain open source.
+PUMPS is licensed under the [GNU Affero General Public License v3.0](LICENSE). This ensures that any modifications or derivative works remain open source.
 
 ## 👥 Team
 
@@ -190,7 +190,7 @@ COSMIC is licensed under the [GNU Affero General Public License v3.0](LICENSE). 
 
 ## 🙏 Acknowledgments
 
-COSMIC builds upon excellent open-source libraries:
+PUMPS builds upon excellent open-source libraries:
 - [HDBSCAN](https://github.com/scikit-learn-contrib/hdbscan) for density-based clustering
 - [Optuna](https://optuna.org/) for hyperparameter optimization
 - [Astropy](https://www.astropy.org/) for astronomical data handling
@@ -199,8 +199,8 @@ COSMIC builds upon excellent open-source libraries:
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/notluquis/COSMIC/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/notluquis/COSMIC/discussions)
+- **Issues**: [GitHub Issues](https://github.com/notluquis/pumps/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/notluquis/pumps/discussions)
 - **Email**: [lescobar2019@udec.cl](mailto:lescobar2019@udec.cl)
 
 ## 🗺️ Roadmap
@@ -212,6 +212,6 @@ COSMIC builds upon excellent open-source libraries:
 
 ---
 
-**Citation**: If you use COSMIC in your research, please cite our paper (in preparation) and acknowledge the underlying libraries.
+**Citation**: If you use PUMPS in your research, please cite our paper (in preparation) and acknowledge the underlying libraries.
 
 *Made with ❤️ for the astronomical community*

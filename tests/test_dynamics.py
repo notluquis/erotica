@@ -1,4 +1,4 @@
-"""Regression tests for cosmic.analysis.dynamics.
+"""Regression tests for pumps.analysis.dynamics.
 
 The Galactic-coordinate branch of ``calculate_galactocentric_distance`` used the
 non-existent ``Angle.radians`` attribute and crashed with AttributeError on every
@@ -8,7 +8,7 @@ call — proof it was untested. These pin the two call forms.
 import astropy.units as u
 import numpy as np
 
-from cosmic.analysis.dynamics import calculate_galactocentric_distance
+from pumps.analysis.dynamics import calculate_galactocentric_distance
 
 
 def test_galactocentric_distance_galactic_branch():

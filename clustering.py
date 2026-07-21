@@ -1,12 +1,12 @@
-"""Public entry point for COSMIC clustering utilities."""
+"""Public entry point for PUMPS clustering utilities."""
 from __future__ import annotations
 
-from cosmic.core._estimator import (
+from pumps.core._estimator import (
     FullSplit,
     HDBSCANEstimator,
     compute_relative_validity_from_mst,
 )
-from cosmic.core.clustering import Clustering
+from pumps.core.clustering import Clustering
 
 # Legacy compatibility alias
 HDBSCANClustering = Clustering

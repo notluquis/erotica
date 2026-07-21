@@ -1,14 +1,14 @@
 API reference
 =============
 
-COSMIC's public API. These are the classes and functions re-exported at the top level of
-the package (``cosmic.__all__``); the modules they live in carry additional internals not
+PUMPS's public API. These are the classes and functions re-exported at the top level of
+the package (``pumps.__all__``); the modules they live in carry additional internals not
 listed here.
 
 Clustering & data
 -----------------
 
-.. currentmodule:: cosmic
+.. currentmodule:: pumps
 
 .. autosummary::
    :toctree: generated
@@ -29,7 +29,7 @@ Clustering & data
 Analysis
 --------
 
-.. currentmodule:: cosmic.analysis
+.. currentmodule:: pumps.analysis
 
 .. autosummary::
    :toctree: generated
