@@ -41,33 +41,37 @@ This matches Plevne & Akbaba 2026: dynesty on 5056 clusters shows age–Z and dm
 XP→[Fe/H], SFD→reddening) collapse the ridge so posteriors read compact. Genuine separated
 modes (young-reddened vs old aliasing, sparse CMDs, binaries) are a real minority case.
 
-## Recommended sampler (supersedes the "make NUTS work" framing)
+## Recommended sampler: keep NUTS, go JAX/NumPyro (decision driven by the goals)
 
-**Primary: nested sampling (dynesty).** Gradient-free (so it works on the CURRENT likelihood —
-no JAX rewrite needed to sample), robust to the ridge AND to any latent multimodality, and it
-returns **Bayesian evidence → model comparison (MIST vs PARSEC vs SPOTS = P05)**. Field-proven:
-Plevne 2026 used dynesty (`N_live=400`, MultiEllipsoid, ΔlnZ=0.01, 2–5 min/cluster). Cross-check
-with UltraNest; nautilus only if the likelihood becomes expensive; PolyChord overkill at ~6D.
+Given the project goals — **hierarchical modelling + JAX speed + build on the existing NUTS
+work** — and the empirical finding that the posterior is a **ridge, not multimodal**, the
+correct primary sampler is **NUTS/HMC in NumPyro (JAX)**, not nested sampling:
+- The posterior is a degeneracy ridge, and **NUTS handles ridges fine** (dense mass matrix /
+  reparametrization) — the multimodal advantage of nested does not apply here.
+- **Nested sampling does not scale to hierarchical / high-dim** models (it is for ≲20–30
+  params); per-star latents + population hyperparameters are exactly where nested dies and
+  **HMC/NUTS dominates**. This is decisive: hierarchical is a stated goal.
+- **NumPyro = JAX** → GPU, vectorized, ultra-fast. **Chi 2026 — the SOTA for this exact
+  problem — uses NUTS/NumPyro precisely because it is a per-star hierarchical model.** So
+  NUTS/JAX *is* the golden standard for the goals here, not a compromise.
 
-**First-line degeneracy fix (do before anything fancy): informative priors** — Gaia parallax→
-distance, Gaia XP metallicity→[Fe/H], 3D dust (Edenhofer 2024)→reddening. This collapses the
-ridge per Plevne, and is the cheapest highest-impact change.
+**Nested sampling (dynesty) drops to an optional one-off** for evidence-based model comparison
+(P05: MIST vs PARSEC vs SPOTS) if the marginal likelihood is wanted — run it once per grid for
+`ln Z`, not as the production sampler.
 
-**Decision rule (per cluster):**
-1. Add informative priors → collapse the ridge.
-2. Multi-chain NUTS, overdispersed init. R̂<1.01 + unimodal marginals → **keep NUTS** (fast
-   path, the ~75% well-behaved majority).
-3. Linear ridge → dense mass matrix (no reparam); curved/banana ridge → reparametrize along
-   the degeneracy axis.
-4. Chains split / bimodal / need evidence → **escalate to dynesty** (default) or **tempered
-   SMC with a NUTS mutation kernel** (`blackjax.smc.tempered` + `smc.from_mcmc` — the branch
-   that reuses gradients under multimodality); report ln Z.
+**Fix the NUTS geometry (build on what's done, don't switch):**
+1. **JAX/NumPyro rewrite** — differentiable EEP-grid interpolation (`jax.scipy.ndimage.map_coordinates`)
+   kills the staircase so NUTS gets real gradients; fast + GPU-able (Chi 2026's design).
+2. **Informative priors** (Gaia parallax→distance, XP [Fe/H], 3D dust Edenhofer 2024→reddening)
+   + **dense mass matrix / reparametrize along the ridge** — collapses/handles the dm–loga–Av
+   degeneracy (Plevne's prior strategy; NUTS-native ridge handling).
+3. **Unbinned per-star Gaussian mixture** (single/binary/outlier) — removes binning AND is the
+   natural on-ramp to **hierarchical** (per-star mass latents → population age/Z hyperparameters).
 
-**Where the differentiable work still earns its keep** (NOT the primary sampler fix):
-- **Resolution**: smooth isochrone interpolation removes the metallicity quantization (11
-  discrete values → continuous), which nested sampling would otherwise inherit as a coarse met
-  posterior. Do it regardless of sampler.
-- **Unimodal fast-path** + future hierarchical / multi-cluster models where gradients pay off.
+**Decision rule (per cluster):** priors → multi-chain NUTS (overdispersed init); R̂<1.01 +
+unimodal → keep NUTS (the majority); linear ridge → dense mass matrix; curved ridge →
+reparametrize; genuinely separated modes (rare) → tempered-SMC-NUTS (`blackjax.smc.tempered` +
+`smc.from_mcmc`, reuses gradients) or a one-off dynesty for `ln Z`.
 
 ## Likelihood / interpolation fix (resolution — see ranked options below), 2026 golden standard
 
