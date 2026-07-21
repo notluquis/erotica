@@ -119,12 +119,17 @@ photometric scatter (R̂ 2.84→2.39), the binary/outlier mixture (converged the
 `dense_mass` block, tighter dust/XP priors. None fixed the frozen core.
 
 **Next directions (focused, deeper — the real cure):**
-1. **C1-smooth interpolation** — replace `map_coordinates(order=1)` with cubic / B-spline (e.g.
-   `interpax`) so the isochrone gradient is continuous (NUTS's requirement). Highest-suspicion fix.
-2. **Per-star mass latents** (sample mass per star, don't marginalize) — Chi 2026's actual design;
-   smoother global-param geometry (at the cost of higher dim + non-centering the latents).
-3. **Reparametrize the curved ridge** (whiten / fit along the degeneracy axis).
-Gate unchanged: injection-recovery + Vehtari 2021 before paper use.
+1. ~~C1-smooth interpolation~~ **TESTED + RULED OUT (2026-07-21):** replaced `map_coordinates
+   (order=1)` with `interpax` cubic (C1) — the 4 globals **still froze** (R̂ 2.7–2.86). So the
+   cause is NOT gradient roughness; it is the **curved degeneracy-ridge geometry itself**.
+2. **Per-star mass latents** (sample mass per star, don't marginalize) — Chi 2026's actual
+   design; changes the global-param geometry (at the cost of higher dim + non-centering). Now
+   the leading candidate.
+3. **Reparametrize the curved ridge** (whiten / fit along the age–dm–Av degeneracy axis).
+4. **Nested sampling / SMC for the isochrone block** — if HMC genuinely can't traverse this
+   curved ridge, it may be the wrong tool for these 4 (the mixture params stay in NUTS).
+Empirically falsified so far: interpolation roughness (cubic), init, scatter, tighter priors,
+dense mass. Gate unchanged: injection-recovery + Vehtari 2021 before paper use.
 
 ## 5. Credit / attribution (integrity)
 Cite **Chi et al. 2026** as the method reference for the differentiable-emulator + NUTS/NumPyro
