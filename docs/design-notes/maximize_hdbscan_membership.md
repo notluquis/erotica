@@ -13,9 +13,17 @@ sweeps `min_cluster_size` ∈ range(10,300), stores `outlier_scores_` but never 
 (`probabilities_` is within-cluster λ-strength; **GLOSH = `outlier_scores_`**, a separate object.)
 
 ## Upgrades, ranked by payoff
-1. **Cluster in 5D, not 2D PM** `[S]` — Hunt & Reffert (`2023A&A...673A.114H`): sky position + PM +
-   parallax, recentred per field, each axis rescaled to a common median/IQR. **The single biggest
-   quality gain** — PM-only admits fore/background interlopers sharing PM.
+1. **Add parallax / consider 5D — but it's morphology-dependent, not a blanket win** `[S]` — Hunt &
+   Reffert (`2023A&A...673A.114H`): sky position + PM + parallax, recentred per field, each axis
+   rescaled to a common median/IQR. PM-only admits fore/background interlopers sharing PM, so
+   **PM + parallax (velocity space) is the safe upgrade** and the field standard (Tarricq+2022 cluster
+   on exactly this, no position). **Full 5D-with-position is NOT a universal win:** equal-weighted sky
+   position dilutes coronae/tidal tails (≈half an evolved cluster's mass; Meingast+2021, Tarricq+2022)
+   and hits faint low-mass stars hardest → best for *compact* clusters, wrong default for dispersed
+   ones. For **very young** objects (NGC 6383, 1–4 Myr) there are no tidal tails yet — dispersion is
+   substructure/expansion — so 2D-PM is defensible and **PM+parallax the natural upgrade**, not 5D.
+   Feature space is offered as the `columns=` argument with these trade-offs documented in the
+   [membership user guide](../guides/membership.md).
 2. **CST (cluster significance test)** `[S]` — H&R (`2021A&A...646A.104H`): nearest-neighbour distance
    of members vs surrounding field → S/N; keep >3σ (>5 = "real beyond doubt"). COSMIC selects a
    cluster but never tests it against random fields. Bonus: **tidal radius = the radius maximizing

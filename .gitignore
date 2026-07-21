@@ -125,3 +125,7 @@ data/test/NGC6383/comments_paper/6383_old_paper/
 data/test/NGC6383/Tex_File/aanda.pdf
 data/test/NGC6383/comments_paper/submission_package/clean_source.zip
 data/test/NGC6383/comments_paper/submission_package/aa52082-24_source.zip
+
+# Sphinx docs build artifacts
+docs/_build/
+docs/api/generated/
