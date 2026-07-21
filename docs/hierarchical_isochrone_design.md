@@ -108,11 +108,15 @@ reparametrization** (Betancourt & Girolami 2015, arXiv:1312.0906): sample z~N(0,
   Av 1.1 vs 1.2, f_bin 0.37 vs 0.3) — the model is correct (logL(truth) beats a wrong point by
   ~4300). **Mixture params fully converge** (f_bin R̂ 1.01/ESS 813, f_out R̂ 1.00/ESS 4600).
 
-**Not yet converged:** the 4 isochrone globals (age/feh/dm/Av) stall at **R̂ ~2.8, ESS ~4**
-(chains frozen) even though their means recover truth. Diagnosis: a **curved, thin degeneracy
-ridge** (age–dm–Av), and the coupled block freezes because `map_coordinates(order=1)` gives a
-**piecewise-constant (C0, not C1) gradient** in age/feh — rough gradients collapse the NUTS step
-size for the correlated block (the smooth mixture weights are unaffected, hence they converge).
+**Convergence — where it landed (empirical, ~20 MCMC runs):** the fix direction is
+**per-star mass latents** (Chi 2026's actual code: sample mass in `plate('stars',N)`, don't
+marginalize) + a tight parallax→dm prior. This took R̂ **2.84 (marginalized) → ~1.74 (latents)**,
+recovering truth (dm converges, R̂ 1.18). **But it plateaus at R̂ ~1.7–1.8** — longer chains
+(3000 vs 1200) do NOT improve it, and ESS stays ~5 (doesn't grow with samples). So the block
+mixes far better but not fully (R̂<1.05). **Root cause of the residual:** a young/PMS cluster's
+age is set by the *diffuse PMS locus* where **age and per-star mass trade off strongly**, a
+harder geometry than Chi's cluster (Ruprecht 147 is *old*, with a sharp turnoff that pins age).
+The C0-vs-C1 interpolation was **ruled out** (cubic tested, no help); the residual is geometry.
 
 **Tried + insufficient (cheap fixes exhausted):** `init_to_median` (got means→truth), realistic
 photometric scatter (R̂ 2.84→2.39), the binary/outlier mixture (converged the fractions),
@@ -122,14 +126,18 @@ photometric scatter (R̂ 2.84→2.39), the binary/outlier mixture (converged the
 1. ~~C1-smooth interpolation~~ **TESTED + RULED OUT (2026-07-21):** replaced `map_coordinates
    (order=1)` with `interpax` cubic (C1) — the 4 globals **still froze** (R̂ 2.7–2.86). So the
    cause is NOT gradient roughness; it is the **curved degeneracy-ridge geometry itself**.
-2. **Per-star mass latents** (sample mass per star, don't marginalize) — Chi 2026's actual
-   design; changes the global-param geometry (at the cost of higher dim + non-centering). Now
-   the leading candidate.
-3. **Reparametrize the curved ridge** (whiten / fit along the age–dm–Av degeneracy axis).
-4. **Nested sampling / SMC for the isochrone block** — if HMC genuinely can't traverse this
-   curved ridge, it may be the wrong tool for these 4 (the mixture params stay in NUTS).
-Empirically falsified so far: interpolation roughness (cubic), init, scatter, tighter priors,
-dense mass. Gate unchanged: injection-recovery + Vehtari 2021 before paper use.
+2. ~~Per-star mass latents~~ **DONE — the fix direction (R̂ 2.84→1.74), but plateaus ~1.7.**
+   Remaining residual = the young-cluster per-star **age↔mass** degeneracy (diffuse PMS locus).
+3. **Reparametrize the per-star age↔mass degeneracy** — the residual coupling. E.g. sample a
+   per-star "position-along-isochrone" that is age-invariant, or reparametrize mass conditional
+   on age; non-center the latents. **Leading next step.**
+4. **Nested sampling / SMC for the global block** — dynesty on {age,feh,dm,Av} with the mass
+   latents/mixture handled separately, if HMC can't close the young-PMS geometry.
+5. **Validate on an OLD cluster first** (like Chi's R147) — expect clean convergence there;
+   isolates that the residual is the young/PMS regime, not the code.
+Empirically falsified: interpolation roughness (cubic), init, scatter, tighter priors, dense
+mass, longer chains. Confirmed helpful: per-star latents, tight dm prior, realistic scatter.
+Gate unchanged: injection-recovery + Vehtari 2021 before paper use.
 
 ## 5. Credit / attribution (integrity)
 Cite **Chi et al. 2026** as the method reference for the differentiable-emulator + NUTS/NumPyro
