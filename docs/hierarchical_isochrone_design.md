@@ -95,6 +95,37 @@ reparametrization** (Betancourt & Girolami 2015, arXiv:1312.0906): sample z~N(0,
 - **Young/PMS + SPOTS/magnetic** (P05) and **calibrated-membership integration** (P02) are the
   science differentiators layered on the same machinery.
 
+## 4b. Implementation status (2026-07-21) — build + convergence diagnosis
+
+**Proven / working (prototypes in `tools/prototypes/`):**
+- **Differentiability fix** (`isochrone_jax_poc.py`): `map_coordinates(order=1)` over an
+  aligned MIST grid → metallicity sweep 11/200 → **200/200 unique**, `jax.grad` **95%→0%**
+  zero-gradient. The staircase that broke NUTS is gone. Age axis likewise (46.7%→0%).
+- **Mass-based grid** (`isochrone_mass_grid.py`): research-recommended basis (initial mass,
+  not EEP) → proper young CMD (G[-0.3,9.4], BP−RP[-0.26,2.90], blue→red PMS).
+- **NumPyro fitter** (`isochrone_numpyro_fitter.py`): per-star single/binary/outlier mixture,
+  marginalized over mass. **Recovers truth** (age 6.76 vs 6.6, feh 0.06 vs 0, dm 10.1 vs 10.3,
+  Av 1.1 vs 1.2, f_bin 0.37 vs 0.3) — the model is correct (logL(truth) beats a wrong point by
+  ~4300). **Mixture params fully converge** (f_bin R̂ 1.01/ESS 813, f_out R̂ 1.00/ESS 4600).
+
+**Not yet converged:** the 4 isochrone globals (age/feh/dm/Av) stall at **R̂ ~2.8, ESS ~4**
+(chains frozen) even though their means recover truth. Diagnosis: a **curved, thin degeneracy
+ridge** (age–dm–Av), and the coupled block freezes because `map_coordinates(order=1)` gives a
+**piecewise-constant (C0, not C1) gradient** in age/feh — rough gradients collapse the NUTS step
+size for the correlated block (the smooth mixture weights are unaffected, hence they converge).
+
+**Tried + insufficient (cheap fixes exhausted):** `init_to_median` (got means→truth), realistic
+photometric scatter (R̂ 2.84→2.39), the binary/outlier mixture (converged the fractions),
+`dense_mass` block, tighter dust/XP priors. None fixed the frozen core.
+
+**Next directions (focused, deeper — the real cure):**
+1. **C1-smooth interpolation** — replace `map_coordinates(order=1)` with cubic / B-spline (e.g.
+   `interpax`) so the isochrone gradient is continuous (NUTS's requirement). Highest-suspicion fix.
+2. **Per-star mass latents** (sample mass per star, don't marginalize) — Chi 2026's actual design;
+   smoother global-param geometry (at the cost of higher dim + non-centering the latents).
+3. **Reparametrize the curved ridge** (whiten / fit along the degeneracy axis).
+Gate unchanged: injection-recovery + Vehtari 2021 before paper use.
+
 ## 5. Credit / attribution (integrity)
 Cite **Chi et al. 2026** as the method reference for the differentiable-emulator + NUTS/NumPyro
 per-star-mixture architecture; acknowledge their public code if COSMIC ports the emulator design.
