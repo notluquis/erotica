@@ -71,6 +71,10 @@ bayes = [
 asteca = [
   "asteca>=0.6",
 ]
+selection = [
+  "gaiaunlimited>=0.3",
+  "hr-selection-function>=1.0",
+]
 paper = [
   "pymc>=5",
   "arviz>=0.16",
