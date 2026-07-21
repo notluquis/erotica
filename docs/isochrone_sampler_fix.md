@@ -26,7 +26,50 @@ Plus a scale–shape ridge: a free `log_s = Normal(log N_obs, 1)` multiplies a �
 total count, coupling global scale to CMD shape (H2); dm→9.7 vs the 1.11 kpc parallax is a
 genuine likelihood edge-pull, not just sampler noise.
 
-## Golden-standard fix (2026), ranked
+## Is the posterior multimodal? (empirical, 2026-07-21)
+
+Probed the saved traces directly. **It is a degeneracy _ridge_, not separated modes:**
+- **Production DEMetropolis** (300×1000): marginals unimodal-but-lumpy (bimodality
+  coefficient ~0.19, far below the 0.555 bimodal threshold). The apparent "10 loga / 4 met
+  modes" are **staircase artifacts** — bumps at the 11 discrete metallicity slices.
+- **NUTS refit** (4 chains): 2 "modes"/param = **4 chains stuck on different staircase
+  plateaus** (the R̂ inflation), plus **strong degeneracy correlations dm–loga −0.94,
+  dm–Av +0.70, loga–Av −0.70** — the age–distance–extinction ridge.
+
+This matches Plevne & Akbaba 2026: dynesty on 5056 clusters shows age–Z and dm–reddening as
+**elongated/curved ridges**, "none... multi-modal." Informative priors (parallax→distance,
+XP→[Fe/H], SFD→reddening) collapse the ridge so posteriors read compact. Genuine separated
+modes (young-reddened vs old aliasing, sparse CMDs, binaries) are a real minority case.
+
+## Recommended sampler (supersedes the "make NUTS work" framing)
+
+**Primary: nested sampling (dynesty).** Gradient-free (so it works on the CURRENT likelihood —
+no JAX rewrite needed to sample), robust to the ridge AND to any latent multimodality, and it
+returns **Bayesian evidence → model comparison (MIST vs PARSEC vs SPOTS = P05)**. Field-proven:
+Plevne 2026 used dynesty (`N_live=400`, MultiEllipsoid, ΔlnZ=0.01, 2–5 min/cluster). Cross-check
+with UltraNest; nautilus only if the likelihood becomes expensive; PolyChord overkill at ~6D.
+
+**First-line degeneracy fix (do before anything fancy): informative priors** — Gaia parallax→
+distance, Gaia XP metallicity→[Fe/H], 3D dust (Edenhofer 2024)→reddening. This collapses the
+ridge per Plevne, and is the cheapest highest-impact change.
+
+**Decision rule (per cluster):**
+1. Add informative priors → collapse the ridge.
+2. Multi-chain NUTS, overdispersed init. R̂<1.01 + unimodal marginals → **keep NUTS** (fast
+   path, the ~75% well-behaved majority).
+3. Linear ridge → dense mass matrix (no reparam); curved/banana ridge → reparametrize along
+   the degeneracy axis.
+4. Chains split / bimodal / need evidence → **escalate to dynesty** (default) or **tempered
+   SMC with a NUTS mutation kernel** (`blackjax.smc.tempered` + `smc.from_mcmc` — the branch
+   that reuses gradients under multimodality); report ln Z.
+
+**Where the differentiable work still earns its keep** (NOT the primary sampler fix):
+- **Resolution**: smooth isochrone interpolation removes the metallicity quantization (11
+  discrete values → continuous), which nested sampling would otherwise inherit as a coarse met
+  posterior. Do it regardless of sampler.
+- **Unimodal fast-path** + future hierarchical / multi-cluster models where gradients pay off.
+
+## Likelihood / interpolation fix (resolution — see ranked options below), 2026 golden standard
 
 **Headline:** COSMIC uses a galaxy-SFH tool (binned Hess + Poisson over an age–Z template
 grid — Dolphin 2002 `2002MNRAS.332...91D`; Garling 2025 `2025ApJS..277...61G`) on a
