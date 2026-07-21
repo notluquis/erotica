@@ -219,6 +219,58 @@ class Clustering:
         )
 
     # ------------------------------------------------------------------
+    # Error-aware pseudoprobability (Monte-Carlo over Gaia errors)
+    # ------------------------------------------------------------------
+    def search_pseudoprobability_error_aware(
+        self,
+        columns: Sequence[str] = ("pmra", "pmdec"),
+        *,
+        error_columns: Sequence[str] | None = None,
+        corr_columns: dict[tuple[str, str], str] | None = None,
+        n_mc: int = 100,
+        min_cluster_size_samples: Iterable[int] = range(10, 300, 10),
+        min_samples: int | None = None,
+        random_state: int = 0,
+        hdbscan_kwargs: dict | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Error-aware recovery frequency, folding Gaia astrometric errors into f_i.
+
+        For each of ``n_mc`` Monte-Carlo draws every source is perturbed by its
+        (correlated) Gaia covariance, the ``min_cluster_size`` sweep is re-run, and
+        cluster membership is recorded. The returned frequency is the mean clustered
+        fraction over draws x resolutions; its spread is the error-induced membership
+        uncertainty. Faint sources with large parallax/PM errors flicker in and out
+        across draws and earn a correctly lower, hedged frequency instead of a hard cut.
+
+        Adds ``pFreqMC`` and ``pFreqMC_std`` columns to ``self.data`` and returns
+        ``(f_mean, f_std)``. This is the frequentist, error-aware layer; the calibrated
+        Bayesian posterior is a separate step (see the membership guide). The validated
+        :meth:`search_pseudoprobability` is untouched.
+
+        Note that, like the base sweep, features are used on their raw scale -- mixing
+        units (parallax with PM) still requires standardizing ``columns`` beforehand.
+        """
+        from ._error_aware import error_aware_pseudoprobability, gaia_covariance
+
+        cols = list(columns)
+        X = self.data[cols].to_pandas().values
+        cov = gaia_covariance(self.data, cols, error_columns, corr_columns)
+        f_mean, f_std = error_aware_pseudoprobability(
+            X,
+            cov=cov,
+            n_mc=n_mc,
+            min_cluster_size_samples=min_cluster_size_samples,
+            min_samples=min_samples,
+            random_state=random_state,
+            hdbscan_kwargs=hdbscan_kwargs,
+        )
+        self.pfreq_error_aware_ = f_mean
+        self.pfreq_error_aware_std_ = f_std
+        self.data["pFreqMC"] = f_mean
+        self.data["pFreqMC_std"] = f_std
+        return f_mean, f_std
+
+    # ------------------------------------------------------------------
     # Public helpers
     # ------------------------------------------------------------------
     def show_results(self) -> None:

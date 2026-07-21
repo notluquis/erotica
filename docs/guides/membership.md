@@ -104,17 +104,33 @@ parallax enters the metric, faint-star error must be handled, or the completenes
 The fix drops onto COSMIC's existing machinery with no re-architecting, because the sweep
 in §1 is already a resampling loop.
 
-**MC-over-errors resampling of the sweep** {bdg-warning}`planned`. Before each pass of the
-`min_cluster_size` sweep, **perturb every source by its full covariance** (a Gaussian draw
-in PM and parallax using the reported errors + correlations), then re-run. The membership
-frequency across perturbed sweeps is an **error-aware $f_i$** — a frequency *with a spread*.
-This is precisely UPMASK's outer loop (Krone-Martins & Moitinho 2014; pyUPMASK, Pera+2021)
-bolted onto HDBSCAN, and it answers "include the errors" directly: a faint star with a huge
-parallax error will flicker in and out across draws and earn a correctly *lower, hedged* p̃,
-instead of being silently cut.
+**MC-over-errors resampling of the sweep** {bdg-success}`now`. For each of `n_mc` draws,
+**perturb every source by its full covariance** (a correlated Gaussian draw in PM and
+parallax using the reported errors *and* correlation coefficients), re-run the
+`min_cluster_size` sweep, and record membership. The mean clustered fraction over
+draws × resolutions is an **error-aware $f_i$**, and its spread across draws is the
+*error-induced membership uncertainty*. A faint star with a huge parallax error flickers in
+and out across draws and earns a correctly *lower, hedged* frequency instead of a silent cut.
 
-It is **frequentist** — a stability frequency, not yet a posterior. Do not sell the MC
-frequency as a Bayesian membership probability; that is the next layer.
+```python
+f_mean, f_std = clu.search_pseudoprobability_error_aware(
+    columns=("pmra", "pmdec", "parallax"), n_mc=100,
+)
+# also written to clu.data["pFreqMC"], clu.data["pFreqMC_std"]
+```
+
+This extends UPMASK's resampling (Krone-Martins & Moitinho 2014; pyUPMASK, Pera+2021) two
+ways: it samples the **full correlated covariance** (not each observable independently), and
+it **fuses the error draws with COSMIC's multi-resolution sweep**, so $f_i$ is stable against
+*both* measurement error and clustering resolution. Injection-tested — a star given a large
+error scores a lower, higher-variance frequency than its tight-error peers.
+
+It is **frequentist** — a stability frequency *with a spread*, not yet a posterior. Do not
+sell the MC frequency as a Bayesian membership probability; that is the next layer (§5). Note
+that, like `pFreq`, `pFreqMC` counts being clustered into *any* cluster, not a specific
+target — in a field with several comoving groups, pair it with the target-cluster selection.
+Cost is `n_mc × sweep` HDBSCAN fits (default ~2900), minutes-to-tens-of-minutes on a full
+Gaia field; lower `n_mc` or coarsen the sweep to trade precision for speed.
 
 ---
 
@@ -201,7 +217,7 @@ concrete upgrade, none require abandoning the sweep. {bdg-warning}`planned` unle
 | 2D-PM / PM+ϖ / 5D via `columns=` | {bdg-success}`now` |
 | Sweep-based `pFreq` / `pMember` p̃ | {bdg-success}`now` |
 | Calibration tooling (`cosmic.calibration`) | {bdg-success}`now`, validated on synthetic |
-| MC-over-errors resampling | {bdg-warning}`planned` |
+| MC-over-errors resampling (`search_pseudoprobability_error_aware`) | {bdg-success}`now`, injection-tested |
 | Bayesian field+cluster posterior | {bdg-warning}`planned` |
 | Soft clustering / CST / GLOSH flag / branch detection | {bdg-warning}`planned` |
 
