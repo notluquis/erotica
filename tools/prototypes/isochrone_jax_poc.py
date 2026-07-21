@@ -9,11 +9,8 @@ RESULT on the 15 NGC 6383 MIST files (age 6.6):
   d(G)/d(feh):         0.0% zero-gradient     (was 95.0%)
   => staircase eliminated; NUTS gradients are now usable.
 
-Next: extend to the full 3D (age, [Fe/H], EEP) grid + NumPyro per-star mixture model
-(see docs/hierarchical_isochrone_design.md). Uses jax + jax.scipy.ndimage.map_coordinates.
+Next: 3D (age,[Fe/H],EEP) grid + NumPyro per-star mixture (docs/hierarchical_isochrone_design.md).
 """
-95%-zero-gradient axis). Fix a young age; build G(feh, EEP) on a regular grid;
-map_coordinates lookup; prove smooth + nonzero d(G)/d(feh) everywhere."""
 import glob, re, numpy as np, jax, jax.numpy as jnp
 from jax.scipy.ndimage import map_coordinates
 jax.config.update("jax_enable_x64", True)
