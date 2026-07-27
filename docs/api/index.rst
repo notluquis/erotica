@@ -43,3 +43,27 @@ Analysis
    ClusterFigureBuilder
    IsochroneFitter
    PhotometricMassEstimator
+
+Reproducibility
+---------------
+
+A result is reproducible only if you can say *what code, what inputs and what randomness*
+produced it. :func:`~erotica.analysis.build_metadata` records all three; saving a trace with
+:func:`~erotica.analysis.store_trace_results` writes it as a JSON sidecar automatically. See
+:doc:`/design-notes/decisions` for what each field is for and why.
+
+.. currentmodule:: erotica.analysis
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   build_metadata
+   write_metadata
+   git_provenance
+   file_checksum
+   dependency_versions
+   store_trace_results
+   load_results
+   summarize_trace
+   posterior_mode
