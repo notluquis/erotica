@@ -346,3 +346,52 @@ class TestStaticHelpers:
         from erotica.core.clustering import Clustering
         labels = np.array([-1, -1, -1])
         assert Clustering._cluster_label_for_size(labels, 1) == -1
+
+
+# ---------------------------------------------------------------------------
+# Idempotency / reproducibility
+# ---------------------------------------------------------------------------
+
+class TestIdempotency:
+    """Repeating a search with the same input must reproduce the same result."""
+
+    def test_pseudoprobability_is_idempotent(self, good_data):
+        from erotica.core.clustering import Clustering
+        out = []
+        for _ in range(2):
+            clu = Clustering(good_data.copy())
+            clu.search_pseudoprobability(
+                columns=["pmra", "pmdec"], min_cluster_size_samples=range(10, 40, 5), min_samples=5
+            )
+            out.append(np.asarray(clu.clusterer.labels_))
+        np.testing.assert_array_equal(out[0], out[1])
+
+    def test_pseudoprobability_is_row_order_invariant(self, good_data):
+        """Shuffling the input rows must not change WHICH sources are members."""
+        from erotica.core.clustering import Clustering
+        member_sets = []
+        for shuffle in (False, True):
+            data = good_data.copy()
+            if shuffle:
+                data = data[np.random.default_rng(7).permutation(len(data))]
+            clu = Clustering(data)
+            clu.search_pseudoprobability(
+                columns=["pmra", "pmdec"], min_cluster_size_samples=range(10, 40, 5), min_samples=5
+            )
+            labels = np.asarray(clu.clusterer.labels_)
+            pmra = np.round(np.asarray(clu.data["pmra"])[labels != -1], 6)
+            pmdec = np.round(np.asarray(clu.data["pmdec"])[labels != -1], 6)
+            member_sets.append(set(zip(pmra, pmdec)))
+        assert member_sets[0] == member_sets[1]
+
+    def test_optuna_search_uses_a_default_space_and_is_seeded(self, good_data):
+        """Optuna with no explicit search space must work (not suggest an empty dict)
+        and must reproduce, because the sampler is seeded by default."""
+        from erotica.core.clustering import Clustering
+        best = []
+        for i in range(2):
+            clu = Clustering(good_data.copy(), search_method="optuna", study_name=f"idem-test-{i}")
+            clu.search(columns=["pmra", "pmdec"], n_trials=6, n_jobs=1)
+            best.append(clu.best_params_.get("min_cluster_size"))
+        assert best[0] is not None, "Optuna produced no hyper-parameters"
+        assert best[0] == best[1], "seeded Optuna search did not reproduce"

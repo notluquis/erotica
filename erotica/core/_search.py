@@ -10,7 +10,7 @@ import optuna
 from hdbscan.validity import validity_index
 from sklearn.model_selection import GridSearchCV
 
-from ._constants import DEFAULT_PARAM_GRID
+from ._constants import DEFAULT_PARAM_GRID, DEFAULT_SAMPLER_SEED, DEFAULT_SEARCH_SPACE
 from ._estimator import FullSplit, HDBSCANEstimator
 
 
@@ -61,8 +61,8 @@ def run_optuna_search(
     study_name: str | None,
 ):
     """Execute an Optuna study and return fitted artifacts."""
-    search_space = search_space or {}
-    sampler_kwargs = sampler_kwargs or {}
+    search_space = search_space or DEFAULT_SEARCH_SPACE
+    sampler_kwargs = dict(sampler_kwargs) if sampler_kwargs else {"seed": DEFAULT_SAMPLER_SEED}
     methods = list(score_methods)
 
     sampler = _build_sampler(sampler_name, search_space, sampler_kwargs, n_jobs=n_jobs)
