@@ -99,6 +99,50 @@ outer region for most open clusters deviates from the King profile", replacing i
 plus a log-normal halo and **four** radii. What P01 calls the King outer radius is, in current
 practice, the boundary of the *core component* only.
 
+
+## The Jacobi prior, applied
+
+`king_unbinned` accepts `tidal_prior=(mu, sigma)`. Using Hunt & Reffert's `r_J` = 37.9′
+(`tools/validation/king_jacobi_prior.json`; 4 chains, 2000 draws, R-hat = 1.000, bulk-ESS ≥ 2095,
+**zero divergences** in every run):
+
+| fit | `R_c` (′) | `R_t` (′) | `R_t`/`r_J` |
+|---|---|---|---|
+| published (binned, `Uniform(R_c, 1.5·T_max)`) | 1.384 ± 0.039 | 53.9 ± 8.8 | 1.42 |
+| unbinned, scale-free, full 70′ | 1.324 ± 0.209 | 80.2 ± **7114** | 2.11 |
+| unbinned, Jacobi ±20% | 1.497 ± 0.214 | 47.40 ± 6.01 | 1.25 |
+| unbinned, Jacobi ±50% | 1.428 ± 0.207 | **59.08 ± 11.43** | 1.56 |
+| unbinned, scale-free, **only `r ≤ r_J`** | 1.325 ± 0.210 | 85.9 ± **2661** | 2.27 |
+
+**`R_c` is robust.** 1.32–1.50′ across every likelihood and prior, against a published 1.384′.
+Nothing in this work moves it.
+
+**`R_t` is prior-determined, and P01's value is defensible.** With a weakly informative Jacobi prior
+(±50%) the unbinned fit returns 59.1 ± 11.4′, consistent with the published 53.9 ± 8.8′ within 1σ.
+So the published number is *not* an artefact of the Normal-on-binned-densities likelihood. It is,
+as P01 states, conditional on its prior — with a scale-free prior the posterior SD is ~7000′.
+
+Note also that the data pull *upward*: with the prior centred on `r_J` = 37.9′ and a 20% width, the
+posterior median lands at 47.4′, about 1.25σ above the prior mean.
+
+```{admonition} The result that argues hardest for EFF
+:class: important
+**Restricting the fit to stars inside the Jacobi radius does not help.** With only the 355 members
+at `r ≤ r_J`, `R_t` is *still* unconstrained (85.9 ± 2661′). Within the region where the cluster can
+actually be bound, the radial profile shows **no tidal truncation at all** — the defining feature of
+a King profile is simply not present in the data.
+
+That is the expected state for a 4 Myr cluster (Pang et al. 2022: filamentary/fractal below
+100 Myr), and it is the argument for EFF (`1987ApJ...323...54E`), which has no tidal cutoff, rather
+than for a better-constrained King fit.
+```
+
+**43% of the p > 0.6 "members" lie beyond the Jacobi radius** — 272 of 627 within 70′. They are
+either genuinely unbound halo/tail stars or membership contamination; either way a bound-cluster
+King profile cannot describe them, and they are what drags `R_t` past `r_J`. P01 already declines to
+classify the wide-field additions as confirmed halo members or contaminants; this quantifies how
+much of the fitted sample is at stake.
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
