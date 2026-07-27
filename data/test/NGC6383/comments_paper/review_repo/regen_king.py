@@ -7,7 +7,7 @@ sys.path.insert(0,"/Users/notluquis/erotica")
 import astropy.units as u, arviz as az
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
-from pumps.analysis import structure
+from erotica.analysis import structure
 import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt

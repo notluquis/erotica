@@ -11,10 +11,10 @@ from astropy.table import QTable, Table
 from astropy.coordinates import SkyCoord, angular_separation
 import arviz as az
 
-from pumps.analysis.inference import (
+from erotica.analysis.inference import (
     SamplingConfig, fit_parallax_model, distance_model, proper_motion_2d_gaussian,
 )
-from pumps.analysis import structure
+from erotica.analysis import structure
 
 B = "/Users/notluquis/erotica/data/test/NGC6383"
 OUT = f"{B}/comments_paper/review_repo"

@@ -12,7 +12,7 @@ from astropy.table import QTable, Table
 import arviz as az
 from scipy.stats import gaussian_kde
 
-from pumps.analysis._isochrone import IsochroneFitter
+from erotica.analysis._isochrone import IsochroneFitter
 
 B = "/Users/notluquis/erotica/data/test/NGC6383"
 ref = Table.read(f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv")

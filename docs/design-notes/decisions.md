@@ -160,6 +160,16 @@ never dropped: losing a field silently is the failure mode, losing its type is n
   return the mean or the median, and both fail this by a factor of ~3.
 * `store → load` → round-trip identity, including the recovered draws, not merely the summary.
 
+```{warning}
+**The wiring reaches the legacy notebooks, not the current analysis path.** `store_trace_results` is
+called from three committed notebooks under `data/test/NGC6383/`; **no module or script in the
+current pipeline calls it**. So published NGC 6383 numbers still have no provenance record attached.
+Closing that is a separate step: the call belongs wherever the paper's fits are driven from
+(`review_repo/regen_king*.py`, `convergence_audit*.py`, `isochrone_nuts_refit.py`), passing the
+input catalogue path and the sampler seed. Recorded rather than quietly left, so the entry above is
+not read as "reproducibility: solved".
+```
+
 **Numbers that moved.** None — this is new information recorded alongside results, not a change to
 any computation. Coverage of `provenance.py` **27% → 95%**; suite **290 → 318**.
 
@@ -248,10 +258,32 @@ clip sits at ~95.7% everywhere, which is simply what a 2σ cut *should* retain.
 So the current cut discards **about a third of genuine members**, and **roughly three-quarters of
 the faintest quartile**.
 
-**Why the alternative works.** On the normalized residual, a large uncertainty buys *tolerance*
-rather than a rejection: the star is an outlier only if it is discrepant relative to **its own**
-error. This is the same principle as the error-aware `f_i` in `core/_error_aware.py` and matches
-the 2026 standard for parallax-space selection (`~/phd/methodology.md` PART J).
+```{admonition} What this experiment does *not* establish
+:class: caution
+**The 95.7% is close to tautological.** The synthetic draws each star's parallax with the same
+per-star `err_i` that the normalized residual then divides by, so `z` is exactly `N(0,1)` by
+construction and a 2σ cut retains ~95.4% whatever the magnitude distribution. The flat row is a
+consistency check on the arithmetic, **not evidence that the normalized clip is better**.
+
+**The experiment is one-sided: there is no contamination in it.** With every star a true member it
+measures the false-*rejection* rate only. The normalized clip is necessarily more permissive, and
+permissiveness has a cost this design cannot see: a field star at 0.6 mas from the centroid with a
+large `e_Plx` gets `z ≈ 2` and *survives* normalisation, where the raw clip removes it. Retention
+and contamination move together, and only one of them was measured.
+
+**What does stand** is the raw clip's **+72.4 pp bright→faint gradient**, which needs no comparison
+to interpret: it is a statement about the current cut alone, against an oracle that is true by
+construction.
+
+Before the delta report recommends any switch, this needs a contaminated arm — inject field stars
+from the real 70′ cone at a distinct parallax and report retention of members **and** contaminants
+for both cuts, i.e. an ROC rather than a single operating point.
+```
+
+**Why the alternative is *a priori* attractive.** On the normalized residual, a large uncertainty
+buys *tolerance* rather than a rejection: the star is an outlier only if it is discrepant relative
+to **its own** error. That is the same principle as the error-aware `f_i` in `core/_error_aware.py`.
+It is the motivation for testing it, not a result of this test.
 
 ```{admonition} Implication for P01 — unproven, not disproven
 :class: warning

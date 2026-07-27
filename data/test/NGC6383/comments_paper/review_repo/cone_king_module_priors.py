@@ -7,8 +7,8 @@ sys.path.insert(0,"/Users/notluquis/erotica")
 import astropy.units as u, arviz as az
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
-from pumps.analysis import structure
-from pumps.analysis.inference import SamplingConfig
+from erotica.analysis import structure
+from erotica.analysis.inference import SamplingConfig
 
 B="/Users/notluquis/erotica/data/test/NGC6383/comments_paper/radius_robustness/generated"
 center=SkyCoord(263.6826*u.deg,-32.5838*u.deg)
