@@ -17,11 +17,16 @@ better first filter than the indicator type.
 
 ## 1. The crux: does anything independent reach **G > 18** *and* **M < 0.3 M☉**?
 
-**G > 18 — yes, ~30 clusters.** Kuhn+2019 (`2019ApJ...870...32K`) matched MYStIX+SFiNCs to Gaia DR2:
-*"The median magnitude of these sources is G=18.1 mag (inter-quartile range: 16.6–19.1 mag)"* `[S]`.
-Half the X-ray-selected members are fainter than 18.1 — and that is the *Gaia-matched subset*, so it
-understates the true depth (of 30,839 YSOs, 20,716 matched, **17,509 with 5-parameter solutions** —
-that last number is the usable label count).
+**G > 18 — yes, ~30 clusters.** Kuhn+2019 (`2019ApJ...870...32K`) matched MYStIX+SFiNCs to Gaia DR2
+and reports a median matched magnitude of G≈18.1 (IQR 16.6–19.1), ~17,509 sources with 5-parameter
+solutions, and a ~13% contamination rate.
+
+```{attention}
+**These three Kuhn+2019 figures are `[UNVERIFIED]`** — median G=18.1, 17,509 usable labels, and the
+~13% label-noise rate. The bibcode is right and the numbers came through an automated full-text
+extractor, but a second agent could not confirm them (they are not in the abstract). **Open the PDF
+before any of them goes in a manuscript.** They are quoted here as a lead, not as evidence.
+```
 
 **M < 0.3 M☉ *with* a Gaia counterpart — only ≲500 pc, plus two Hα fields at ~1 kpc:**
 
@@ -39,6 +44,32 @@ as an M-dwarf test.** The two conditions decouple with distance, and the deeper 
 in mass the less likely the star is in Gaia at all (JWST reaches substellar YSOs at 2.35 kpc with no
 Gaia counterpart — nothing to calibrate). The usable window is narrow by construction.
 ```
+
+## 1b. The structural insight: independence is a property of the *product*, not the survey
+
+Every published OC member list is purity-only, because all of them are Cantat-Gaudin / H&R
+crossmatches. But the **parent archives are astrometrically unselected**. Query the archive and
+**ignore the member flag**, and false negatives become measurable. This reframes the whole search.
+
+## 2a. The best set found: **OCCAM DR17** `2022AJ....164...85M`
+
+Ranks above the X-ray sets for *bright-end purity* because of how it was selected `[S]`:
+
+- **Target selection is a spatial cone** (2×R_CG) — **not a member list**. That is what makes false
+  negatives measurable.
+- **Parallax is never used**; RV and [Fe/H] are independent discriminants (PM is Gaia's).
+- **26,699 rows, of which ~24,700 are non-members** — real negatives at scale.
+- Purity result, directly usable: of Gaia astrometric members at `CG_PROB>0.7`, **9.3% are rejected
+  by independent RV, 19.8% by independent [Fe/H], 25.1% by either.** DR19 gives 9.0% on RV+[Fe/H].
+- Limit: giant-tip, H ≲ 12.2–13.8. Join on `APOGEE_ID`. Pull `occam_member-DR17.fits` (4 MB) from
+  the SDSS SAS — **it is not on VizieR**.
+- ⚠ **Split on `APOGEE2_TARGET1` bit 9 first** — some late APOGEE-2 targets *were* Gaia-PM
+  preselected, so the union is optimistically biased.
+
+**And the single most on-point measurement anywhere — Poovelil+2020** (`2020ApJ...903...55P`) `[S]`:
+~5% false positives and ~4% false negatives against Cantat-Gaudin 2018, where the false negatives
+arise because *"These stars do not have measured Gaia-DR2 parallaxes."* **That is exactly our failure
+mode, measured independently, by someone else.** Cite it.
 
 ## 2. X-ray
 
@@ -62,9 +93,11 @@ Gaia counterpart — nothing to calibrate). The usable window is narrow by const
   spanning **0.1–2 M☉**. **No paper has ever re-derived COUP membership against Gaia** (40 of 369
   citing papers checked) — a genuine literature gap, i.e. an opening. `[S]`
 
-**Label-noise floor — quote this rather than assuming clean labels:** Kuhn+2019 §3.3, an
-independent Gaia-based audit of MYStIX/SFiNCs: *"contamination rates were about 13%, with … individual
-systems mostly falling into the range 7–15%"* → **~87% pure**. `[S]`
+**Label-noise floor — assume labels are impure, but verify the number.** Kuhn+2019 §3.3 reportedly
+gives ~13% contamination for MYStIX/SFiNCs (~87% pure) `[UNVERIFIED — see the box in §1]`. Two
+figures that *were* independently verified and can be used now: **Jadhav+2026 WD audit**, >13%
+contamination in cluster cores and **>48% in tidal tails** `[S]`; and **OCCAM DR17** (§2b), where
+9.3% of Cantat-Gaudin members at P>0.7 fail an independent RV test and 19.8% fail on [Fe/H] `[S]`.
 
 **eROSITA — dead end for this purpose.** Only **DR1** is public (2024-01-31, western hemisphere,
 930,203 sources). Its 50%-completeness flux limit implies log L_X ≈ 30.0 at 414 pc, ≈31.4 at 2 kpc
@@ -143,12 +176,67 @@ the "missing Kalari CTTS".
 confirmed young stars at 1.5–4 M☉, and 27% at 4–10 M☉** `[S]`. That is a completeness ceiling on
 astrometric clustering measured *without* our method — cite it rather than discovering it in review.
 
+## 6b. Attribution and independence corrections `[S]`
+
+- **`2026A&A...706A.341H` is NOT "Hunt & Reffert."** Authors: Hunt, Cantat-Gaudin, Anders, Malhotra,
+  Spina, Castro-Ginard, Cavallo. **Reffert is not on it.** Cite accordingly.
+- **Jackson+2022 is not "independent of astrometry."** Its likelihood is `L_RV × L_pm` — it *uses*
+  proper motion; what it omits is **per-star parallax** (parallax enters only as a cluster-level
+  scaling `d_c`, which the authors say has no direct effect on membership). So it is orthogonal to
+  *half* our discriminant. Worse for our purpose: **parallax is a pre-screen** — ≥5,764 rows (13.7%)
+  were cut on a parallax criterion and carry `P = −1`. Those are **censored, not negative**, so the
+  stars our clustering would reject *on parallax* are largely absent from the scored sample.
+  Filter to **Λ=665 (GIRAFFE)** only (UVES fibres were preselected on prior membership) and **drop
+  all 7 globular clusters** — the authors state non-members cannot be cleanly identified there.
+- **"Jackson et al. 2018" does not exist** — no such membership catalog.
+- **The ABYSS bibcodes are not OC membership catalogs** (`2023ApJS..266...10K` = targeting strategy;
+  `2024AJ....167..125S` = young stars in SDSS spectra), and ABYSS selection *includes phase-space
+  position*. Drop unless working <30 Myr.
+- **Chemical tagging is dead as a discriminant** — Sinha+2024: field stars matched in
+  R_GC/[M/H]/[α/M]/T_eff/log g show only **+0.012 dex** more intrinsic scatter than members. Useful
+  only as a veto against a grossly wrong radial MDF.
+- **The whole spectroscopic axis is a giant-tip instrument** — APOGEE 7≲H≲13.8, Gaia RVS
+  G_RVS≲14. Against DR3 parallax errors of 107 µas at G=18 → 462 µas at G=20, **spectroscopy cannot
+  reach our problem.**
+
+**Caveats reported by users of the sets we plan to lean on** `[S]`:
+
+| Set | Reported failure mode |
+|---|---|
+| H&R 2023 | Their own Paper III: only 79% bound, **11% within 250 pc**. Alfonso+2024: at G>18 it *"reaches σϖ up to ~1.6 mas, an order of magnitude larger errors."* |
+| Jackson+2022 | The literature **routinely misdescribes it as parallax-informed** — don't trust second-hand descriptions. Only **5.2% of scored rows** land in the eight interior probability bins (110–340 stars/bin pooled over 69 clusters) → **per-cluster reliability diagrams are not feasible**; pooled ones have wide error bars exactly where calibration fails. |
+| OCCAM | No third-party critique found (top 50 of 155, top 40 of 76 checked); citing papers use its gradients, not its membership. |
+| Tarricq+2021 | OCCAM IV: NGC 2266's RV came from **one star**. Rule: distrust means from ≤2 members. |
+| LAMOST / Fu+2022 | Zhang+2024: systematic [Fe/H] bias below 5000 K; *">10% of clusters exhibit a metallicity dispersion greater than 0.25 dex."* |
+| SPICY | Marton+2023: only **753 objects** in common with the Gaia DR3 YSO sample — nearly disjoint populations. |
+| WISE-only YSO | Silverberg+2018: false-positive rates **>70%** — disqualifying. |
+| Asteroseismic anchors | Sandquist+2013: masses *"systematically too high by as much as 8%"*; in M67 **the two independent anchors disagree with each other**. |
+| `ocelot` simulator | Draws errors as **independent univariate Gaussians per dimension** — no Gaia 5-parameter covariance — with an author TODO confirming **no parallax zero-point or correlated systematics**. Both bite hardest at G>18. No independent critique exists; caveats are entirely author-supplied. |
+
+## 6c. Action items
+
+1. **Email `emily.lauren.hunt@univie.ac.at`.** Hunt+2026 Table B.2 — **50,873,539 rows with observed
+   *and* true astrometry** — is documented at CDS `J/A+A/706/A341` but **not served** (confirmed four
+   ways: HTTP 403, VizieR "table does not exist", FTP listing, full tarball). The paper explicitly
+   invites our use case: *"a tool for a future work to derive direct calibration factors for HR24's
+   membership lists."* This is the best-shaped truth set in existence for us.
+2. **Pull `occam_member-DR17.fits`** from the SDSS SAS and split on `APOGEE2_TARGET1` bit 9.
+3. **Re-derive the Kalari+2019 NGC 6383 sample** from VPHAS+ DR2 (§5) — bears on the P07 thread about
+   CTTS removed by the 2σ parallax clip.
+4. **Audit COUP against Gaia** — nobody has, and it sits exactly on our low-mass regime.
+
+**Framing gift:** the field's reference benchmark, **HR21, states *"we cut all stars fainter than
+G = 18"*** — it stops exactly where our question begins. And the 2026 review (`2026arXiv260713711R`)
+calls membership lists *"very unsatisfactory"* and demands *"a list of standard star clusters to test
+and verify all known methods."* That lane is open. `[S]`
+
 ## 7. Tiered recommendation
 
 | Purpose | Use | Why |
 |---|---|---|
 | **Calibration with negatives** | Kashyap Cyg OB2 `J/ApJS/269/10` | ready-made 3-class labels + accuracies, Gaia-free |
-| **Scale + negatives** | MYStIX `table7`, SFiNCs `xsources` | 17,509 usable labels, **~13% noise floor** |
+| **Bright-end purity** | **OCCAM DR17** `occam_member-DR17.fits` | spatial-cone selection, ~24,700 real negatives, parallax never used |
+| **Scale + negatives** | MYStIX `table7`, SFiNCs `xsources` | large label set; assume impure (Kuhn figure unverified) |
 | **Faint Hα negatives at scale** | IGAPS `V/165/igapsdr1` `emitter=0` | ~300M tested sources, graded |
 | **M < 0.3 M☉** | COUP, nearest SFiNCs, Barentsen IC 1396, Kalari M8 | only sets reaching the low-mass regime |
 | **Purity only** | SPICY `J/ApJS/254/33`, Li/EAGLES | no completeness; spectroscopic sets die at G≈18 |
