@@ -70,14 +70,14 @@ def sample_king_field(rng, *, r_field=R_FIELD, **params):
     return np.interp(rng.uniform(0.0, cdf[-1], n), cdf, grid), expected
 
 
-def bin_equal_count(radii, n_bins=N_BINS):
+def bin_equal_count(radii, n_bins):
     """The package default (``method="equip"``): edges at quantiles of the data."""
     s = np.sort(radii)
     edges = np.interp(np.linspace(0, len(s) - 1, n_bins + 1), np.arange(len(s)), s)
     return edges
 
 
-def bin_fixed_width(radii, n_bins=N_BINS, r_field=R_FIELD):
+def bin_fixed_width(radii, n_bins, r_field=R_FIELD):
     """Edges fixed in advance, independent of the realization."""
     return np.linspace(0.0, r_field, n_bins + 1)
 
@@ -88,7 +88,7 @@ def counts_and_areas(radii, edges):
     return counts.astype(float), areas
 
 
-def run(n_real=400, seed=20260727):
+def run(n_real=400, seed=20260727, n_bins=N_BINS):
     rng = np.random.default_rng(seed)
     schemes = {"equal-count (current)": bin_equal_count, "fixed-width": bin_fixed_width}
     counts = {name: [] for name in schemes}
@@ -97,11 +97,11 @@ def run(n_real=400, seed=20260727):
     for _ in range(n_real):
         radii, _ = sample_king_field(rng, **TRUE)
         for name, binner in schemes.items():
-            c, a = counts_and_areas(radii, binner(radii))
+            c, a = counts_and_areas(radii, binner(radii, n_bins))
             counts[name].append(c)
             areas[name].append(a)
 
-    out = {"true": TRUE, "r_field": R_FIELD, "n_bins": N_BINS,
+    out = {"true": TRUE, "r_field": R_FIELD, "n_bins": n_bins,
            "n_realizations": n_real, "seed": seed, "schemes": {}}
     for name in schemes:
         c = np.asarray(counts[name])   # (n_real, n_bins)
@@ -124,9 +124,10 @@ def run(n_real=400, seed=20260727):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--n-realizations", type=int, default=400)
+    ap.add_argument("--n-bins", type=int, default=N_BINS)
     ap.add_argument("-o", "--out", type=Path, default=Path(__file__).with_suffix(".json"))
     args = ap.parse_args()
-    res = run(n_real=args.n_realizations)
+    res = run(n_real=args.n_realizations, n_bins=args.n_bins)
 
     print(f"King point process: k={TRUE['k']} b={TRUE['b']} R_c={TRUE['R_c']}' "
           f"R_t={TRUE['R_t']}' over a {R_FIELD}' field, {res['n_realizations']} realizations\n")

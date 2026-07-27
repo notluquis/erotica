@@ -385,6 +385,216 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
     return amplitude * profile + background
 
 
+@dataclass(frozen=True)
+class KingPriors:
+    """Scale-free priors for the unbinned King fit.
+
+    Every value is a **fixed constant, independent of the data being fit**. That
+    is the point: the binned :func:`RDP_bayesian` derives all four of its prior
+    bounds from ``nanstd``/``nanmin``/``nanmax`` of the observed densities and
+    radii, which is the data used twice and was raised by the P01 referee
+    ("0.8 Tmax, 1.5 Tmax ... appear arbitrary"). Half-Cauchy priors are the form
+    used by Olivares et al. (2018, A&A 612, A70) for exactly this reason: they
+    are scale-free and heavy-tailed, so an order-of-magnitude error in the scale
+    costs little.
+
+    .. warning::
+       The half-Cauchy is built as ``pm.HalfStudentT(nu=1, sigma=...)``, **not**
+       ``pm.HalfCauchy(beta=...)``, which they are mathematically identical to.
+       In PyMC 6.1.0 ``HalfCauchy``/``Cauchy`` random draws use ``1/beta`` as the
+       scale while their ``logp`` correctly uses ``beta``. NUTS reads ``logp``, so
+       posteriors are unaffected -- but ``sample_prior_predictive`` reads the
+       draws, so every prior-predictive check built on ``HalfCauchy`` is wrong by
+       a factor of ``beta**2`` in scale. ``HalfStudentT`` is correct in both
+       paths. See ``tests/test_structure.py::test_half_cauchy_prior_is_built_
+       without_the_pymc_halfcauchy_bug``.
+
+    Attributes
+    ----------
+    r_c_scale, r_t_scale : float
+        Half-Cauchy scales (arcmin) for the core radius and for the *increment*
+        ``R_t - R_c``. Fitting the increment rather than ``R_t`` enforces
+        ``R_t > R_c`` by construction instead of by a data-dependent bound.
+    k_scale, b_scale : float
+        Half-Cauchy scales for the cluster amplitude and the background level,
+        in stars per square arcmin.
+    """
+
+    r_c_scale: float = 5.0
+    r_t_scale: float = 20.0
+    k_scale: float = 1.0
+    b_scale: float = 1.0
+
+
+def king_expected_count(k, b, R_c, R_t, field_radius, *, xp=np):
+    r"""Expected number of stars inside a circular field, in closed form.
+
+    Evaluates :math:`\Lambda = \int_0^{R_f} 2\pi r\,\Sigma(r)\,\mathrm{d}r` for the
+    King profile with an additive background. This is the normalisation of the
+    unbinned point-process likelihood, so it is evaluated at every leapfrog step;
+    a closed form avoids quadrature inside the PyTensor graph.
+
+    Expanding :math:`(u - c)^2` with :math:`u = (1 + (r/R_c)^2)^{-1/2}` and
+    :math:`c = R_c/\sqrt{R_c^2 + R_t^2}` gives three elementary integrals:
+
+    .. math::
+
+        I(R) = \frac{R_c^2}{2}\ln\!\left(1 + \frac{R^2}{R_c^2}\right)
+             - 2cR_c\left(\sqrt{R_c^2 + R^2} - R_c\right)
+             + \frac{c^2 R^2}{2}
+
+    and :math:`\Lambda = 2\pi k\,I(\min(R_t, R_f)) + \pi b R_f^2`. The cluster
+    term stops at ``R_t`` (the profile is zero beyond it) or at the field edge,
+    whichever comes first; the background covers the whole field.
+
+    Parameters
+    ----------
+    k, b, R_c, R_t : float or tensor
+        King amplitude, background, core radius and tidal radius.
+    field_radius : float
+        Radius of the circular selection footprint, same units as `R_c`.
+    xp : module, optional
+        Array namespace supplying ``log``, ``sqrt`` and ``minimum``. Defaults to
+        NumPy; pass ``pymc.math`` to build a symbolic graph.
+
+    Returns
+    -------
+    float or tensor
+        The expected count.
+
+    Notes
+    -----
+    Verified against :func:`scipy.integrate.quad` to a relative error below
+    ``1e-9`` across four decades of parameter space; see
+    ``tests/test_structure.py::test_king_normalisation_matches_quadrature``.
+    """
+    c = R_c / xp.sqrt(R_c**2 + R_t**2)
+    upper = xp.minimum(R_t, field_radius)
+    integral = (
+        (R_c**2 / 2.0) * xp.log(1.0 + (upper / R_c) ** 2)
+        - 2.0 * c * R_c * (xp.sqrt(R_c**2 + upper**2) - R_c)
+        + c**2 * upper**2 / 2.0
+    )
+    return 2.0 * np.pi * k * integral + np.pi * b * field_radius**2
+
+
+def king_unbinned(
+    radii,
+    *,
+    field_radius,
+    priors: KingPriors | None = None,
+    tidal_prior: tuple[float, float] | None = None,
+    sampling=None,
+    progressbar: bool = False,
+    return_trace: bool = True,
+):
+    r"""Fit a King profile to stellar radii directly, without binning.
+
+    Models the sky positions as an inhomogeneous Poisson point process with
+    intensity :math:`\lambda(r) = 2\pi r\,\Sigma(r)`, giving the log-likelihood
+
+    .. math:: \log L = \sum_i \log \lambda(r_i) - \Lambda ,
+
+    the continuous form of the Cash (1979) statistic. There are no bins, so
+    there is no binning choice for a referee to question, and no shared scatter
+    parameter: a point process has no nuisance ``sigma``.
+
+    Parameters
+    ----------
+    radii : array-like or Quantity
+        Angular distance of every star from the cluster centre. Must be the
+        **complete** sample inside `field_radius` -- the normalisation integral
+        assumes the footprint is that full disc.
+    field_radius : float or Quantity
+        Radius of the circular selection footprint, in arcmin.
+    priors : KingPriors, optional
+        Scale-free priors. The defaults are constants, not functions of `radii`.
+    tidal_prior : tuple of float, optional
+        ``(mu, sigma)`` in arcmin for a physically motivated prior on ``R_t``,
+        e.g. the Jacobi radius from
+        :func:`~erotica.analysis.dynamics.tidal_radius_prior`. When given, it
+        replaces the scale-free half-Cauchy on the ``R_t - R_c`` increment.
+    sampling : SamplingConfig, optional
+        Sampler settings. Defaults to 2000 draws, 1000 tuning.
+    return_trace : bool, default True
+        Keep the full posterior in the result. **Defaults to True**, unlike the
+        binned fits: collapsing a posterior to two scalars on exit is what stops
+        uncertainty reaching the derived dynamical quantities.
+
+    Returns
+    -------
+    dict
+        Posterior medians and standard deviations for ``k``, ``b``, ``R_c`` and
+        ``R_t``, plus ``king_trace`` and the ``field_radius`` actually used.
+
+    Notes
+    -----
+    Why unbinned rather than a per-annulus Poisson likelihood: the package's
+    default binner (``method="equip"``) uses **equal-count** annuli, so the count
+    per bin is fixed by construction and the *area* is what varies. The Poisson
+    dispersion index ``Var(N_i)/E(N_i)`` is then approximately ``1/n_bins``
+    -- about 0.04 at the 25 bins the published fit uses -- rather than the 1.0 a
+    Poisson likelihood asserts. See
+    ``tools/validation/king_binning_likelihood.py`` and the decision log.
+
+    The ``R_t`` recovered by any King fit is the cluster's *time-averaged* tidal
+    radius, not its perigalactic one (Küpper et al. 2010, MNRAS 407, 2241).
+    """
+    from .inference import SamplingConfig, _sample
+
+    try:
+        import pymc as pm
+    except ImportError as exc:
+        raise ImportError("PyMC is required for king_unbinned. Install the 'bayes' extra.") from exc
+
+    r = np.asarray(quantity_values(radii, u.arcmin), dtype=float)
+    r = r[np.isfinite(r) & (r > 0)]
+    field_radius = float(quantity_values(field_radius, u.arcmin))
+    if r.size < 10:
+        raise ValueError("At least ten stars are required for an unbinned King fit.")
+    if r.max() > field_radius:
+        raise ValueError(
+            f"{int((r > field_radius).sum())} stars lie outside field_radius="
+            f"{field_radius:g} arcmin. The normalisation integral assumes the sample is "
+            "complete within that disc, so this would bias the fit."
+        )
+
+    priors = priors or KingPriors()
+    sampling = sampling or SamplingConfig(draws=2_000, tune=1_000, progressbar=progressbar)
+
+    with pm.Model() as model:
+        R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
+        if tidal_prior is None:
+            R_t = pm.Deterministic(
+                "R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale)
+            )
+        else:
+            mu, sigma = tidal_prior
+            R_t = pm.Deterministic(
+                "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
+            )
+        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
+        b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
+
+        core = 1.0 / pm.math.sqrt(1.0 + (r / R_c) ** 2)
+        edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)
+        surface = pm.math.switch(r <= R_t, k * (core - edge) ** 2 + b, b)
+        log_intensity = pm.math.log(2.0 * np.pi * r * surface)
+        expected = king_expected_count(k, b, R_c, R_t, field_radius, xp=pm.math)
+        pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
+
+    trace = _sample(pm, model, sampling)
+    results = {"field_radius": field_radius * u.arcmin, "n_stars": int(r.size)}
+    for name, unit in (("k", None), ("b", None), ("R_c", u.arcmin), ("R_t", u.arcmin)):
+        arr = np.asarray(trace.posterior[name].values, dtype=float)
+        median, std = float(np.nanmedian(arr)), float(np.nanstd(arr))
+        results[f"{name}_median"] = median * unit if unit else median
+        results[f"{name}_std"] = std * unit if unit else std
+    if return_trace:
+        results["king_trace"] = trace
+    return results
+
+
 def _summarize_king_trace(trace):
     # NOTE: the point estimate reported for each King parameter is the posterior
     # *median* (robust to the skewed, prior-bounded R_t/R_c marginals). It is

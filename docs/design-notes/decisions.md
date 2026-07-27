@@ -109,6 +109,176 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — delta report: unbinned vs the published King numbers
+
+**Measured against `data/test/NGC6383/`** with `tools/validation/king_unbinned_delta.py`
+(4 chains, 2000 draws, seed 20260727; every fit R-hat ≤ 1.000, bulk-ESS ≥ 1910, **zero divergences**).
+
+| quantity | published (binned, equal-count) | unbinned, same sample | shift |
+|---|---|---|---|
+| `R_c` (adopted, 40′ sample) | 1.96 (+0.19 −0.16)′ | **1.530 ± 0.262′** | −21.9%, **1.3σ combined** |
+| `R_c` (70′ sample, *not adopted*) | 1.384 ± 0.039′ | 1.324 ± 0.209′ | −4.4%, well inside 1σ |
+| `R_t` (adopted, 70′ sample) | 54 (+7 −11)′ | 80.2′, **SD 7113′** | unidentified from above |
+| `R_t` (40′ sample) | 40 (+16 −17)′ | 107.5′, **SD 3190′** | unidentified from above |
+| `b` (70′) | 0.020 | 0.024 | +20% |
+
+**On `R_t`, this confirms and sharpens what P01 already says — it does not contradict it.** The
+manuscript states plainly that "the upper bound 1.5·T_max = 63.7 arcmin **truncates the R_t
+posterior of every fit**", that all quoted intervals "remain conditional on this physically motivated
+prior", and that under a relaxed bound "the upper tail [is] still limited by the prior support rather
+than turned over by the data" (§ structural, and Appendix D). `T_max` is **not** an arbitrary
+coefficient: it is the larger of the Hill radius and the gravitational bound radius.
+
+What the unbinned fit adds is the **magnitude**. With a scale-free half-Cauchy in place of the
+truncating uniform, the `R_t` posterior SD is ~3200–7100 arcmin. The data do not merely fail to turn
+the tail over — they supply **essentially no upper constraint at all**, and the reported `+7/−11`
+is a property of the prior support, exactly as the paper says. The paper's own reading of `R_t` as
+"a model-dependent scale rather than an independently measured physical boundary" is, if anything,
+**understated**.
+
+**On `R_c`, the shift is real but not significant.** 1.53 ± 0.26 against 1.96 (+0.19 −0.16) differs
+by 0.43′; with both uncertainties combined that is **1.3σ**. Reported because it is the kind of
+thing a referee re-deriving the fit would notice, not because it changes a conclusion.
+
+```{admonition} The limit on all of the above — read before quoting any of it
+:class: warning
+**The unbinned likelihood is not validly applicable to the samples the paper fitted.** Its
+normalisation `Λ = ∫ λ dA` is taken over the selection footprint, and `king_unbinned` assumes that
+footprint is the complete disc of radius `field_radius`. The published fits run on
+`paperfaithful_reference_p06.ecsv` — **p > 0.6 member lists**, where the footprint is whatever the
+membership selection carved out, which is emphatically not a uniform disc.
+
+So the deltas above are **indicative, not authoritative**. They answer "what happens if you apply
+the correct likelihood to the sample as fitted", and part of the answer is "the sample is the wrong
+shape for it". The paper independently reaches the same conclusion from the other direction: "the
+background of this membership-selected sample measures the **residual contamination level of the
+selection, not the raw field density**".
+
+Fitting the raw 70′ cone instead (N = 78 477, correct disc footprint) gives `R_c` = 1.047 ± 0.424′,
+`R_t` = 4.19 ± 3.19′, `b` = 5.09 stars arcmin⁻², i.e. the unfiltered cone is so field-dominated that
+the cluster is a small perturbation — that fit is not comparable either, because the published
+analysis applies quality and CMD cuts before clustering.
+
+**The sound application needs a sample that is both cleaned and complete over a known footprint**,
+with the selection function folded into `Λ`. `selection.py` already wraps Cantat-Gaudin+2023 and
+Hunt+2026 and is not yet wired to the RDP — PART J flags that as an unclaimed novelty (a search for
+selection-function-corrected OC radial density profiles returns **zero** papers). That is the real
+next step, and it is a paper, not a patch.
+```
+
+**Nothing in P01 is falsified by this.** `R_c` moves 1.3σ; `R_t` behaves exactly as the paper
+predicts it would under a relaxed prior. **No correction to the manuscript is implied by these
+numbers**, and whether to tell a referee anything mid-review is the author's call, not this log's.
+
+---
+
+## 2026-07-27 — the King fit is now unbinned, and why not "Normal → Poisson"
+
+**The plan was wrong, and measuring it said so.** The approved plan called for replacing
+`pm.Normal("obs_density", …)` in `analysis/structure.py` with a per-annulus **Poisson likelihood on
+counts**, on the stated grounds that "the Gaussian approximation fails in the sparse outer bins that
+set `R_t`". Measuring the real profile refuted the premise: the published fit uses
+`method="equip"` — **equal-count** annuli — so every bin holds 24–25 stars. There are no sparse
+outer bins.
+
+**And the proposed fix would have introduced a new defect.** Under equal-count binning the count per
+annulus is fixed by construction; the annulus *area* is what varies between realizations. A Poisson
+likelihood asserts `Var(N_i) = E(N_i)`. If the binner already conditioned on `N_i`, that assertion
+is false — the same *data used twice* defect as a data-dependent prior, wearing a different hat.
+
+`tools/validation/king_binning_likelihood.py` measures it against an oracle needing no fitting: the
+**Poisson dispersion index** `Var(N_i)/E(N_i)`, which is 1 for a Poisson count *by definition*.
+400 realizations of a known King point process:
+
+| binning | mean dispersion | min E[N_i] | area CV | verdict |
+|---|---|---|---|---|
+| equal-count (`method="equip"`, current) | **0.045** | 49.6 | 16.4% | **not Poisson** |
+| fixed-width | **1.006** | 24.0 | 0% | Poisson OK |
+
+This is analytic, not merely empirical. With `n ~ Poisson(Λ)` split into `n_bins` equal-count
+annuli, `Var(N_i) = Var(n)/n_bins² = Λ/n_bins²` while `E(N_i) = Λ/n_bins`, so the dispersion index
+is **`1/n_bins`**. Measured across `n_bins = 10, 25, 50` it tracks that law (ratios 1.18, 1.19,
+1.43; the drift at large `n_bins` is integer quantisation of `n/n_bins`, which bites once `E[N_i]`
+falls to single digits). At the 25 bins the published fit uses, `1/25 = 0.04` against the 1.0 a
+Poisson likelihood asserts: a **~25× mis-specification**.
+
+**Fix: skip binning entirely.** `structure.king_unbinned` models the stars as an inhomogeneous
+Poisson point process with intensity `λ(r) = 2πr Σ(r)`:
+
+$$\log L = \sum_i \log \lambda(r_i) - \Lambda, \qquad \Lambda = \int_0^{R_f} 2\pi r\,\Sigma(r)\,dr$$
+
+the continuous form of the Cash (1979) statistic, `1979ApJ...228..939C`, and the "unbinned, per
+star" approach PART J identifies as best practice in the OC literature (Olivares et al. 2018,
+A&A 612, A70, `2018A&A...612A..70O`). It is also **less** code than either binned option: no binner,
+no bin-count choice for a referee to question, and **no `sigma` at all** — a point process has no
+nuisance scatter parameter, so `HalfNormal("sigma", sigma=nanstd(density_values))` is deleted rather
+than replaced.
+
+`king_expected_count` evaluates `Λ` in closed form, so no quadrature runs inside the PyTensor graph.
+Expanding `(u−c)²` gives three elementary integrals; the cluster term truncates at `min(R_t, R_f)`
+and the background covers the whole disc.
+
+**This lands three plan steps in one pass, which is why they could not be split.** The likelihood,
+the priors and the returned posterior are entangled: change the likelihood and the density-scaled
+prior bounds are in the wrong units, so splitting them would mean two re-derivations of `R_c`/`R_t`
+and a delta nobody could attribute.
+
+| Defect | Before | After |
+|---|---|---|
+| Likelihood | `Normal` on binned densities, shared `sigma` | unbinned point process, no `sigma` |
+| Priors | all four bounds from `nanstd`/`nanmin`/`nanmax` **of the data being fit** | `KingPriors`, fixed constants |
+| `R_t > R_c` | enforced by a data-derived `Uniform` bound | fits the **increment** `R_t − R_c`, true by construction |
+| `R_t` ceiling | `Uniform(R_c, 1.5·T_max)` — physically motivated, but **truncating** (see below) | scale-free half-Cauchy, or a physical Jacobi prior via `tidal_prior=` |
+| Posterior | discarded unless `return_trace=True` | `return_trace=True` **by default** |
+
+**Oracles** (`tests/test_structure.py`, 17 tests). No golden numbers: every target is analytic or
+injected.
+* `Λ` → `scipy.integrate.quad` over five parameter sets spanning four decades, `rel=1e-8`,
+  **including a field that stops inside `R_t`** so the truncation branch is exercised; plus
+  monotonicity in `R_f` and the `k = 0` case where `Λ` must equal `b·πR_f²` exactly.
+* the fit → parameters the test injects into a simulated point process, recovered within 3σ
+  (measured: `R_c` 0.6%, `R_t` 0.1%), with the PART A convergence floor — **R-hat < 1.01,
+  bulk-ESS > 400, zero divergences**. The `pm.math.switch` kink at every star's radius was a
+  live concern; it produces **zero** divergences.
+* prior independence → prior-predictive draws must be *identical* for two datasets differing by two
+  orders of magnitude in size and concentration. If any prior read the data they would differ.
+
+```{warning}
+**PyMC 6.1.0 bug found while writing the prior-predictive test.** `pm.HalfCauchy(beta=…)` has the
+correct `logp` — scale = `beta`, matching its own docstring — but its **random draws use `1/beta`
+as the scale**. Confirmed at `beta = 0.5, 5, 20`, where the sampled IQR is wrong by exactly `1/beta²`;
+`pm.Cauchy` is affected identically, `Normal`/`HalfNormal`/`Gamma`/`Exponential`/`Uniform` are not.
+
+NUTS reads `logp`, so **posteriors are unaffected**. `sample_prior_predictive` reads the draws, so
+**every prior-predictive check built on `HalfCauchy` is silently wrong** — which is how this was
+found: the check failed with 0.7% of `R_t` draws above 30′ where the prior implies ~37%.
+
+The priors are therefore built as `pm.HalfStudentT(nu=1, sigma=…)`, which *is* a half-Cauchy and is
+correct in both paths (verified against `scipy.stats.halfcauchy` for density and IQR).
+`test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug` pins both the workaround **and the
+bug**, so a PyMC upgrade that fixes it makes the test fail and the workaround can be dropped.
+```
+
+**`RDP_bayesian` is unchanged and still exported.** It is what the paper's figure scripts call;
+breaking it would break reproduction of the published figures. `king_unbinned` is additive.
+
+```{admonition} Unsound regardless of likelihood: the background on a member list
+:class: warning
+Both published King fits run on `paperfaithful_reference_p06.ecsv` — a **p > 0.6 member list**
+(N = 628 within 70′, `probability_hdbscan` ≥ 0.722), not a cone. A free additive background `b` is
+defensible only if the fitted sample genuinely contains field stars over the fitted range. On an
+already-selected member list `b` has nothing physical to absorb: it soaks up membership leakage and
+is degenerate with `k` and `R_t`. This predates the likelihood question and is **not** fixed by
+going unbinned.
+
+It also breaks the unbinned normalisation, which assumes the footprint is the full disc: for a
+member list the footprint is whatever the membership selection carved out. `king_unbinned` therefore
+**refuses** samples with stars beyond `field_radius` rather than fitting them silently, and the
+delta report fits the **full 70′ cone** alongside the member list to separate the two effects.
+```
+
+---
+
 ## 2026-07-27 — the reproducibility record recorded almost nothing, and nothing called it
 
 **Symptom.** `analysis/provenance.py:146` was:

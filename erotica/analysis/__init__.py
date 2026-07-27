@@ -77,6 +77,9 @@ from .provenance import (
     write_metadata,
 )
 from .structure import (
+    KingPriors,
+    king_expected_count,
+    king_unbinned,
     CenterFitResult,
     ClusterStructureAnalyzer,
     KingProfileResult,
@@ -115,6 +118,7 @@ __all__ = [
     "DistancePosteriorComparison",
     "FitProperMotion2DGaussian",
     "IsochroneFitter",
+    "KingPriors",
     "KingProfileResult",
     "ParallaxFitResult",
     "PhotometricMassEstimator",
@@ -158,7 +162,9 @@ __all__ = [
     "half_mass_radius",
     "half_mass_relaxation_time",
     "histogram_mode",
+    "king_expected_count",
     "king_profile",
+    "king_unbinned",
     "linear_size",
     "load_results",
     "mass_segregation_timescale",
