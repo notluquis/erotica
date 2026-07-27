@@ -2,6 +2,10 @@
 > fix submitted as [PR #2309](https://github.com/pymc-devs/pytensor/pull/2309).
 > Maintainer response (ricardoV94): *"yeah I hate tests with scale=1, loc=0 precisely because of that."*
 >
+> PR also un-degenerates the `gumbel` GOF case (`scale=1.0` → `4.0`); an audit of every
+> hand-written numba RV core against scipy with non-degenerate parameters found `cauchy` was the
+> only real bug.
+>
 > Once released, drop the `HalfStudentT(nu=1)` workaround in `analysis/structure.py` —
 > `tests/test_structure.py::test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug`
 > fails when the upstream fix lands, which is the signal.
