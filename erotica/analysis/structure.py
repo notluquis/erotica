@@ -401,13 +401,15 @@ class KingPriors:
     .. warning::
        The half-Cauchy is built as ``pm.HalfStudentT(nu=1, sigma=...)``, **not**
        ``pm.HalfCauchy(beta=...)``, which they are mathematically identical to.
-       In PyMC 6.1.0 ``HalfCauchy``/``Cauchy`` random draws use ``1/beta`` as the
-       scale while their ``logp`` correctly uses ``beta``. NUTS reads ``logp``, so
-       posteriors are unaffected -- but ``sample_prior_predictive`` reads the
-       draws, so every prior-predictive check built on ``HalfCauchy`` is wrong by
-       a factor of ``beta**2`` in scale. ``HalfStudentT`` is correct in both
-       paths. See ``tests/test_structure.py::test_half_cauchy_prior_is_built_
-       without_the_pymc_halfcauchy_bug``.
+       The cause is in **PyTensor**, not PyMC: ``pytensor/link/numba/dispatch/
+       random.py`` implements ``CauchyRV`` as ``(loc + z) / scale`` instead of
+       ``loc + scale * z``, so numba-backed draws get location ``loc/scale`` and
+       scale ``1/scale``. numba is the *default* linker; the scipy and JAX paths
+       are correct, as is ``logp``. NUTS reads ``logp``, so posteriors are
+       unaffected -- but ``sample_prior_predictive`` reads the draws, so every
+       prior-predictive check built on ``HalfCauchy`` is silently wrong.
+       ``HalfStudentT`` is correct in both paths. Full analysis and a one-line
+       patch: ``tools/validation/pytensor_cauchy_bug_report.md``.
 
     Attributes
     ----------
