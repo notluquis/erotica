@@ -1,7 +1,7 @@
 import sys, numpy as np, jax, jax.numpy as jnp
-sys.path.insert(0,"/Users/notluquis/erotica")
+from pathlib import Path
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-exec(open("/Users/notluquis/erotica/iso_grid2.py").read())
+exec(open(Path(__file__).with_name("isochrone_mass_grid.py")).read())
 A_G,E_col=0.83,0.42
 true=dict(log_age=6.60,feh=0.0,dm=10.30,Av=1.20)
 # synthetic cluster (with binaries + scatter)
