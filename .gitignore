@@ -132,3 +132,6 @@ docs/api/generated/
 
 # External data (large, not redistributable) — e.g. Hunt+2026 members.csv (~33 GB)
 data/external/
+
+# Prototype query caches
+tools/prototypes/.*_cache/
