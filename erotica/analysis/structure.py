@@ -480,10 +480,68 @@ def king_expected_count(k, b, R_c, R_t, field_radius, *, xp=np):
     return 2.0 * np.pi * k * integral + np.pi * b * field_radius**2
 
 
+def king_expected_count_weighted(
+    k, b, R_c, R_t, field_radius, completeness, *, xp=np, nodes: int = 256
+):
+    r"""Expected *detected* count when completeness varies with radius.
+
+    Evaluates :math:`\Lambda = \int_0^{R_f} 2\pi r\,\Sigma(r)\,\bar{S}(r)\,\mathrm{d}r`,
+    where :math:`\bar{S}(r)` is the survey's detection probability averaged over the
+    annulus at radius `r`. With a non-constant :math:`\bar{S}` there is no closed form,
+    so a fixed Gauss-Legendre rule is used: the nodes and the completeness at them are
+    computed **once**, in NumPy, and the sampler only evaluates a weighted sum over
+    them. Nothing data-dependent is re-evaluated inside the graph.
+
+    Parameters
+    ----------
+    completeness : callable or array-like
+        Either ``S(r)``, called once on the quadrature nodes, or an array already
+        aligned with them from a previous call using the same `nodes` and
+        `field_radius`.
+    nodes : int, default 256
+        Gauss-Legendre order. This integrates the King form itself to machine
+        precision; the practical limit is how smooth :math:`\bar{S}(r)` is.
+
+    Returns
+    -------
+    float or tensor
+        Expected number of *detected* stars.
+
+    See Also
+    --------
+    king_expected_count : the closed form, valid when completeness is uniform.
+    """
+    x, w = np.polynomial.legendre.leggauss(int(nodes))
+    r_nodes = 0.5 * field_radius * (x + 1.0)  # map [-1, 1] -> [0, R_f]
+    w_nodes = 0.5 * field_radius * w
+    s_nodes = np.asarray(
+        completeness(r_nodes) if callable(completeness) else completeness, dtype=float
+    )
+    if s_nodes.shape != r_nodes.shape:
+        raise ValueError(
+            f"completeness has shape {s_nodes.shape}, expected {r_nodes.shape} "
+            f"(nodes={nodes}). Pass a callable, or an array aligned with the same "
+            "`nodes` and `field_radius`."
+        )
+    if np.any(~np.isfinite(s_nodes)) or np.any(s_nodes < 0) or np.any(s_nodes > 1):
+        raise ValueError("completeness must be finite and within [0, 1]: it is a probability.")
+
+    core = 1.0 / xp.sqrt(1.0 + (r_nodes / R_c) ** 2)
+    edge = 1.0 / xp.sqrt(1.0 + (R_t / R_c) ** 2)
+    switch = getattr(xp, "switch", None)
+    sigma = (
+        switch(r_nodes <= R_t, k * (core - edge) ** 2 + b, b)
+        if switch is not None
+        else np.where(r_nodes <= R_t, k * (core - edge) ** 2 + b, b)
+    )
+    return xp.sum(w_nodes * 2.0 * np.pi * r_nodes * sigma * s_nodes)
+
+
 def king_unbinned(
     radii,
     *,
     field_radius,
+    completeness=None,
     priors: KingPriors | None = None,
     tidal_prior: tuple[float, float] | None = None,
     sampling=None,
@@ -509,6 +567,15 @@ def king_unbinned(
         assumes the footprint is that full disc.
     field_radius : float or Quantity
         Radius of the circular selection footprint, in arcmin.
+    completeness : callable or array-like, optional
+        Radial detection probability :math:`\bar{S}(r)` of the survey. When given,
+        the fit models the *detected* intensity
+        :math:`\lambda(r) = 2\pi r\,\Sigma(r)\,\bar{S}(r)` and the recovered
+        ``k``/``R_c``/``R_t`` describe the **true** cluster rather than the
+        observed one. Build it from :mod:`erotica.selection`, which wraps the
+        Gaia DR3 selection function of Cantat-Gaudin et al. (2023). Because
+        :math:`\sum_i \log \bar{S}(r_i)` does not depend on any parameter it
+        cancels from the log-likelihood, so only the normalisation changes.
     priors : KingPriors, optional
         Scale-free priors. The defaults are constants, not functions of `radii`.
     tidal_prior : tuple of float, optional
@@ -582,11 +649,20 @@ def king_unbinned(
         edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)
         surface = pm.math.switch(r <= R_t, k * (core - edge) ** 2 + b, b)
         log_intensity = pm.math.log(2.0 * np.pi * r * surface)
-        expected = king_expected_count(k, b, R_c, R_t, field_radius, xp=pm.math)
+        if completeness is None:
+            expected = king_expected_count(k, b, R_c, R_t, field_radius, xp=pm.math)
+        else:
+            expected = king_expected_count_weighted(
+                k, b, R_c, R_t, field_radius, completeness, xp=pm.math
+            )
         pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
 
     trace = _sample(pm, model, sampling)
-    results = {"field_radius": field_radius * u.arcmin, "n_stars": int(r.size)}
+    results = {
+        "field_radius": field_radius * u.arcmin,
+        "n_stars": int(r.size),
+        "completeness_corrected": completeness is not None,
+    }
     for name, unit in (("k", None), ("b", None), ("R_c", u.arcmin), ("R_t", u.arcmin)):
         arr = np.asarray(trace.posterior[name].values, dtype=float)
         median, std = float(np.nanmedian(arr)), float(np.nanstd(arr))

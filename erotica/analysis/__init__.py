@@ -79,6 +79,7 @@ from .provenance import (
 from .structure import (
     KingPriors,
     king_expected_count,
+    king_expected_count_weighted,
     king_unbinned,
     CenterFitResult,
     ClusterStructureAnalyzer,
@@ -163,6 +164,7 @@ __all__ = [
     "half_mass_relaxation_time",
     "histogram_mode",
     "king_expected_count",
+    "king_expected_count_weighted",
     "king_profile",
     "king_unbinned",
     "linear_size",

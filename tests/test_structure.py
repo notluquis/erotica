@@ -110,7 +110,12 @@ def test_derived_quantities_computed_from_median():
 # There are no golden numbers here. Every target is either analytic or injected.
 # ---------------------------------------------------------------------------
 
-from erotica.analysis.structure import KingPriors, king_expected_count, king_unbinned  # noqa: E402
+from erotica.analysis.structure import (  # noqa: E402
+    KingPriors,
+    king_expected_count,
+    king_expected_count_weighted,
+    king_unbinned,
+)
 
 import importlib.util  # noqa: E402
 
@@ -314,3 +319,106 @@ def test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug():
         "pm.HalfCauchy draws no longer show the 1/beta scale bug -- "
         "re-check whether HalfStudentT is still needed"
     )
+
+
+# ---------------------------------------------------------------------------
+# Selection-function-aware fitting
+# ---------------------------------------------------------------------------
+
+
+def _crowding_completeness(r, floor=0.35, scale=6.0):
+    """Toy radial completeness rising outward, as crowding-limited surveys do.
+
+    Gaia is *least* complete where the star density is highest, so ``S`` is
+    suppressed in the core and recovers in the field. This is the direction
+    Cantat-Gaudin et al. (2023) model and validate against HST in globular
+    clusters; the functional form here is a stand-in, the *sign* is the point.
+    """
+    return floor + (1.0 - floor) * (1.0 - np.exp(-np.asarray(r, float) / scale))
+
+
+def test_weighted_normalisation_reduces_to_the_closed_form_when_complete():
+    """Oracle: the analytic integral. S == 1 must reproduce it exactly."""
+    closed = king_expected_count(**TRUE_KING, field_radius=FIELD)
+    quad = king_expected_count_weighted(
+        **TRUE_KING, field_radius=FIELD, completeness=lambda r: np.ones_like(r)
+    )
+    assert quad == pytest.approx(closed, rel=1e-6)
+
+
+def test_weighted_normalisation_matches_quadrature_for_varying_completeness():
+    """Oracle: scipy.integrate.quad on the same integrand, with S(r) inside."""
+    integrate = pytest.importorskip("scipy.integrate")
+    numeric = integrate.quad(
+        lambda r: 2 * np.pi * r * _king_sigma(r, **TRUE_KING) * _crowding_completeness(r),
+        0.0, FIELD, limit=400,
+    )[0]
+    got = king_expected_count_weighted(
+        **TRUE_KING, field_radius=FIELD, completeness=_crowding_completeness
+    )
+    assert got == pytest.approx(numeric, rel=1e-6)
+
+
+def test_incomplete_survey_expects_fewer_stars():
+    """Sanity direction: S <= 1 everywhere can only lower the expected count."""
+    full = king_expected_count(**TRUE_KING, field_radius=FIELD)
+    thinned = king_expected_count_weighted(
+        **TRUE_KING, field_radius=FIELD, completeness=_crowding_completeness
+    )
+    assert 0 < thinned < full
+
+
+def test_completeness_outside_zero_one_is_rejected():
+    with pytest.raises(ValueError, match="probability"):
+        king_expected_count_weighted(
+            **TRUE_KING, field_radius=FIELD, completeness=lambda r: 1.5 * np.ones_like(r)
+        )
+
+
+def test_misaligned_completeness_array_is_rejected():
+    with pytest.raises(ValueError, match="shape"):
+        king_expected_count_weighted(
+            **TRUE_KING, field_radius=FIELD, completeness=np.ones(7)
+        )
+
+
+@requires_bayes_extra
+def test_selection_correction_removes_the_bias_it_is_meant_to_remove():
+    """The load-bearing test: does correcting for S(r) actually recover truth?
+
+    A cluster is simulated, then **thinned** by a radially varying completeness --
+    exactly what a crowding-limited survey does to it. The thinned sample is fit
+    twice. The uncorrected fit sees a core that has been preferentially emptied,
+    so it must be biased; the corrected fit must recover the injected ``R_c``.
+
+    Oracle: the injected ``R_c``, and the *relative* accuracy of the two fits. A
+    test that only checked the corrected fit could pass on a stopped clock -- this
+    also requires that there was a bias there to remove.
+    """
+    from erotica.analysis.inference import SamplingConfig
+
+    rng = np.random.default_rng(1234)
+    radii = _sample_king(99, **TRUE_KING)
+    keep = rng.uniform(size=radii.size) < _crowding_completeness(radii)
+    observed = radii[keep]
+    assert 0.4 * radii.size < observed.size < 0.95 * radii.size, "thinning did nothing useful"
+
+    cfg = dict(draws=1500, tune=1000, chains=2, random_seed=7, progressbar=False)
+    naive = king_unbinned(observed, field_radius=FIELD, sampling=SamplingConfig(**cfg))
+    fixed = king_unbinned(
+        observed, field_radius=FIELD, completeness=_crowding_completeness,
+        sampling=SamplingConfig(**cfg),
+    )
+
+    truth = TRUE_KING["R_c"]
+    naive_rc = float(naive["R_c_median"].value)
+    fixed_rc = float(fixed["R_c_median"].value)
+
+    assert fixed["completeness_corrected"] is True
+    assert naive["completeness_corrected"] is False
+    # the corrected fit recovers the injected core radius
+    assert abs(fixed_rc - truth) < 3 * float(fixed["R_c_std"].value)
+    # and it is closer to truth than the uncorrected one -- i.e. a bias existed
+    assert abs(fixed_rc - truth) < abs(naive_rc - truth)
+    # the uncorrected fit over-estimates R_c: the core was preferentially emptied
+    assert naive_rc > truth
