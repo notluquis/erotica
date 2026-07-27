@@ -9,12 +9,31 @@ from astropy.coordinates import Galactic, SkyCoord
 
 from .units import angular_size, ensure_units, estimate_cluster_mass
 
+#: Galactocentric distance of the Sun, R_0.
+#:
+#: **Single source of truth.** Before 2026-07-27 this module carried two different
+#: values — ``8.125 kpc`` in :func:`calculate_galactic_mass` and ``8.3 kpc`` in
+#: :func:`calculate_galactocentric_distance` and :func:`calculate_hill_radius` — even
+#: though all three feed the same Hill-radius chain. They are now unified here.
+#:
+#: The VALUE is unchanged by that de-duplication (8.125 kpc, as in
+#: ``calculate_galactic_mass``), so this is not a re-calibration.
+#:
+#: NOTE: 8.125 kpc does not correspond to a verified published measurement; its
+#: provenance in this codebase is unknown. The best current geometric determination is
+#: R_0 = 8178 +/- 13(stat) +/- 22(sys) pc (GRAVITY Collaboration 2019, A&A 625, L10,
+#: bibcode 2019A&A...625L..10G, doi:10.1051/0004-6361/201935656). Adopting 8.178 kpc is a
+#: science decision, not a bug fix -- it shifts every galactocentric and Hill-radius
+#: number -- and is deferred to an explicit call. See docs/design-notes/decisions.md.
+#: Override per call with the ``solar_radius`` keyword.
+SOLAR_RADIUS: u.Quantity = 8.125 * u.kpc
+
 
 def calculate_galactic_mass(
     radius,
     radius_err=None,
     *,
-    solar_radius: u.Quantity = 8.125 * u.kpc,
+    solar_radius: u.Quantity = SOLAR_RADIUS,
     model: str = "legacy_power_law",
 ):
     """Approximate enclosed Galactic mass inside ``radius``.
@@ -57,7 +76,7 @@ def calculate_galactocentric_distance(
     ra_err=0 * u.deg,
     dec_err=0 * u.deg,
     distance_err=0 * u.kpc,
-    solar_radius=8.3 * u.kpc,
+    solar_radius=SOLAR_RADIUS,
 ):
     """Calculate Galactocentric radius.
 
@@ -147,7 +166,7 @@ def calculate_hill_radius(
     return_cluster_mass=False,
     return_linear_size=False,
     return_galactic_mass=False,
-    solar_radius=8.3 * u.kpc,
+    solar_radius=SOLAR_RADIUS,
 ):
     """Estimate Hill radius and optional propagated uncertainty."""
     dist = ensure_units(distance if distance is not None else cluster_distance, u.kpc)
@@ -155,7 +174,8 @@ def calculate_hill_radius(
     if galactocentric_distance is None:
         if center is not None:
             galactocentric_distance, galactocentric_distance_err = calculate_galactocentric_distance(
-                center[0], center[1], distance=dist, distance_err=dist_err
+                center[0], center[1], distance=dist, distance_err=dist_err,
+                solar_radius=solar_radius,
             )
         else:
             galactocentric_distance = calculate_galactocentric_distance(
