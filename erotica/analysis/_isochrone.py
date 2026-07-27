@@ -329,9 +329,20 @@ def _fit_error_model(
 ) -> tuple[Any, Any]:
     """Fit quadratic log-error vs magnitude models for interpolation.
 
-    Uses ``numpy.polynomial.Polynomial.fit`` (SVD-based, numerically stable)
-    rather than the legacy ``np.polyfit`` which raises RankWarning on poorly
-    conditioned inputs.
+    Falls back to a constant (the median error) when there is not enough
+    information to constrain a quadratic. A degree-2 fit needs at least three
+    *distinct* magnitudes: with fewer, or with repeated magnitudes, the
+    Vandermonde matrix is rank-deficient and the returned polynomial is
+    arbitrary rather than merely imprecise.
+
+    Notes
+    -----
+    Before 2026-07-27 the guard read ``mag_ok.sum() < 3``, but ``mag_ok`` is the
+    *filtered magnitude array*, not a boolean mask -- so it summed magnitudes
+    (two stars at G = 14, 15 give 29) instead of counting points. The fallback
+    therefore never fired for any realistic input, and under-determined fits were
+    accepted silently: NumPy's ``RankWarning`` was swallowed by a blanket
+    ``ignore::RuntimeWarning`` in ``pytest.ini``. Both are fixed.
     """
     from numpy.polynomial.polynomial import Polynomial
 
@@ -339,7 +350,8 @@ def _fit_error_model(
     valid_c = np.isfinite(obs_mag) & np.isfinite(e_col) & (e_col > 0)
 
     def _fit(mag_ok, e_ok, fallback):
-        if mag_ok.sum() < 3:
+        # count *distinct* points, not the sum of their magnitudes
+        if np.unique(mag_ok).size < 3:
             return lambda m: np.full_like(np.atleast_1d(m), fallback, dtype=float)
         poly = Polynomial.fit(mag_ok, np.log10(e_ok), 2)
         return lambda m: 10 ** poly(np.atleast_1d(m).astype(float))

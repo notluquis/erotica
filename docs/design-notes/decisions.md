@@ -109,6 +109,112 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — the reproducibility record recorded almost nothing, and nothing called it
+
+**Symptom.** `analysis/provenance.py:146` was:
+
+```python
+def build_metadata(**kwargs):
+    return {"created_at": ..., "erotica_version": ..., **kwargs}
+```
+
+A timestamp and a version string. **No git commit, no seed, no dependency versions, no checksum of
+the input data.** Two runs of the same version against different catalogues, on different NumPy
+releases, from a dirty working tree, produce byte-identical provenance.
+
+**The worse half.** `grep` found **zero callers**. Nothing in the package ever built a metadata
+record. Dead provenance code is worse than no provenance code, because the reproducibility claim
+gets made anyway and there is a function name to point at.
+
+**Fix.** `build_metadata` now records, and `store_trace_results` now *calls* it — every saved trace
+gets a `*_provenance_<index>.json` sidecar next to its NetCDF:
+
+| Field | Why it is there |
+|---|---|
+| `git.commit`, `git.dirty`, `git.branch` | A commit hash is misleading without `dirty` — the normal state during analysis is uncommitted edits. `None` outside a repo (a PyPI wheel), never an exception. |
+| `inputs[].blake2b`, `inputs[].bytes` | Identifies input **content**. A catalogue that is renamed, re-downloaded or re-sorted into another path but is byte-identical is the same input; one flipped byte is not. Streamed, so a multi-GB file costs kilobytes of memory. |
+| `seeds` | Kept even when `None` — a run with no fixed seed is *not* reproducible and the record has to say so rather than omit the field. |
+| `dependencies` | Read from installed distribution metadata, **not** by importing each package: importing PyMC costs seconds and is a side effect a provenance call has no business causing. An absent optional extra is itself provenance (that run produced no Bayesian numbers). |
+| `python`, `platform` | Cheap, and the first thing asked when a number fails to reproduce. |
+
+**The invariant.** A provenance record that raises at write time destroys the result it was meant to
+describe. So `build_metadata` calls `json.dumps` on itself before returning — failing loudly at
+build time rather than after a six-hour sampling run — and `_jsonable` coerces the values that
+arrive naturally from callers and would otherwise raise: NumPy scalars and arrays, `Path`,
+dataclasses such as `SamplingConfig`, and sets. An unrecognised object is downgraded to `repr`,
+never dropped: losing a field silently is the failure mode, losing its type is not.
+
+**Oracles** (`tests/test_provenance.py`, 28 tests). Each is independent of the code under test:
+* git → a `git` subprocess the test runs itself, plus a throwaway repository the test **builds,
+  commits, dirties, restores, and dirties again with an untracked file**. A test asserting only that
+  the key exists would pass against a hardcoded `False`.
+* checksums → the published BLAKE2b-512 vector for the empty string
+  (`786a02f7…e9be2ce`), plus digests the test computes with `hashlib` on its own; content-vs-path
+  equality; a 40 MB multi-chunk file.
+* dependencies → `module.__version__`, which is set independently of distribution metadata.
+* `build_metadata` → `json.loads(json.dumps(m)) == m`, fed hostile values on purpose.
+* `store_trace_results` → the sidecar exists, names the same `trace_index` as the `.nc` beside it,
+  and carries the caller's checksum. This one is a **regression guard against the dead-code state**.
+* `posterior_mode` → a lognormal, whose mode `exp(−1) = 0.368`, median `1.0` and mean `1.649` are
+  analytically distinct; the estimator lands at 0.375. The easy way to fake a mode estimator is to
+  return the mean or the median, and both fail this by a factor of ~3.
+* `store → load` → round-trip identity, including the recovered draws, not merely the summary.
+
+**Numbers that moved.** None — this is new information recorded alongside results, not a change to
+any computation. Coverage of `provenance.py` **27% → 95%**; suite **290 → 318**.
+
+Also renamed the leftover `_PUMPS_VERSION` import (from the COSMIC → PUMPS → EROTICA renames).
+
+---
+
+## 2026-07-27 — `RuntimeWarning` was globally ignored, hiding a real bug
+
+**Symptom.** `pytest.ini` carried a blanket `ignore::RuntimeWarning`. In a numerics package that is
+the category that says *divide by zero*, *invalid value in sqrt*, *overflow* — i.e. exactly how a
+silent `NaN` reaches a published number.
+
+**What the audit found.** Re-running the suite under `-W error::RuntimeWarning` produced only two
+failures. One was third-party and harmless: PyTensor's graph rewriter divides by zero while constant-folding
+a graph that is then discarded. The other was **ours**.
+
+**The bug.** `analysis/_isochrone.py::_fit_error_model` guarded its constant-error fallback with:
+
+```python
+def _fit(mag_ok, e_ok, fallback):
+    if mag_ok.sum() < 3:          # intended: "fewer than 3 valid points"
+```
+
+`mag_ok` is not a boolean mask — it is `obs_mag[valid_m]`, the **filtered magnitude array**. So
+`.sum()` added up magnitudes. Two stars at G = 14 and 15 sum to 29, comfortably ≥ 3, so the fallback
+**never fired for any non-empty input**. Two points were fitted with a degree-2 polynomial, the
+Vandermonde matrix was rank-deficient, NumPy raised `RankWarning` — a `RuntimeWarning` subclass in
+NumPy 2 — and `pytest.ini` swallowed it. The docstring meanwhile asserted the opposite, claiming
+`Polynomial.fit` was chosen precisely to avoid `RankWarning`.
+
+The test that covered this line asserted `np.isfinite(f_m(...)[0])`. Garbage from an
+under-determined fit is finite, so the test passed for the whole life of the bug. This is the
+house rule in the standing section, violated: *a test must be able to fail for the reason it was
+written*.
+
+**Fix.** Count **distinct abscissae**, `np.unique(mag_ok).size < 3` — rank deficiency is about
+distinct magnitudes, not the point count, so six stars all at G = 15 must also fall back.
+
+**Numbers that moved.** **None.** The old and new guards were compared across
+`n = 0, 1, 2, 3, 10, 60, 321` points: they disagree only at `n = 1` and `n = 2`, and agree
+everywhere else including the empty case. A real cluster fit never enters that regime, so no
+published NGC 6383 quantity changes. The bug was latent, not active — but it was one degenerate
+input away from producing a silently arbitrary error model.
+
+**Fix to the filter.** `error::RuntimeWarning`, with three narrow `ignore` lines scoped to
+`pytensor.tensor.rewriting.math` by message. Nothing of ours can be hidden again.
+
+**Oracles added** (`tests/test_isochrone.py::TestFitErrorModel`): the fallback must return the
+**exact median** (`0.015` for `e_m = [0.01, 0.02]`) and be constant in magnitude; six repeated
+magnitudes must also fall back; a quadratic injected in log₁₀ space must be recovered to `rtol=1e-6`;
+and zero/NaN/negative errors must be dropped *before* the branch is chosen.
+
+---
+
 ## 2026-07-27 — the 2σ parallax clip is a magnitude-dependent selection function
 
 **Status: measured, not yet changed.** The measurement is the deliverable; the fix is a science

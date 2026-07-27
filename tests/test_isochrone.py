@@ -302,12 +302,51 @@ class TestFitErrorModel:
         assert vals[0] < vals[1] < vals[2]
 
     def test_fallback_on_few_points(self):
-        # < 3 valid points → constant fallback, should not raise
+        """Fewer than 3 points must give the *median* error, not a fitted curve.
+
+        Oracle: the exact fallback value, ``median([0.01, 0.02]) = 0.015``,
+        constant in magnitude. Asserting only ``isfinite`` passed for the whole
+        lifetime of the ``mag_ok.sum() < 3`` bug -- the guard summed magnitudes
+        (14 + 15 = 29) instead of counting points, so this input silently fitted
+        a rank-deficient quadratic through 2 points and returned garbage that
+        happened to be finite.
+        """
         mag = np.array([14.0, 15.0])
         e_m = np.array([0.01, 0.02])
         e_c = np.array([0.015, 0.025])
         f_m, f_c = _fit_error_model(mag, e_m, e_c)
-        assert np.isfinite(f_m(np.array([16.0]))[0])
+
+        probe = np.array([12.0, 16.0, 25.0])
+        assert f_m(probe) == pytest.approx(0.015)     # median of e_m
+        assert f_c(probe) == pytest.approx(0.020)     # median of e_c
+        assert len(np.unique(f_m(probe))) == 1        # genuinely constant
+
+    def test_fallback_on_repeated_magnitudes(self):
+        """Three points at one magnitude cannot constrain a quadratic either.
+
+        Rank deficiency is about *distinct* abscissae, not the point count.
+        """
+        mag = np.full(6, 15.0)
+        e_m = np.array([0.01, 0.02, 0.03, 0.01, 0.02, 0.03])
+        f_m, _ = _fit_error_model(mag, e_m, e_m * 1.5)
+        assert f_m(np.array([13.0, 18.0])) == pytest.approx(np.median(e_m))
+
+    def test_recovers_a_known_quadratic(self):
+        """Oracle: coefficients injected by the test, in log10 space."""
+        a, b, c = -3.0, 0.15, 0.01
+        mag = np.linspace(11.0, 20.0, 60)
+        e_m = 10.0 ** (a + b * (mag - 15) + c * (mag - 15) ** 2)
+        f_m, _ = _fit_error_model(mag, e_m, e_m * 1.3)
+        probe = np.array([12.0, 15.0, 19.0])
+        expected = 10.0 ** (a + b * (probe - 15) + c * (probe - 15) ** 2)
+        np.testing.assert_allclose(f_m(probe), expected, rtol=1e-6)
+
+    def test_ignores_invalid_errors_when_counting_points(self):
+        """Zero and NaN errors are dropped, so what is left decides the branch."""
+        mag = np.array([12.0, 13.0, 14.0, 15.0, 16.0])
+        e_m = np.array([0.01, 0.0, np.nan, -0.5, 0.02])  # only 2 usable
+        f_m, _ = _fit_error_model(mag, e_m, np.full(5, 0.03))
+        assert f_m(np.array([14.0])) == pytest.approx(np.nanmedian(e_m))
 
 
 # ---------------------------------------------------------------------------
