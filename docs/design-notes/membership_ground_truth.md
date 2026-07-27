@@ -65,12 +65,33 @@ Ranks above the X-ray sets for *bright-end purity* because of how it was selecte
   the SDSS SAS — **it is not on VizieR**.
 
 ```{danger}
-**Newest is worst here — use DR17, not DR19.** OCCAM **DR19 hard-gates on Cantat-Gaudin P > 0.70**
-(verified empirically: no values below 0.70 exist in the file). So DR19 contains **no negatives at
-all** and cannot support a reliability diagram — the reflex of grabbing the latest release destroys
-the one property that makes this set valuable. DR19 contributes exactly one usable number (9.0% of
-CG2020 P>0.7 members fail an independent RV+[Fe/H] test); everything else must come from **DR17**.
+**Newest is worst here — use DR17, not DR19.** Verified by downloading both files (2026-07-26):
+
+| | DR17 | DR19 |
+|---|---|---|
+| rows | **26,699** | **1,191** |
+| `CG_Prob` | full range | **min = 0.700**, rows below 0.70 = **0** |
+| usable negatives | ~24,700 | effectively none |
+
+DR19 is **22× smaller and hard-gated at CG_Prob ≥ 0.70** — it is a member-only file and **cannot
+support a reliability diagram**. The reflex of grabbing the latest release destroys the one property
+that makes this set valuable. **DR18 has no OCCAM VAC at all** (404).
+
+Paths (note SDSS-V restructured the tree):
+- DR17 → `https://data.sdss.org/sas/dr17/apogee/vac/apogee-occam/occam_member-DR17.fits` (4.0 MB)
+- DR19 → `https://data.sdss.org/sas/dr19/vac/mwm/apogee-occam/occam_member-DR19.fits` (222 kB)
+
+DR17 probability columns: `RV_PROB`, `FEH_PROB`, `PM_PROB`, `CG_PROB` — the independent discriminants
+are `RV_PROB` and `FEH_PROB` (`PM_PROB` is Gaia's; there is no parallax column).
 ```
+
+**What OCCAM is:** the **O**pen **C**luster **C**hemical **A**bundances and **M**apping survey — an
+APOGEE/SDSS value-added catalog running as a paper series since 2017: II (DR14, `2018AJ....156..142D`)
+→ IV (DR16, 128 clusters, `2020AJ....159..199D`) → **VI (DR17, `2022AJ....164...85M`)** → X (2026,
+neutron-capture, `2026arXiv260700291M`). Its science goal is **Galactic chemical gradients**, so
+membership is a means rather than the product — which is exactly why it is useful here: targets are
+picked by spatial cone, then tested on RV and [Fe/H], by people who were not building a membership
+benchmark. `[S]`
 - ⚠ **Split on `APOGEE2_TARGET1` bit 9 first** — some late APOGEE-2 targets *were* Gaia-PM
   preselected, so the union is optimistically biased.
 
@@ -223,11 +244,25 @@ astrometric clustering measured *without* our method — cite it rather than dis
 
 ## 6c. Action items
 
-1. **Email `emily.lauren.hunt@univie.ac.at`.** Hunt+2026 Table B.2 — **50,873,539 rows with observed
-   *and* true astrometry** — is documented at CDS `J/A+A/706/A341` but **not served** (confirmed four
-   ways: HTTP 403, VizieR "table does not exist", FTP listing, full tarball). The paper explicitly
-   invites our use case: *"a tool for a future work to derive direct calibration factors for HR24's
-   membership lists."* This is the best-shaped truth set in existence for us.
+1. **Email `emily.lauren.hunt@univie.ac.at` — with a specific ask.** Re-verified 2026-07-26 at CDS
+   `J/A+A/706/A341`: the **ReadMe documents both files** —
+
+   | File | Records | Status |
+   |---|---|---|
+   | `clusters.dat` (Table B.1, simulated clusters) | 233,917 | ✅ **served** as `clusters.dat.gz` |
+   | `members.csv` (Table B.2, all simulated stars + recovered Gaia stars) | **50,873,539** | ❌ **HTTP 403**, absent from the directory listing |
+
+   So this is a **CDS ingest gap, not a policy** — the ReadMe declares `members.csv`, the directory
+   omits it. Ask for that one file (or a mirror). The paper explicitly invites the use case:
+   *"a tool for a future work to derive direct calibration factors for HR24's membership lists."*
+   **Meanwhile Table B.1 is already usable** for cluster-level completeness.
+
+   Related and worth reading first — **Hunt+2025** (`2025A&A...699A.273H`, *"The completeness of the
+   open cluster census towards the Galactic anticentre"*) is the predecessor that builds the
+   machinery: *"we inject mock clusters into Gaia DR3 data, and attempt to recover them in a blind
+   search using HDBSCAN."* Same injection-recovery infrastructure, published a year earlier. `[S]`
+   ⚠ ADS also indexes a **different Emily Hunt** (shark dentition, meteorology) — filter author
+   searches carefully.
 2. **Pull `occam_member-DR17.fits`** from the SDSS SAS and split on `APOGEE2_TARGET1` bit 9.
 3. **Re-derive the Kalari+2019 NGC 6383 sample** from VPHAS+ DR2 (§5) — bears on the P07 thread about
    CTTS removed by the 2σ parallax clip.
