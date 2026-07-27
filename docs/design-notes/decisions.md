@@ -109,6 +109,71 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — the 2σ parallax clip is a magnitude-dependent selection function
+
+**Status: measured, not yet changed.** The measurement is the deliverable; the fix is a science
+decision that changes a published number and is sequenced with the P01 delta report.
+
+**Symptom.** `analysis/_clipping.sigma_clip_parallax` clips on the **raw** parallax column at a
+fixed multiple of the *sample* scatter. Gaia's per-star parallax uncertainty is strongly
+magnitude-dependent, so a faint star with a large `e_Plx` is scattered further from the cluster
+centroid than a bright one **even when both are members**. The cut therefore removes faint stars
+preferentially. That makes it a selection function, not only an outlier test.
+
+**The oracle — by construction, no golden numbers.** `tools/validation/parallax_clip_selection_function.py`
+builds synthetic clusters in which **every star is a true member**: one common true parallax, no
+contamination, no intrinsic depth. Per-star uncertainties are the **real** `e_Plx` values from the
+published member table (`data/test/NGC6383/comments_paper/cds_final/ngc6383_members.ecsv`, 321
+stars), so the magnitude-dependence of the errors is empirical rather than modelled. Any rejection
+is then, unambiguously, a **false** rejection, and the retention rate per `Gmag` quartile *is* the
+induced selection function.
+
+**Numbers** (400 realizations, σ = 2, seed 20260727; `tools/validation/parallax_clip_selection_function.json`):
+
+| | overall | Q1 bright | Q2 | Q3 | Q4 faint |
+|---|---|---|---|---|---|
+| **raw parallax (current behaviour)** | **67.5%** | 99.1% | 85.6% | 59.1% | **26.7%** |
+| clip on normalized residual `(plx − centre)/err_i` | **95.7%** | 95.6% | 95.7% | 95.8% | 95.8% |
+
+Median `e_Plx` per quartile: **0.027, 0.065, 0.123, 0.293 mas** — an 11× spread, which is the whole
+mechanism. Bright→faint retention gradient: **raw +72.4 pp, normalized −0.2 pp**. The normalized
+clip sits at ~95.7% everywhere, which is simply what a 2σ cut *should* retain.
+
+So the current cut discards **about a third of genuine members**, and **roughly three-quarters of
+the faintest quartile**.
+
+**Why the alternative works.** On the normalized residual, a large uncertainty buys *tolerance*
+rather than a rejection: the star is an outlier only if it is discrepant relative to **its own**
+error. This is the same principle as the error-aware `f_i` in `core/_error_aware.py` and matches
+the 2026 standard for parallax-space selection (`~/phd/methodology.md` PART J).
+
+```{admonition} Implication for P01 — unproven, not disproven
+:class: warning
+P01 attributes a faint-quartile luminosity-function / KS signal to **Gaia incompleteness**. Q4 is
+exactly the quartile this clip mutilates, so the pipeline supplies a **competing explanation of the
+same signal** that the paper does not currently address. That is a referee-grade objection.
+
+**This does not show the P01 result is wrong.** Both effects act in the same direction and can
+coexist; nothing here quantifies their relative size on the *real* (contaminated) field. The
+discriminating test is a re-run of the faint-quartile LF/KS on a normalized-residual-clipped
+sample: if the signal survives, the incompleteness attribution is strengthened rather than
+weakened. Estimated ~1 h. **Not yet run** — recorded here so the claim is not made in either
+direction without it.
+```
+
+**Tests.** `tests/test_clipping.py` pins the behaviour with two fast characterisation tests
+(`test_raw_clip_rejects_large_error_stars_preferentially`, asserting the ≥15 pp bias exists, and
+`test_normalized_residual_clip_is_precision_blind`, asserting the alternative is within 5 pp). They
+are characterisation, not aspiration: they make any future change to the clip **visible** rather
+than silent. The full measurement stays in `tools/validation/` because it needs the real catalogue
+and 400 realizations.
+
+**Not changed yet, deliberately.** Switching the clip changes the published NGC 6383 membership
+list. Per the approved plan the sequence is *fix → re-derive → report deltas*, and the delta report
+is the artefact the author needs before deciding what, if anything, to tell a referee mid-review.
+
+---
+
 ## 2026-07-27 — `sigma_clip_parallax` has flag-dependent return arity
 
 **Status: documented, not changed.**

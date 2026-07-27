@@ -165,3 +165,67 @@ def test_return_arity_is_flag_dependent():
     assert len(run(in_place=True, return_mask=False)) == 2
     assert len(run(in_place=False, return_mask=True)) == 5
     assert len(run(in_place=False, return_mask=False)) == 3
+
+
+# ---------------------------------------------------------------------------
+# The clip is a magnitude-dependent selection function.
+#
+# Characterisation, not aspiration: this pins CURRENT behaviour so a future
+# change to the clip is visible. The oracle is by construction -- every
+# simulated star is a true member, so any rejection is a false rejection.
+# Per-star errors are drawn to mimic Gaia's magnitude dependence.
+#
+# Full measurement on the real NGC 6383 errors lives in
+# tools/validation/parallax_clip_selection_function.py; see
+# docs/design-notes/decisions.md for what it means for P01's faint quartile.
+# ---------------------------------------------------------------------------
+
+def test_raw_clip_rejects_large_error_stars_preferentially():
+    """A 2-sigma clip on raw parallax is harsher on stars with bigger errors."""
+    rng = np.random.default_rng(20260727)
+    n_per = 150
+    # Two populations, identical TRUE parallax, differing only in precision.
+    small_err, large_err = 0.03, 0.30
+    keep_small, keep_large = [], []
+    for _ in range(30):
+        obs = np.concatenate([
+            rng.normal(0.9, small_err, n_per),
+            rng.normal(0.9, large_err, n_per),
+        ])
+        t = _table(obs)
+        keep = np.asarray(sigma_clip_parallax(t, cluster=0, **DEFAULTS)[3], dtype=bool)
+        keep_small.append(keep[:n_per].mean())
+        keep_large.append(keep[n_per:].mean())
+
+    r_small, r_large = float(np.mean(keep_small)), float(np.mean(keep_large))
+    # Every star is a member, so both rates *should* be ~equal. They are not.
+    assert r_small > r_large + 0.15, (
+        f"expected the documented precision-dependent bias; got small={r_small:.1%} "
+        f"large={r_large:.1%}"
+    )
+
+
+def test_normalized_residual_clip_is_precision_blind():
+    """Clipping on (plx - centre)/err_i retains both populations equally.
+
+    This is the error-aware alternative referenced in the decision log: a large
+    uncertainty buys tolerance rather than a rejection.
+    """
+    from astropy.stats import biweight_location, biweight_scale
+
+    rng = np.random.default_rng(20260727)
+    n_per = 150
+    small_err, large_err = 0.03, 0.30
+    keep_small, keep_large = [], []
+    for _ in range(30):
+        err = np.concatenate([np.full(n_per, small_err), np.full(n_per, large_err)])
+        obs = 0.9 + rng.normal(0, err)
+        z = (obs - biweight_location(obs)) / err
+        keep = np.abs(z - biweight_location(z)) <= 2.0 * biweight_scale(z)
+        keep_small.append(keep[:n_per].mean())
+        keep_large.append(keep[n_per:].mean())
+
+    r_small, r_large = float(np.mean(keep_small)), float(np.mean(keep_large))
+    assert abs(r_small - r_large) < 0.05, (
+        f"normalized clip should be precision-blind; got small={r_small:.1%} large={r_large:.1%}"
+    )

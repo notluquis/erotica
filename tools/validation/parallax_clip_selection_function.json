@@ -1,0 +1,39 @@
+{
+  "n_stars": 321,
+  "n_realizations": 400,
+  "sigma": 2.0,
+  "seed": 20260727,
+  "intrinsic_spread_mas": 0.0,
+  "median_e_plx_by_quartile": [
+    0.02731113787740469,
+    0.06532081589102745,
+    0.12304719164967537,
+    0.29286840558052063
+  ],
+  "median_gmag_by_quartile": [
+    13.881738662719727,
+    16.420074462890625,
+    17.581436157226562,
+    18.883577346801758
+  ],
+  "raw_clip": {
+    "overall_retention": 0.6749922118380063,
+    "retention_by_gmag_quartile": [
+      0.99059375,
+      0.8564375,
+      0.5913125,
+      0.2667283950617284
+    ]
+  },
+  "normalized_clip": {
+    "overall_retention": 0.957196261682243,
+    "retention_by_gmag_quartile": [
+      0.9558125,
+      0.95684375,
+      0.958,
+      0.9581172839506172
+    ]
+  },
+  "gradient_raw": 0.7238653549382716,
+  "gradient_normalized": -0.002304783950617284
+}
