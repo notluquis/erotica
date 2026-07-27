@@ -22,6 +22,15 @@ sky position never enters -- so a decoy must destroy the PM overdensity while
 preserving the field's PM distribution and its error structure. Permuting sky
 positions would do nothing at all.
 
+**Selecting the right branch.** The production run does NOT take the biggest cluster. Its
+``summary.json`` records ``algorithm_selected_label: 1`` but ``label: 0``, with the note that "the
+science summary uses the branch nearest to the 40 arcmin NGC 6383 reference proper motion"
+(2.54, -1.71 mas/yr), under a size bound of ~1000. A first version of this script took the largest
+cluster instead and found 14259 stars where the pipeline finds 798 -- an 18x error that measured a
+field blob, not the cluster. **The decoy must use the identical rule**: the branch nearest that same
+reference proper motion. A decoy "detection" is then exactly what a false positive means here -- a
+field fluctuation that lands where the cluster would have been.
+
 **Decoy construction.** Take stars beyond ``--field-radius`` arcmin from the
 cluster centre, where the cluster contributes negligibly, bootstrap them up to
 the full catalogue size, and jitter each draw by its own proper-motion
@@ -81,19 +90,25 @@ def load():
     return pmra[ok], pmdec[ok], e_pmra[ok], e_pmdec[ok], radius[ok]
 
 
-def pseudoprobability(X, mcs_values, seed=0):
-    """Reimplementation of the package sweep, kept local so the decoy runs are cheap.
+def pseudoprobability(X, mcs_values, reference_pm, max_members=1000, min_members=50):
+    """Local reimplementation of the package sweep, matched to the production rule.
 
     ``probability_times`` = fraction of sweep iterations in which a source landed in
-    any cluster; ``p̃`` = HDBSCAN membership probability x that fraction, exactly as
+    any cluster; ``p̃`` = HDBSCAN membership probability x that fraction, as
     ``Clustering.search_pseudoprobability`` builds it.
+
+    Branch selection follows the production run: among clusters within the size
+    bound, take the one whose centroid is **nearest `reference_pm`**, not the
+    largest. Taking the largest finds a field blob (14259 stars vs the pipeline's
+    798) and makes the whole experiment meaningless.
     """
     import hdbscan
 
     n = X.shape[0]
     in_cluster = np.zeros(n, dtype=float)
-    best_prob = np.zeros(n, dtype=float)
-    best_size = -1
+    chosen_prob = np.zeros(n, dtype=float)
+    best_dist = np.inf
+    ref = np.asarray(reference_pm, dtype=float)
     for mcs in mcs_values:
         clusterer = hdbscan.HDBSCAN(
             min_cluster_size=int(mcs), algorithm="best", cluster_selection_method="eom",
@@ -104,12 +119,16 @@ def pseudoprobability(X, mcs_values, seed=0):
         in_cluster += labels >= 0
         if labels.max() < 0:
             continue
-        sizes = np.bincount(labels[labels >= 0])
-        biggest = int(np.argmax(sizes))
-        if sizes[biggest] > best_size:
-            best_size = int(sizes[biggest])
-            best_prob = np.where(labels == biggest, clusterer.probabilities_, 0.0)
-    return best_prob * (in_cluster / len(mcs_values))
+        for lab in range(labels.max() + 1):
+            sel = labels == lab
+            size = int(sel.sum())
+            if size < min_members or size > max_members:
+                continue
+            dist = float(np.hypot(*(X[sel].mean(axis=0) - ref)))
+            if dist < best_dist:
+                best_dist = dist
+                chosen_prob = np.where(sel, clusterer.probabilities_, 0.0)
+    return chosen_prob * (in_cluster / len(mcs_values)), best_dist
 
 
 def main():
@@ -118,6 +137,10 @@ def main():
     ap.add_argument("--field-radius", type=float, default=45.0,
                     help="arcmin; stars beyond this build the decoy field")
     ap.add_argument("--mcs-step", type=int, default=10)
+    ap.add_argument("--ref-pm", type=float, nargs=2, default=(2.54, -1.71),
+                    help="reference proper motion the production run selects on (mas/yr)")
+    ap.add_argument("--max-members", type=int, default=1000)
+    ap.add_argument("--min-members", type=int, default=50)
     ap.add_argument("--seed", type=int, default=20260727)
     ap.add_argument("-o", "--out", type=Path, default=Path(__file__).with_suffix(".json"))
     args = ap.parse_args()
@@ -132,9 +155,17 @@ def main():
           f"step {args.mcs_step}\n", flush=True)
 
     t0 = time.perf_counter()
-    target = pseudoprobability(np.column_stack([pmra, pmdec]), mcs_values)
-    print(f"target sweep done in {time.perf_counter() - t0:.0f}s; "
-          f"max p~ = {target.max():.3f}", flush=True)
+    sel = dict(reference_pm=tuple(args.ref_pm), max_members=args.max_members,
+               min_members=args.min_members)
+    target, target_dist = pseudoprobability(np.column_stack([pmra, pmdec]), mcs_values, **sel)
+    n06 = int((target >= 0.6).sum())
+    print(f"target sweep done in {time.perf_counter() - t0:.0f}s; max p~ = {target.max():.3f}; "
+          f"n(p~>=0.6) = {n06}; branch centroid {target_dist:.3f} mas/yr from reference",
+          flush=True)
+    if not (300 < n06 < 2000):
+        print(f"  *** WARNING: the production run reports ~798 members. {n06} is far from that, so "
+              f"this reimplementation is not tracking the pipeline. Treat the FDP as invalid. ***",
+              flush=True)
 
     rng = np.random.default_rng(args.seed)
     decoy_counts = {p: [] for p in THRESHOLDS}
@@ -143,30 +174,43 @@ def main():
         idx = rng.choice(np.flatnonzero(field), size=n, replace=True)
         dx = pmra[idx] + rng.normal(0.0, e_pmra[idx])
         dy = pmdec[idx] + rng.normal(0.0, e_pmdec[idx])
-        p = pseudoprobability(np.column_stack([dx, dy]), mcs_values)
+        p, _ = pseudoprobability(np.column_stack([dx, dy]), mcs_values, **sel)
         for thr in THRESHOLDS:
             decoy_counts[thr].append(int((p >= thr).sum()))
         decoy_max.append(float(p.max()))
         print(f"  decoy {it + 1:3d}/{args.realizations}  max p~={p.max():.3f}  "
               f"n(p>=0.6)={int((p >= 0.6).sum())}", flush=True)
 
-    print(f"\n{'p~ threshold':>12s} {'target':>8s} {'decoy mean':>11s} {'decoy sd':>9s} "
-          f"{'FDP':>8s}")
+    print(f"\n{'p~ threshold':>12s} {'target':>8s} {'d.median':>9s} {'d.mean':>8s} "
+          f"{'d.p90':>8s} {'FDP med':>8s} {'FDP p90':>8s}")
     results = {}
     for thr in THRESHOLDS:
         n_t = int((target >= thr).sum())
         d = np.asarray(decoy_counts[thr], dtype=float)
-        fdp = d.mean() / n_t if n_t else np.nan
-        results[str(thr)] = {"target": n_t, "decoy_mean": float(d.mean()),
-                             "decoy_sd": float(d.std()), "fdp": float(fdp)}
-        print(f"{thr:12.2f} {n_t:8d} {d.mean():11.1f} {d.std():9.1f} {fdp:8.2%}")
+        fdp = d.mean() / n_t if n_t else np.nan  # noqa: F841 (kept for the mean row)
+        # The decoy distribution is heavily right-skewed (sd is typically ~2x the
+        # mean), so the mean is the wrong summary. Store every realization and
+        # quote the median plus a 90th percentile.
+        results[str(thr)] = {
+            "target": n_t, "counts": [int(x) for x in d],
+            "decoy_mean": float(d.mean()), "decoy_sd": float(d.std()),
+            "decoy_median": float(np.median(d)), "decoy_p90": float(np.percentile(d, 90)),
+            "fdp_mean": float(fdp),
+            "fdp_median": float(np.median(d) / n_t) if n_t else float("nan"),
+            "fdp_p90": float(np.percentile(d, 90) / n_t) if n_t else float("nan"),
+        }
+        print(f"{thr:12.2f} {n_t:8d} {np.median(d):9.1f} {d.mean():8.1f} "
+              f"{np.percentile(d, 90):8.1f} {np.median(d) / n_t:8.2%} "
+              f"{np.percentile(d, 90) / n_t:8.2%}")
 
     print(f"\nhighest p~ reached by any decoy realization: {max(decoy_max):.3f}")
     payload = {
         "catalogue_n": int(n), "field_radius_arcmin": args.field_radius,
         "n_field": int(field.sum()), "realizations": args.realizations,
         "mcs_values": mcs_values, "seed": args.seed,
-        "target_max_p": float(target.max()), "decoy_max_p": decoy_max,
+        "target_max_p": float(target.max()), "target_n_p06": n06,
+        "reference_pm": list(args.ref_pm), "max_members": args.max_members,
+        "decoy_max_p": decoy_max,
         "by_threshold": results,
     }
     args.out.write_text(json.dumps(payload, indent=2))
