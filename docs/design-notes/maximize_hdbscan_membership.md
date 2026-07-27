@@ -1,8 +1,21 @@
 # Maximizing HDBSCAN for OC membership — plan for EROTICA
 
 _2026-07-21. How to push HDBSCAN as far as possible for NGC 6383 membership (NOT replace it),
-from a 3-agent sourced review + code audit. Feeds P02 (calibrated membership = lead novelty).
+from a 3-agent sourced review + code audit. Feeds P02.
 `[S]`=sourced (docs/paper), `[I]`=inferred._
+
+```{warning}
+**Novelty correction (2026-07-26).** An earlier version of this note called *calibrated
+membership* the lead novelty. That claim is **too broad — do not make it.** pyUPMASK
+(`2021A&A...650A.109P`) already scored membership with proper scoring rules (Brier,
+log-loss, H-measure) over 600 synthetic clusters, and Olivares+2018 (`2018A&A...617A..15O`)
+already publishes a per-star *standard deviation* of the membership probability — verified in
+the VizieR ReadMe for `J/A+A/617/A15`, column `s_pc`. Measurement-error-aware membership is
+likewise precedented (Jaehnig+2021 `2021ApJ...923..129J`, XD-GMM with full covariance over 431
+clusters). What remains genuinely open is whether such posteriors are **calibrated** —
+simulation-based calibration and a reliability diagram against astrometry-independent labels.
+See `~/phd/methodology.md` § "Falsified novelty claims".
+```
 
 ## Current state (code-audited)
 EROTICA clusters in **2D proper-motion only** (`search_pseudoprobability(columns=["pmra","pmdec"])`),
