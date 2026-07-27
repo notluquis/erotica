@@ -168,6 +168,49 @@ total 59% → 62%. Suite 363 → **386**.
 
 ---
 
+## 2026-07-27 — a residual parallax zero-point, as a nuisance parameter
+
+**Why.** Gaia's published parallax zero-point correction is, in its own authors' words, *"not
+perfect"*, and its use is *"at the researcher's discretion"* (Lindegren et al. 2021,
+`2021A&A...649A...4L`). The residual is **spatially correlated on the scale of a cluster**, so every
+member carries essentially the *same* leftover offset — which no amount of averaging removes.
+Vasiliev & Baumgardt (2021, `2021MNRAS.505.5978V`) derive an angular parallax covariance of
+106 µas², giving a systematic floor of **10.3 µas** for individual stars or a compact cluster.
+Riess et al. measure a residual `zp = −3 ± 4 µas` in open clusters.
+
+**Fix.** `fit_parallax_model(zero_point=True)` adds one nuisance offset shared by every member,
+prior width `ParallaxPriors.zero_point_scale = 0.0103 mas`. It is **exactly degenerate with
+`mu_parallax`** for a single cluster, and that is the point: the degeneracy propagates the correlated
+systematic into the reported uncertainty instead of leaving it out. PART J notes that a full
+covariance matrix buys only ~30% over this, which is why one nuisance parameter is the right call.
+
+**Oracle.** Quadrature: enabling it must widen `mu_parallax` to `hypot(sd, floor)`, must not move the
+mean, and must leave the intrinsic depth alone. All three are asserted.
+
+**On the 321 published NGC 6383 members:**
+
+| | `mu_parallax` (mas) | distance |
+|---|---|---|
+| per-star errors only | 0.9025 ± **0.0035** | 1.1080 ± 0.0043 kpc |
+| plus ZP nuisance | 0.9023 ± **0.0109** | 1.1083 ± 0.0135 kpc |
+
+`0.0109 = hypot(0.0035, 0.0103)` exactly. **The uncertainty on the mean parallax triples**, and the
+mean itself does not move.
+
+```{admonition} The general point, which outlives this cluster
+:class: important
+With 321 members the **statistical** error on the mean parallax (3.5 µas) is **smaller than Gaia's
+correlated systematic floor** (10.3 µas). Past a few hundred stars, adding members no longer buys
+precision on a cluster's mean parallax — the systematic has taken over. Any paper quoting a
+statistical-only error on a cluster mean parallax is overstating its precision, and the more members
+it has, the worse the overstatement.
+```
+
+**No correction to P01.** The paper quotes **1.11 ± 0.06 kpc**, which is more conservative than even
+the ZP-inflated interval here (±0.014 kpc). Nothing moves.
+
+---
+
 ## 2026-07-27 — the fourth model: `velocity_model` had all three defects too
 
 **I said the `inference.py` sweep was complete after parallax, proper motion and distance. It was

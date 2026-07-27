@@ -51,6 +51,15 @@ class ParallaxPriors:
     mu_lower: float = 0.0
     mu_upper: float = 10.0
     sigma_scale: float = 0.05
+    #: Prior width (mas) on the **residual** Gaia parallax zero-point, shared by all
+    #: members. 0.0103 mas is the systematic floor Vasiliev & Baumgardt (2021,
+    #: `2021MNRAS.505.5978V`) derive for individual stars or compact clusters from an
+    #: angular parallax covariance of 106 uas^2. Riess et al. measure a residual
+    #: zp = -3 +/- 4 uas in open clusters. Lindegren et al. (2021,
+    #: `2021A&A...649A...4L`) say of their own correction that it is "not perfect"
+    #: and its use is "at the researcher's discretion" -- so treating the corrected
+    #: parallax as exact is not supported by the correction's own source.
+    zero_point_scale: float = 0.0103
 
 
 @dataclass(frozen=True)
@@ -281,6 +290,7 @@ def fit_parallax_model(
     prior_distance=None,
     prior_type: str = "uniform",
     priors: ParallaxPriors | None = None,
+    zero_point: bool = False,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
 ) -> ParallaxFitResult:
@@ -308,6 +318,18 @@ def fit_parallax_model(
     priors : ParallaxPriors, optional
         Scale-free priors used when `prior_distance` is not supplied. Defaults are
         fixed constants; they are **not** derived from `data`.
+    zero_point : bool, default False
+        Add a **residual parallax zero-point** as a nuisance parameter shared by
+        all members, with width `priors.zero_point_scale`. Gaia's published
+        zero-point correction is, in its authors' words, "not perfect", and its
+        residual is spatially correlated on the scale of a cluster -- so every
+        member carries essentially the *same* leftover offset, which no amount of
+        averaging removes.
+
+        The offset is exactly degenerate with ``mu_parallax`` for a single
+        cluster, and that is deliberate: the degeneracy widens the reported
+        uncertainty on the mean parallax by the systematic floor in quadrature
+        rather than leaving it out. **Enable it for any published mean parallax.**
 
     Notes
     -----
@@ -351,7 +373,16 @@ def fit_parallax_model(
             if errors is None
             else pm.math.sqrt(sigma_parallax**2 + errors**2)  # intrinsic (+) measurement
         )
-        pm.Normal("observed_parallax", mu=mu_parallax, sigma=total, observed=parallax_values)
+        if zero_point:
+            # One nuisance offset shared by every member. It is exactly degenerate
+            # with mu_parallax for a single cluster -- that is the point: the
+            # degeneracy is what propagates the correlated systematic into the
+            # reported uncertainty instead of hiding it.
+            zp = pm.Normal("zero_point", mu=0.0, sigma=priors.zero_point_scale)
+            centre = mu_parallax + zp
+        else:
+            centre = mu_parallax
+        pm.Normal("observed_parallax", mu=centre, sigma=total, observed=parallax_values)
     trace = _sample(pm, model, sampling)
     return ParallaxFitResult(
         mu_parallax_mean=float(trace.posterior["mu_parallax"].mean()),
@@ -363,6 +394,7 @@ def fit_parallax_model(
             "backend": sampling.nuts_sampler,
             "variables": ["mu_parallax", "sigma_parallax"],
             "error_aware": errors is not None,
+            "zero_point_nuisance": bool(zero_point),
             "prior": "informative" if prior_distance is not None else "scale-free",
         },
     )

@@ -545,3 +545,37 @@ def test_velocity_error_validation():
         velocity_model(v, errors=np.ones(5))
     with pytest.raises(ValueError, match="finite and positive"):
         velocity_model(v, errors=np.zeros(20))
+
+
+@requires_bayes_extra
+def test_zero_point_nuisance_widens_the_mean_parallax_by_the_systematic_floor():
+    """Oracle: quadrature. The residual ZP is degenerate with the mean by
+    construction, so enabling it must widen ``mu_parallax`` by ~the floor.
+
+    Gaia's zero-point correction is, per Lindegren et al. (2021), "not perfect",
+    and its residual is correlated across a cluster -- every member carries the
+    same leftover offset, which averaging cannot remove. Vasiliev & Baumgardt
+    (2021) put that floor at 10.3 uas for a compact cluster.
+    """
+    from erotica.analysis.inference import ParallaxPriors
+
+    table, _ = _parallax_table()
+    cfg = SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=12, progressbar=False)
+
+    plain = fit_parallax_model(table, parallax_error_column="parallax_error", sampling=cfg)
+    withzp = fit_parallax_model(
+        table, parallax_error_column="parallax_error", zero_point=True, sampling=cfg
+    )
+
+    assert plain.metadata["zero_point_nuisance"] is False
+    assert withzp.metadata["zero_point_nuisance"] is True
+
+    floor = ParallaxPriors().zero_point_scale
+    expected = np.hypot(plain.mu_parallax_std, floor)
+    assert withzp.mu_parallax_std == pytest.approx(expected, rel=0.25)
+    # it must genuinely widen, not merely differ
+    assert withzp.mu_parallax_std > plain.mu_parallax_std
+    # and the mean itself must not move -- this adds uncertainty, not a shift
+    assert abs(withzp.mu_parallax_mean - plain.mu_parallax_mean) < 3 * plain.mu_parallax_std
+    # the cluster's intrinsic depth is a different parameter and must be unaffected
+    assert withzp.sigma_parallax_mean == pytest.approx(plain.sigma_parallax_mean, rel=0.35)
