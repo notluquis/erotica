@@ -4,15 +4,27 @@ _2026-07-26. Recursive citation sweep of the Hunt & Reffert / Emily Hunt lineage
 a partial third, **not saturated** — see §6). Every bibcode resolved via ADS with its title echoed.
 `[S]`=verified, `[I]`=inferred._
 
-## 0. The strategic finding
+## 0. The strategic finding — corrected
 
-> **Gaia DR4 is released — and no DR4 open-cluster catalogue exists.**
+```{danger}
+**Gaia DR4 is NOT released.** An earlier version of this note claimed it was. Verified against ESA's
+own release page (2026-07-27): **"Gaia DR4 (based on 66 months of data) — 2 December 2026"**, listed
+as *not yet released*; DR5 not before end of 2030. `[S]`
 
-DPAC DR4 papers are out (Creevey et al. `2026arXiv260700264C`, FLAME masses/ages; Jamal et al.
-`2026A&A...711A..62J`). But title- and abstract-level searches for a DR4 open-cluster
-catalogue/census return **nothing**. Ramezani+2026 frames its entire review as preparation *"for the
-forthcoming Gaia DR4"*, corroborating that nobody has done it. **The DR4 OC census is an open,
-unclaimed slot right now.** `[S]`
+The error came from seeing DPAC "DR4" papers (Creevey et al. `2026arXiv260700264C`, FLAME masses and
+ages; Jamal et al. `2026A&A...711A..62J`) and inferring the data was out. **DPAC pre-publishes
+content-description papers ahead of the release** — ESA's page says *"a first summary of the Gaia DR4
+contents is published now"*. Papers ≠ data.
+```
+
+**What survives, restated honestly:** no DR4 open-cluster catalogue exists — but that is *trivially*
+true, since nobody has the data. The real content is a **schedule**, not an open slot:
+
+- **~4 months of runway** (from 2026-07-27) to have a pipeline validated and ready for DR4 day.
+- Ramezani+2026 frames its whole review as preparation *"for the forthcoming Gaia DR4"* — the field is
+  visibly positioning for the same date. `[S]`
+- The competitive advantage is being **ready**, not being first to notice the gap. Everything in this
+  note that improves membership on DR3 transfers directly.
 
 Related: **there is no Paper IV or V.** `title:"Improving the open cluster census"` returns exactly
 6 records = the 3 papers + their 3 VizieR entries. Paper III (`2024A&A...686A..42H`) remains the
