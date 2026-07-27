@@ -249,6 +249,91 @@ census enumerates rather than searches and is the hard evidence. Huertas-Company
 **not** body-indexed in ADS — do not cite it as a verified negative.
 ```
 
+## 5c. MiMO as a calibration testbed — measured, not assumed
+
+**MiMO** (method `2022ApJ...930...44L`; catalog `2025AJ....170..288L`) was our best candidate for
+"calibrate someone else's published posterior." Data products downloaded and measured `[S]`.
+
+**Correction to the abstract's wording.** *"Full likelihood chains and photometric membership
+probabilities"* parses as **chains for the 7 cluster-level parameters, and a single scalar per star.**
+`member_stars.fits` is **511,735 rows × 5 columns** — `Cluster`, `source_id`, `ra`, `dec`,
+`p_member`. No photometry, no errors, no per-component likelihoods. Access: DOI `10.12149/101693`
+(China-VO), **CC BY 4.0**, *not* on VizieR.
+
+**A reliability diagram is comfortably feasible** — the distribution is not saturated:
+25.7% sit at exactly 0.0, **zero** at exactly 1.0, and **44.75% (229,013 stars) lie in 0.05 < p < 0.95**,
+with 739 clusters having ≥100 interior stars.
+
+**Nobody has calibrated it** — all 24 citations of the method paper and all 7 of the catalog walked;
+zero reliability diagrams, Brier/log-loss, coverage checks, or independent membership comparisons.
+⚠ **Pre-emption risk:** the catalog paper announces *"a dedicated follow-up study… of blue straggler
+candidates"* combining kinematic + photometric probabilities. Not out yet, but the authors have
+declared intent on the adjacent question.
+
+```{danger}
+**`p_member` is NOT usable as ground truth for an astrometric classifier.** Three structural reasons:
+1. **Support censoring** — it exists only for stars that already passed a Cantat-Gaudin+2020
+   astrometric cut (`Δμ < 6σ_μ`, parallax `6σ_ϖ`, `r < 3r₅₀`, `G<18`). So `p_member` is
+   *P(drawn from the cluster CMD | already passed an astrometric cut)*, and the censoring correlates
+   with our score.
+2. **Systematic, not random, label error** — the authors state high-kinematic/low-photometric stars
+   are **blue-straggler candidates**. For a known class of true members MiMO assigns `p→0` *by
+   design*. Using it as truth scores our classifier "overconfident" exactly where it is right.
+3. **It is a plug-in, not a posterior** — `p_member = (cl_prob * f_cl) / prob` evaluated at
+   `Θ_best-fit` (`MiMO.py:547`), not marginalised over the chains.
+```
+
+**The empirical test was run.** MiMO × OCCAM DR17, name-matched **78 clusters**, sky-matched at 1.5″
+→ **3,925 star pairs**, scored against OCCAM's *own* published criterion (Myers+2022 §4.1: threshold
+**0.01** = within 3σ — these are p-values, not posteriors):
+
+| target | base rate | mean `p_member` | Brier (vs base-rate) | AUC (cluster-bootstrap) |
+|---|---|---|---|---|
+| OCCAM member (RV, FeH, PM all >0.01) | 0.351 | 0.797 | **0.522** (0.228) | **0.449** (0.376–0.525) |
+| RV_PROB > 0.01 alone | 0.769 | 0.797 | 0.261 (0.178) | 0.534 (0.504–0.562) |
+
+**In this regime `p_member` is worse than a constant and its AUC is consistent with chance.**
+Reliability is near-flat: the p≈0.99 bin (N=2,419) contains 35.2% OCCAM members; the p≈0.002 bin
+(N=527) contains 22.8%.
+
+```{warning}
+**Do not over-read that table.** It covers **0.77%** of the catalog; the stars are **APOGEE bright
+giants** — structurally MiMO's *worst* regime, a short giant branch sitting in dense field-giant CMD
+territory; and **six clusters hold 56%** of the pairs. MiMO's discriminating power lives on the main
+sequence, and APOGEE cannot test it there. This is a reason to bring in Gaia-ESO/Jackson+2022, which
+reaches the MS — not a result to publish as-is.
+```
+
+### If we take it, frame it correctly
+**Not** *"MiMO is miscalibrated"* — the authors explicitly call `p_memb` photometric, complementary to
+kinematics, and tell users to combine. A bare critique is a strawman and a referee will say so. The
+defensible question is: **what does a published `p_member` column actually mean, and does the
+recommended combination calibrate?**
+
+- **Labels:** OCCAM DR17 at its own 0.01 threshold **plus** Gaia-ESO/Jackson+2022 (essential — it
+  reaches the main sequence where APOGEE cannot).
+- **Binning:** equal-count bins in `p`, with separate treatment of the 25.7% at exactly 0 — log-loss
+  is undefined without clipping, and **the clip value becomes a free parameter of the analysis**; state it.
+- **Statistic:** reliability curve + ECE + Brier decomposed into reliability/resolution, AUC reported
+  **separately** for discrimination. Errors from a **cluster-level bootstrap**, never per-star (see
+  the 56%/6-cluster concentration).
+- **The clean controlled experiment:** recompute `p_member` **marginalised over the published chains**
+  (they ship `logwt`, so reweighting is legitimate) versus the plug-in value. Expect a *small* effect —
+  the cluster-parameter posteriors are tight. The bigger lever is the one the paper admits: unmodelled
+  MS broadening / differential reddening is absorbed into an inflated `f_fs`, shifting every
+  `p_member` in that cluster.
+
+A plug-in-vs-marginalised check alone is a technical note. It becomes a **methods paper** when it
+answers the general question — *do the per-star probabilities that Gaia-era cluster catalogs now ship
+by the hundred-thousand mean what users assume?* — with MiMO as the worked example and the
+constructive result being a **calibrated `p_astro × p_phot` combination validated against
+spectroscopy**. That lands on our home turf without circularity.
+
+**Code status:** `github.com/luly42/mimo` — 4 files, 3 stars, **no LICENSE**, no tests. Two breakages:
+the notebook imports `mimo_01`, which does not exist (it is `MiMO.py` renamed — a `cp` fixes it), and
+`iso_model.h5` is **4.29 GB, absent from GitHub**, living only inside an **8.83 GB** China-VO archive.
+Better than Mecayotl (nothing is *missing*), but not `pip install`-able.
+
 ## 6. Collaboration note
 
 `phd-targets.md` ranks **Olivares + Sarro (UNED)** as a top application target. The two genuine gaps —

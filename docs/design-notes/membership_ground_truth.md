@@ -267,15 +267,48 @@ astrometric clustering measured *without* our method — cite it rather than dis
 
 - **`2026A&A...706A.341H` is NOT "Hunt & Reffert."** Authors: Hunt, Cantat-Gaudin, Anders, Malhotra,
   Spina, Castro-Ginard, Cavallo. **Reffert is not on it.** Cite accordingly.
-- **Jackson+2022 is not "independent of astrometry."** Its likelihood is `L_RV × L_pm` — it *uses*
-  proper motion; what it omits is **per-star parallax** (parallax enters only as a cluster-level
-  scaling `d_c`, which the authors say has no direct effect on membership). So it is orthogonal to
-  *half* our discriminant. Worse for our purpose: **parallax is a pre-screen** — ≥5,764 rows (13.7%)
-  were cut on a parallax criterion and carry `P = −1`. Those are **censored, not negative**, so the
-  stars our clustering would reject *on parallax* are largely absent from the scored sample.
-  Filter to **Λ=665 (GIRAFFE)** only (UVES fibres were preselected on prior membership) and **drop
-  all 7 globular clusters** — the authors state non-members cannot be cleanly identified there.
+- **Jackson+2022 — I over-rejected this. It is the ONE live non-circular source at G > 17.**
+  The circularity applies to its *published probability columns*, **not to its target list**, and
+  those are separable. Bragaglia+2022 (`2022A&A...659A.200B`), verbatim `[S]`:
+
+  > *"As the entire GES has been conducted before the second Gaia data release, **we could not make
+  > use of the Gaia astrometry to define cluster member candidates**."*
+  > *"for GIRAFFE targets we selected candidate cluster members **on the basis of photometry**."*
+
+  Jackson+2022 then publishes the negatives: **43,211 observed targets → 13,985 at P>0.9, i.e.
+  ~28,000 published rejects with measured RVs**, targeting *"usually unbiased with respect to position
+  in the CMD (between bright and faint limits of approximately 11 < V < 19)"*. Sample rows show
+  **G = 17.42 and 17.44 with P₃D = 0.0000** — published negatives above G=17 carrying full Gaia
+  astrometry. That is exactly the faint non-circular negative sample a reliability diagram needs.
+
+  **Three conditions for using it** `[S]`:
+  1. **Do not use the published probability columns.** P₃D, P_QG and P₂D are all built on Gaia EDR3
+     proper motions (+ a 4σ parallax pre-screen) → circular. **Use the RV column** and rebuild
+     membership from RV (+ log g, Li) alone.
+  2. **Filter to GIRAFFE** (`setup` = HR15N). Bragaglia: UVES targets *"generally selected from the
+     most secure members… The choice of UVES targets is then strongly biased."*
+  3. Mild ground-based PM pre-filter on the negatives (UCAC4/SPM4/PPMXL, mas/yr-class) — a
+     quantifiable caveat, not a dealbreaker. Also **drop the 7 globular clusters** (authors state
+     non-members cannot be cleanly identified there).
+
+  Note it is also the **baseline to beat**: Jackson+2022 already computes ROC/AUC and cites
+  Hosmer & Lemeshow — so it is the discrimination-vs-calibration incumbent *and* our best data source.
 - **"Jackson et al. 2018" does not exist** — no such membership catalog.
+- **LAMOST-MRS-O is DEAD for this purpose** (`2026RAA....26e5001Z`) — two independent kills `[S]`:
+  **(1) magnitude** — hard wall at G≈15 (reliable abundances only G≲13.5), while our problem is
+  G=18–20; **(2) circularity** — §2.2 states members were obtained by cross-matching *"with members
+  of the catalog presented in Hunt24 that have a membership probability (Prob) greater than 50%"*,
+  i.e. **literal reuse of an astrometric classifier's thresholded output**. There is no
+  membership-probability column in either table, no VizieR entry, and its dec range
+  (−05°41′ to +60°34′) excludes NGC 6383 anyway. It has **0 citations** — genuinely unexploited, and
+  also entirely unvalidated. The *parent* LAMOST archive is not circular (fields are
+  magnitude-limited, only the footprint is cluster-aware) but its median intra-cluster RV dispersion
+  is **8.5 km/s** against a true OC dispersion of 1–2 km/s, so only gross outliers are detectable.
+  Related correction: the metallicity-bias lead is **Zhang Ruyuan** (`2024A&A...692A.212Z`), a
+  different author, and it concerns LAMOST **LRS DR8**, not MRS.
+  **Verdict: of six spectroscopic surveys checked, only Gaia-ESO survives** — WEAVE and 4MOST have no
+  released OC product, GALAH is G≲14 with |b|≥10° (excluding most OCs), SDSS-V/MWM has no OC
+  membership catalogue and its YSO-cluster targeting is itself circular.
 - **The ABYSS bibcodes are not OC membership catalogs** (`2023ApJS..266...10K` = targeting strategy;
   `2024AJ....167..125S` = young stars in SDSS spectra), and ABYSS selection *includes phase-space
   position*. Drop unless working <30 Myr.
