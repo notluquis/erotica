@@ -188,16 +188,67 @@ members are Hα-negative even at 1–3 Myr** (weak-line T Tauri stars). Unusable
 
 ## 5. ⚠️ Directly relevant to our NGC 6383 work
 
-**Kalari 2019** (`2019MNRAS.484.5102K`, *CTTS with VPHAS+ II: NGC 6383*) identified **156 CTTS
-photometrically** — independent of astrometry. But VizieR `J/MNRAS/484/5102/table1` **publishes only
-the 55 that survived a Gaia DR2 proper-motion cut.** `[S]`
+**Kalari 2019** (`2019MNRAS.484.5102K`, *CTTS with VPHAS+ II: NGC 6383*). Verified from the arXiv
+LaTeX source (`arXiv:1901.07511`): *"We identify 156 CTTS on this basis"* (§3.1); *"From this
+selection, 55 CTTS are selected as kinematic members"* (§3.2). A leftover author comment on line 208
+says it outright: `%156 select4d as EW 55 final sample from Gaia dR2 results. 101 removed as
+kinematic outlier`. VizieR `J/MNRAS/484/5102` ships **only** `table1.dat`, 55 rows. `[S]`
 
 > **The published 55 are CIRCULAR — do not use them as ground truth for NGC 6383.**
 
-The independent 156 are not available machine-readable; they would have to be re-derived from VPHAS+
-DR2 (VizieR `II/341`) using the paper's stated colour criteria — estimated **half a day**, and
-probably worth it given our NGC 6383 paper. This also bears on the backlog item about re-adjudicating
-the "missing Kalari CTTS".
+```{important}
+**Correction (2026-07-27): the 156 are proper-motion-free, NOT Gaia-free.** §2.2 states the CTTS
+were selected from a **Gaia-DR2-crossmatched parent**: *"We cross-matched our VPHAS+ source list with
+the Gaia DR2 dataset within a radius of 0.1 arcsec … applied the C-1 astrometric equation … In total,
+we have 1 296 410 stars with high-quality astrometry and photometry. **These form the source dataset
+from which we will identify CTTS.**"* This is not fatal — **C-1 is a goodness-of-fit cut, not a
+kinematic one**, so it does not preselect members. The circularity is confined to the IQR
+proper-motion cut that produced the 55. But the 156 must not be described as "astrometry-free".
+```
+
+### Re-derivation: done — `tools/prototypes/rederive_kalari_ctts.py` `[S]`
+
+Runs against VizieR TAP, no credentials. **Recovers 54 of the 55** published CTTS; the single miss
+(`0902b-22-4556`) fails its own EW threshold by 1.2 Å *using the paper's own published numbers* —
+unrecoverable by the stated criteria, not a defect in the reimplementation.
+
+**Yield: 317 candidates** over a literal 2°×2° box (paper: 156), containing all 54. The gap is
+explained, not hand-waved: the paper drew from the **Gaia-matched 1.30M parent**, not the 1.94M
+photometric one (our parent checksum 1,938,876 vs the author's 2,091,573, −7.3%), and 63% of the
+excess sits in a **northern overdensity where the paper reports zero CTTS**. A further 392
+blueward-extrapolated candidates are **quarantined to a separate file** — the track is calibrated
+only over K5–M4, so the EW < −18 Å regime is unconstrained.
+
+**Two unstated numbers were closed by inversion rather than guessed:** Eq. 1 was inverted on the 55
+(which publish r, i, Hα *and* EW) to recover **W = 128.4 Å** (not the 107 Å filter bandpass; sharp
+minimum, leave-one-out EW error 1.9 Å vs published errors of 5.6 Å) and the **model track** as a
+cubic — the unpublished electronic file the paper's footnote promised. SpT↔(r−i) boundaries came from
+Paper I's labelled figure axis via `pdftotext -bbox`.
+
+```{warning}
+**Two defects found in the published data** `[S]`:
+1. **`table1`'s `r` column is wrong by −0.863 mag** — a hard constant across all 55 sources and all 7
+   fields. All 55 sourceIDs resolve exactly in VPHAS+ `II/341`, where `i` and Hα agree to 0.003 mag
+   but `r` does not. Three independent checks say VizieR is right: Gaia G−r is unphysical (+0.69)
+   with `table1`'s r but normal (−0.17) with VizieR's; `table1`'s r−i implies F/G stars, contradicting
+   the paper's own *"0.3 to 1 M⊙"*; and with VizieR's r the range 0.760–1.960 is K5–M4, exactly right.
+   The offset equals A_r for E(B−V)=0.32, but *"it's dereddened"* is refuted — that would shift `i`
+   by 0.63 too. Origin unknown.
+2. **The χ < 1.5 cut applies to `r` only.** Applying it to r+i+Hα destroys **6 of the author's own
+   55** (their χ_i reaches 1.90), while all 55 pass χ_r < 1.5.
+```
+
+**Crossmatch to our catalogue.** VPHAS+ carries no Gaia `source_id` and no published Gaia×VPHAS+
+table exists, so the join is **positional** — and demonstrably safe: separations for the 55 are
+0.05–0.18″ and the match count is *identical* at 0.5″, 1.0″ and 2.0″ (epoch drift ~10 mas). Against
+our 321 members: **21 of 2,782 match** (median 0.114″, 16 with `PMSProb` > 0.5). Note our 40′ footprint
+covers only the central cluster — 42 of the 55 fall in its bounding box, but the CTTS spread over
+degrees. Ours is DR3; the paper is DR2.
+
+```{caution}
+The 317 are a **superset**: more complete *and* more contaminated than the 156. Treat the north-edge
+population with suspicion before using any of this as ground truth.
+```
 
 ## 6. An independent ceiling on our own method
 

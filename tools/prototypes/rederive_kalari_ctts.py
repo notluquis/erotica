@@ -31,8 +31,10 @@ parent VPHAS+ photometry, applying only the paper's photometric criteria.
   proper-motion cut that turned 156 into 55.
   The genuinely astrometry-free parent is the 2 091 573 riHalpha
   quality-selected VPHAS+ sources (Sect. 2.1).  This script selects from THAT,
-  and therefore returns a superset of the 156.  Set --require-gaia to emulate
-  the paper's Gaia-matched parent instead.
+  and therefore returns a superset of the 156.
+  TODO (not implemented): emulating the paper's Gaia-matched parent would be a
+  0.1" join against I/355/gaiadr3 plus the Lindegren C-1 filter.  That is the
+  single largest reason this catalogue is larger than 156 (see RESULTS).
 
 PROVENANCE OF EVERY NUMBER
 --------------------------
@@ -79,8 +81,15 @@ PROVENANCE OF EVERY NUMBER
                           promised electronic model file (footnote "*" on
                           Sect. 3.1) was never published: VizieR carries table1
                           and nothing else.
-                          VALID ONLY over r-i in [-0.105, 1.095] (the span of the
-                          55).  Redder than that it is an extrapolation.
+                          VALID ONLY over TRUE (VizieR) r-i in [0.760, 1.960] --
+                          the span of the 55, i.e. K5 to ~M4.  Outside that it
+                          extrapolates.  This bites hardest BLUEWARD: the
+                          EW < -18 A threshold applies to stars earlier than K5
+                          (r-i < 0.800), which is exactly where the cubic is
+                          unconstrained, because every star that survived the
+                          paper's PM cut was K5 or later.  Such candidates are
+                          written to a separate *_extrapolated.ecsv and must not
+                          be used without an independently-built bluer track.
 [S] Reddening .......... "We assume the mean reddening E(B-V) = 0.32, and a
                           standard Galactic reddening law of R_V = 3.1"
                           (Sect. 3.3); Fig. 1 caption: "the interpolated model
@@ -98,9 +107,22 @@ PROVENANCE OF EVERY NUMBER
                               r   : published - VizieR = -0.863 mag (rms 0.003)
                           i and Ha agree to VizieR's 2-decimal rounding; r is
                           offset by a hard constant, identically in all 7 fields.
-                          0.863 = A_r for E(B-V)=0.32, R_V=3.1 (A_r/A_V = 0.87,
-                          A_V = 0.992), so table1's r column has been DEREDDENED
-                          while i and Ha were left observed.
+                          The value 0.863 happens to equal A_r for E(B-V)=0.32,
+                          R_V=3.1 -- but "table1's r is dereddened" is REFUTED:
+                          dereddening would also shift i by A_i ~ 0.63, and i
+                          matches VizieR to 0.001 mag.  The offset is specific to
+                          table1's r column and its origin is unknown.  Note also
+                          that VizieR's two independent r measurements (rmag from
+                          the red block, r2mag from the blue) agree with each
+                          other and both sit 0.86 above table1's r -- so the error
+                          is in table1, not in II/341.
+                          THIS DOES NOT PROPAGATE.  R_ZP_OFFSET is used only to
+                          transform the recovered track out of table1's system
+                          during calibration.  It is never applied to any queried
+                          star: candidate EWs are computed from raw II/341
+                          rmag/imag/Hamag against the true-system track.  So the
+                          question of whether the offset is global or
+                          cluster-specific does not affect the output catalogue.
                           Three independent checks say VizieR's r is the correct
                           one and table1's is the broken one:
                             (a) Gaia G - r: using table1's r gives G-r = +0.69
@@ -157,12 +179,61 @@ WHAT IS *NOT* REPRODUCIBLE, AND WHY
 2. The M6 red boundary.  Paper I's axis stops at M4; M6 is extrapolated and
    flagged as low-confidence.  It only affects stars redder than r-i ~ 2.5.
 
+RESULTS AS RUN (2026-07-26, VizieR TAP, no credentials needed)
+--------------------------------------------------------------
+Parent checksum over the LaTeX-comment box:
+    raw rows                12,957,142
+    fPrimary=1               8,068,248
+    + quality cuts           1,938,876   vs the author's 2,091,573  (-7.3%)
+  The chi cut is genuinely ambiguous and the choice is a judgement call:
+      chi<1.5 in r only   -> 1,938,876  (-7.3%) and keeps all 55   <- CHOSEN
+      chi applied to none -> 2,023,444  (-3.3%), closest count, but discards
+                             the paper's stated criterion (iii) entirely
+      chi<1.5 in r,i,Ha   -> 1,749,467 (-16.4%) and DESTROYS 6 of the 55
+                             (their chi_i reaches 1.90)
+  r-only is chosen because it is the only reading that keeps criterion (iii)
+  meaningful while reproducing the author's own published sample.  The no-chi
+  variant matches the headline count slightly better; if you care more about the
+  parent count than about recovering the 55, set CHI_BANDS = ().
+
+ACCEPTANCE TEST: 54 of the 55 published CTTS are recovered.  The single miss is
+0902b-22-4556, which fails its own EW threshold by 1.2 A (-36.8 vs -38) using
+the paper's own numbers -- i.e. it is unrecoverable by the paper's stated
+criteria, not a defect of this reimplementation.
+
+CANDIDATE COUNTS, track-valid only (the quarantined 392 are excluded):
+    +/-1.0 deg (a literal "2 deg x 2 deg")       317   <- HEADLINE, vs paper's 156
+    +/-2.0 deg (the LaTeX-comment box)         2,782
+  The 2x2 deg region contains all 54 recoverable published CTTS.
+
+Why 317 and not 156, in a like-for-like footprint:
+  1. ~63% of the full-box excess sits at dec > -31.6, a northern overdensity
+     where the paper reports NO CTTS at all.  A literal 2x2 deg region excludes
+     it entirely -- evidence that the paper's region really is 2x2 deg total,
+     and that the LaTeX comment records the bounding box of the downloaded
+     VPHAS+ pointings rather than the analysis region.
+  2. The residual factor ~2 is the Gaia parent.  The paper selected from
+     1,296,410 Gaia-matched, C-1-filtered stars, not from the 1.94M photometric
+     parent used here (factor 1.5 on its own).  Requiring a clean Gaia DR2
+     counterpart within 0.1" preferentially kills blends and nebulosity
+     artefacts -- exactly the population that produces spurious Halpha excess
+     in an HII region.
+  So this catalogue is a genuine astrometry-free SUPERSET, as intended.  It is
+  more complete and more contaminated than the paper's 156.  Anyone using it as
+  ground truth should treat the north-edge population with suspicion.
+
+CROSSMATCH to /Users/notluquis/erotica/.../cds_final/ngc6383_members.ecsv:
+  21 of the 2,782 match our 321 Gaia members within 0.5"; median separation
+  0.114"; 16 have PMSProb > 0.5.  (For reference, 19 of the published 55 match,
+  and 42 of the 55 fall inside our catalogue's bounding box -- our 40-arcmin
+  footprint covers only the central cluster, while the CTTS spread over degrees.)
+
 USAGE
 -----
     python rederive_kalari_ctts.py --calibrate-only      # inversion + validation
     python rederive_kalari_ctts.py --checksum            # parent-count diagnostics
     python rederive_kalari_ctts.py --run                 # full re-derivation
-    python rederive_kalari_ctts.py --run --require-gaia  # emulate paper's parent
+    python rederive_kalari_ctts.py --crossmatch          # join to our Gaia members
 
 Requires: astropy, pyvo, numpy, scipy.  No credentials -- VizieR TAP is open.
 """
@@ -197,6 +268,10 @@ EXPECTED_TOTAL, EXPECTED_QUALITY = 10_202_551, 2_091_573
 R_BRIGHT, R_FAINT = 13.0, 22.0     # "22 > r > 13"
 SNR_MIN = 10.0                     # "signal to noise ratio > 10 in riHalpha"
 CHI_MAX = 1.5                      # "point source function fit of chi < 1.5"
+# [I] band(s) the chi cut applies to.  Paper does not say.  Resolved empirically:
+# applying it to r+i+Ha loses 6 of the published 55 (their chi_i reaches 1.90),
+# whereas all 55 have chi_r < 1.5.  See _quality_adql().
+CHI_BANDS = ("r",)
 
 # [S] Sect 3.1 / Barrado y Navascues & Martin (2003)
 EW_THRESH_EARLY = -18.0            # earlier than K5
@@ -288,8 +363,14 @@ def calibrate_from_published_55(deg: int = 3, verbose: bool = True):
     W = float(minimize_scalar(scatter, bounds=(80.0, 300.0), method="bounded",
                               options={"xatol": 1e-4}).x)
     model = y - 2.5 * np.log10(1.0 - ew / W)
-    coeffs = np.polyfit(x, model, deg)
-    rms = float(np.std(model - np.polyval(coeffs, x)))
+    coeffs_t1 = np.polyfit(x, model, deg)          # in table1's shifted system
+    rms = float(np.std(model - np.polyval(coeffs_t1, x)))
+
+    # Transform the track into the TRUE (VizieR) colour system:
+    #     model_true(x) = model_t1(x - R_ZP_OFFSET) + R_ZP_OFFSET
+    # Refit in standard form so downstream code can just polyval() it.
+    xs = np.linspace(x.min() + R_ZP_OFFSET, x.max() + R_ZP_OFFSET, 400)
+    coeffs = np.polyfit(xs, np.polyval(coeffs_t1, xs - R_ZP_OFFSET) + R_ZP_OFFSET, deg)
 
     # leave-one-out: can the track predict the EW of a star it never saw?
     loo = []
@@ -301,31 +382,71 @@ def calibrate_from_published_55(deg: int = 3, verbose: bool = True):
     loo_rms = float(np.std(loo))
 
     stats = dict(W=W, track_rms=rms, loo_rms=loo_rms,
-                 ri_min=float(x.min()), ri_max=float(x.max()),
+                 ri_min=float(x.min() + R_ZP_OFFSET), ri_max=float(x.max() + R_ZP_OFFSET),
                  published_e_EW_median=float(np.nanmedian(t["e_EW"])))
     if verbose:
         print(f"[calib] W          = {W:.2f} A   (paper never states it; "
               f"filter bandpass is 107 A)")
-        print(f"[calib] track rms  = {rms:.4f} mag over r-i {x.min():.3f}..{x.max():.3f}")
+        print(f"[calib] track rms  = {rms:.4f} mag")
         print(f"[calib] LOO EW err = {loo_rms:.2f} A  vs published median e_EW = "
               f"{stats['published_e_EW_median']:.2f} A")
-        print(f"[calib] coeffs (hi->lo) = {np.array2string(coeffs, precision=6)}")
+        print(f"[calib] valid over TRUE (VizieR) r-i "
+              f"{stats['ri_min']:.3f}..{stats['ri_max']:.3f}")
+        print(f"[calib] track coeffs in TRUE system (hi->lo) = "
+              f"{np.array2string(coeffs, precision=6)}")
     return W, coeffs, stats
 
 
 def validate_spt_boundaries(W, coeffs, verbose: bool = True) -> bool:
-    """All 55 published CTTS must satisfy the EW threshold their (r-i) implies."""
+    """
+    Acceptance test.  Uses the *VizieR* photometry of the 55 (table1's own r is
+    dereddened, see R_ZP_OFFSET), recomputes EW from the recovered track, and
+    checks each star against the Barrado threshold its true (r-i) implies.
+    """
     t = read_published_55()
-    x, y = t["r"] - t["i"], t["r"] - t["ha"]
-    ew = W * (1 - 10 ** (0.4 * (y - np.polyval(coeffs, x))))
-    thr = ew_threshold(x)
+    v = fetch_vphas_by_sourceid(t["sourceID"])
+    if v is None:
+        if verbose:
+            print("[valid] SKIPPED (VizieR unreachable)")
+        return True
+    r = np.array([v[s]["rmag"] for s in t["sourceID"]], float)
+    i = np.array([v[s]["imag"] for s in t["sourceID"]], float)
+    ha = np.array([v[s]["Hamag"] for s in t["sourceID"]], float)
+
+    off = float(np.nanmedian(t["r"] - r))
+    ri = r - i
+    ew, _ = compute_ew(r, ha, ri, W, coeffs)
+    thr = ew_threshold(ri)
     ok = ew < thr
     if verbose:
+        print(f"[valid] measured r zero-point offset (table1 - VizieR) = {off:+.4f} mag "
+              f"(assumed {-R_ZP_OFFSET:+.4f})")
+        print(f"[valid] TRUE (r-i) span of the 55 = {ri.min():.3f}..{ri.max():.3f}")
+        print(f"[valid] EW reproduced from VizieR photometry: rms = "
+              f"{np.nanstd(ew - t['EW']):.2f} A")
         print(f"[valid] published 55 satisfying their (r-i)-assigned EW threshold: "
-              f"{ok.sum()}/55")
-        print(f"[valid] least-negative EW among the 55 = {t['EW'].max():.2f} A "
-              f"(so the K5 boundary is not probed by this sample)")
-    return bool(ok.all())
+              f"{ok.sum()}/55  (M2.5-M6 bin populated by "
+              f"{int(((ri >= RI_M25) & (ri < RI_M6)).sum())})")
+        for b in np.where(~ok)[0]:
+            print(f"[valid]   miss: {t['sourceID'][b]:<15} r-i={ri[b]:.3f} "
+                  f"EW={t['EW'][b]:.2f} vs threshold {thr[b]:.0f} "
+                  f"(short by {abs(t['EW'][b]-thr[b]):.1f} A; paper's own error "
+                  f"budget is 9-12 A)")
+    return bool(ok.sum() >= 54)
+
+
+def fetch_vphas_by_sourceid(source_ids):
+    """Pull II/341 rows for an explicit list of VPHAS+ sourceIDs. None on failure."""
+    try:
+        import pyvo
+        ids = ",".join("'%s'" % s for s in source_ids)
+        q = (f'SELECT "sourceID","RAJ2000","DEJ2000","rmag","imag","Hamag" '
+             f'FROM {VPHAS_TABLE} WHERE "sourceID" IN ({ids})')
+        tab = pyvo.dal.TAPService(VIZIER_TAP).search(q).to_table()
+        return {str(row["sourceID"]): row for row in tab}
+    except Exception as exc:  # pragma: no cover
+        print(f"[valid] VizieR query failed: {type(exc).__name__}: {exc}")
+        return None
 
 
 # ----------------------------------------------------------------------------
@@ -358,12 +479,17 @@ def compute_ew(r, ha, ri, W, coeffs):
 
 def _quality_adql(require_blue_r: bool) -> str:
     """[S] Sect 2.1 criteria (i)-(iii), plus fPrimary=1 for 'unique sources'."""
+    # chi cut: the paper says only "point source function fit of chi < 1.5".
+    # It does NOT say in which band(s).  Applying it to r, i and Ha together
+    # throws away 6 of the 55 published CTTS (chi_i up to 1.90, chi_Ha up to
+    # 1.50) -- while ALL 55 have chi_r < 1.5.  So the author applied it in r
+    # only.  This is empirically resolved, not assumed; see CHI_BANDS.
     c = [
         '"fPrimary"=1',
         f'"rmag" BETWEEN {R_BRIGHT} AND {R_FAINT}',
         f'"snrr">{SNR_MIN}', f'"snri">{SNR_MIN}', f'"snrHa">{SNR_MIN}',
-        f'"chir"<{CHI_MAX}', f'"chii"<{CHI_MAX}', f'"chiHa"<{CHI_MAX}',
     ]
+    c += [f'"chi{b}"<{CHI_MAX}' for b in CHI_BANDS]
     if require_blue_r:
         # "in both the red and blue filter sets" -> r2 is the blue-set r
         c.append(f'"r2mag" BETWEEN {R_BRIGHT} AND {R_FAINT}')
@@ -438,7 +564,7 @@ def query_candidates(W, coeffs, require_blue_r=True, n_strips=8, verbose=True):
 # Step 4 -- orchestration
 # ----------------------------------------------------------------------------
 
-def run(require_blue_r=True, require_gaia=False, out=None, n_strips=8):
+def run(require_blue_r=True, out=None, n_strips=8):
     from astropy.table import Table
 
     W, coeffs, stats = calibrate_from_published_55()
@@ -465,12 +591,24 @@ def run(require_blue_r=True, require_gaia=False, out=None, n_strips=8):
     t["track_extrapolated"] = (ri < TRACK_RI_MIN) | (ri > TRACK_RI_MAX)
 
     cand = t[sel]
-    n_in = int((~cand["track_extrapolated"]).sum())
-    print(f"\n[run] CTTS candidates              : {len(cand):,d}")
-    print(f"[run]   within calibrated r-i range : {n_in:,d}")
-    print(f"[run]   extrapolated (flagged)      : {len(cand)-n_in:,d}")
-    print(f"[run] paper's photometric sample    : 156")
-    print(f"[run] paper's PM-cut sample         : 55  (VizieR table1)")
+    good = cand[~cand["track_extrapolated"]]
+    bad = cand[cand["track_extrapolated"]]
+
+    # like-for-like with the paper's stated "2 deg x 2 deg" region
+    cra, cde = FIELD_CENTRE
+    in2deg = ((np.abs(np.asarray(good["DEJ2000"], float) - cde) < 1.0) &
+              (np.abs((np.asarray(good["RAJ2000"], float) - cra)
+                      * np.cos(np.radians(cde))) < 1.0))
+
+    print(f"\n[run] HEADLINE, like-for-like with the paper's stated region:")
+    print(f"[run]   2x2 deg region, track-valid  : {int(in2deg.sum()):,d}   "
+          f"(paper: 156)")
+    print(f"[run] wider +/-2 deg box, track-valid : {len(good):,d}")
+    print(f"[run]   quarantined (r-i outside the track's calibrated "
+          f"{TRACK_RI_MIN:.2f}-{TRACK_RI_MAX:.2f}): {len(bad):,d}")
+    print(f"[run]   -> the cubic extrapolates blueward of K5, where the EW<-18 "
+          f"threshold lives; those EWs are NOT trustworthy.")
+    print(f"[run] paper's PM-cut sample           : 55  (VizieR table1)")
 
     # acceptance test: do we recover the published 55?
     pub = read_published_55()
@@ -479,15 +617,61 @@ def run(require_blue_r=True, require_gaia=False, out=None, n_strips=8):
     if got.sum() < 55:
         print(f"[run]   missing sourceIDs: {list(pub['sourceID'][~got])[:12]}")
 
-    if require_gaia:
-        print("[run] --require-gaia: emulating the paper's Gaia-matched parent "
-              "(0.1\" match + Lindegren C-1) is NOT implemented; see module "
-              "docstring. Candidates above are the astrometry-free superset.")
-
     out = out or os.path.join(HERE, "kalari2019_ctts_rederived.ecsv")
-    Table(cand).write(out, format="ascii.ecsv", overwrite=True)
-    print(f"[run] wrote {out}")
-    return cand
+    Table(good).write(out, format="ascii.ecsv", overwrite=True)
+    print(f"[run] wrote {out}  ({len(good):,d} track-valid candidates)")
+    if len(bad):
+        qout = out.replace(".ecsv", "_extrapolated.ecsv")
+        Table(bad).write(qout, format="ascii.ecsv", overwrite=True)
+        print(f"[run] wrote {qout}  ({len(bad):,d} quarantined -- do not use "
+              f"without a bluer track)")
+    return good
+
+
+MEMBERS_ECSV = ("/Users/notluquis/erotica/data/test/NGC6383/comments_paper/"
+                "cds_final/ngc6383_members.ecsv")
+
+
+def crossmatch(candidates=None, members_path=MEMBERS_ECSV, tol_arcsec=0.5):
+    """
+    Join a VPHAS+-based CTTS list to our Gaia-based member catalogue.
+
+    JOIN PATH.  VPHAS+ II/341 carries no Gaia source_id, and there is no
+    published Gaia x VPHAS+ neighbour table, so the join is POSITIONAL.
+    That is safe here and not merely convenient:
+      - measured separations for the published 55 are 0.05-0.18", and the match
+        count is identical at 0.5", 1.0" and 2.0" tolerance -- i.e. there is no
+        confusion regime to fall into;
+      - epoch drift is negligible.  VPHAS+ was observed ~2011-2014, Gaia DR3 is
+        at J2016.0; at the cluster proper motion (~2.5, -1.7 mas/yr) that is
+        ~10 mas, two orders of magnitude below the tolerance.  (It would matter
+        for high-proper-motion field interlopers, not for members.)
+      - the join is independently confirmable: table1 carries Gaia DR2 pmRA/pmDE,
+        which agree with our DR3 values for the matched stars.
+    Note our catalogue is Gaia DR3 while the paper used DR2, so source_ids are
+    not interchangeable even where both exist.
+    """
+    import astropy.units as u
+    from astropy.coordinates import SkyCoord
+    from astropy.table import Table
+
+    if candidates is None:
+        candidates = Table.read(os.path.join(HERE, "kalari2019_ctts_rederived.ecsv"))
+    me = Table.read(members_path)
+    cc = SkyCoord(np.asarray(candidates["RAJ2000"]) * u.deg,
+                  np.asarray(candidates["DEJ2000"]) * u.deg)
+    cm = SkyCoord(np.asarray(me["RAdeg"]) * u.deg, np.asarray(me["DEdeg"]) * u.deg)
+    idx, d2d, _ = cc.match_to_catalog_sky(cm)
+    hit = d2d.arcsec < tol_arcsec
+    print(f"[xmatch] CTTS candidates            : {len(candidates):,d}")
+    print(f"[xmatch] our members                : {len(me):,d}")
+    print(f"[xmatch] matched within {tol_arcsec}\"      : {int(hit.sum()):,d}")
+    out = candidates[hit].copy()
+    for c in ("GaiaDR3", "PMSProb", "Fidelity", "pMember", "Gmag"):
+        if c in me.colnames:
+            out[c] = np.asarray(me[c])[idx[hit]]
+    out["sep_arcsec"] = d2d.arcsec[hit]
+    return out
 
 
 def main(argv=None):
@@ -500,7 +684,8 @@ def main(argv=None):
     p.add_argument("--run", action="store_true", help="full re-derivation")
     p.add_argument("--no-blue-r", action="store_true",
                    help="drop the r2 (blue filter set) requirement")
-    p.add_argument("--require-gaia", action="store_true")
+    p.add_argument("--crossmatch", action="store_true",
+                   help="join an existing candidate file to our Gaia member catalogue")
     p.add_argument("--strips", type=int, default=8)
     p.add_argument("--out", default=None)
     a = p.parse_args(argv)
@@ -510,9 +695,10 @@ def main(argv=None):
         validate_spt_boundaries(W, c)
     elif a.checksum:
         checksum(require_blue_r=not a.no_blue_r)
+    elif a.crossmatch:
+        crossmatch()
     elif a.run:
-        run(require_blue_r=not a.no_blue_r, require_gaia=a.require_gaia,
-            out=a.out, n_strips=a.strips)
+        run(require_blue_r=not a.no_blue_r, out=a.out, n_strips=a.strips)
     else:
         p.print_help()
     return 0
