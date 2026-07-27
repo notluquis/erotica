@@ -19,6 +19,9 @@ from astropy.table import QTable
 
 import erotica.analysis.inference as inference
 from erotica.analysis.inference import (
+    ParallaxPriors,
+    SamplingConfig,
+    fit_parallax_model,
     ClusterInferenceAnalyzer,
     DistanceFitResult,
     ParallaxFitResult,
@@ -189,3 +192,98 @@ def test_return_trace_false_discards_the_posterior():
     cfg = SamplingConfig(draws=200, tune=200, chains=2, random_seed=13, progressbar=False)
     res = fit_parallax_model(_synthetic_parallaxes(n=100), sampling=cfg)
     assert res.trace is None
+
+
+# ---------------------------------------------------------------------------
+# Per-star parallax errors in the likelihood
+#
+# ORACLE: an intrinsic spread the test injects, which is *deliberately much
+# smaller* than the measurement errors -- the regime every Gaia open cluster is
+# in. The naive model has no way to tell the two apart, so it must report the
+# total scatter as if it were cluster depth. The error-aware model must recover
+# the injected intrinsic value.
+# ---------------------------------------------------------------------------
+
+TRUE_INTRINSIC = 0.010  # mas; ~12 pc of depth at 1.1 kpc
+# Median e_Plx per Gmag quartile of the published NGC 6383 member table, so the
+# error distribution is the real one rather than a convenient one.
+REAL_ERROR_SCALE = np.array([0.027, 0.065, 0.123, 0.293])
+
+
+def _parallax_table(n=400, seed=5):
+    rng = np.random.default_rng(seed)
+    errors = np.repeat(REAL_ERROR_SCALE, n // 4)
+    errors = errors * rng.uniform(0.8, 1.2, errors.size)  # spread within quartiles
+    true_plx = rng.normal(TRUE_PARALLAX, TRUE_INTRINSIC, errors.size)
+    observed = true_plx + rng.normal(0.0, errors)
+    return QTable({"parallax": observed * u.mas, "parallax_error": errors * u.mas}), errors
+
+
+@requires_bayes_extra
+def test_per_star_errors_separate_cluster_depth_from_measurement_noise():
+    """The naive model reports measurement scatter as cluster depth; the fix does not."""
+    table, errors = _parallax_table()
+    cfg = SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=3, progressbar=False)
+
+    naive = fit_parallax_model(table, sampling=cfg)
+    aware = fit_parallax_model(table, parallax_error_column="parallax_error", sampling=cfg)
+
+    assert naive.metadata["error_aware"] is False
+    assert aware.metadata["error_aware"] is True
+
+    # The error-aware fit recovers the injected intrinsic spread.
+    assert abs(aware.sigma_parallax_mean - TRUE_INTRINSIC) < 4 * aware.sigma_parallax_std
+
+    # The naive fit instead reports the total observed scatter, which is set by
+    # the measurement errors and is an order of magnitude larger.
+    assert naive.sigma_parallax_mean > 5 * TRUE_INTRINSIC
+    assert naive.sigma_parallax_mean > 3 * aware.sigma_parallax_mean
+
+    # Both should still find the mean parallax -- the bias is in the width only.
+    for res in (naive, aware):
+        assert abs(res.mu_parallax_mean - TRUE_PARALLAX) < 4 * res.mu_parallax_std
+
+
+@requires_bayes_extra
+def test_default_priors_do_not_depend_on_the_data():
+    """Two clusters at different parallaxes must get identical prior support."""
+    near = QTable({"parallax": np.random.default_rng(1).normal(5.0, 0.1, 200) * u.mas})
+    far = QTable({"parallax": np.random.default_rng(2).normal(0.4, 0.1, 200) * u.mas})
+    cfg = SamplingConfig(draws=200, tune=200, chains=1, random_seed=0, progressbar=False)
+
+    a = fit_parallax_model(near, return_trace=True, sampling=cfg)
+    b = fit_parallax_model(far, return_trace=True, sampling=cfg)
+    assert a.metadata["prior"] == b.metadata["prior"] == "scale-free"
+
+    # Both posteriors must lie inside the same fixed support, and each must still
+    # find its own very different truth -- a fixed prior that broke recovery would
+    # be no improvement.
+    p = ParallaxPriors()
+    for res, truth in ((a, 5.0), (b, 0.4)):
+        draws = np.asarray(res.trace.posterior["mu_parallax"].values)
+        assert draws.min() >= p.mu_lower and draws.max() <= p.mu_upper
+        assert abs(res.mu_parallax_mean - truth) < 0.05
+
+
+@requires_bayes_extra
+def test_an_independent_distance_still_gives_an_informative_prior():
+    """prior_distance comes from outside the sample, so it is not data reuse."""
+    table, _ = _parallax_table()
+    cfg = SamplingConfig(draws=300, tune=300, chains=1, random_seed=0, progressbar=False)
+    res = fit_parallax_model(table, prior_distance=1.11 * u.kpc, sampling=cfg)
+    assert res.metadata["prior"] == "informative"
+    assert abs(res.mu_parallax_mean - TRUE_PARALLAX) < 0.05
+
+
+def test_bad_parallax_errors_are_rejected():
+    table = QTable({
+        "parallax": np.linspace(0.8, 1.0, 10) * u.mas,
+        "parallax_error": np.concatenate([[0.0], np.full(9, 0.05)]) * u.mas,
+    })
+    with pytest.raises(ValueError, match="finite and positive"):
+        fit_parallax_model(table, parallax_error_column="parallax_error")
+
+    short = QTable({"parallax": np.linspace(0.8, 1.0, 10) * u.mas})
+    short["bad"] = np.full(10, np.nan) * u.mas
+    with pytest.raises(ValueError, match="finite and positive"):
+        fit_parallax_model(short, parallax_error_column="bad")

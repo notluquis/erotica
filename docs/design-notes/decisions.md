@@ -109,6 +109,69 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — per-star parallax errors now enter the likelihood
+
+**Symptom.** `fit_parallax_model` fitted `Normal(mu, sigma, observed=parallax)` — every star treated
+as measured **exactly**. Gaia supplies `e_parallax` per star and it was ignored, so the fitted
+`sigma_parallax` absorbed measurement scatter as well as real cluster depth. For a Gaia sample the
+measurement term is usually the larger of the two, which means the parameter named "cluster parallax
+spread" was mostly reporting the error bars.
+
+The default priors had the same defect as the King fit: `Uniform(0.5x, 1.5x)` centred on
+`nanmean(parallax)` **of the data being fit**, and `HalfNormal(sigma=nanstd(parallax))`.
+
+**Fix, one pass** (likelihood and priors together, for the reason given in the King entry):
+
+$$\varpi_i \sim \mathcal{N}\!\left(\mu_\varpi,\ \sqrt{\sigma_{\mathrm{int}}^2 + \sigma_{\varpi,i}^2}\right)$$
+
+via `parallax_error_column=`, plus `ParallaxPriors` holding fixed constants. `prior_distance=`
+remains the informative path and is **not** data reuse — it comes from outside the sample.
+
+**Oracle — an injected intrinsic spread deliberately much smaller than the measurement errors**,
+which is the regime every Gaia open cluster is in. Per-star errors are drawn from the *real* median
+`e_Plx` per `Gmag` quartile of the published member table (0.027, 0.065, 0.123, 0.293 mas), so the
+error distribution is the observed one:
+
+| model | `mu_plx` (truth 0.9000) | `sigma_plx` (truth 0.0100) |
+|---|---|---|
+| naive | 0.9151 ± 0.0072 | 0.1419 ± 0.0050 — **14.2× truth** |
+| error-aware | **0.9036 ± 0.0026** | **0.0093 ± 0.0051** — 0.9× truth |
+
+The naive fit misses the mean by 2σ as well; the bias is not confined to the width. The test
+asserts both that the error-aware fit recovers truth **and** that the naive one is at least 5×
+high — it cannot pass on a stopped clock.
+
+**On the real published members** (N = 321, median `e_Plx` = 0.098 mas):
+
+| model | `mu_plx` | distance | `sigma_plx` | implied depth |
+|---|---|---|---|---|
+| naive | 0.8986 ± 0.0032 | 1.113 kpc | 0.0568 mas | 70 pc |
+| error-aware | 0.9025 ± 0.0034 | **1.108 kpc** | **0.0238 mas** | **29 pc** |
+
+```{note}
+**The distance does not move** — 1.108 vs 1.113 kpc, both well inside the published
+1.11 ± 0.06 kpc. **No correction to P01 is implied.**
+
+And P01 does not walk into the naive trap: it quotes the parallax dispersion from the subsample with
+fractional parallax error below 0.1. That is a legitimate mitigation. It is also **partial and
+expensive**: that subsample is **150 of 321 members**, so 53% of the data is discarded, and its
+observed sd (0.0466 mas) still contains measurement scatter — roughly twice the 0.0238 mas the
+error-aware model attributes to the cluster itself. Modelling the errors reaches the same goal using
+**all** the members.
+
+Even 0.0238 mas is a ~29 pc depth against a fitted `R_t` of 17.4 pc, so residual measurement error
+plausibly still dominates. This should be read as an upper bound on the depth, not a measurement of
+it.
+```
+
+**Still outstanding in this module**, recorded so it is not mistaken for finished:
+`distance_model` continues to build `prior_mu_r` from `nanmean(1/parallax)` of the data and to treat
+Bailer-Jones distances as exact via `Gamma(observed=distances)`; `proper_motion_2d_gaussian` centres
+its priors on `nanmedian`/`nanstd` of the data and ignores the per-star proper-motion covariance
+that `core/_error_aware.py` already knows how to build.
+
+---
+
 ## 2026-07-27 — delta report: unbinned vs the published King numbers
 
 **Measured against `data/test/NGC6383/`** with `tools/validation/king_unbinned_delta.py`

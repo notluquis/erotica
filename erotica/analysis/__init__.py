@@ -37,6 +37,7 @@ from .figures import (
     plot_isochrone_label,
 )
 from .inference import (
+    ParallaxPriors,
     ClusterInferenceAnalyzer,
     DistanceFitResult,
     FitProperMotion2DGaussian,
@@ -122,6 +123,7 @@ __all__ = [
     "KingPriors",
     "KingProfileResult",
     "ParallaxFitResult",
+    "ParallaxPriors",
     "PhotometricMassEstimator",
     "ProperMotionFitResult",
     "RDP_bayesian",

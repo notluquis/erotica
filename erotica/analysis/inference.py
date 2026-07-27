@@ -27,6 +27,33 @@ class SamplingConfig:
 
 
 @dataclass(frozen=True)
+class ParallaxPriors:
+    """Scale-free priors for the cluster parallax model.
+
+    Every value is a **fixed constant, independent of the data being fit**. The
+    default path in :func:`fit_parallax_model` previously centred a
+    ``Uniform(0.5x, 1.5x)`` on ``nanmean(parallax)`` *of the data*, and put a
+    ``HalfNormal(sigma=nanstd(parallax))`` on the spread -- the data used twice.
+
+    Attributes
+    ----------
+    mu_lower, mu_upper : float
+        Support for the mean cluster parallax, in mas. The default ``(0, 10)``
+        spans every Galactic open cluster: 10 mas is 100 pc, closer than any
+        known OC, and 0 is the distant limit. Wide enough to be uninformative,
+        bounded enough to keep the sampler on the physical branch.
+    sigma_scale : float
+        Half-normal scale for the **intrinsic** parallax spread of the cluster,
+        in mas. 0.05 mas at 1 kpc is a depth of ~50 pc, comfortably larger than
+        any bound cluster, and the half-normal tail permits more.
+    """
+
+    mu_lower: float = 0.0
+    mu_upper: float = 10.0
+    sigma_scale: float = 0.05
+
+
+@dataclass(frozen=True)
 class DistanceFitResult:
     mu_r_mean: float
     std_r_mean: float
@@ -130,36 +157,81 @@ def fit_parallax_model(
     data,
     *,
     parallax_column: str = "parallax",
+    parallax_error_column: str | None = None,
     prior_distance=None,
     prior_type: str = "uniform",
+    priors: ParallaxPriors | None = None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
 ) -> ParallaxFitResult:
-    """Fit a Gaussian cluster parallax model."""
+    r"""Fit a Gaussian cluster parallax model.
+
+    Parameters
+    ----------
+    parallax_error_column : str, optional
+        Column holding the per-star parallax uncertainty (mas). **Strongly
+        recommended.** When given, the likelihood becomes
+
+        .. math:: \varpi_i \sim \mathcal{N}\!\left(\mu_\varpi,\;
+                  \sqrt{\sigma_{\mathrm{int}}^2 + \sigma_{\varpi,i}^2}\right)
+
+        so ``sigma_parallax`` is the cluster's **intrinsic** parallax spread.
+        Without it, every star is treated as measured exactly and
+        ``sigma_parallax`` absorbs the measurement scatter as well, which for a
+        Gaia sample is usually the larger of the two -- the cluster then appears
+        deeper than it is. The distinction matters because the intrinsic spread,
+        not the observed one, is what a physical depth or a virial estimate wants.
+    prior_distance : Quantity or float, optional
+        An independent distance estimate to centre the prior on. Supplying one is
+        the *informative* path and is not data-dependent, since it comes from
+        outside this sample.
+    priors : ParallaxPriors, optional
+        Scale-free priors used when `prior_distance` is not supplied. Defaults are
+        fixed constants; they are **not** derived from `data`.
+
+    Notes
+    -----
+    Before 2026-07-27 the default path built ``Uniform(0.5x, 1.5x)`` around
+    ``nanmean(parallax)`` of the sample and a ``HalfNormal(sigma=nanstd(parallax))``
+    on the spread -- both functions of the data being fit. That is the data used
+    twice; see the decision log.
+    """
     pm = _require_pymc()
     sampling = sampling or SamplingConfig()
+    priors = priors or ParallaxPriors()
     parallax_values = quantity_values(data[parallax_column], u.mas)
+
+    errors = None
+    if parallax_error_column is not None:
+        errors = np.asarray(quantity_values(data[parallax_error_column], u.mas), dtype=float)
+        if errors.shape != np.shape(parallax_values):
+            raise ValueError("parallax_error_column must have the same length as the parallaxes.")
+        if not np.all(np.isfinite(errors)) or np.any(errors <= 0):
+            raise ValueError("Per-star parallax errors must all be finite and positive.")
+
     if prior_distance is not None:
         prior_parallax = prior_distance.to(u.mas, equivalencies=u.parallax()).value if hasattr(prior_distance, "to") else 1 / float(prior_distance)
+        lower, upper = 0.5 * prior_parallax, 1.5 * prior_parallax
     else:
-        prior_parallax = float(np.nanmean(parallax_values))
+        prior_parallax = 0.5 * (priors.mu_lower + priors.mu_upper)
+        lower, upper = priors.mu_lower, priors.mu_upper
+
     with pm.Model() as model:
         if prior_type == "uniform":
-            mu_parallax = pm.Uniform(
-                "mu_parallax", lower=0.5 * prior_parallax, upper=1.5 * prior_parallax
-            )
+            mu_parallax = pm.Uniform("mu_parallax", lower=lower, upper=upper)
         elif prior_type == "normal":
             mu_parallax = pm.TruncatedNormal(
-                "mu_parallax",
-                lower=0.5 * prior_parallax,
-                upper=1.5 * prior_parallax,
-                sigma=1,
-                mu=prior_parallax,
+                "mu_parallax", lower=lower, upper=upper, sigma=1, mu=prior_parallax
             )
         else:
             raise ValueError("prior_type must be 'uniform' or 'normal'.")
-        sigma_parallax = pm.HalfNormal("sigma_parallax", sigma=float(np.nanstd(parallax_values)))
-        pm.Normal("observed_parallax", mu=mu_parallax, sigma=sigma_parallax, observed=parallax_values)
+        sigma_parallax = pm.HalfNormal("sigma_parallax", sigma=priors.sigma_scale)
+        total = (
+            sigma_parallax
+            if errors is None
+            else pm.math.sqrt(sigma_parallax**2 + errors**2)  # intrinsic (+) measurement
+        )
+        pm.Normal("observed_parallax", mu=mu_parallax, sigma=total, observed=parallax_values)
     trace = _sample(pm, model, sampling)
     return ParallaxFitResult(
         mu_parallax_mean=float(trace.posterior["mu_parallax"].mean()),
@@ -167,7 +239,12 @@ def fit_parallax_model(
         mu_parallax_std=float(trace.posterior["mu_parallax"].std()),
         sigma_parallax_std=float(trace.posterior["sigma_parallax"].std()),
         trace=trace if return_trace else None,
-        metadata={"backend": sampling.nuts_sampler, "variables": ["mu_parallax", "sigma_parallax"]},
+        metadata={
+            "backend": sampling.nuts_sampler,
+            "variables": ["mu_parallax", "sigma_parallax"],
+            "error_aware": errors is not None,
+            "prior": "informative" if prior_distance is not None else "scale-free",
+        },
     )
 
 
