@@ -168,6 +168,37 @@ total 59% → 62%. Suite 363 → **386**.
 
 ---
 
+## 2026-07-27 — the fourth model: `velocity_model` had all three defects too
+
+**I said the `inference.py` sweep was complete after parallax, proper motion and distance. It was
+not** — `velocity_model` was missed, and it carried the same three defects, one of them flagged
+explicitly in `~/phd/methodology.md` PART J as a ten-minute fix.
+
+```python
+mu_v  = pm.Normal("mu_v", mu=float(np.nanmean(velocity_values)), sigma=10)   # data-derived
+std_v = pm.Uniform("std_v", lower=0, upper=40)                               # ~80x too wide
+pm.Normal("observed_velocity", mu=mu_v, sigma=std_v, observed=velocity_values)  # no errors
+```
+
+**`Uniform(0, 40)` km/s is roughly 80× too wide** for a quantity that sits near 0.3–1 km/s in open
+clusters. In the low-dispersion regime that leaves the posterior prior-dominated rather than
+data-dominated — the parameter reports the prior's shape, not the cluster's.
+
+**Fix.** `VelocityPriors` with fixed constants (`HalfNormal(sigma=2)` on the dispersion, zero-centred
+`Normal(sigma=50)` on the mean), plus optional per-star velocity errors entering as
+`sqrt(sigma_int² + e_i²)` — the same treatment the other three models now get.
+
+**Oracles.** Injected internal dispersion 0.4 km/s against per-star errors of 0.8–3.0 km/s: the
+error-aware fit recovers it, the naive one reports at least twice as much. And a prior-predictive
+check that fails for the *reason it was written* — the new prior must put **>60% of its mass below
+2 km/s** while still reaching 5 km/s in its tail, where `Uniform(0, 40)` put under 10% below 2 km/s.
+
+**Lesson recorded rather than quietly fixed:** "the sweep is complete" was asserted after auditing
+three of four models. The count came from the models I had already opened, not from the module. A
+sweep is over the module, not over the parts of it already in view.
+
+---
+
 ## 2026-07-27 — Bailer-Jones distance uncertainties enter the distance model
 
 **Symptom.** `distance_model` built `prior_mu_r` from `nanmean([nanmean(1/parallax), nanmean(distances)])`
@@ -196,9 +227,10 @@ distance is unaffected in both.
 
 `parallax_column` is retained for API compatibility and is no longer read.
 
-**This closes the inference.py sweep.** All three models — parallax, proper motion, distance — now
-carry per-star measurement uncertainty and scale-free priors, and all three previously conflated
-measurement scatter with intrinsic cluster spread in the same way.
+**This closes three of the four models** — parallax, proper motion and distance now carry per-star
+measurement uncertainty and scale-free priors, having all conflated measurement scatter with
+intrinsic cluster spread in the same way. `velocity_model` was missed at the time; see the entry
+above.
 
 ---
 

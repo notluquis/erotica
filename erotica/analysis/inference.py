@@ -73,6 +73,28 @@ class DistancePriors:
 
 
 @dataclass(frozen=True)
+class VelocityPriors:
+    """Scale-free priors for the velocity model. Fixed constants.
+
+    Attributes
+    ----------
+    mu_scale : float
+        Standard deviation (km/s) of the zero-centred Normal prior on the mean
+        projected velocity.
+    sigma_scale : float
+        Half-normal scale (km/s) for the cluster's **internal** velocity
+        dispersion. Open clusters sit near 0.3-1 km/s; the previous
+        ``Uniform(0, 40)`` was about **80x too wide**, which in the low-dispersion
+        regime leaves the posterior prior-dominated rather than data-dominated.
+        A half-normal at 2 km/s is weakly informative and still admits an
+        unusually hot cluster through its tail.
+    """
+
+    mu_scale: float = 50.0
+    sigma_scale: float = 2.0
+
+
+@dataclass(frozen=True)
 class ProperMotionPriors:
     """Scale-free priors for the 2D proper-motion model. Fixed constants.
 
@@ -466,21 +488,54 @@ def velocity_model(
     values,
     *,
     distance=None,
+    errors=None,
+    priors: VelocityPriors | None = None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
 ) -> VelocityFitResult:
-    """Fit a Gaussian velocity model."""
+    r"""Fit a Gaussian velocity model.
+
+    Parameters
+    ----------
+    errors : array-like, optional
+        Per-star velocity uncertainties (km/s). **Strongly recommended** — without
+        them ``std_v`` is the observed scatter, not the cluster's internal
+        velocity dispersion, and any virial mass or crossing time built on it is
+        inflated.
+    priors : VelocityPriors, optional
+        Scale-free priors. Fixed constants, **not** functions of `values`.
+
+    Notes
+    -----
+    Before 2026-07-27 this model had all three defects the other three carried:
+    ``mu_v`` was centred on ``nanmean`` of the data, the dispersion prior was
+    ``Uniform(0, 40)`` km/s — **roughly 80x too wide for a ~0.5 km/s quantity**,
+    so in the low-dispersion regime the posterior was prior-dominated — and the
+    per-star velocity uncertainties never entered the likelihood.
+    """
     pm = _require_pymc()
     sampling = sampling or SamplingConfig()
+    priors = priors or VelocityPriors()
     if hasattr(values, "colnames"):
         if "projected_velocity" not in values.colnames:
             raise ValueError("Table input must contain a 'projected_velocity' column.")
         values = values["projected_velocity"]
     velocity_values, _, _ = projected_velocity_values(values, distance=distance)
+    velocity_values = np.asarray(velocity_values, dtype=float)
+
+    per_star = None
+    if errors is not None:
+        per_star = np.asarray(quantity_values(errors, u.km / u.s), dtype=float)
+        if per_star.shape != velocity_values.shape:
+            raise ValueError("Velocity errors must match the velocities in length.")
+        if not np.all(np.isfinite(per_star)) or np.any(per_star <= 0):
+            raise ValueError("Per-star velocity errors must all be finite and positive.")
+
     with pm.Model() as model:
-        mu_v = pm.Normal("mu_v", mu=float(np.nanmean(velocity_values)), sigma=10)
-        std_v = pm.Uniform("std_v", lower=0, upper=40)
-        pm.Normal("observed_velocity", mu=mu_v, sigma=std_v, observed=velocity_values)
+        mu_v = pm.Normal("mu_v", mu=0.0, sigma=priors.mu_scale)
+        std_v = pm.HalfNormal("std_v", sigma=priors.sigma_scale)
+        total = std_v if per_star is None else pm.math.sqrt(std_v**2 + per_star**2)
+        pm.Normal("observed_velocity", mu=mu_v, sigma=total, observed=velocity_values)
     trace = _sample(pm, model, sampling)
     return VelocityFitResult(
         mu_v_mean=float(trace.posterior["mu_v"].mean()),
@@ -488,7 +543,12 @@ def velocity_model(
         mu_v_std=float(trace.posterior["mu_v"].std()),
         std_v_std=float(trace.posterior["std_v"].std()),
         trace=trace if return_trace else None,
-        metadata={"backend": sampling.nuts_sampler, "variables": ["mu_v", "std_v"]},
+        metadata={
+            "backend": sampling.nuts_sampler,
+            "variables": ["mu_v", "std_v"],
+            "error_aware": per_star is not None,
+            "prior": "scale-free",
+        },
     )
 
 

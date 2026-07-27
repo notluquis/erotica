@@ -477,3 +477,71 @@ def test_distance_bound_validation():
     t["hi"] = np.linspace(0.9, 1.1, 20) * u.kpc      # hi < lo everywhere
     with pytest.raises(ValueError, match="must exceed"):
         distance_model(t, distance_lo_column="lo", distance_hi_column="hi")
+
+
+# ---------------------------------------------------------------------------
+# Velocity model -- the fourth model, and it had all three defects too
+# ---------------------------------------------------------------------------
+
+TRUE_V = {"mu": 3.5, "sigma_int": 0.4}  # km/s; a realistic OC internal dispersion
+
+
+def _velocity_sample(n=300, seed=17):
+    rng = np.random.default_rng(seed)
+    errors = rng.uniform(0.8, 3.0, n)             # typical Gaia-era RV errors, km/s
+    truth = rng.normal(TRUE_V["mu"], TRUE_V["sigma_int"], n)
+    return truth + rng.normal(0.0, errors), errors
+
+
+@requires_bayes_extra
+def test_velocity_errors_separate_dispersion_from_measurement_noise():
+    from erotica.analysis.inference import velocity_model
+
+    v, e = _velocity_sample()
+    cfg = SamplingConfig(draws=1200, tune=1000, chains=2, random_seed=6, progressbar=False)
+
+    naive = velocity_model(v, sampling=cfg)
+    aware = velocity_model(v, errors=e, sampling=cfg)
+
+    assert naive.metadata["error_aware"] is False
+    assert aware.metadata["error_aware"] is True
+
+    assert abs(aware.std_v_mean - TRUE_V["sigma_int"]) < 4 * aware.std_v_std
+    assert naive.std_v_mean > 2 * aware.std_v_mean
+    for res in (naive, aware):
+        assert abs(res.mu_v_mean - TRUE_V["mu"]) < 5 * res.mu_v_std
+
+
+@requires_bayes_extra
+def test_velocity_dispersion_prior_is_not_eighty_times_too_wide():
+    """The old prior was ``Uniform(0, 40)`` km/s on a ~0.5 km/s quantity.
+
+    In the low-dispersion regime that leaves the posterior prior-dominated. The
+    replacement must both (a) put most of its mass at plausible dispersions and
+    (b) still reach an unusually hot cluster through its tail.
+    """
+    import pymc as pm
+
+    from erotica.analysis.inference import VelocityPriors
+
+    p = VelocityPriors()
+    with pm.Model():
+        pm.HalfNormal("std_v", sigma=p.sigma_scale)
+        draws = np.asarray(
+            pm.sample_prior_predictive(draws=8000, random_seed=0).prior["std_v"].values
+        ).ravel()
+
+    assert (draws < 2.0).mean() > 0.6          # most mass where open clusters live
+    assert (draws > 5.0).mean() > 0.005        # but a hot cluster is still reachable
+    # the old Uniform(0, 40) put only ~5% of its mass below 2 km/s
+    assert (np.random.default_rng(0).uniform(0, 40, 8000) < 2.0).mean() < 0.10
+
+
+def test_velocity_error_validation():
+    from erotica.analysis.inference import velocity_model
+
+    v = np.linspace(1.0, 5.0, 20)
+    with pytest.raises(ValueError, match="match the velocities"):
+        velocity_model(v, errors=np.ones(5))
+    with pytest.raises(ValueError, match="finite and positive"):
+        velocity_model(v, errors=np.zeros(20))

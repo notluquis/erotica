@@ -40,6 +40,7 @@ from .figures import (
 from .inference import (
     DistancePriors,
     ParallaxPriors,
+    VelocityPriors,
     ProperMotionPriors,
     ClusterInferenceAnalyzer,
     DistanceFitResult,
@@ -142,6 +143,7 @@ __all__ = [
     "RadialDensityProfile",
     "SamplingConfig",
     "VelocityFitResult",
+    "VelocityPriors",
     "add_photometric_errors",
     "angular_size",
     "assign_mass_nearest_isochrone_point_kdtree",
