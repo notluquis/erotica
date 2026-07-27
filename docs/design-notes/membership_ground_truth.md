@@ -331,7 +331,7 @@ astrometric clustering measured *without* our method — cite it rather than dis
 | SPICY | Marton+2023: only **753 objects** in common with the Gaia DR3 YSO sample — nearly disjoint populations. |
 | WISE-only YSO | Silverberg+2018: false-positive rates **>70%** — disqualifying. |
 | Asteroseismic anchors | Sandquist+2013: masses *"systematically too high by as much as 8%"*; in M67 **the two independent anchors disagree with each other**. |
-| `ocelot` simulator | Draws errors as **independent univariate Gaussians per dimension** — no Gaia 5-parameter covariance — with an author TODO confirming **no parallax zero-point or correlated systematics**. Both bite hardest at G>18. No independent critique exists; caveats are entirely author-supplied. |
+| `ocelot` simulator | **Verified in source 2026-07-27** (`src/ocelot/simulate/uncertainties.py`, MIT, active): `apply_gaia_astrometric_uncertainties` loops `for dimension in ("pmra", "pmdec", "parallax")` adding `random_generator.normal(loc=0, scale=std)` — **three independent univariate draws, no 5-parameter covariance, no correlations** — and closes with the author's own `# Todo: Addition of systematic uncertainties (e.g. parallax) not yet done`, i.e. **no parallax zero-point**. Both omissions bite hardest at G>18, exactly where we would use it. No independent critique exists; caveats are entirely author-supplied. |
 
 ## 6c. Action items
 
