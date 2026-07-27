@@ -385,6 +385,59 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
     return amplitude * profile + background
 
 
+# ---------------------------------------------------------------------------
+# Model builders. Shared by the fit functions and by compare_radial_profiles,
+# so a change to a prior or a likelihood cannot drift between the two.
+# ---------------------------------------------------------------------------
+
+
+def _king_model(pm, r, field_radius, priors, tidal_prior, completeness):
+    with pm.Model() as model:
+        R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
+        if tidal_prior is None:
+            R_t = pm.Deterministic(
+                "R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale)
+            )
+        else:
+            mu, sigma = tidal_prior
+            R_t = pm.Deterministic(
+                "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
+            )
+        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
+        b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
+
+        core = 1.0 / pm.math.sqrt(1.0 + (r / R_c) ** 2)
+        edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)
+        surface = pm.math.switch(r <= R_t, k * (core - edge) ** 2 + b, b)
+        log_intensity = pm.math.log(2.0 * np.pi * r * surface)
+        if completeness is None:
+            expected = king_expected_count(k, b, R_c, R_t, field_radius, xp=pm.math)
+        else:
+            expected = king_expected_count_weighted(
+                k, b, R_c, R_t, field_radius, completeness, xp=pm.math
+            )
+        pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
+    return model
+
+
+def _eff_model(pm, r, field_radius, priors, gamma):
+    with pm.Model() as model:
+        a = pm.HalfStudentT("a", nu=1, sigma=priors.a_scale)
+        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
+        b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
+        if gamma is None:
+            g = pm.TruncatedNormal(
+                "gamma", mu=priors.gamma_mu, sigma=priors.gamma_sigma, lower=0.1
+            )
+        else:
+            g = pm.Deterministic("gamma", pm.math.constant(float(gamma)))
+        surface = k * (1.0 + (r / a) ** 2) ** (-g / 2.0) + b
+        log_intensity = pm.math.log(2.0 * np.pi * r * surface)
+        expected = eff_expected_count(k, b, a, g, field_radius, xp=pm.math)
+        pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
+    return model
+
+
 @dataclass(frozen=True)
 class KingPriors:
     """Scale-free priors for the unbinned King fit.
@@ -631,31 +684,7 @@ def king_unbinned(
     priors = priors or KingPriors()
     sampling = sampling or SamplingConfig(draws=2_000, tune=1_000, progressbar=progressbar)
 
-    with pm.Model() as model:
-        R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
-        if tidal_prior is None:
-            R_t = pm.Deterministic(
-                "R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale)
-            )
-        else:
-            mu, sigma = tidal_prior
-            R_t = pm.Deterministic(
-                "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
-            )
-        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
-        b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
-
-        core = 1.0 / pm.math.sqrt(1.0 + (r / R_c) ** 2)
-        edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)
-        surface = pm.math.switch(r <= R_t, k * (core - edge) ** 2 + b, b)
-        log_intensity = pm.math.log(2.0 * np.pi * r * surface)
-        if completeness is None:
-            expected = king_expected_count(k, b, R_c, R_t, field_radius, xp=pm.math)
-        else:
-            expected = king_expected_count_weighted(
-                k, b, R_c, R_t, field_radius, completeness, xp=pm.math
-            )
-        pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
+    model = _king_model(pm, r, field_radius, priors, tidal_prior, completeness)
 
     trace = _sample(pm, model, sampling)
     results = {
@@ -671,6 +700,274 @@ def king_unbinned(
     if return_trace:
         results["king_trace"] = trace
     return results
+
+
+@dataclass(frozen=True)
+class EFFPriors:
+    """Scale-free priors for the EFF profile. Fixed constants, not data-derived.
+
+    Attributes
+    ----------
+    a_scale : float
+        Half-Cauchy scale (arcmin) for the EFF scale radius.
+    k_scale, b_scale : float
+        Half-Cauchy scales for amplitude and background, stars per square arcmin.
+    gamma_mu, gamma_sigma : float
+        Normal prior on the asymptotic slope, truncated to be positive.
+        ``gamma = 4`` is the Plummer profile; observed young clusters cluster
+        around 2-4 (Elson, Fall & Freeman 1987; Ryon et al. 2015).
+    """
+
+    a_scale: float = 5.0
+    k_scale: float = 1.0
+    b_scale: float = 1.0
+    gamma_mu: float = 3.0
+    gamma_sigma: float = 2.0
+
+
+def eff_surface_density(radius, *, k, b, a, gamma):
+    r"""EFF (Elson, Fall & Freeman 1987) surface density with a background.
+
+    .. math:: \Sigma(r) = k\left(1 + (r/a)^2\right)^{-\gamma/2} + b
+
+    Unlike King, this has **no tidal cutoff**: it declines as a power law
+    :math:`r^{-\gamma}` forever. That is the honest model for a cluster whose
+    truncation radius cannot be located in the data.
+    """
+    r = np.asarray(radius, dtype=float)
+    return k * (1.0 + (r / a) ** 2) ** (-gamma / 2.0) + b
+
+
+def eff_expected_count(k, b, a, gamma, field_radius, *, xp=np):
+    r"""Expected count inside a circular field for the EFF profile, in closed form.
+
+    With :math:`z = (R_f/a)^2` and :math:`e = 1 - \gamma/2`,
+
+    .. math:: \Lambda = \pi k a^2 \frac{(1+z)^{e} - 1}{e} + \pi b R_f^2 .
+
+    The expression is singular at :math:`\gamma = 2` (where the integral is
+    logarithmic), which is squarely inside the plausible range, so it is
+    evaluated as :math:`\log(1+z)\cdot\mathrm{expm1}(x)/x` with
+    :math:`x = e\log(1+z)`; that ratio tends to 1 as :math:`x \to 0` and is
+    replaced by its series there. Both branches stay finite, so the gradient
+    does not pick up a NaN from the unused one.
+
+    Notes
+    -----
+    Verified against :func:`scipy.integrate.quad` to machine precision across
+    :math:`\gamma \in [2, 5]`, including :math:`\gamma = 2` exactly; see
+    ``tests/test_structure.py::test_eff_normalisation_matches_quadrature``.
+    """
+    z = (field_radius / a) ** 2
+    log1pz = xp.log(1.0 + z)
+    x = (1.0 - gamma / 2.0) * log1pz
+    small = xp.abs(x) < 1e-6
+    safe_x = xp.switch(small, 1.0, x) if hasattr(xp, "switch") else np.where(small, 1.0, x)
+    series = 1.0 + x / 2.0 + x * x / 6.0
+    expm1 = xp.exp(x) - 1.0
+    ratio = (
+        xp.switch(small, series, expm1 / safe_x)
+        if hasattr(xp, "switch")
+        else np.where(small, series, expm1 / safe_x)
+    )
+    return np.pi * k * a**2 * log1pz * ratio + np.pi * b * field_radius**2
+
+
+def eff_unbinned(
+    radii,
+    *,
+    field_radius,
+    gamma=None,
+    priors: EFFPriors | None = None,
+    sampling=None,
+    progressbar: bool = False,
+    return_trace: bool = True,
+):
+    r"""Fit an EFF profile to stellar radii, without binning.
+
+    Same inhomogeneous-Poisson point process as :func:`king_unbinned`, with
+    :math:`\Sigma(r)` replaced by the EFF form. Because EFF has no tidal cutoff
+    it has nothing to be unconstrained about, which is the point: for NGC 6383
+    the King ``R_t`` is not locatable even inside the Jacobi radius.
+
+    Parameters
+    ----------
+    gamma : float, optional
+        Fix the slope instead of fitting it. ``gamma=4`` is the **Plummer**
+        profile, so ``eff_unbinned(..., gamma=4.0)`` fits Plummer.
+    """
+    from .inference import SamplingConfig, _sample
+
+    try:
+        import pymc as pm
+    except ImportError as exc:
+        raise ImportError("PyMC is required for eff_unbinned. Install the 'bayes' extra.") from exc
+
+    r = np.asarray(quantity_values(radii, u.arcmin), dtype=float)
+    r = r[np.isfinite(r) & (r > 0)]
+    field_radius = float(quantity_values(field_radius, u.arcmin))
+    if r.size < 10:
+        raise ValueError("At least ten stars are required for an unbinned EFF fit.")
+    if r.max() > field_radius:
+        raise ValueError(
+            f"{int((r > field_radius).sum())} stars lie outside field_radius="
+            f"{field_radius:g} arcmin; the normalisation assumes completeness inside that disc."
+        )
+
+    priors = priors or EFFPriors()
+    sampling = sampling or SamplingConfig(draws=2_000, tune=1_000, progressbar=progressbar)
+
+    model = _eff_model(pm, r, field_radius, priors, gamma)
+
+    trace = _sample(pm, model, sampling)
+    results = {
+        "field_radius": field_radius * u.arcmin,
+        "n_stars": int(r.size),
+        "model": "plummer" if gamma == 4.0 else "eff",
+        "gamma_fixed": gamma,
+    }
+    for name, unit in (("k", None), ("b", None), ("a", u.arcmin), ("gamma", None)):
+        arr = np.asarray(trace.posterior[name].values, dtype=float)
+        median, std = float(np.nanmedian(arr)), float(np.nanstd(arr))
+        results[f"{name}_median"] = median * unit if unit else median
+        results[f"{name}_std"] = std * unit if unit else std
+    if return_trace:
+        results["eff_trace"] = trace
+    return results
+
+
+def compare_radial_profiles(
+    radii,
+    *,
+    field_radius,
+    models=("king", "eff", "plummer"),
+    king_priors: KingPriors | None = None,
+    eff_priors: EFFPriors | None = None,
+    tidal_prior: tuple[float, float] | None = None,
+    completeness=None,
+    draws: int = 2000,
+    chains: int = 4,
+    random_seed: int | None = None,
+):
+    r"""Compare radial-profile families by Bayes factor.
+
+    Each model is fit with **sequential Monte Carlo**, which returns a log
+    marginal likelihood directly; the Bayes factor is the difference. This is the
+    approach Olivares et al. (2018, `2018A&A...612A..70O`) use to compare
+    King/GKing/EFF/GDP for the Pleiades, and it is the right tool here because
+    the models are **not nested** — EFF has no ``R_t`` at all, so a likelihood-ratio
+    test does not apply.
+
+    Marginal likelihood is used rather than LOO/WAIC because the point-process
+    likelihood is a single :class:`~pymc.Potential` over the whole field, not a
+    sum of exchangeable per-star terms: :math:`\Lambda` couples every star, so
+    there is no clean pointwise decomposition to leave one out of.
+
+    Parameters
+    ----------
+    models : sequence of str
+        Any of ``"king"``, ``"eff"``, ``"plummer"`` (EFF with :math:`\gamma` fixed
+        to 4).
+    draws, chains, random_seed
+        SMC settings. SMC needs more draws than NUTS for a stable evidence.
+
+    Returns
+    -------
+    dict
+        ``log_marginal_likelihood`` per model, ``best``, ``log_bayes_factor``
+        relative to the best model, and ``interpretation`` on the Kass & Raftery
+        (1995) scale applied to :math:`2\ln B`.
+
+    Notes
+    -----
+    Evidence is prior-sensitive by construction — that is what "marginal" means.
+    Comparing models whose priors are on different footings is meaningless, so
+    both families here use the same scale-free half-Cauchy form and the same
+    background prior. Report the priors alongside any Bayes factor.
+    """
+    from scipy.special import logsumexp
+
+    try:
+        import pymc as pm
+    except ImportError as exc:
+        raise ImportError(
+            "PyMC is required for compare_radial_profiles. Install the 'bayes' extra."
+        ) from exc
+
+    r = np.asarray(quantity_values(radii, u.arcmin), dtype=float)
+    r = r[np.isfinite(r) & (r > 0)]
+    field_radius = float(quantity_values(field_radius, u.arcmin))
+    if r.max() > field_radius:
+        raise ValueError("Stars lie outside field_radius; the normalisation assumes completeness.")
+    king_priors = king_priors or KingPriors()
+    eff_priors = eff_priors or EFFPriors()
+
+    builders = {
+        "king": lambda: _king_model(pm, r, field_radius, king_priors, tidal_prior, completeness),
+        "eff": lambda: _eff_model(pm, r, field_radius, eff_priors, None),
+        "plummer": lambda: _eff_model(pm, r, field_radius, eff_priors, 4.0),
+    }
+    unknown = set(models) - set(builders)
+    if unknown:
+        raise ValueError(f"unknown models: {sorted(unknown)}; choose from {sorted(builders)}")
+
+    log_ml: dict[str, float] = {}
+    log_ml_sd: dict[str, float] = {}
+    for name in models:
+        with builders[name]():
+            idata = pm.sample_smc(
+                draws=draws, chains=chains, random_seed=random_seed, progressbar=False
+            )
+        # sample_stats["log_marginal_likelihood"] is (chain, stage), NaN-padded at
+        # the front because chains need different numbers of stages. The estimate
+        # is the last finite entry of each chain. Taking `.ravel()[-1]` looks
+        # right and is not: with ragged padding it can land on a NaN, and it
+        # silently discards every chain but one.
+        raw = np.asarray(idata.sample_stats["log_marginal_likelihood"])
+        # PyMC 6.1.0 returns this in two different layouts depending on whether
+        # the chains agreed on a stage count: either a (chain, stage) array
+        # NaN-padded at the front, or a 1-D object array of per-chain lists.
+        rows = raw if (raw.dtype == object and raw.ndim == 1) else np.atleast_2d(raw)
+        finals = []
+        for row in rows:
+            vals = np.asarray(row, dtype=float).ravel()
+            vals = vals[np.isfinite(vals)]
+            if vals.size:
+                finals.append(vals[-1])
+        per_chain = np.asarray(finals, dtype=float)
+        if per_chain.size == 0:
+            raise RuntimeError(f"SMC returned no finite marginal likelihood for model {name!r}")
+        # Average the evidence, not its logarithm.
+        log_ml[name] = float(logsumexp(per_chain) - np.log(per_chain.size))
+        log_ml_sd[name] = float(np.std(per_chain))
+
+    best = max(log_ml, key=log_ml.get)
+    log_bf = {m: log_ml[m] - log_ml[best] for m in log_ml}
+
+    def _verdict(two_log_b: float) -> str:
+        a = abs(two_log_b)
+        if a < 2:
+            return "not worth more than a bare mention"
+        if a < 6:
+            return "positive"
+        if a < 10:
+            return "strong"
+        return "very strong"
+
+    # Chain-to-chain scatter in log Z. A Bayes factor smaller than this is noise,
+    # not evidence -- SMC evidence estimates are far less stable than posteriors.
+    noise = max(log_ml_sd.values())
+    return {
+        "n_stars": int(r.size),
+        "field_radius": field_radius * u.arcmin,
+        "log_marginal_likelihood": log_ml,
+        "log_marginal_likelihood_chain_sd": log_ml_sd,
+        "resolvable": {m: abs(log_bf[m]) > 2.0 * noise for m in log_bf},
+        "best": best,
+        "log_bayes_factor_vs_best": log_bf,
+        "interpretation": {m: _verdict(2.0 * log_bf[m]) for m in log_bf},
+        "scale": "Kass & Raftery (1995), applied to 2 ln B",
+    }
 
 
 def _summarize_king_trace(trace):

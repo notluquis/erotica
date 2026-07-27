@@ -143,6 +143,50 @@ King profile cannot describe them, and they are what drags `R_t` past `r_J`. P01
 classify the wide-field additions as confirmed halo members or contaminants; this quantifies how
 much of the fitted sample is at stake.
 
+
+## Model comparison: King vs EFF vs Plummer
+
+`compare_radial_profiles` fits each family with sequential Monte Carlo and compares log marginal
+likelihoods. SMC is used because the models are **not nested** — EFF has no `R_t` at all, so a
+likelihood-ratio test does not apply — and because the point-process likelihood is a single
+`Potential` over the whole field rather than a sum of exchangeable per-star terms, so there is no
+clean pointwise decomposition for LOO/WAIC to leave one out of. This is the approach Olivares et al.
+(2018) use for the Pleiades.
+
+NGC 6383, 627 members within 70′, 2000 draws × 4 chains:
+
+| model | log Z | chain sd | ln B vs best | verdict (Kass & Raftery, on 2 ln B) |
+|---|---|---|---|---|
+| **King** | **806.37** | 0.029 | 0.00 | best |
+| EFF | 805.54 | 0.086 | −0.82 | *not worth more than a bare mention* |
+| Plummer (`γ = 4`) | 796.45 | 0.039 | **−9.92** | **very strong** evidence against |
+
+```{admonition} Everything in this note is one phenomenon
+:class: important
+The EFF fit returns **`γ = 2.324 ± 0.213`** — **1.5σ from `γ = 2`**, and 7.9σ from the Plummer value
+of 4.
+
+`γ = 2` is exactly the limit in which **King with `R_t → ∞` *is* EFF**: the King edge term
+`c = (1+(R_t/R_c)²)^(-1/2)` vanishes and `Σ → k/(1+(r/R_c)²)`. NGC 6383 therefore sits essentially
+*inside the overlap* of the two families, and three results that looked separate are the same fact:
+
+* King and EFF are statistically indistinguishable here (ln B = 0.82) — **because at `γ ≈ 2` they are
+  the same model**;
+* the King `R_t` cannot be constrained from above — **because the data want `R_t → ∞`, which is that
+  same limit**;
+* no tidal truncation appears even inside the Jacobi radius — **because there is none to find: the
+  profile is a cored power law of slope ≈ 2.3 all the way out**.
+
+Plummer is excluded outright, so this is not a case of the data being uninformative about the
+profile family. They are informative, and what they say is *"cored power law, slope ~2.3, no
+truncation"*.
+```
+
+**Consequence for reporting.** Quoting a King `R_t` for NGC 6383 asserts a truncation the data do
+not show, and its value is set by the prior. The defensible summary of the outer structure is the
+EFF slope, `γ = 2.32 ± 0.21`, with a scale radius `a = 1.65 ± 0.38′`, plus the Jacobi radius
+(12.14 pc = 37.9′) as the physical boundary from the mass. That is a statement the data support.
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`

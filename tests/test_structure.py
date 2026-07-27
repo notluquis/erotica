@@ -422,3 +422,159 @@ def test_selection_correction_removes_the_bias_it_is_meant_to_remove():
     assert abs(fixed_rc - truth) < abs(naive_rc - truth)
     # the uncorrected fit over-estimates R_c: the core was preferentially emptied
     assert naive_rc > truth
+
+
+# ---------------------------------------------------------------------------
+# EFF profile and Bayes-factor model comparison
+# ---------------------------------------------------------------------------
+
+from erotica.analysis.structure import (  # noqa: E402
+    EFFPriors,
+    compare_radial_profiles,
+    eff_expected_count,
+    eff_surface_density,
+    eff_unbinned,
+)
+
+TRUE_EFF = {"k": 8.0, "b": 0.05, "a": 3.0, "gamma": 2.8}
+
+
+def _sample_profile(seed, sigma_fn, field=FIELD):
+    """One realization of an inhomogeneous Poisson process with intensity 2*pi*r*Sigma(r)."""
+    rng = np.random.default_rng(seed)
+    grid = np.linspace(0.0, field, 20_001)
+    intensity = 2.0 * np.pi * grid * sigma_fn(grid)
+    cdf = np.concatenate([[0.0], np.cumsum(0.5 * (intensity[1:] + intensity[:-1]) * np.diff(grid))])
+    n = rng.poisson(cdf[-1])
+    return np.interp(rng.uniform(0.0, cdf[-1], n), cdf, grid)
+
+
+@pytest.mark.parametrize(
+    "k,b,a,gamma,field",
+    [
+        (6.0, 0.05, 4.0, 3.0, 70.0),
+        (1.0, 0.0, 1.0, 4.0, 10.0),    # gamma=4 is Plummer
+        (20.0, 0.5, 0.7, 2.5, 70.0),
+        (3.3, 0.01, 12.0, 5.0, 40.0),
+        (2.0, 0.1, 3.0, 2.0, 50.0),    # gamma=2 exactly: the logarithmic singularity
+        (2.0, 0.1, 3.0, 2.0000001, 50.0),  # and just beside it
+    ],
+)
+def test_eff_normalisation_matches_quadrature(k, b, a, gamma, field):
+    """Oracle: scipy.integrate.quad. Includes gamma = 2, where the closed form is singular."""
+    integrate = pytest.importorskip("scipy.integrate")
+    numeric = integrate.quad(
+        lambda r: 2 * np.pi * r * eff_surface_density(r, k=k, b=b, a=a, gamma=gamma),
+        0.0, field, limit=400,
+    )[0]
+    assert eff_expected_count(k, b, a, gamma, field) == pytest.approx(numeric, rel=1e-8)
+
+
+def test_eff_normalisation_is_continuous_across_gamma_two():
+    """The two branches must agree in the limit, not merely each be finite."""
+    vals = [eff_expected_count(4.0, 0.02, 3.0, g, 60.0)
+            for g in (2.0 - 1e-4, 2.0 - 1e-8, 2.0, 2.0 + 1e-8, 2.0 + 1e-4)]
+    assert np.all(np.isfinite(vals))
+    assert max(vals) - min(vals) < 1e-3 * abs(vals[2])
+
+
+def test_eff_has_no_tidal_cutoff():
+    """The defining difference from King: density stays above background forever."""
+    far = eff_surface_density([200.0, 2000.0, 20000.0], **TRUE_EFF)
+    assert np.all(far > TRUE_EFF["b"])
+    assert np.all(np.diff(far) < 0)  # monotonically declining, never truncating
+
+
+@requires_bayes_extra
+def test_eff_recovers_injected_parameters():
+    """Oracle: the parameters the test injected, plus the PART A convergence floor."""
+    import arviz as az
+    import pandas as pd
+
+    from erotica.analysis.inference import SamplingConfig
+
+    # EFF has a genuine k / a / gamma degeneracy -- amplitude, scale radius and
+    # slope trade off against one another -- so it needs more adaptation than the
+    # King fit to clear R-hat < 1.01. At tune=1000, chains=2 it lands on exactly
+    # 1.01; at these settings it is 1.0000 with bulk-ESS ~1600.
+    radii = _sample_profile(21, lambda r: eff_surface_density(r, **TRUE_EFF))
+    res = eff_unbinned(
+        radii, field_radius=FIELD,
+        sampling=SamplingConfig(draws=1500, tune=2000, chains=4, target_accept=0.95,
+                                random_seed=5, progressbar=False),
+    )
+    for name in ("k", "b", "a", "gamma"):
+        med = float(getattr(res[f"{name}_median"], "value", res[f"{name}_median"]))
+        sd = float(getattr(res[f"{name}_std"], "value", res[f"{name}_std"]))
+        assert abs(med - TRUE_EFF[name]) < 3 * sd, f"{name}: {med:.3f}+/-{sd:.3f} vs {TRUE_EFF[name]}"
+
+    summary = az.summary(res["eff_trace"], var_names=["k", "b", "a", "gamma"])
+    assert pd.to_numeric(summary["r_hat"], errors="coerce").max() < 1.01
+    assert int(res["eff_trace"].sample_stats["diverging"].values.sum()) == 0
+
+
+@requires_bayes_extra
+def test_plummer_is_eff_with_gamma_fixed_to_four():
+    from erotica.analysis.inference import SamplingConfig
+
+    radii = _sample_profile(22, lambda r: eff_surface_density(r, k=5.0, b=0.02, a=4.0, gamma=4.0))
+    res = eff_unbinned(
+        radii, field_radius=FIELD, gamma=4.0,
+        sampling=SamplingConfig(draws=400, tune=400, chains=1, random_seed=6, progressbar=False),
+    )
+    assert res["model"] == "plummer"
+    assert res["gamma_median"] == pytest.approx(4.0)   # held fixed, not fitted
+    assert res["gamma_std"] == pytest.approx(0.0)
+
+
+def test_king_at_infinite_tidal_radius_is_eff_with_gamma_two():
+    """The two families genuinely overlap, which bounds what a Bayes factor can do.
+
+    As ``R_t -> inf`` the King edge term ``c = (1+(R_t/R_c)^2)^(-1/2)`` goes to
+    zero and ``Sigma -> k/(1+(r/R_c)^2)``, which is exactly EFF with ``gamma=2``.
+    So no amount of data separates King from EFF near that corner, and a model
+    comparison must be posed away from it to mean anything.
+    """
+    r = np.linspace(0.1, 60.0, 25)
+    king = _king_sigma(r, k=5.0, b=0.0, R_c=4.0, R_t=1e6)
+    eff = eff_surface_density(r, k=5.0, b=0.0, a=4.0, gamma=2.0)
+    np.testing.assert_allclose(king, eff, rtol=1e-3)
+
+
+@requires_bayes_extra
+@pytest.mark.slow
+def test_bayes_factor_identifies_the_generating_model():
+    """The load-bearing test: does the comparison pick the model the data came from?
+
+    Run in both directions. A comparison that always preferred the more flexible
+    model, or always the simpler one, would fail one of the two.
+
+    The parameters are chosen *away from the overlap* pinned by
+    ``test_king_at_infinite_tidal_radius_is_eff_with_gamma_two``: the King case
+    has a sharp truncation well inside the field and essentially no background,
+    and the EFF case has ``gamma=5``, far from the ``gamma=2`` limit where King
+    can imitate it. With `gamma=2.8` and a large `R_t` the two are genuinely
+    indistinguishable and the Bayes factor correctly returns ~0.
+    """
+    king_truth = {"k": 6.0, "b": 0.002, "R_c": 4.0, "R_t": 25.0}
+    eff_truth = {"k": 8.0, "b": 0.002, "a": 3.0, "gamma": 5.0}
+    king_data = _sample_king(41, **king_truth)
+    eff_data = _sample_profile(42, lambda r: eff_surface_density(r, **eff_truth))
+
+    opts = dict(field_radius=FIELD, models=("king", "eff"), draws=1000, chains=4, random_seed=1)
+    king_res = compare_radial_profiles(king_data, **opts)
+    eff_res = compare_radial_profiles(eff_data, **opts)
+
+    assert king_res["best"] == "king", king_res["log_marginal_likelihood"]
+    assert eff_res["best"] == "eff", eff_res["log_marginal_likelihood"]
+    # Each verdict must exceed the chain-to-chain scatter of the evidence itself,
+    # otherwise it is sampling noise dressed as a conclusion.
+    assert king_res["resolvable"]["eff"]
+    assert eff_res["resolvable"]["king"]
+    assert king_res["log_bayes_factor_vs_best"]["eff"] < -1.0
+    assert eff_res["log_bayes_factor_vs_best"]["king"] < -1.0
+
+
+def test_compare_rejects_unknown_models():
+    with pytest.raises(ValueError, match="unknown models"):
+        compare_radial_profiles(np.linspace(1, 50, 100), field_radius=FIELD, models=("king", "nfw"))

@@ -1,0 +1,50 @@
+{
+  "comparison": {
+    "n_stars": 627,
+    "log_marginal_likelihood": {
+      "king": 806.3679205715077,
+      "eff": 805.5442381675991,
+      "plummer": 796.4525474506593
+    },
+    "log_marginal_likelihood_chain_sd": {
+      "king": 0.029311459177696703,
+      "eff": 0.08601623780088698,
+      "plummer": 0.03948539401778054
+    },
+    "resolvable": {
+      "king": false,
+      "eff": true,
+      "plummer": true
+    },
+    "best": "king",
+    "log_bayes_factor_vs_best": {
+      "king": 0.0,
+      "eff": -0.8236824039086059,
+      "plummer": -9.915373120848471
+    },
+    "interpretation": {
+      "king": "not worth more than a bare mention",
+      "eff": "not worth more than a bare mention",
+      "plummer": "very strong"
+    },
+    "scale": "Kass & Raftery (1995), applied to 2 ln B"
+  },
+  "eff_fit": {
+    "k": [
+      7.43253855013322,
+      1.9257588799722958
+    ],
+    "b": [
+      0.02285173717969267,
+      0.001935200549346027
+    ],
+    "a": [
+      1.6482686226930783,
+      0.3804167481504972
+    ],
+    "gamma": [
+      2.324304573169842,
+      0.21303084752343535
+    ]
+  }
+}
