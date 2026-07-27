@@ -1,3 +1,11 @@
+> **Status:** filed as [pymc-devs/pytensor#2308](https://github.com/pymc-devs/pytensor/issues/2308),
+> fix submitted as [PR #2309](https://github.com/pymc-devs/pytensor/pull/2309).
+> Maintainer response (ricardoV94): *"yeah I hate tests with scale=1, loc=0 precisely because of that."*
+>
+> Once released, drop the `HalfStudentT(nu=1)` workaround in `analysis/structure.py` —
+> `tests/test_structure.py::test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug`
+> fails when the upstream fix lands, which is the signal.
+
 # BUG: numba backend samples `Cauchy`/`HalfCauchy` with the wrong loc and scale
 
 **Repo:** `pymc-devs/pytensor` · **Version:** 3.1.3 (and current `main`) · **Backend:** numba (the default linker)
