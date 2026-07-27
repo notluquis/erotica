@@ -4,10 +4,11 @@ prior. Took R-hat 2.84 (marginalized) -> 1.74 (per-star latents) on injection-re
 truth. Remaining 1.74->1.05 is a tuning finish (longer chains / non-centering). Uses the C0
 linear grid (isochrone_mass_grid.py) — Chi keeps C0 too; cubic did NOT help (falsified).
 """
+from pathlib import Path
 import numpyro, numpyro.distributions as dist
 from numpyro.infer import MCMC, NUTS, init_to_median
 numpyro.set_host_device_count(4)
-exec(open("/Users/notluquis/erotica/iso_grid2.py").read())   # isochrone(mass), mass_axis, bounds
+exec(open(Path(__file__).with_name("isochrone_mass_grid.py")).read())   # isochrone(mass), mass_axis, bounds
 from jax.scipy.special import logsumexp
 A_G,E_col=0.83,0.42; MLO,MHI=float(mass_axis.min()),float(mass_axis.max())
 def model(go,co,ge,ce):
