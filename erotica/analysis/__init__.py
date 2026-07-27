@@ -37,6 +37,7 @@ from .figures import (
     plot_isochrone_label,
 )
 from .inference import (
+    DistancePriors,
     ParallaxPriors,
     ProperMotionPriors,
     ClusterInferenceAnalyzer,
@@ -124,6 +125,7 @@ __all__ = [
     "ClusterStructureAnalyzer",
     "DistanceFitResult",
     "DistancePosteriorComparison",
+    "DistancePriors",
     "EFFPriors",
     "FitProperMotion2DGaussian",
     "IsochroneFitter",

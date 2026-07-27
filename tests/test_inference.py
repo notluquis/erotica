@@ -392,3 +392,88 @@ def test_pm_error_validation():
             ra, dec, pm_ra_error=np.full(20, 0.1), pm_dec_error=np.full(20, 0.1),
             pm_ra_dec_corr=np.full(20, 1.0),
         )
+
+
+# ---------------------------------------------------------------------------
+# Bailer-Jones distance uncertainties in the hierarchical distance model
+#
+# ORACLE: an intrinsic line-of-sight depth injected far below the catalogue
+# uncertainties -- the regime every Gaia cluster is in, since a 10% distance
+# error at 1.1 kpc is 110 pc while no bound open cluster is that deep.
+# ---------------------------------------------------------------------------
+
+TRUE_DIST = {"mu": 1.11, "depth": 0.020}  # kpc; 20 pc of real depth
+
+
+def _distance_table(n=200, seed=13):
+    rng = np.random.default_rng(seed)
+    frac = rng.uniform(0.04, 0.14, n)              # Bailer-Jones fractional errors
+    sigma = frac * TRUE_DIST["mu"]
+    true_r = rng.normal(TRUE_DIST["mu"], TRUE_DIST["depth"], n)
+    obs = true_r + rng.normal(0.0, sigma)
+    return QTable({
+        "r_med_geo": obs * u.kpc,
+        "r_lo_geo": (obs - sigma) * u.kpc,          # 16th percentile
+        "r_hi_geo": (obs + sigma) * u.kpc,          # 84th percentile
+        "parallax": (1.0 / obs) * u.mas,
+    }), sigma
+
+
+@requires_bayes_extra
+def test_bailer_jones_bounds_separate_depth_from_catalogue_error():
+    from erotica.analysis.inference import distance_model
+
+    table, sigma = _distance_table()
+    cfg = SamplingConfig(draws=800, tune=800, chains=2, random_seed=8, progressbar=False,
+                         extra_kwargs={"cores": 1})
+
+    naive = distance_model(table, sampling=cfg)
+    aware = distance_model(
+        table, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo", sampling=cfg
+    )
+
+    assert naive.metadata["error_aware"] is False
+    assert aware.metadata["error_aware"] is True
+    assert naive.metadata["prior"] == aware.metadata["prior"] == "scale-free"
+
+    # both find the cluster distance
+    for res in (naive, aware):
+        assert abs(res.mu_r_mean - TRUE_DIST["mu"]) < 5 * res.mu_r_std
+
+    # the error-aware fit recovers the injected depth; the naive one reports the
+    # catalogue scatter instead, which is several times larger
+    assert abs(aware.std_r_mean - TRUE_DIST["depth"]) < 4 * aware.std_r_std
+    assert naive.std_r_mean > 3 * aware.std_r_mean
+    assert naive.std_r_mean > 0.5 * float(np.median(sigma))
+
+
+@requires_bayes_extra
+def test_distance_priors_do_not_depend_on_the_data():
+    """A near and a far cluster get the same prior support and both are found."""
+    from erotica.analysis.inference import DistancePriors, distance_model
+
+    rng = np.random.default_rng(2)
+    cfg = SamplingConfig(draws=400, tune=400, chains=1, random_seed=0, progressbar=False)
+    near = QTable({"r_med_geo": rng.normal(0.4, 0.02, 150) * u.kpc,
+                   "parallax": np.full(150, 2.5) * u.mas})
+    far = QTable({"r_med_geo": rng.normal(4.0, 0.20, 150) * u.kpc,
+                  "parallax": np.full(150, 0.25) * u.mas})
+    a = distance_model(near, sampling=cfg)
+    b = distance_model(far, sampling=cfg)
+    p = DistancePriors()
+    assert p.mu_lower < 0.4 and p.mu_upper > 4.0     # one fixed support spans both
+    assert abs(a.mu_r_mean - 0.4) < 0.05
+    assert abs(b.mu_r_mean - 4.0) < 0.30
+
+
+def test_distance_bound_validation():
+    from erotica.analysis.inference import distance_model
+
+    t = QTable({"r_med_geo": np.linspace(1.0, 1.2, 20) * u.kpc,
+                "parallax": np.full(20, 0.9) * u.mas})
+    with pytest.raises(ValueError, match="both"):
+        distance_model(t, distance_lo_column="r_med_geo")
+    t["lo"] = np.linspace(1.0, 1.2, 20) * u.kpc
+    t["hi"] = np.linspace(0.9, 1.1, 20) * u.kpc      # hi < lo everywhere
+    with pytest.raises(ValueError, match="must exceed"):
+        distance_model(t, distance_lo_column="lo", distance_hi_column="hi")

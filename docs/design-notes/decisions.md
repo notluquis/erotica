@@ -109,6 +109,40 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — Bailer-Jones distance uncertainties enter the distance model
+
+**Symptom.** `distance_model` built `prior_mu_r` from `nanmean([nanmean(1/parallax), nanmean(distances)])`
+**of the data being fit**, centred a `Uniform(0.5x, 1.5x)` on it, put
+`HalfNormal(sigma=nanstd(distances))` on the spread, and then fitted
+`Gamma("r", observed=distances)` — treating Bailer-Jones geometric distances as **exact**. The data
+used twice, twice over, plus a likelihood that discards the catalogue's own uncertainties.
+
+**Fix.** `DistancePriors` (fixed constants) and, given `r_lo_geo`/`r_hi_geo`, a genuine hierarchy:
+
+$$r^{\mathrm{true}}_i \sim \mathrm{Gamma}(\mu_r, \sigma_r), \qquad
+  r^{\mathrm{obs}}_i \sim \mathcal{N}(r^{\mathrm{true}}_i, \sigma_i), \qquad
+  \sigma_i = (r_{\mathrm{hi}} - r_{\mathrm{lo}})/2 .$$
+
+**Numbers** (injected depth 20 pc; Bailer-Jones fractional errors 4–14%, median σ = 104 pc):
+
+| | `mu_r` | `std_r` | implied depth | vs truth |
+|---|---|---|---|---|
+| truth | 1.110 kpc | 0.020 kpc | 20 pc | — |
+| naive | 1.1144 ± 0.0077 | 0.1110 ± 0.0054 | 111 pc | **5.6×** |
+| error-aware | 1.1156 ± 0.0068 | **0.0234 ± 0.0106** | **23 pc** | 1.2× |
+
+The naive `std_r` is not merely wrong, it is **the median catalogue uncertainty** (111 vs 104 pc):
+the parameter named "cluster depth" was reporting Bailer-Jones' error bars almost exactly. The mean
+distance is unaffected in both.
+
+`parallax_column` is retained for API compatibility and is no longer read.
+
+**This closes the inference.py sweep.** All three models — parallax, proper motion, distance — now
+carry per-star measurement uncertainty and scale-free priors, and all three previously conflated
+measurement scatter with intrinsic cluster spread in the same way.
+
+---
+
 ## 2026-07-27 — per-star proper-motion covariance enters the likelihood
 
 **Symptom.** `proper_motion_2d_gaussian` centred `mu_RA`/`mu_Dec` on `nanmedian` **of the data**,
@@ -146,9 +180,6 @@ Separately, the batched `(n, 2, 2)` covariance kills PyMC's multiprocess workers
 this machine, so these fits run with `cores=1`. Sequential is ~70× slower per chain here and is the
 correct trade.
 ```
-
-**Still outstanding:** `distance_model` continues to build `prior_mu_r` from `nanmean(1/parallax)` of
-the data and to treat Bailer-Jones distances as exact via `Gamma(observed=distances)`.
 
 ---
 
@@ -207,11 +238,7 @@ plausibly still dominates. This should be read as an upper bound on the depth, n
 it.
 ```
 
-**Still outstanding in this module**, recorded so it is not mistaken for finished:
-`distance_model` continues to build `prior_mu_r` from `nanmean(1/parallax)` of the data and to treat
-Bailer-Jones distances as exact via `Gamma(observed=distances)`; `proper_motion_2d_gaussian` centres
-its priors on `nanmedian`/`nanstd` of the data and ignores the per-star proper-motion covariance
-that `core/_error_aware.py` already knows how to build.
+**Both siblings are now fixed too** — see the proper-motion and distance entries above.
 
 ---
 

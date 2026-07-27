@@ -54,6 +54,25 @@ class ParallaxPriors:
 
 
 @dataclass(frozen=True)
+class DistancePriors:
+    """Scale-free priors for the hierarchical distance model. Fixed constants.
+
+    Attributes
+    ----------
+    mu_lower, mu_upper : float
+        Support (kpc) for the mean cluster distance. ``(0.05, 20)`` spans every
+        Galactic open cluster with room to spare.
+    sigma_scale : float
+        Half-normal scale (kpc) for the cluster's **intrinsic** line-of-sight
+        depth. 0.05 kpc is 50 pc, larger than any bound cluster; the tail allows more.
+    """
+
+    mu_lower: float = 0.05
+    mu_upper: float = 20.0
+    sigma_scale: float = 0.05
+
+
+@dataclass(frozen=True)
 class ProperMotionPriors:
     """Scale-free priors for the 2D proper-motion model. Fixed constants.
 
@@ -144,27 +163,78 @@ def distance_model(
     *,
     distance_column: str = "r_med_geo",
     parallax_column: str = "parallax",
+    distance_lo_column: str | None = None,
+    distance_hi_column: str | None = None,
     prior_type: str = "uniform",
+    priors: DistancePriors | None = None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
 ) -> DistanceFitResult:
-    """Fit the hierarchical distance model used by the legacy workflow."""
+    r"""Fit the hierarchical cluster-distance model.
+
+    Parameters
+    ----------
+    distance_lo_column, distance_hi_column : str, optional
+        Bailer-Jones lower and upper bounds (e.g. ``r_lo_geo`` / ``r_hi_geo``,
+        the 16th and 84th percentiles). **Strongly recommended.** When given, each
+        star's catalogue distance is treated as a *measurement* of a latent true
+        distance rather than as exact:
+
+        .. math::
+
+            r^{\mathrm{true}}_i &\sim \mathrm{Gamma}(\mu_r,\ \sigma_r) \\
+            r^{\mathrm{obs}}_i  &\sim \mathcal{N}(r^{\mathrm{true}}_i,\ \sigma_i)
+
+        with :math:`\sigma_i = (r_{\mathrm{hi}} - r_{\mathrm{lo}})/2`. Without
+        them ``std_r`` absorbs the Bailer-Jones uncertainties as if they were
+        cluster depth, and those are large: a 10% distance error at 1 kpc is
+        100 pc, several times any real cluster.
+    priors : DistancePriors, optional
+        Scale-free priors. Fixed constants, **not** functions of `data`.
+
+    Notes
+    -----
+    Before 2026-07-27 the prior was ``Uniform(0.5x, 1.5x)`` centred on
+    ``nanmean([nanmean(1/parallax), nanmean(distances)])`` **of the data being
+    fit**, with ``HalfNormal(sigma=nanstd(distances))`` on the spread -- the data
+    used twice, twice over. `parallax_column` is retained for API compatibility
+    and is no longer read.
+    """
     pm = _require_pymc()
     sampling = sampling or SamplingConfig()
-    distances = quantity_values(data[distance_column], u.kpc)
-    parallax_values = quantity_values(data[parallax_column], u.mas)
-    prior_mu_r = float(np.nanmean([np.nanmean(1 / parallax_values), np.nanmean(distances)]))
+    priors = priors or DistancePriors()
+    distances = np.asarray(quantity_values(data[distance_column], u.kpc), dtype=float)
+
+    errors = None
+    if (distance_lo_column is None) != (distance_hi_column is None):
+        raise ValueError("Give both distance_lo_column and distance_hi_column, or neither.")
+    if distance_lo_column is not None:
+        lo = np.asarray(quantity_values(data[distance_lo_column], u.kpc), dtype=float)
+        hi = np.asarray(quantity_values(data[distance_hi_column], u.kpc), dtype=float)
+        if lo.shape != distances.shape or hi.shape != distances.shape:
+            raise ValueError("Distance bounds must match the distances in length.")
+        if np.any(hi <= lo):
+            raise ValueError("distance_hi_column must exceed distance_lo_column for every star.")
+        errors = (hi - lo) / 2.0
+        if not np.all(np.isfinite(errors)) or np.any(errors <= 0):
+            raise ValueError("Derived per-star distance errors must be finite and positive.")
+
     with pm.Model() as model:
         if prior_type == "uniform":
-            mu_r = pm.Uniform("mu_r", lower=0.5 * prior_mu_r, upper=1.5 * prior_mu_r)
+            mu_r = pm.Uniform("mu_r", lower=priors.mu_lower, upper=priors.mu_upper)
         elif prior_type == "normal":
+            mid = 0.5 * (priors.mu_lower + priors.mu_upper)
             mu_r = pm.TruncatedNormal(
-                "mu_r", lower=0.5 * prior_mu_r, upper=1.5 * prior_mu_r, mu=prior_mu_r, sigma=1
+                "mu_r", lower=priors.mu_lower, upper=priors.mu_upper, mu=mid, sigma=1
             )
         else:
             raise ValueError("prior_type must be 'uniform' or 'normal'.")
-        std_r = pm.HalfNormal("std_r", sigma=float(np.nanstd(distances)))
-        pm.Gamma("r", mu=mu_r, sigma=std_r, observed=distances)
+        std_r = pm.HalfNormal("std_r", sigma=priors.sigma_scale)
+        if errors is None:
+            pm.Gamma("r", mu=mu_r, sigma=std_r, observed=distances)
+        else:
+            true_r = pm.Gamma("r_true", mu=mu_r, sigma=std_r, shape=distances.size)
+            pm.Normal("r", mu=true_r, sigma=errors, observed=distances)
     trace = _sample(pm, model, sampling)
     return DistanceFitResult(
         mu_r_mean=float(trace.posterior["mu_r"].mean()),
@@ -172,7 +242,12 @@ def distance_model(
         mu_r_std=float(trace.posterior["mu_r"].std()),
         std_r_std=float(trace.posterior["std_r"].std()),
         trace=trace if return_trace else None,
-        metadata={"backend": sampling.nuts_sampler, "variables": ["mu_r", "std_r"]},
+        metadata={
+            "backend": sampling.nuts_sampler,
+            "variables": ["mu_r", "std_r"],
+            "error_aware": errors is not None,
+            "prior": "scale-free",
+        },
     )
 
 
