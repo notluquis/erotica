@@ -109,6 +109,49 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — per-star proper-motion covariance enters the likelihood
+
+**Symptom.** `proper_motion_2d_gaussian` centred `mu_RA`/`mu_Dec` on `nanmedian` **of the data**,
+scaled every width by `nanstd` **of the data**, and ignored the per-star proper-motion covariance
+entirely — even though `core/_error_aware.py` already builds the full correlated Gaia covariance.
+The fitted `sigma_RA`/`sigma_Dec` were therefore the cluster dispersion *plus* Gaia's measurement
+scatter, which for an open cluster is usually the larger term. Any virial mass or crossing time
+derived from them is inflated.
+
+**Fix.** Each star gets its own total covariance `Σ_i = Σ_int + C_i`, where `C_i` carries
+`pmra_error`, `pmdec_error` and `pmra_pmdec_corr`, broadcast to `(n, 2, 2)` inside a single
+`MvNormal`. Plus `ProperMotionPriors`, fixed constants.
+
+**Numbers** (injected intrinsic dispersion 0.05 mas/yr; per-star errors drawn from Gaia-like
+magnitude quartiles, median 0.12 mas/yr; **injected intrinsic correlation zero**, with 0.4
+correlation present only in the measurement errors):
+
+| | `mu_RA` | `sigma_RA` | `sigma_Dec` | `corr` |
+|---|---|---|---|---|
+| truth | −1.350 | **0.050** | 0.050 | **0.0** |
+| naive | −1.360 | 0.2392 | 0.2201 | **+0.374** |
+| covariance-aware | −1.348 | **0.0471** | **0.0581** | **−0.012** |
+
+The naive fit inflates the dispersion ~4.8× **and reports the measurement-error correlation of 0.4
+as an intrinsic kinematic correlation of the cluster**. That second failure is the more insidious of
+the two: a spurious velocity-ellipse orientation is the kind of thing that gets interpreted
+physically. The test asserts both.
+
+```{note}
+`corr` is sampled as `tanh(z)` with `z ~ Normal(0, 1)`, not `Uniform(-1, 1)`. At `|corr| = 1` the
+covariance is singular and a hard uniform boundary lets NUTS propose arbitrarily close to it; with a
+per-star covariance added, the Cholesky then fails. `tanh` keeps `|corr| < 1` strictly and is smooth.
+
+Separately, the batched `(n, 2, 2)` covariance kills PyMC's multiprocess workers with `EOFError` on
+this machine, so these fits run with `cores=1`. Sequential is ~70× slower per chain here and is the
+correct trade.
+```
+
+**Still outstanding:** `distance_model` continues to build `prior_mu_r` from `nanmean(1/parallax)` of
+the data and to treat Bailer-Jones distances as exact via `Gamma(observed=distances)`.
+
+---
+
 ## 2026-07-27 — per-star parallax errors now enter the likelihood
 
 **Symptom.** `fit_parallax_model` fitted `Normal(mu, sigma, observed=parallax)` — every star treated

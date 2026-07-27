@@ -38,6 +38,7 @@ from .figures import (
 )
 from .inference import (
     ParallaxPriors,
+    ProperMotionPriors,
     ClusterInferenceAnalyzer,
     DistanceFitResult,
     FitProperMotion2DGaussian,
@@ -132,6 +133,7 @@ __all__ = [
     "ParallaxPriors",
     "PhotometricMassEstimator",
     "ProperMotionFitResult",
+    "ProperMotionPriors",
     "RDP_bayesian",
     "RDP_bayesian_log_space",
     "RadialDensityProfile",

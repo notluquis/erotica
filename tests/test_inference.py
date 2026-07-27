@@ -287,3 +287,108 @@ def test_bad_parallax_errors_are_rejected():
     short["bad"] = np.full(10, np.nan) * u.mas
     with pytest.raises(ValueError, match="finite and positive"):
         fit_parallax_model(short, parallax_error_column="bad")
+
+
+# ---------------------------------------------------------------------------
+# Per-star proper-motion covariance
+#
+# ORACLE: an intrinsic velocity dispersion injected far below the measurement
+# errors -- the regime every Gaia open cluster is in. The naive model cannot tell
+# them apart and must report the total; the covariance-aware model must recover
+# the injected intrinsic value.
+# ---------------------------------------------------------------------------
+
+TRUE_PM = {"mu_ra": -1.35, "mu_dec": -1.90, "sigma_int": 0.05}  # mas/yr
+PM_ERROR_SCALE = np.array([0.03, 0.08, 0.18, 0.40])  # per Gmag quartile, Gaia-like
+
+
+def _pm_table(n=400, seed=9, corr=0.4):
+    rng = np.random.default_rng(seed)
+    e_ra = np.repeat(PM_ERROR_SCALE, n // 4) * rng.uniform(0.8, 1.2, n)
+    e_dec = np.repeat(PM_ERROR_SCALE, n // 4) * rng.uniform(0.8, 1.2, n)
+    rho = np.full(n, corr)
+    truth = rng.normal(
+        [TRUE_PM["mu_ra"], TRUE_PM["mu_dec"]], TRUE_PM["sigma_int"], size=(n, 2)
+    )
+    obs = np.empty_like(truth)
+    for i in range(n):
+        c = np.array([[e_ra[i] ** 2, rho[i] * e_ra[i] * e_dec[i]],
+                      [rho[i] * e_ra[i] * e_dec[i], e_dec[i] ** 2]])
+        obs[i] = rng.multivariate_normal(truth[i], c)
+    return obs[:, 0], obs[:, 1], e_ra, e_dec, rho
+
+
+@requires_bayes_extra
+def test_per_star_covariance_separates_dispersion_from_measurement_noise():
+    from erotica.analysis.inference import proper_motion_2d_gaussian
+
+    ra, dec, e_ra, e_dec, rho = _pm_table()
+    # cores=1: the batched (n, 2, 2) covariance kills PyMC's multiprocess workers
+    # with EOFError on this machine. Sequential sampling is correct and slower,
+    # which is the right trade for a test.
+    cfg = SamplingConfig(draws=800, tune=800, chains=2, random_seed=4, progressbar=False,
+                         extra_kwargs={"cores": 1})
+
+    naive = proper_motion_2d_gaussian(ra, dec, sampling=cfg)
+    aware = proper_motion_2d_gaussian(
+        ra, dec, pm_ra_error=e_ra, pm_dec_error=e_dec, pm_ra_dec_corr=rho, sampling=cfg
+    )
+
+    assert aware.metadata["error_aware"] is True
+    assert naive.metadata["error_aware"] is False
+
+    # the covariance-aware fit recovers the injected intrinsic dispersion
+    for axis in ("RA", "Dec"):
+        got = aware.results[f"sigma_{axis}_mean"]
+        assert abs(got - TRUE_PM["sigma_int"]) < 4 * aware.results[f"sigma_{axis}_std"]
+        # the naive one reports the measurement scatter instead, several times larger
+        assert naive.results[f"sigma_{axis}_mean"] > 3 * got
+
+    # both should still find the centroid; the bias is in the width
+    for res in (naive, aware):
+        assert abs(res.results["mu_RA_mean"] - TRUE_PM["mu_ra"]) < 0.05
+        assert abs(res.results["mu_Dec_mean"] - TRUE_PM["mu_dec"]) < 0.05
+
+    # The injected INTRINSIC correlation is zero; the 0.4 lives only in the
+    # measurement errors. The naive fit reports it as a kinematic correlation of
+    # the cluster, which it is not; the covariance-aware fit does not.
+    assert abs(aware.results["corr_mean"]) < 0.15
+    assert naive.results["corr_mean"] > 0.2
+
+
+@requires_bayes_extra
+def test_pm_priors_do_not_depend_on_the_data():
+    """Two clusters at very different proper motions get identical prior support."""
+    from erotica.analysis.inference import ProperMotionPriors, proper_motion_2d_gaussian
+
+    rng = np.random.default_rng(3)
+    cfg = SamplingConfig(draws=300, tune=300, chains=1, random_seed=0, progressbar=False)
+    a = proper_motion_2d_gaussian(
+        rng.normal(-1.4, 0.2, 200), rng.normal(-1.9, 0.2, 200), return_trace=True, sampling=cfg
+    )
+    b = proper_motion_2d_gaussian(
+        rng.normal(12.0, 0.2, 200), rng.normal(-8.0, 0.2, 200), return_trace=True, sampling=cfg
+    )
+    assert a.metadata["prior"] == b.metadata["prior"] == "scale-free"
+    # each still finds its own very different centroid
+    assert abs(a.results["mu_RA_mean"] - (-1.4)) < 0.1
+    assert abs(b.results["mu_RA_mean"] - 12.0) < 0.1
+    p = ProperMotionPriors()
+    assert p.mu_scale > 0 and p.sigma_scale > 0
+
+
+def test_pm_error_validation():
+    from erotica.analysis.inference import proper_motion_2d_gaussian
+
+    ra, dec = np.linspace(-2, -1, 20), np.linspace(-2, -1, 20)
+    with pytest.raises(ValueError, match="both"):
+        proper_motion_2d_gaussian(ra, dec, pm_ra_error=np.full(20, 0.1))
+    with pytest.raises(ValueError, match="positive"):
+        proper_motion_2d_gaussian(
+            ra, dec, pm_ra_error=np.zeros(20), pm_dec_error=np.full(20, 0.1)
+        )
+    with pytest.raises(ValueError, match="strictly inside"):
+        proper_motion_2d_gaussian(
+            ra, dec, pm_ra_error=np.full(20, 0.1), pm_dec_error=np.full(20, 0.1),
+            pm_ra_dec_corr=np.full(20, 1.0),
+        )

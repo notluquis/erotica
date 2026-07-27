@@ -54,6 +54,29 @@ class ParallaxPriors:
 
 
 @dataclass(frozen=True)
+class ProperMotionPriors:
+    """Scale-free priors for the 2D proper-motion model. Fixed constants.
+
+    The previous defaults centred ``mu_RA``/``mu_Dec`` on ``nanmedian`` of the
+    data and scaled every width by ``nanstd`` of the data -- the data used twice.
+
+    Attributes
+    ----------
+    mu_scale : float
+        Standard deviation (mas/yr) of the zero-centred Normal prior on the mean
+        cluster proper motion. 20 mas/yr comfortably covers Galactic open
+        clusters, which rarely exceed a few mas/yr beyond the local standard.
+    sigma_scale : float
+        Half-normal scale (mas/yr) for the cluster's **intrinsic** velocity
+        dispersion. 1 mas/yr at 1 kpc is ~4.7 km/s, well above any bound open
+        cluster, and the tail permits more.
+    """
+
+    mu_scale: float = 20.0
+    sigma_scale: float = 1.0
+
+
+@dataclass(frozen=True)
 class DistanceFitResult:
     mu_r_mean: float
     std_r_mean: float
@@ -252,25 +275,99 @@ def proper_motion_2d_gaussian(
     pm_ra,
     pm_dec,
     *,
+    pm_ra_error=None,
+    pm_dec_error=None,
+    pm_ra_dec_corr=None,
+    priors: ProperMotionPriors | None = None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
 ) -> ProperMotionFitResult:
-    """Fit a correlated 2D Gaussian proper-motion model."""
+    r"""Fit a correlated 2D Gaussian proper-motion model.
+
+    Parameters
+    ----------
+    pm_ra_error, pm_dec_error : array-like, optional
+        Per-star proper-motion uncertainties (mas/yr). **Strongly recommended.**
+        When given, each star gets its own total covariance
+
+        .. math:: \Sigma_i = \Sigma_{\mathrm{int}} + C_i
+
+        so ``sigma_RA``/``sigma_Dec`` measure the cluster's **intrinsic**
+        velocity dispersion rather than the dispersion plus Gaia's measurement
+        scatter. For an open cluster the measurement term usually dominates, so
+        without this the fitted dispersion is mostly an error bar, and any
+        virial mass or crossing time derived from it is inflated.
+    pm_ra_dec_corr : array-like, optional
+        Per-star ``pmra_pmdec_corr`` from Gaia. Ignoring it treats an error
+        ellipse as if it were axis-aligned; Gaia's proper-motion correlations
+        are routinely |rho| > 0.3.
+    priors : ProperMotionPriors, optional
+        Scale-free priors. Defaults are constants, **not** functions of the data.
+
+    Notes
+    -----
+    Before 2026-07-27 the priors were centred on ``nanmedian`` of the data with
+    widths from ``nanstd`` of the data, and the per-star covariance was ignored
+    entirely even though :mod:`erotica.core._error_aware` already builds it.
+    """
     pm = _require_pymc()
     sampling = sampling or SamplingConfig()
-    pm_ra_values = quantity_values(pm_ra, u.mas / u.yr)
-    pm_dec_values = quantity_values(pm_dec, u.mas / u.yr)
+    priors = priors or ProperMotionPriors()
+    pm_ra_values = np.asarray(quantity_values(pm_ra, u.mas / u.yr), dtype=float)
+    pm_dec_values = np.asarray(quantity_values(pm_dec, u.mas / u.yr), dtype=float)
+    observed = np.stack([pm_ra_values, pm_dec_values], axis=1)
+
+    per_star = None
+    if (pm_ra_error is None) != (pm_dec_error is None):
+        raise ValueError("Give both pm_ra_error and pm_dec_error, or neither.")
+    if pm_ra_error is not None:
+        e_ra = np.asarray(quantity_values(pm_ra_error, u.mas / u.yr), dtype=float)
+        e_dec = np.asarray(quantity_values(pm_dec_error, u.mas / u.yr), dtype=float)
+        if e_ra.shape != pm_ra_values.shape or e_dec.shape != pm_dec_values.shape:
+            raise ValueError("Proper-motion errors must match the proper motions in length.")
+        if not (np.all(np.isfinite(e_ra)) and np.all(np.isfinite(e_dec))):
+            raise ValueError("Per-star proper-motion errors must all be finite.")
+        if np.any(e_ra <= 0) or np.any(e_dec <= 0):
+            raise ValueError("Per-star proper-motion errors must all be positive.")
+        rho = (
+            np.zeros_like(e_ra)
+            if pm_ra_dec_corr is None
+            else np.asarray(quantity_values(pm_ra_dec_corr), dtype=float)
+        )
+        if np.any(np.abs(rho) >= 1.0):
+            raise ValueError("pm_ra_dec_corr must lie strictly inside (-1, 1).")
+        off = rho * e_ra * e_dec
+        per_star = np.empty((e_ra.size, 2, 2), dtype=float)
+        per_star[:, 0, 0] = e_ra**2
+        per_star[:, 1, 1] = e_dec**2
+        per_star[:, 0, 1] = per_star[:, 1, 0] = off
+
     with pm.Model() as model:
-        mu_ra = pm.Normal("mu_RA", mu=float(np.nanmedian(pm_ra_values)), sigma=float(np.nanstd(pm_ra_values)))
-        mu_dec = pm.Normal("mu_Dec", mu=float(np.nanmedian(pm_dec_values)), sigma=float(np.nanstd(pm_dec_values)))
-        sigma_ra = pm.HalfNormal("sigma_RA", sigma=float(np.nanstd(pm_ra_values)))
-        sigma_dec = pm.HalfNormal("sigma_Dec", sigma=float(np.nanstd(pm_dec_values)))
-        corr = pm.Uniform("corr", lower=-1, upper=1)
+        mu_ra = pm.Normal("mu_RA", mu=0.0, sigma=priors.mu_scale)
+        mu_dec = pm.Normal("mu_Dec", mu=0.0, sigma=priors.mu_scale)
+        sigma_ra = pm.HalfNormal("sigma_RA", sigma=priors.sigma_scale)
+        sigma_dec = pm.HalfNormal("sigma_Dec", sigma=priors.sigma_scale)
+        # corr is sampled as tanh(z) rather than Uniform(-1, 1). At |corr| = 1 the
+        # covariance is singular, and a hard uniform boundary lets NUTS propose
+        # arbitrarily close to it -- with a per-star covariance added the Cholesky
+        # then fails and the worker dies with EOFError. tanh keeps |corr| < 1
+        # strictly, is smooth everywhere, and needs no boundary correction.
+        corr_z = pm.Normal("corr_z", mu=0.0, sigma=1.0)
+        corr = pm.Deterministic("corr", pm.math.tanh(corr_z))
         cov = pm.math.stack(
             [[sigma_ra**2, corr * sigma_ra * sigma_dec], [corr * sigma_ra * sigma_dec, sigma_dec**2]]
         )
-        pm.MvNormal("obs", mu=pm.math.stack([mu_ra, mu_dec]), cov=cov, observed=np.stack([pm_ra_values, pm_dec_values], axis=1))
+        total = cov if per_star is None else cov + per_star  # broadcasts to (n, 2, 2)
+        pm.MvNormal(
+            "obs", mu=pm.math.stack([mu_ra, mu_dec]), cov=total, observed=observed
+        )
     trace = _sample(pm, model, sampling)
+    metadata = {
+        "backend": sampling.nuts_sampler,
+        "error_aware": per_star is not None,
+        "correlation_used": pm_ra_dec_corr is not None,
+        "prior": "scale-free",
+    }
     results = {
         "mu_RA_mean": float(trace.posterior["mu_RA"].mean()),
         "mu_Dec_mean": float(trace.posterior["mu_Dec"].mean()),
@@ -286,7 +383,7 @@ def proper_motion_2d_gaussian(
     return ProperMotionFitResult(
         results=results,
         trace=trace if return_trace else None,
-        metadata={"backend": sampling.nuts_sampler, "variables": list(results)},
+        metadata=metadata | {"variables": list(results)},
     )
 
 
