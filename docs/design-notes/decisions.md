@@ -109,6 +109,65 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — two dispatch bugs in `dynamics.py`, and posteriors now reach it
+
+Found while wiring posterior propagation (plan step 3). Both fail on **scalars** too, so
+neither is an array-broadcasting issue — they were simply never called.
+
+**Bug 1 — the keyword Galactic call form raised.** `calculate_galactocentric_distance` supports five
+call forms. The guard choosing the equatorial branch fired on `distance is not None` **alone**, so
+
+```python
+calculate_galactocentric_distance(distance=d, l=..., b=...)
+```
+
+— the Galactic form the docstring advertises — fell into the *equatorial* branch with `ra=None` and
+raised inside `SkyCoord`. Only the positional `(distance, l, b)` form ever reached the Galactic
+code. The existing test even documented this as intended: *"NB: passing distance=/l=/b= as keywords
+routes to the equatorial branch instead"*. **That comment was a bug being recorded as behaviour.**
+
+The fix has to discriminate all five forms, because a naive "equatorial requires ra/dec" guard breaks
+`calculate_hill_radius(center=...)`, which passes `(ra, dec)` positionally *with* a keyword
+`distance`. Caught by the existing `solar_radius` test — which is exactly what it was written for.
+
+**Bug 2 — `tidal_radius_prior` was broken on its default path**, in two places.
+`calculate_galactic_mass` returns a bare `Quantity` when no error is supplied and a `(mass, err)`
+tuple when one is. Both `tidal_radius_prior` and `calculate_hill_radius` unpacked two values
+unconditionally, so with the **default** `galactocentric_distance_err=None` the call raised
+`ValueError: too many values to unpack` (arrays) or `TypeError: 'Quantity' object ... is not
+iterable` (scalars).
+
+```{warning}
+`tidal_radius_prior` is the function PART J recommends for the King `R_t` prior — the physical
+Jacobi-radius prior that the whole `R_t` argument now rests on. It was unusable as documented. The
+Jacobi-prior fits reported in `king_model_validity.md` avoided it only because the Hunt & Reffert
+value was passed as a literal, and are unaffected.
+```
+
+**Oracles.** All five call forms are pinned and the three equatorial spellings must agree exactly;
+equatorial and Galactic must agree for the *same* sky position (converted, not a rounded `l`/`b`);
+`r_J ∝ M^(1/3)`, so 8× the mass must double the radius, to `rel=1e-6`.
+
+**Posterior propagation (plan step 3).** The dynamics functions turned out to be array-safe already,
+so what was missing was a tested path and a way to report the result. `dynamics.posterior_summary`
+reduces a sample of a derived quantity to median plus an equal-tailed credible interval, preserving
+units, without pretending the distribution is Gaussian. A test pushes 500 posterior draws of mass,
+distance, half-mass radius and velocity dispersion through the galactocentric distance, Jacobi
+radius, crossing time and relaxation time, and asserts each comes out with the right shape **and a
+non-zero spread** — a scalar answer means the uncertainty was silently dropped.
+
+**Photometry coverage.** `photometry.py` produces the cluster mass, the mass sets the Jacobi radius,
+and the Jacobi radius is the axis the `R_t` argument turns on — so a wrong mass moves a physical
+boundary, not a table entry. New `tests/test_photometry.py` checks the mass–luminosity chain against
+closed forms (distance modulus vanishing at 10 pc; a factor 100 in luminosity per 5 mag; the `M^3.5`
+inversion), isochrone mass assignment against a synthetic track where stars placed on the track must
+get their own mass back, and the mass → Jacobi radius link against the analytic cube-root scaling.
+
+**Coverage:** `dynamics.py` 53% → **68%**, `photometry.py` 41% → **50%**, `units.py` 55% → **81%**;
+total 59% → 62%. Suite 363 → **386**.
+
+---
+
 ## 2026-07-27 — Bailer-Jones distance uncertainties enter the distance model
 
 **Symptom.** `distance_model` built `prior_mu_r` from `nanmean([nanmean(1/parallax), nanmean(distances)])`

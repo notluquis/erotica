@@ -7,7 +7,7 @@ from astropy import units as u
 from astropy.constants import G
 from astropy.coordinates import Galactic, SkyCoord
 
-from .units import angular_size, ensure_units, estimate_cluster_mass
+from .units import angular_size, ensure_units, estimate_cluster_mass, quantity_values
 
 #: Galactocentric distance of the Sun, R_0.
 #:
@@ -105,7 +105,29 @@ def calculate_galactocentric_distance(
         else:
             equatorial_positional = True
 
-    if distance is not None or ra is not None or dec is not None or equatorial_positional:
+    # Five call forms have to be told apart, and the Galactic branch further down
+    # is only reachable if we decline the equatorial one here:
+    #
+    #   1. (dist, l, b)                positional Galactic
+    #   2. (ra, dec, dist)             legacy positional equatorial
+    #   3. (ra=, dec=, distance=)      keyword equatorial
+    #   4. (ra, dec, distance=)        positional pair + keyword distance
+    #                                  -- used by calculate_hill_radius(center=...)
+    #   5. (distance=, l=, b=)         keyword Galactic
+    #
+    # Before 2026-07-27 the guard fired on ``distance is not None`` alone, so form
+    # 5 -- the keyword Galactic call the docstring advertises -- fell into the
+    # equatorial path with ``ra=None`` and raised inside SkyCoord. Only form 1
+    # reached the Galactic branch.
+    galactic_kw = l is not None and b is not None
+    galactic_pos = (
+        distance is None
+        and ra is None
+        and dec is None
+        and third is not None
+        and not equatorial_positional
+    )
+    if not (galactic_kw or galactic_pos):
         ra = first if ra is None else ra
         dec = second if dec is None else dec
         distance = third if distance is None else distance
@@ -133,7 +155,7 @@ def calculate_galactocentric_distance(
         )
         return radius, radius_err.to(u.kpc)
 
-    cluster_distance = first
+    cluster_distance = first if distance is None else distance
     l = second if l is None else l
     b = third if b is None else b
     dist = ensure_units(cluster_distance, u.kpc)
@@ -143,6 +165,50 @@ def calculate_galactocentric_distance(
     return np.sqrt(
         solar_radius**2 + dist**2 - 2 * solar_radius * dist * np.cos(l_rad) * np.cos(b_rad)
     ).to(u.kpc)
+
+
+def posterior_summary(samples, *, credible_mass: float = 0.68):
+    """Median and equal-tailed credible interval of a derived quantity.
+
+    The point of propagating a posterior into `dynamics` is that the answer is a
+    *distribution*. This reduces one to the three numbers a table needs, without
+    pretending the distribution was Gaussian.
+
+    Parameters
+    ----------
+    samples : array-like or Quantity
+        Draws of the derived quantity, e.g. the output of a dynamics function
+        called on posterior samples. Units are preserved.
+    credible_mass : float, default 0.68
+        Central probability mass of the interval.
+
+    Returns
+    -------
+    dict
+        ``median``, ``lower``, ``upper`` (the interval *bounds*, not offsets),
+        ``minus``, ``plus`` (offsets from the median), and ``n``.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> s = posterior_summary(np.arange(1001.0))
+    >>> round(s["median"]), round(s["lower"]), round(s["upper"])
+    (500, 160, 840)
+    """
+    values = np.asarray(quantity_values(samples), dtype=float)
+    unit = getattr(samples, "unit", None)
+    finite = values[np.isfinite(values)]
+    if finite.size == 0:
+        raise ValueError("No finite samples to summarize.")
+    tail = 0.5 * (1.0 - float(credible_mass))
+    lo, med, hi = np.percentile(finite, [100 * tail, 50.0, 100 * (1.0 - tail)])
+    out = {
+        "median": med, "lower": lo, "upper": hi,
+        "minus": med - lo, "plus": hi - med, "n": int(finite.size),
+    }
+    if unit is not None:
+        out = {k: (v * unit if k != "n" else v) for k, v in out.items()}
+    return out
 
 
 def calculate_hill_radius(
@@ -188,9 +254,17 @@ def calculate_hill_radius(
         u.kpc,
     )
     if galactic_mass is None:
-        galactic_mass, galactic_mass_err = calculate_galactic_mass(
+        # calculate_galactic_mass returns a bare Quantity when no error is given
+        # and a (mass, err) tuple when one is. Unpacking unconditionally -- as both
+        # call sites did before 2026-07-27 -- breaks the DEFAULT path, where
+        # galactocentric_distance_err is None.
+        computed = calculate_galactic_mass(
             galactocentric_distance, galactocentric_distance_err
         )
+        if isinstance(computed, tuple):
+            galactic_mass, galactic_mass_err = computed
+        else:
+            galactic_mass, galactic_mass_err = computed, None
     else:
         galactic_mass = ensure_units(galactic_mass, u.Msun)
         galactic_mass_err = ensure_units(0 * u.Msun if galactic_mass_err is None else galactic_mass_err, u.Msun)
@@ -294,9 +368,17 @@ def tidal_radius_prior(
     if type is not None:
         kind = type
     if galactic_mass is None:
-        galactic_mass, galactic_mass_err = calculate_galactic_mass(
+        # calculate_galactic_mass returns a bare Quantity when no error is given
+        # and a (mass, err) tuple when one is. Unpacking unconditionally -- as both
+        # call sites did before 2026-07-27 -- breaks the DEFAULT path, where
+        # galactocentric_distance_err is None.
+        computed = calculate_galactic_mass(
             galactocentric_distance, galactocentric_distance_err
         )
+        if isinstance(computed, tuple):
+            galactic_mass, galactic_mass_err = computed
+        else:
+            galactic_mass, galactic_mass_err = computed, None
     else:
         galactic_mass = ensure_units(galactic_mass, u.Msun)
         galactic_mass_err = None

@@ -9,6 +9,7 @@ from .debugging import (
     validate_cluster_table,
 )
 from .dynamics import (
+    posterior_summary,
     ClusterDynamicsAnalyzer,
     calculate_galactic_mass,
     calculate_galactocentric_distance,
@@ -201,6 +202,7 @@ __all__ = [
     "pm_amplitude",
     "pm_determination",
     "posterior_mode",
+    "posterior_summary",
     "projected_velocity_values",
     "proper_motion_2d_gaussian",
     "quantity_values",
