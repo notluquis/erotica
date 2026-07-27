@@ -7,13 +7,13 @@ noise (label -1). Shows that NGC 6383 is a compact proper-motion overdensity
 clearly separated from the diffuse field, while on the sky all groups overlap.
 Shares the common figure styling with the other regen_*.py scripts."""
 import sys
-sys.path.insert(0, "/Users/notluquis/COSMIC")
+sys.path.insert(0, "/Users/notluquis/erotica")
 import dill, numpy as np
 import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 clu = dill.load(open(f"{B}/comments_paper/radius_robustness/generated/dill/ngc6383_40_paperfaithful.dill", "rb"))
 

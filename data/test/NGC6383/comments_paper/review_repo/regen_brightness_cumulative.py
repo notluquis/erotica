@@ -9,7 +9,7 @@ import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt
 
-B="/Users/notluquis/COSMIC/data/test/NGC6383"
+B="/Users/notluquis/erotica/data/test/NGC6383"
 FIG=f"{B}/comments_paper/submission_package/clean_source/Figures/"
 t=Table.read(f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv")
 c=SkyCoord(263.6826*u.deg,-32.5838*u.deg)

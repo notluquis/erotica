@@ -9,7 +9,7 @@ import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt, matplotlib.ticker as ticker
 
-B="/Users/notluquis/COSMIC/data/test/NGC6383"
+B="/Users/notluquis/erotica/data/test/NGC6383"
 FIG=f"{B}/comments_paper/submission_package/clean_source/Figures/"
 # reference sample (254): designation, parallax, parallax_error, Gmag
 ast=pd.read_csv(f"{B}/ASteCA/output/NGC_6383_dr3_all/NGC_6383_dr3_all.csv",sep=r"\s+")

@@ -10,7 +10,7 @@ from astropy.table import Table
 from astropy.coordinates import SkyCoord, angular_separation
 import astropy.units as u
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383/comments_paper/radius_robustness/generated"
+B = "/Users/notluquis/erotica/data/test/NGC6383/comments_paper/radius_robustness/generated"
 CRA, CDEC = 263.6826, -32.5838
 TMAX = 42.45  # arcmin: max(Hill 28.32, bound 42.45) as in the paper
 c = SkyCoord(CRA * u.deg, CDEC * u.deg)
@@ -73,7 +73,7 @@ def fit_king(t, tag):
     rmax = float(summ["r_hat"].max()); bmin = float(summ["ess_bulk"].min()); tmin = float(summ["ess_tail"].min())
     passed = rmax < 1.01 and bmin > 400 and tmin > 400 and div == 0 and bfmi > 0.3
     print(f"[{tag}] DIAG: div={div} minBFMI={bfmi:.3f} maxRhat={rmax:.4f} minESS={bmin:.0f}/{tmin:.0f} -> {'PASS' if passed else 'FAIL'}")
-    idata.to_netcdf(f"/Users/notluquis/COSMIC/data/test/NGC6383/comments_paper/review_repo/idata_king_cone{tag.split()[-1].strip(chr(39))}.nc")
+    idata.to_netcdf(f"/Users/notluquis/erotica/data/test/NGC6383/comments_paper/review_repo/idata_king_cone{tag.split()[-1].strip(chr(39))}.nc")
     return out
 
 for radius in [40, 50, 60, 70]:

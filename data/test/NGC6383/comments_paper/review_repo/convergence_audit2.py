@@ -5,7 +5,7 @@ parallax, distance, proper-motion, and King-profile models, re-run with NUTS
 Criteria: rank-normalized R-hat < 1.01, bulk/tail ESS > 400, 0 divergences,
 E-BFMI > 0.3. Prints diagnostics + comparison to published values; saves idata."""
 import sys, numpy as np, pandas as pd
-sys.path.insert(0, "/Users/notluquis/COSMIC")
+sys.path.insert(0, "/Users/notluquis/erotica")
 import astropy.units as u
 from astropy.table import QTable, Table
 from astropy.coordinates import SkyCoord, angular_separation
@@ -16,7 +16,7 @@ from pumps.analysis.inference import (
 )
 from pumps.analysis import structure
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 OUT = f"{B}/comments_paper/review_repo"
 CFG = SamplingConfig(draws=2000, tune=2000, target_accept=0.9, chains=4,
                      random_seed=42, nuts_sampler="pymc", progressbar=False, extra_kwargs={"cores": 1})

@@ -1,5 +1,5 @@
 import numpy as np, pandas as pd, asteca, inspect
-B="/Users/notluquis/COSMIC/data/test/NGC6383"
+B="/Users/notluquis/erotica/data/test/NGC6383"
 df=pd.read_csv(f"{B}/ASteCA/output/NGC_6383_dr3_all/NGC_6383_dr3_all.csv",sep=r"\s+")
 print("members:",len(df),"cols:",list(df.columns))
 

@@ -7,14 +7,14 @@ Goal: (a) honest convergence diagnostics (the 2024 production trace was a
 published mode values (loga 6.550+-0.145, dm 10.300+-0.262, Av 1.240+-0.262,
 Z 0.024+-0.008) against a properly converged posterior."""
 import sys, numpy as np
-sys.path.insert(0, "/Users/notluquis/COSMIC")
+sys.path.insert(0, "/Users/notluquis/erotica")
 from astropy.table import QTable, Table
 import arviz as az
 from scipy.stats import gaussian_kde
 
 from pumps.analysis._isochrone import IsochroneFitter
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 ref = Table.read(f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv")
 print(f"reference sample N={len(ref)}")
 

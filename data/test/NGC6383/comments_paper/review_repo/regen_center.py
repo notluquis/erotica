@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
 from scipy.stats import gaussian_kde
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 D_KPC = 1.110                                   # adopted parallax distance (mu_r)
 

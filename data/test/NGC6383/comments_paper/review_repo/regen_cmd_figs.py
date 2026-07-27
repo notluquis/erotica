@@ -11,7 +11,7 @@ matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 cds = Table.read(f"{B}/comments_paper/cds_final/ngc6383_members.ecsv").to_pandas()
 ref = cds[cds.Ref == 1].reset_index(drop=True)            # 254

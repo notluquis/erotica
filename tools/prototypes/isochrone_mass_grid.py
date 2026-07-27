@@ -6,7 +6,7 @@ Differentiable via jax.scipy.ndimage.map_coordinates(order=1). isochrone(log_age
 import glob, numpy as np, jax, jax.numpy as jnp
 from jax.scipy.ndimage import map_coordinates
 jax.config.update("jax_enable_x64", True)
-_F=sorted(glob.glob("/Users/notluquis/COSMIC/data/test/NGC6383/MIST/UBVRIplus/*.iso.cmd"))
+_F=sorted(glob.glob("/Users/notluquis/erotica/data/test/NGC6383/MIST/UBVRIplus/*.iso.cmd"))
 _C=dict(EEP=0,AGE=1,FEH=8,MASS=2,G=30,BP=31,RP=32)   # MASS = initial_mass col idx2
 def _blocks(fn):
     rows=[]

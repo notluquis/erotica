@@ -3,7 +3,7 @@
 curve + posterior band (from audited idata), black dashed/dotted Rc/Rt verticals,
 gray dash-dot background level. Published values for lines/legend."""
 import sys, numpy as np
-sys.path.insert(0,"/Users/notluquis/COSMIC")
+sys.path.insert(0,"/Users/notluquis/erotica")
 import astropy.units as u, arviz as az
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
@@ -12,7 +12,7 @@ import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt
 
-B="/Users/notluquis/COSMIC/data/test/NGC6383"
+B="/Users/notluquis/erotica/data/test/NGC6383"
 FIG=f"{B}/comments_paper/submission_package/clean_source/Figures/"
 t=Table.read(f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv")
 center=SkyCoord(263.6826*u.deg,-32.5838*u.deg)

@@ -10,7 +10,7 @@ from astropy.table import Table
 from astropy.coordinates import SkyCoord, angular_separation
 import astropy.units as u
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383/comments_paper/radius_robustness/generated"
+B = "/Users/notluquis/erotica/data/test/NGC6383/comments_paper/radius_robustness/generated"
 CRA, CDEC = 263.6826, -32.5838
 TMAX = 42.45  # arcmin: max(Hill 28.32, bound 42.45) as in the paper
 c = SkyCoord(CRA * u.deg, CDEC * u.deg)

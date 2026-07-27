@@ -18,7 +18,7 @@ matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 
 hdu = fits.open(f"{B}/NGC6383_DSS2-red.fits")[0]

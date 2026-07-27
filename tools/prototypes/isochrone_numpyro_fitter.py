@@ -7,7 +7,7 @@ linear grid (isochrone_mass_grid.py) — Chi keeps C0 too; cubic did NOT help (f
 import numpyro, numpyro.distributions as dist
 from numpyro.infer import MCMC, NUTS, init_to_median
 numpyro.set_host_device_count(4)
-exec(open("/Users/notluquis/COSMIC/iso_grid2.py").read())   # isochrone(mass), mass_axis, bounds
+exec(open("/Users/notluquis/erotica/iso_grid2.py").read())   # isochrone(mass), mass_axis, bounds
 from jax.scipy.special import logsumexp
 A_G,E_col=0.83,0.42; MLO,MHI=float(mass_axis.min()),float(mass_axis.max())
 def model(go,co,ge,ce):

@@ -7,7 +7,7 @@ from astropy.table import Table
 import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt
-B="/Users/notluquis/COSMIC/data/test/NGC6383"
+B="/Users/notluquis/erotica/data/test/NGC6383"
 FIG=f"{B}/comments_paper/submission_package/clean_source/Figures/"
 t=Table.read(f"{B}/comments_paper/review_repo/rv_amplitude_dr3.ecsv").to_pandas()
 amp=t.rv_amplitude_robust.values; has=np.isfinite(amp)

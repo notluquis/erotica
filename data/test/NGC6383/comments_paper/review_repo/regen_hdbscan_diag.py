@@ -9,13 +9,13 @@ branch-stability criteria stated in the caption (condensed-tree lambda_max >= 8
 and recovered branch size in 200-701), from the audited sweep track CSV.
 B.2 is drawn from the saved production Clustering object (40 arcmin dill)."""
 import sys
-sys.path.insert(0, "/Users/notluquis/COSMIC")
+sys.path.insert(0, "/Users/notluquis/erotica")
 import dill, pandas as pd
 import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 clu = dill.load(open(f"{B}/comments_paper/radius_robustness/generated/dill/ngc6383_40_paperfaithful.dill", "rb"))
 

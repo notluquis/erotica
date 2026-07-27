@@ -15,7 +15,7 @@ import glob, re, numpy as np, jax, jax.numpy as jnp
 from jax.scipy.ndimage import map_coordinates
 jax.config.update("jax_enable_x64", True)
 
-FILES=sorted(glob.glob("/Users/notluquis/COSMIC/data/test/NGC6383/MIST/UBVRIplus/*.iso.cmd"))
+FILES=sorted(glob.glob("/Users/notluquis/erotica/data/test/NGC6383/MIST/UBVRIplus/*.iso.cmd"))
 C_EEP,C_AGE,C_FEH,C_G,C_BP,C_RP=0,1,8,30,31,32
 TARGET_AGE=6.60  # young
 

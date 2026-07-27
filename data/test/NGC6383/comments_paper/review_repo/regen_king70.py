@@ -4,7 +4,7 @@ extraction (idata_king_cone70_modpriors.nc, N=628), showing that this window
 contains a genuine background annulus beyond the cluster and fully encloses the
 R_t posterior (16-84% interval inside the data). Same styling as regen_king.py."""
 import sys, numpy as np
-sys.path.insert(0,"/Users/notluquis/COSMIC")
+sys.path.insert(0,"/Users/notluquis/erotica")
 import astropy.units as u, arviz as az
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
@@ -13,7 +13,7 @@ import matplotlib; matplotlib.use("Agg")
 matplotlib.rcParams.update({"xtick.labelsize": 13, "ytick.labelsize": 13, "axes.labelsize": 15, "legend.fontsize": 11, "axes.titlesize": 14})
 import matplotlib.pyplot as plt
 
-B="/Users/notluquis/COSMIC/data/test/NGC6383"
+B="/Users/notluquis/erotica/data/test/NGC6383"
 FIG=f"{B}/comments_paper/submission_package/clean_source/Figures/"
 t=Table.read(f"{B}/comments_paper/radius_robustness/generated/70/paperfaithful_reference_p06.ecsv")
 center=SkyCoord(263.6826*u.deg,-32.5838*u.deg)

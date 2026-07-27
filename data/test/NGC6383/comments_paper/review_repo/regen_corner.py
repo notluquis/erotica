@@ -12,7 +12,7 @@ matplotlib.rcParams.update({"xtick.labelsize": 11, "ytick.labelsize": 11, "axes.
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-B = "/Users/notluquis/COSMIC/data/test/NGC6383"
+B = "/Users/notluquis/erotica/data/test/NGC6383"
 FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 post = az.from_netcdf(f"{B}/data/40/fit_parameters_trace_1724708835.nc").posterior
 

@@ -3,8 +3,9 @@
 Python package `erotica/` (clustering, isochrone, dynamics, kinematics,
 photometry, structure, analysis) **plus** the full source of the NGC 6383 A&A
 paper (aa52082-24) under `data/test/NGC6383/`. Remote: `notluquis/erotica`,
-working branch `dev`. (Package renamed COSMIC→EROTICA 2026-07-21; the local dir
-stays `/Users/notluquis/COSMIC` — 26 figure scripts hardcode that path.)
+working branch `dev`. (Renamed COSMIC→EROTICA 2026-07-21 — package, import, PyPI
+dist, GitHub repo, and the working dir `/Users/notluquis/COSMIC` →
+`/Users/notluquis/erotica`.)
 
 Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 `--add-dir`): `~/phd/PIPELINE.md` (state), `~/phd/ROADMAP.md` (plan),
@@ -12,8 +13,9 @@ Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 Keep those current; do **not** spawn TODO files here.
 
 ## Landmines
-- **26 scripts hardcode `/Users/notluquis/COSMIC/...`** (paper figure regen). Do
-  not move or rename this dir — it breaks them all.
+- **~30 files hardcode `/Users/notluquis/erotica/...`** (paper figure regen). They
+  were rewritten during the 2026-07-21 dir move; if this dir moves again, rewrite
+  them in the same pass or they all break.
 - **Paper source of truth:**
   `data/test/NGC6383/comments_paper/submission_package/clean_source/aanda.tex`.
   An older working copy sits at `data/test/NGC6383/Tex_File/aanda.tex` — don't

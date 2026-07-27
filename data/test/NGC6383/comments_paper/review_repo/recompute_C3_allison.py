@@ -8,7 +8,7 @@ Covers:
   - Allison et al. (2009) MST Lambda_MSR mass-segregation profile (+figure)
   - T-Tauri binary probability lookup
 
-Run from /Users/notluquis/COSMIC.
+Run from /Users/notluquis/erotica.
 Inputs (40 arcmin production run):
   ASteCA/output/NGC_6383_dr3_all/NGC_6383_dr3_all.csv   (254 ref sample: designation, ra, dec, Gmag)
   data/40/masses_asteca.csv                             (254: m1, m2, binar_prob, aligned by row)
@@ -22,7 +22,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-BASE = "/Users/notluquis/COSMIC/data/test/NGC6383"
+BASE = "/Users/notluquis/erotica/data/test/NGC6383"
 rng = np.random.default_rng(7)
 CENTER = SkyCoord(263.6826 * u.deg, -32.5838 * u.deg)
 DIST, DERR = 1.110, 0.060      # kpc (parallax distance)

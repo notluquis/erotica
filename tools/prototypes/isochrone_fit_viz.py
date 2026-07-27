@@ -1,7 +1,7 @@
 import sys, numpy as np, jax, jax.numpy as jnp
-sys.path.insert(0,"/Users/notluquis/COSMIC")
+sys.path.insert(0,"/Users/notluquis/erotica")
 import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-exec(open("/Users/notluquis/COSMIC/iso_grid2.py").read())
+exec(open("/Users/notluquis/erotica/iso_grid2.py").read())
 A_G,E_col=0.83,0.42
 true=dict(log_age=6.60,feh=0.0,dm=10.30,Av=1.20)
 # synthetic cluster (with binaries + scatter)
