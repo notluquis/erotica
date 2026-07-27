@@ -129,3 +129,6 @@ data/test/NGC6383/comments_paper/submission_package/aa52082-24_source.zip
 # Sphinx docs build artifacts
 docs/_build/
 docs/api/generated/
+
+# External data (large, not redistributable) — e.g. Hunt+2026 members.csv (~33 GB)
+data/external/
