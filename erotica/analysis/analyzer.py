@@ -300,7 +300,7 @@ class ClusterAnalyzer:
         >>> fitter = ca.prepare_isochrone_fitter(isochs_path="./MIST/", cluster=12)
         >>> fitter.set_priors({"dm_mu": 10.2, "dm_sigma": 0.3, "loga_range": (6.0, 7.0)})
         >>> fitter.build_grid(M_met=200, M_loga=200, grid_cache="./data/40/hgrid.npz")
-        >>> idata = fitter.fit(draws=2000, tune=1000, chains=4, nuts_sampler="blackjax")
+        >>> idata = fitter.fit(draws=2000, tune=1000, chains=4)
         """
         from pathlib import Path as _Path
 
@@ -350,7 +350,7 @@ class ClusterAnalyzer:
         chains: int | None = None,
         cores: int | None = None,
         target_accept: float = 0.8,
-        nuts_sampler: str = "blackjax",
+        nuts_sampler: str = "pymc",
         random_seed: int | None = None,
         init: str = "auto",
         initvals: dict | None = None,

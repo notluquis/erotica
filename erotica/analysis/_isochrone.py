@@ -947,7 +947,7 @@ class IsochroneFitter:
         chains: int | None = None,
         cores: int | None = None,
         target_accept: float = 0.8,
-        nuts_sampler: str = "blackjax",
+        nuts_sampler: str = "pymc",
         random_seed: int | None = None,
         progressbar: bool = True,
         # Initialisation

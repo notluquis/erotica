@@ -3,6 +3,8 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  # Core suite on every supported Python. The `bayes` extra is deliberately NOT
+  # installed here: pymc>=6 requires Python >=3.12, so it cannot run on 3.11.
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -15,3 +17,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e .[dev]
       - run: pytest -q
+
+  # The Bayesian paths produce every published number, and until 2026-07-27 no
+  # test had ever sampled a PyMC model -- the suite monkeypatched the sampler
+  # away and CI installed only `.[dev]`, so a broken default backend went
+  # unnoticed. This job installs the extra so those tests actually execute
+  # rather than skipping, and reports coverage.
+  test-bayes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e .[dev,bayes]
+      - name: Fail if the bayes extra did not actually install
+        run: python -c "import pymc, arviz; print('pymc', pymc.__version__, '| arviz', arviz.__version__)"
+      - run: pytest -q --cov=erotica --cov-report=term-missing

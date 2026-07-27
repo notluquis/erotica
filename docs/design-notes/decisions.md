@@ -70,6 +70,45 @@ result was finite would have passed throughout the bug's lifetime.
 
 ---
 
+## 2026-07-27 — the default NUTS backend was broken, and no test could have caught it
+
+**Symptom.** Every Bayesian entry point failed on a real call:
+
+```
+TypeError: build_kernel.<locals>.kernel() got an unexpected keyword argument 'progress_bar'
+```
+
+`SamplingConfig.nuts_sampler` defaulted to `"blackjax"`, which is incompatible with the installed
+blackjax 1.6.2 / pymc 6.1.0. **So `pip install -e ".[bayes]"` produced a package whose every
+Bayesian model raised on first use.** Three entry points carried the default: `inference.py:24`,
+`_isochrone.py:950`, `analyzer.py:353`.
+
+**Why it went unnoticed — the deeper finding.** *No test in the suite had ever sampled a PyMC model.*
+`tests/test_inference.py` monkeypatched the sampler away; `tests/test_structure.py` fed a `_FakeVar`
+trace and never called `RDP_bayesian`; and CI installed `.[dev]`, not `[bayes]`. The Bayesian paths
+that produce every published number were entirely unexercised. A JOSS reviewer installs and runs.
+
+**Fix.** Default to `"pymc"` — PyMC's built-in NUTS, always present when the extra is installed.
+`blackjax` and `numpyro` remain available opt-in for speed. Verified working: recovers
+`mu = 0.8948 ± 0.0027` against an injected truth of 0.90.
+
+**Oracle.** Injected truth, not a golden number — synthetic parallaxes drawn from a known
+`(mu, sigma)` must be recovered, plus the convergence floor from `~/phd/methodology.md` PART A
+(Vehtari+2021): **R-hat < 1.01, bulk-ESS > 400, zero divergences**. See
+`tests/test_inference.py::test_fit_parallax_model_recovers_injected_truth`.
+
+**Also fixed in the same pass:** CI gained a `test-bayes` job that installs `.[dev,bayes]` and
+**asserts the extra actually imported**, so these tests execute rather than silently skipping.
+It is a separate job because pymc>=6 requires Python >=3.12 while the matrix still covers 3.11.
+
+```{note}
+`arviz >= 1` returns a **display-formatted** summary frame — `r_hat` and `ess_bulk` arrive as
+strings, so `summary["r_hat"].max() < 1.01` raises `TypeError: '<' not supported between instances
+of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
+```
+
+---
+
 ## 2026-07-27 — `sigma_clip_parallax` has flag-dependent return arity
 
 **Status: documented, not changed.**

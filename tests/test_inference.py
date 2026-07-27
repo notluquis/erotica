@@ -12,6 +12,8 @@ division by zero. The fix requires ``parallax > 0`` and guards the division.
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
+import pytest
 from astropy import units as u
 from astropy.table import QTable
 
@@ -102,3 +104,88 @@ def test_fractional_parallax_cut_excludes_nonpositive_parallax(monkeypatch):
 
     # Both model calls must receive the identical filtered subset.
     assert set(np.asarray(captured["useful_parallax"]["source_id"]).tolist()) == {1}
+
+
+# ---------------------------------------------------------------------------
+# Real sampling tests.
+#
+# Until 2026-07-27 NO test in this suite ever sampled a PyMC model: the tests
+# above monkeypatch the sampler away, tests/test_structure.py feeds a fake trace
+# and never calls RDP_bayesian, and CI installed only `.[dev]`. The Bayesian
+# paths that produce every published number were therefore unexercised.
+#
+# The oracle here is INJECTED TRUTH, not a golden number: synthetic data is drawn
+# from a known mu/sigma and the posterior must recover it. Convergence is held to
+# the floor in ~/phd/methodology.md PART A (Vehtari+2021): R-hat < 1.01, bulk-ESS
+# > 400, zero divergences.
+# ---------------------------------------------------------------------------
+
+import importlib.util
+
+_missing_bayes = [m for m in ("pymc", "arviz") if importlib.util.find_spec(m) is None]
+requires_bayes_extra = pytest.mark.skipif(
+    bool(_missing_bayes), reason=f"needs the 'bayes' extra; missing: {', '.join(_missing_bayes)}"
+)
+
+TRUE_PARALLAX = 0.90  # mas  -> ~1.11 kpc, the NGC 6383 regime
+TRUE_SPREAD = 0.05    # mas
+
+
+def _synthetic_parallaxes(n=400, seed=20260727):
+    rng = np.random.default_rng(seed)
+    return QTable({"parallax": rng.normal(TRUE_PARALLAX, TRUE_SPREAD, n) * u.mas})
+
+
+@requires_bayes_extra
+def test_fit_parallax_model_recovers_injected_truth():
+    """Posterior on mu must cover the injected value, and sigma must be sane."""
+    from erotica.analysis.inference import SamplingConfig, fit_parallax_model
+
+    data = _synthetic_parallaxes()
+    cfg = SamplingConfig(draws=1000, tune=1000, chains=2, random_seed=11, progressbar=False)
+    res = fit_parallax_model(data, return_trace=True, sampling=cfg)
+
+    # Recovery: the injected mean must lie within ~4 posterior sd of the estimate.
+    # (sd here is the *posterior* width, ~sigma/sqrt(n) ~ 0.0025 mas.)
+    assert abs(res.mu_parallax_mean - TRUE_PARALLAX) < 4 * res.mu_parallax_std, (
+        f"mu not recovered: got {res.mu_parallax_mean:.4f}, truth {TRUE_PARALLAX}"
+    )
+    # The dispersion parameter must find the injected spread, not collapse or blow up.
+    assert 0.5 * TRUE_SPREAD < res.sigma_parallax_mean < 2.0 * TRUE_SPREAD
+
+
+@requires_bayes_extra
+def test_fit_parallax_model_meets_the_convergence_floor():
+    """R-hat < 1.01, bulk-ESS > 400, zero divergences (methodology.md PART A)."""
+    import arviz as az
+
+    from erotica.analysis.inference import SamplingConfig, fit_parallax_model
+
+    cfg = SamplingConfig(draws=2000, tune=1000, chains=4, random_seed=12, progressbar=False)
+    res = fit_parallax_model(_synthetic_parallaxes(), return_trace=True, sampling=cfg)
+    trace = res.trace
+    assert trace is not None, "return_trace=True did not return a trace"
+
+    summary = az.summary(trace, var_names=["mu_parallax", "sigma_parallax"])
+    # arviz >=1 returns a display-formatted frame: values arrive as strings.
+    r_hat = pd.to_numeric(summary["r_hat"], errors="coerce")
+    ess_bulk = pd.to_numeric(summary["ess_bulk"], errors="coerce")
+    assert r_hat.max() < 1.01, f"R-hat too high:\n{summary}"
+    assert ess_bulk.min() > 400, f"bulk-ESS too low:\n{summary}"
+
+    n_div = int(trace.sample_stats["diverging"].sum())
+    assert n_div == 0, f"{n_div} divergent transitions"
+
+
+@requires_bayes_extra
+def test_return_trace_false_discards_the_posterior():
+    """Characterisation: the default API contract throws the posterior away.
+
+    Recorded deliberately -- see docs/design-notes/decisions.md. Downstream code
+    therefore receives point estimates and cannot propagate uncertainty.
+    """
+    from erotica.analysis.inference import SamplingConfig, fit_parallax_model
+
+    cfg = SamplingConfig(draws=200, tune=200, chains=2, random_seed=13, progressbar=False)
+    res = fit_parallax_model(_synthetic_parallaxes(n=100), sampling=cfg)
+    assert res.trace is None

@@ -21,7 +21,7 @@ class SamplingConfig:
     target_accept: float = 0.9
     chains: int | None = None
     random_seed: int | None = None
-    nuts_sampler: str = "blackjax"
+    nuts_sampler: str = "pymc"
     progressbar: bool = False
     extra_kwargs: dict[str, Any] = field(default_factory=dict)
 
