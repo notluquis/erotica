@@ -1,6 +1,7 @@
 # BUG: numba backend samples `Cauchy`/`HalfCauchy` with the wrong loc and scale
 
 **Repo:** `pymc-devs/pytensor` · **Version:** 3.1.3 (and current `main`) · **Backend:** numba (the default linker)
+**Introduced:** Aesara commit `5ea74e973` (2022-03-03), inherited at the PyTensor fork — present for ~4.4 years.
 
 ## Description
 
@@ -73,6 +74,48 @@ exactly `loc/scale`:
 Among ten continuous distributions checked the same way (`normal`, `gamma`, `exponential`,
 `laplace`, `logistic`, `t`, `vonmises`, `pareto`, `weibull`), **only `cauchy` is affected**.
 
+## Why it has survived 4.4 years
+
+`git log -S standard_cauchy` over the numba dispatch returns exactly one commit:
+
+```
+5ea74e973  2022-03-03  Brandon T. Willard  |  Fix the Numba implementation of CauchyRV
+```
+
+introduced in **Aesara** and inherited by PyTensor at the fork. It moved `CauchyRV` out of a generic
+registration group into its own implementation, and added the current expression. The line has not
+been touched since; the only later commit affecting the test was a package rename
+(`9df55cc6c Update aliases to reflect package name`).
+
+**The same commit also set the test parameters, and they are the one case that cannot fail.** The
+single `cauchy` entry in `tests/link/numba/test_random.py` is
+
+```python
+(
+    ptr.cauchy,
+    [
+        (pt.dvector(), np.array([1.0, 2.0], dtype=np.float64)),   # loc
+        (pt.dscalar(), np.array(1.0, dtype=np.float64)),          # scale  <-- 1.0
+    ],
+    (2,), "cauchy", lambda *args: args,
+),
+```
+
+validated with a Cramér-von Mises goodness-of-fit test requiring `pvalue > 0.1`. That is a good
+test. But **at `scale = 1` the buggy expression is algebraically identical to the correct one**:
+`(loc + z) / 1 == loc + 1 * z`. The GOF check therefore passes comfortably, and both the scale error
+and the location error vanish simultaneously:
+
+| loc | scale | median | IQR | scipy median | scipy IQR | CvM p | |
+|---|---|---|---|---|---|---|---|
+| 1.0 | **1.0** | 0.992 | 2.005 | 1.000 | 2.000 | 9.2e-01 | passes |
+| 2.0 | **1.0** | 2.002 | 1.997 | 2.000 | 2.000 | 9.9e-01 | passes |
+| 1.0 | 2.0 | 0.506 | 1.007 | 1.000 | 4.000 | 1.0e-08 | fails |
+| 3.0 | 5.0 | 0.599 | 0.399 | 3.000 | 10.000 | 3.4e-08 | fails |
+| 0.0 | 0.5 | −0.023 | 4.008 | 0.000 | 1.000 | 6.5e-09 | fails |
+
+Adding any `scale != 1` to the existing parametrisation is enough to catch it.
+
 ## Fix
 
 ```diff
@@ -91,9 +134,9 @@ IQR at `(0, 5)`, `(3, 5)` and `(−7, 2)`.
 
 ## Suggested regression test
 
-The existing tests presumably compare only shape/dtype, or the bug would have been caught. A test
-that fails for the reason it was written needs a scale-sensitive statistic — the median alone passes
-for `loc = 0` since `0/scale == 0`:
+The existing GOF machinery is fine; it just needs a `scale != 1` case. If you prefer an explicit
+check, note that a scale-sensitive statistic is required — the median alone still passes for
+`loc = 0`, since `0/scale == 0`:
 
 ```python
 @pytest.mark.parametrize("loc, scale", [(0.0, 5.0), (3.0, 5.0), (-7.0, 2.0)])
