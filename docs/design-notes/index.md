@@ -10,4 +10,5 @@ isochrone_models
 isochrone_sampler_fix
 hierarchical_isochrone_design
 maximize_hdbscan_membership
+bayesian_membership_posterior
 ```
