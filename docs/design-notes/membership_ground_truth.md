@@ -63,6 +63,14 @@ Ranks above the X-ray sets for *bright-end purity* because of how it was selecte
   by independent RV, 19.8% by independent [Fe/H], 25.1% by either.** DR19 gives 9.0% on RV+[Fe/H].
 - Limit: giant-tip, H ≲ 12.2–13.8. Join on `APOGEE_ID`. Pull `occam_member-DR17.fits` (4 MB) from
   the SDSS SAS — **it is not on VizieR**.
+
+```{danger}
+**Newest is worst here — use DR17, not DR19.** OCCAM **DR19 hard-gates on Cantat-Gaudin P > 0.70**
+(verified empirically: no values below 0.70 exist in the file). So DR19 contains **no negatives at
+all** and cannot support a reliability diagram — the reflex of grabbing the latest release destroys
+the one property that makes this set valuable. DR19 contributes exactly one usable number (9.0% of
+CG2020 P>0.7 members fail an independent RV+[Fe/H] test); everything else must come from **DR17**.
+```
 - ⚠ **Split on `APOGEE2_TARGET1` bit 9 first** — some late APOGEE-2 targets *were* Gaia-PM
   preselected, so the union is optimistically biased.
 
