@@ -187,6 +187,52 @@ not show, and its value is set by the prior. The defensible summary of the outer
 EFF slope, `γ = 2.32 ± 0.21`, with a scale radius `a = 1.65 ± 0.38′`, plus the Jacobi radius
 (12.14 pc = 37.9′) as the physical boundary from the mass. That is a statement the data support.
 
+
+## Selection function: what it can and cannot say here (in progress)
+
+`king_unbinned(completeness=)` folds a radial detection probability into the normalisation, and on
+synthetic data ignoring one inflates `R_c` by 50% and halves the central density. Applying it to the
+real cluster is `tools/validation/ngc6383_selection_function.py`. Two things are settled; one is
+blocked.
+
+**Settled, and resolution-independent: magnitude incompleteness is not the dominant effect here.**
+The Gaia DR3 selection function at this position is correctly magnitude-sensitive —
+
+| G | 10 | 14 | 17 | 19 | 20 | 20.7 | 21 | 21.5 | 22 |
+|---|---|---|---|---|---|---|---|---|---|
+| S | 1.000 | 1.000 | 1.000 | 1.000 | 0.996 | 0.852 | 0.376 | 0.0002 | 0.000 |
+
+— and NGC 6383's members have median `G = 17.3` with a 98th percentile near 20.4, i.e. they sit
+where DR3 source completeness is essentially unity.
+
+```{admonition} The uncomfortable corollary
+:class: important
+If Gaia's own completeness is ~1 for this sample, then **the largest magnitude-dependent selection
+acting on it is ours**. The pipeline's 2σ parallax clip retains **99% of the brightest `Gmag`
+quartile and 27% of the faintest**. That is an order of magnitude larger than anything the survey
+does in this field.
+
+The correction that matters for NGC 6383 is not the survey's. It is the pipeline's.
+```
+
+```{warning}
+**`mode='hpx7'` cannot answer the radial question at all, and its flat answer is not evidence.**
+Its healpix pixels are **27.5′** across; `R_c` is **1.38′**, so the core is 0.25% of a single pixel
+and the whole 70′ field spans 2.55 pixels. Radial structure at cluster scales is below the map's
+resolution *by construction*. A flat `S̄(r)` from hpx7 means **"invisible to this map"**, not
+"absent" — and crowding-driven incompleteness, which acts precisely in the core, is exactly what it
+cannot see.
+
+The first pass here did run hpx7 and did return a flat 0.998. That number is recorded as a
+diagnostic only (`ngc6383_selection_function_hpx7.npz`) and must not be used as a correction.
+```
+
+**Blocked:** `mode='patch'` builds a local map at healpix order 6–12 (~0.86′), which does resolve the
+core. It needs a live ESA Gaia archive query, and the archive was in a maintenance window on
+2026-07-27 (HTTP 500, then a failed SSL handshake). Re-run when it is up; the script is written and
+its output is already aligned to the 256-node quadrature grid the weighted normalisation uses, so it
+can be passed straight through as `completeness=`.
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
