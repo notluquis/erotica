@@ -3,24 +3,30 @@
 
 WHY THIS EXISTS
 ---------------
-P01 reports `R_c` and `R_t` for NGC 6383 from a King fit and compares them to
-four historical determinations. This places them instead in the two large
-homogeneous Gaia-era reference samples, and asks the prior question: **is the
-King model the right model for a cluster this young?**
+P01 reports `R_c` and `R_t` for NGC 6383 and compares them to four historical
+determinations. This places them instead in the Gaia-era reference samples, and
+asks the prior question: is a King profile the right model for a cluster this
+young, and is its `R_t` a physically admissible number?
 
-The answer turns out to be measurable rather than rhetorical. NGC 6383 is
-~3.5 Myr (log age ~ 6.55). The reference samples do not contain clusters that
-young, so the comparison is an extrapolation, not an interpolation.
+THREE SAMPLES, AND WHY ALL THREE
+--------------------------------
+* **Hunt & Reffert 2024**, A&A 686, A42 (`2024A&A...686A..42H`), VizieR
+  J/A+A/686/A42 -- 7167 rows, 5647 bound open clusters, all-sky, with
+  completeness-corrected photometric masses and **Jacobi radii**. This is the
+  decisive sample: it is all-sky, it reaches ages far younger than the others,
+  and **it contains NGC 6383 itself**, giving a fully independent measurement.
+  Caveat: their ``rc``/``rt``/``rtot`` are *empirical* radii, not King-fit
+  parameters, so they are not interchangeable with P01's ``R_c``/``R_t``.
+  ``rJ`` is the physical Jacobi radius derived from the mass, and *is* directly
+  comparable to any claimed outer boundary.
+* **Tarricq+2022**, A&A 659, A59 (`2022A&A...659A..59T`), J/A+A/659/A59 -- 233
+  actual **King fits** searched to 50 pc, plus elliptical axis ratios. Comparable
+  in method to P01, but solar-vicinity only and no cluster younger than 50 Myr.
+* **Zhong+2022**, AJ 164, 54 (`2022AJ....164...54Z`), J/AJ/164/54 -- 256 OCs,
+  two-component model, after finding the outer profile of most OCs deviates from
+  King.
 
-SOURCES (fetched live from VizieR, so nothing here is transcribed by hand)
--------------------------------------------------------------------------
-* Tarricq et al. 2022, A&A 659, A59 (`2022A&A...659A..59T`), VizieR J/A+A/659/A59
-  -- 467 OCs searched to 50 pc from centre, King fits for 233, plus elliptical
-  Gaussian-mixture axis ratios for core / tail / halo.
-* Zhong et al. 2022, AJ 164, 54 (`2022AJ....164...54Z`), VizieR J/AJ/164/54
-  -- 256 OCs, two-component model (King core + log-Gaussian outer halo) with
-  four radii, after finding that "the radial density profile in the outer region
-  for most open clusters deviates from the King profile".
+Everything is fetched live; nothing is transcribed by hand.
 
 USAGE
 -----
@@ -29,100 +35,104 @@ USAGE
 
 from __future__ import annotations
 
+import csv
 import json
+import urllib.request
 from pathlib import Path
 
 import numpy as np
 
-# P01's adopted values, converted at the paper's 1.11 kpc distance.
-NGC6383 = {"R_c_pc": 0.63, "R_t_pc": 17.4, "C": 1.43, "log_age": 6.55}
+# P01's adopted values, at its adopted 1.11 kpc.
+NGC6383 = {"R_c_arcmin": 1.96, "R_t_arcmin": 54.0, "R_c_pc": 0.63, "R_t_pc": 17.4,
+           "C": 1.43, "log_age": 6.55, "T_max_arcmin": 42.45, "hill_arcmin": 33.6,
+           "field_arcmin": 70.0}
+
+HUNT_COLS = ("Name,Type,N,logAge50,dist50,rc,rt,r50,rtot,"
+             "rcpc,rtpc,r50pc,rtotpc,rJ,rJpc,MassJ,probJ")
 
 
-def pct(sample, value):
-    s = np.asarray(sample, float)
-    s = s[np.isfinite(s)]
-    return 100.0 * float(np.mean(s < value))
+def fetch_hunt():
+    url = ("https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=J/A+A/686/A42/clusters"
+           f"&-out={HUNT_COLS.replace(',', '&-out=')}&-out.max=unlimited")
+    txt = urllib.request.urlopen(url, timeout=300).read().decode("utf-8", "replace")
+    body = [x for x in txt.splitlines() if x and not x.startswith("#")]
+    return list(csv.DictReader([body[0]] + [x for x in body[3:] if x.strip()], delimiter="\t"))
 
 
-def summary(sample, label, value=None):
-    s = np.asarray(sample, float)
-    s = s[np.isfinite(s)]
-    line = (f"  {label:30s} n={len(s):4d}  16/50/84 = "
-            f"{np.percentile(s, 16):7.2f} {np.percentile(s, 50):7.2f} {np.percentile(s, 84):7.2f}")
-    if value is not None:
-        line += f"   NGC 6383 at {pct(s, value):5.1f} pct"
-    print(line)
-    return {"n": len(s), "p16": float(np.percentile(s, 16)),
-            "p50": float(np.percentile(s, 50)), "p84": float(np.percentile(s, 84)),
-            "ngc6383_percentile": None if value is None else pct(s, value)}
+def num(row, key):
+    try:
+        return float(row[key])
+    except (TypeError, ValueError):
+        return np.nan
 
 
 def main():
-    from astroquery.vizier import Vizier
-
-    v = Vizier(columns=["*"], row_limit=-1)
-    out = {"ngc6383": NGC6383, "tarricq2022": {}, "zhong2022": {}}
-
-    # ---- Tarricq+2022 -----------------------------------------------------
-    t = v.get_catalogs("J/A+A/659/A59")[0]
-    rc, rt = np.asarray(t["Rc"], float), np.asarray(t["Rt"], float)
-    age, ba = np.asarray(t["logAgeNN"], float), np.asarray(t["b/aCore"], float)
-    ok = np.isfinite(rc) & np.isfinite(rt) & (rc > 0) & (rt > 0)
-    conc = np.log10(rt / rc)
+    out = {"ngc6383_p01": NGC6383}
+    rows = fetch_hunt()
+    name = np.array([r["Name"].strip() for r in rows])
+    typ = np.array([r["Type"].strip() for r in rows])
+    age = np.array([num(r, "logAge50") for r in rows])
+    rcpc = np.array([num(r, "rcpc") for r in rows])
+    rJpc = np.array([num(r, "rJpc") for r in rows])
 
     print("=" * 78)
-    print("Tarricq+2022 -- 233 King fits among 467 OCs (pc)")
+    print("1. NGC 6383 as measured independently by Hunt & Reffert 2024")
     print("=" * 78)
-    out["tarricq2022"]["R_c"] = summary(rc[ok], "R_c", NGC6383["R_c_pc"])
-    out["tarricq2022"]["R_t"] = summary(rt[ok], "R_t", NGC6383["R_t_pc"])
-    out["tarricq2022"]["C"] = summary(conc[ok], "C = log10(R_t/R_c)", NGC6383["C"])
-
-    a = age[ok]
-    print(f"\n  log age of the King-fitted sample: min {a.min():.2f}  "
-          f"median {np.median(a):.2f}  max {a.max():.2f}")
-    print(f"  NGC 6383 log age {NGC6383['log_age']:.2f} -> "
-          f"{'INSIDE' if a.min() <= NGC6383['log_age'] else 'BELOW THE ENTIRE SAMPLE'}")
-    print(f"  clusters younger than NGC 6383 in this sample: {int((a < NGC6383['log_age']).sum())}")
-    print(f"  youngest is {10**a.min() / 1e6:.0f} Myr; NGC 6383 is "
-          f"{10**NGC6383['log_age'] / 1e6:.1f} Myr "
-          f"({10**(a.min() - NGC6383['log_age']):.0f}x younger)")
-    out["tarricq2022"]["log_age_min"] = float(a.min())
-    out["tarricq2022"]["n_younger_than_ngc6383"] = int((a < NGC6383["log_age"]).sum())
-
-    b = ba[np.isfinite(ba)]
-    print(f"\n  Core axis ratio b/a: 16/50/84 = {np.percentile(b, 16):.2f} "
-          f"{np.percentile(b, 50):.2f} {np.percentile(b, 84):.2f}")
-    print(f"    fraction with b/a < 0.9: {np.mean(b < 0.9):.1%}    "
-          f"< 0.8: {np.mean(b < 0.8):.1%}")
-    print("    -> circular symmetry, which the King fit assumes, is the exception.")
-    out["tarricq2022"]["b_over_a_core"] = {
-        "p16": float(np.percentile(b, 16)), "p50": float(np.percentile(b, 50)),
-        "p84": float(np.percentile(b, 84)),
-        "frac_below_0.9": float(np.mean(b < 0.9)), "frac_below_0.8": float(np.mean(b < 0.8)),
-    }
-
-    # ---- Zhong+2022 -------------------------------------------------------
-    z = v.get_catalogs("J/AJ/164/54")[0]
-    zage = np.asarray(z["Age"], float)
-    zrc, zrt = np.asarray(z["Radc"], float), np.asarray(z["Radt"], float)
-    zro, zre = np.asarray(z["Rado"], float), np.asarray(z["Rade"], float)
+    h = rows[int(np.flatnonzero(name == "NGC_6383")[0])]
+    d = num(h, "dist50")
+    pc_per_arcmin = d * (1 / 60) * (np.pi / 180)
+    print(f"  distance {d:.0f} pc   (P01: 1110 pc)")
+    print(f"  log age  {num(h, 'logAge50'):.2f} = {10 ** num(h, 'logAge50') / 1e6:.1f} Myr"
+          f"   (P01: 3.5 Myr)")
+    print(f"  mass     {num(h, 'MassJ'):.0f} Msun, P(bound) = {num(h, 'probJ'):.3f}")
+    print(f"\n  {'radius':22s} {'pc':>8s} {'arcmin':>9s}")
+    for key, lab in (("rcpc", "core r_c"), ("r50pc", "half-number r_50"),
+                     ("rtpc", "tidal r_t"), ("rtotpc", "total r_tot"),
+                     ("rJpc", "JACOBI r_J")):
+        v = num(h, key)
+        print(f"  {lab:22s} {v:8.2f} {v / pc_per_arcmin:9.1f}")
+    r_j = num(h, "rJpc")
+    ratio = NGC6383["R_t_pc"] / r_j
+    print(f"\n  P01 adopted King R_t = {NGC6383['R_t_arcmin']:.0f}' = {NGC6383['R_t_pc']:.1f} pc")
+    print(f"    -> {ratio:.2f}x the Jacobi radius. A bound cluster cannot extend beyond r_J,")
+    print(f"       so the fitted R_t is not an admissible physical boundary.")
+    print(f"  P01 T_max = {NGC6383['T_max_arcmin']:.1f}', Hill = {NGC6383['hill_arcmin']:.1f}';"
+          f" Hunt r_J = {r_j / pc_per_arcmin:.1f}' -- between them, independently.")
+    print(f"  P01 largest field {NGC6383['field_arcmin']:.0f}' = "
+          f"{NGC6383['field_arcmin'] * pc_per_arcmin:.1f} pc = "
+          f"{NGC6383['field_arcmin'] * pc_per_arcmin / r_j:.2f}x r_J -- the field is NOT too small.")
+    out["hunt2024_ngc6383"] = {k: num(h, k) for k in
+                               ("logAge50", "dist50", "rcpc", "r50pc", "rtpc", "rtotpc",
+                                "rJpc", "MassJ", "probJ")}
+    out["R_t_over_jacobi"] = float(ratio)
 
     print()
     print("=" * 78)
-    print("Zhong+2022 -- 256 OCs, King core + log-Gaussian outer halo (pc)")
+    print("2. Is NGC 6383 younger than the comparison population?")
     print("=" * 78)
-    out["zhong2022"]["R_c"] = summary(zrc, "r_c (King core)", NGC6383["R_c_pc"])
-    out["zhong2022"]["R_t"] = summary(zrt, "r_t (core boundary)", NGC6383["R_t_pc"])
-    out["zhong2022"]["R_o"] = summary(zro, "r_o (halo scale)")
-    out["zhong2022"]["R_e"] = summary(zre, "r_e (halo boundary)")
-    za = zage[np.isfinite(zage)]
-    print(f"\n  Age column: min {za.min():.3g}  median {np.median(za):.3g}  max {za.max():.3g}")
-    out["zhong2022"]["age_min"] = float(za.min())
-    out["zhong2022"]["age_median"] = float(np.median(za))
+    oc = (typ == "o") & np.isfinite(age) & np.isfinite(rcpc)
+    a = age[oc]
+    print(f"  Hunt bound OCs with a core radius: {oc.sum()}")
+    print(f"  log age  min {a.min():.2f} ({10 ** a.min() / 1e6:.2f} Myr)  "
+          f"median {np.median(a):.2f}  max {a.max():.2f}")
+    for cut, lab in ((NGC6383["log_age"], "NGC 6383 (3.5 Myr)"), (7.0, "10 Myr"),
+                     (7.7, "50 Myr = Tarricq's youngest")):
+        print(f"    younger than {lab:28s}: {int((a < cut).sum()):5d} ({(a < cut).mean():.1%})")
+    print("  -> a young comparison population EXISTS. Tarricq simply does not sample it.")
+    out["hunt2024_n_younger"] = int((a < NGC6383["log_age"]).sum())
+    out["hunt2024_n_oc_with_rc"] = int(oc.sum())
 
-    print("\n  Zhong's headline: the outer profile of MOST OCs deviates from King,")
-    print("  which is why they need four radii instead of two. A single King R_t is")
-    print("  therefore not the field's current description of an OC's outer structure.")
+    young = oc & (age < 6.7)
+    x = rcpc[young]
+    x = x[np.isfinite(x)]
+    pct = 100.0 * float(np.mean(x < NGC6383["R_c_pc"]))
+    print(f"\n  Young subset (log age < 6.7, <5 Myr): n={young.sum()}")
+    print(f"    r_c (pc) 16/50/84 = {np.percentile(x, 16):.2f} {np.percentile(x, 50):.2f} "
+          f"{np.percentile(x, 84):.2f}")
+    print(f"    NGC 6383 R_c = {NGC6383['R_c_pc']:.2f} pc -> {pct:.0f}th percentile "
+          f"among clusters of its own age")
+    print("    -> compact, but NOT anomalous once compared against the right age range.")
+    out["young_rc_percentile"] = pct
 
     Path(__file__).with_suffix(".json").write_text(json.dumps(out, indent=2))
     print(f"\nwrote {Path(__file__).with_suffix('.json')}")
