@@ -8,24 +8,24 @@ build:
   jobs:
     # Explicit build so the source dir is unambiguously docs/ (RTD otherwise
     # invoked sphinx-build with the repo root as source and failed to find conf.py).
-    # Must go through `uv run`: with the uv install method below, a bare `python`
-    # is the asdf interpreter rather than the venv uv installed into, so sphinx
-    # is not importable there.
+    # Command form is RTD's own documented one (`sphinx-build ... $READTHEDOCS_OUTPUT/html`);
+    # with the pip install method below the virtualenv is active, so sphinx-build is on PATH.
     build:
       html:
-        - uv run --no-sync --no-dev sphinx-build -T -b html docs $READTHEDOCS_OUTPUT/html
+        - sphinx-build -T -b html docs $READTHEDOCS_OUTPUT/html
 
 sphinx:
   configuration: docs/conf.py
   # fail_on_warning: true   # enable once numpydoc docstring warnings are clean
 
-# uv install (2024+ RTD feature) — much faster than pip for the dep tree.
+# pip, not uv. RTD's docs: uv is supported via python.install, but "use build.jobs
+# only when you need an advanced uv workflow" -- combining uv with a build.jobs
+# override is exactly the unsupported case, and it failed to find sphinx.
 python:
   install:
-    - method: uv
-      command: pip
+    - method: pip
       path: .
-      extras:
+      extra_requirements:
         - docs
 
 # Surface the user guide over internal design notes in on-site search.

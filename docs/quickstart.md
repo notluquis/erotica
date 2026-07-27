@@ -15,9 +15,16 @@ clu = Clustering(data)
 # 2D proper motion — see the membership guide for the alternatives.
 clu.search_pseudoprobability(columns=("pmra", "pmdec"))
 
-clu.show_results()
-summary = clu.get_cluster_summary()
+clu.clustering_statistics()                  # counts: members, outliers, clusters
+summary = clu.get_cluster_summary()          # pandas DataFrame, one row per cluster
 clu.save_results("members.ecsv", format="ascii.ecsv")
+```
+
+```{note}
+`show_results()` reports the hyper-parameter search and only works after
+{meth}`~erotica.core.Clustering.search` (the grid/Optuna path). After
+`search_pseudoprobability` it will just tell you to run `.search()` first — use
+`clustering_statistics()` and `get_cluster_summary()` instead, as above.
 ```
 
 The `columns` argument **is** the feature-space choice. Clustering on velocity space

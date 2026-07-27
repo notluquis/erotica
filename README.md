@@ -4,34 +4,42 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/erotica)
 [![CI](https://github.com/notluquis/erotica/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/erotica/actions/workflows/ci.yml)
-[![Docs](https://readthedocs.org/projects/erotica/badge/?version=latest)](https://erotica.readthedocs.io/en/latest/)
+[![Docs](https://readthedocs.org/projects/cosmic-clusters/badge/?version=latest)](https://cosmic-clusters.readthedocs.io/en/latest/)
 
 EROTICA is a Python package for analyzing star clusters using machine learning and Bayesian
 inference. Built for Gaia data, it uses unsupervised clustering to identify open star clusters
 and characterize their membership, ages, and structure.
 
-📖 **[Documentation](https://erotica.readthedocs.io/en/latest/)** · [Membership guide](https://erotica.readthedocs.io/en/latest/guides/membership.html) · [API reference](https://erotica.readthedocs.io/en/latest/api/index.html)
+📖 **[Documentation](https://cosmic-clusters.readthedocs.io/en/latest/)** · [Membership guide](https://cosmic-clusters.readthedocs.io/en/latest/guides/membership.html) · [API reference](https://cosmic-clusters.readthedocs.io/en/latest/api/index.html)
 
 ## 🚀 Quick Start
 
 ```python
 import erotica
 
-# Load and preprocess data
+# Load and preprocess
 loader = erotica.DataLoader("your_gaia_catalog.ecsv")
 data = loader.load_data(systems=["Gaia", "TMASS"])
 
 preprocessor = erotica.DataPreprocessor(data)
-good_data, bad_data = preprocessor.process()
+preprocessor.apply_zero_point_correction()
+good_data, bad_data = preprocessor.filter_data(fidelity_threshold=0.5)
 
-# Perform clustering
+# Membership: sweep min_cluster_size, score by recovery frequency x strength.
+# `columns` IS the feature-space choice — 2D proper motion is the safe default.
+# Mixing units (adding parallax) requires standardizing the columns first;
+# see the membership guide for the trade-offs.
 clusterer = erotica.Clustering(good_data, bad_data)
-clusterer.search(['pmra', 'pmdec', 'parallax'])
+clusterer.search_pseudoprobability(columns=("pmra", "pmdec"))
 
-# Analyze results
-analyzer = erotica.ClusterAnalyzer(clusterer.combined_data)
-analyzer.run_analysis()
+clusterer.clustering_statistics()
+summary = clusterer.get_cluster_summary()
+clusterer.save_results("members.ecsv", format="ascii.ecsv")
 ```
+
+Downstream analysis (isochrone fitting, structure, dynamics) goes through
+`ClusterAnalyzer`, which is constructed from a saved catalog — see the
+[quickstart](https://cosmic-clusters.readthedocs.io/en/latest/quickstart.html).
 
 ## 📦 Installation
 
@@ -40,7 +48,7 @@ analyzer.run_analysis()
 ```bash
 git clone https://github.com/notluquis/erotica.git
 cd erotica
-pip install -e ".[dev,docs,examples]"
+pip install -e ".[dev,docs]"
 ```
 
 ### Requirements
@@ -51,28 +59,20 @@ pip install -e ".[dev,docs,examples]"
 ## 🏗️ Project Structure
 
 ```
-EROTICA/
-├── erotica/                 # 📦 Main package
-│   ├── core/              # 🔧 Clustering algorithms
+erotica/
+├── erotica/               # 📦 Main package
+│   ├── core/              # 🔧 HDBSCAN clustering + membership
 │   ├── io/                # 📊 Data loading and I/O
 │   ├── preprocess/        # 🧹 Data preprocessing
-│   ├── analysis/          # 📈 Statistical analysis
+│   ├── analysis/          # 📈 Isochrones, structure, dynamics, inference
+│   ├── calibration.py     # 🎯 Probability calibration
 │   └── utils/             # 🛠️ Utility functions
-├── examples/              # 💡 Usage examples
-│   ├── basic_clustering/  # Simple workflows
-│   ├── data_loading/      # Data handling examples
-│   ├── visualization/     # Plotting tutorials
-│   ├── advanced_clustering/ # Complex scenarios
-│   └── ngc6383/          # Real-world case study
-├── docs/                  # 📚 Documentation
-│   ├── api/              # Auto-generated API docs
-│   ├── tutorials/        # Step-by-step guides
-│   ├── contributing/     # Development guides
-│   └── reference/        # Technical specifications
-├── tools/                 # 🔧 Development tools
-│   ├── build/            # Build automation
-│   ├── testing/          # Test automation
-│   └── release/          # Release management
+├── docs/                  # 📚 Sphinx documentation
+│   ├── guides/            # User guides (membership, …)
+│   ├── design-notes/      # Grounded method notes
+│   └── api/               # Auto-generated API reference
+├── tools/                 # 🔧 Development + release tooling
+├── data/test/NGC6383/     # 🔬 Paper reproduction artifacts
 └── tests/                 # 🧪 Test suite
 ```
 
@@ -104,21 +104,22 @@ EROTICA/
 
 ## 📖 Documentation
 
-### Getting Started
-- [Installation Guide](docs/contributing/development_setup.md)
-- [Quick Start Tutorial](examples/basic_clustering/)
-- [Data Loading Guide](examples/data_loading/)
+Full documentation: **[cosmic-clusters.readthedocs.io](https://cosmic-clusters.readthedocs.io/en/latest/)**
 
-### Examples
-- [Basic Clustering](examples/basic_clustering/) - Simple clustering workflows
-- [Data Loading](examples/data_loading/) - Loading and preprocessing
-- [NGC 6383 Analysis](examples/ngc6383/) - Complete real-world example
-- [Advanced Clustering](examples/advanced_clustering/) - Parameter optimization
+### Getting started
+- [Installation](https://cosmic-clusters.readthedocs.io/en/latest/install.html)
+- [Quickstart](https://cosmic-clusters.readthedocs.io/en/latest/quickstart.html)
 
-### API Reference
-- [Core Clustering](docs/api/) - Main clustering algorithms
-- [Data I/O](docs/api/) - Data loading and preprocessing
-- [Analysis Tools](docs/api/) - Statistical analysis and visualization
+### Guides
+- [Membership](https://cosmic-clusters.readthedocs.io/en/latest/guides/membership.html) —
+  which features to cluster on, error-aware membership, calibration, and the trade-offs of each choice
+
+### Reference
+- [API reference](https://cosmic-clusters.readthedocs.io/en/latest/api/index.html)
+- [Design notes](https://cosmic-clusters.readthedocs.io/en/latest/design-notes/index.html) —
+  grounded notes on the isochrone sampler, model grids, and HDBSCAN membership
+
+Build the docs locally with `pip install -e ".[docs]" && sphinx-build -b html docs docs/_build/html`.
 
 ## 🔧 Development
 
@@ -133,7 +134,7 @@ python tools/dev/setup_environment.py
 
 ```bash
 # Install in development mode
-pip install -e ".[dev,docs,examples]"
+pip install -e ".[dev,docs]"
 
 # Set up pre-commit hooks
 pre-commit install
@@ -149,8 +150,8 @@ python tools/testing/run_comprehensive_tests.py
 
 ```bash
 # Format code
-black erotica/ tests/ examples/
-isort erotica/ tests/ examples/
+black erotica/ tests/
+isort erotica/ tests/
 
 # Check code quality
 flake8 erotica/ tests/
@@ -172,7 +173,7 @@ python tools/testing/run_comprehensive_tests.py
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](docs/contributing/development_setup.md) for details.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ### Quick Contribution Steps
 
@@ -204,7 +205,7 @@ EROTICA builds upon excellent open-source libraries:
 
 ## 📞 Support
 
-- **Documentation**: [erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/)
+- **Documentation**: [cosmic-clusters.readthedocs.io](https://cosmic-clusters.readthedocs.io/en/latest/)
 - **Issues**: [GitHub Issues](https://github.com/notluquis/erotica/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/notluquis/erotica/discussions)
 - **Email**: [lescobar2019@udec.cl](mailto:lescobar2019@udec.cl)

@@ -34,4 +34,5 @@ design-notes/index
 :maxdepth: 2
 :caption: Reference
 api/index
+contributing
 ```
