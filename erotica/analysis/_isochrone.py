@@ -359,8 +359,10 @@ class IsochroneFitter:
     Replicates ASteCA's forward model (Chabrier IMF, D&K binaries, CCM89
     extinction, magnitude-sorted error model) without any dependency on ASteCA.
 
-    Workflow
-    --------
+    Notes
+    -----
+    Workflow:
+
     1. ``fitter = IsochroneFitter(isochs_path, ...)``
     2. ``fitter.setup(cluster_data, prob_threshold=0.6)``
     3. ``fitter.save_grid(path)``  /  ``fitter.load_grid(path)``  ← optional
