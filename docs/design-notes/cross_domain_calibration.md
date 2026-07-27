@@ -198,6 +198,68 @@ counts?"* Directly load-bearing for a **321-source** catalogue: a per-decile rel
 | Credit scoring, election forecasting | skip | Validated against observed outcomes; no truth-free estimator. |
 | Weather beyond consistency bars | skip | Murphy decomposition / CRPS already covered in `bayesian_membership_posterior.md` §5b. |
 
+## 7b. Within astronomy: gravitational-wave `p_astro`
+
+GW is the most mature "calibrated astrophysical probability" in astronomy — LVK publishes one per
+candidate and the community thresholds on it at 0.5.
+
+```{important}
+**The foundational `p_astro` paper already ran our problem.** Farr, Gair, Mandel & Cutler 2015
+(`arXiv:1302.5341`, `2015PhRvD..91b3005F`) — the FGMC framework — contains a worked section
+**"Star Cluster Parameters With Background Contamination"**: a Plummer foreground on a linear-gradient
+background, **1,000 cluster stars against 10,000 field stars**, membership flags **marginalised
+analytically**, sampled with emcee. Verbatim `[S]`:
+
+> *"Because the peak density of the cluster is equal to the background density at the center of the
+> domain, **there is no single star in the domain that is more likely to be a cluster member than a
+> background star** (i.e. ⟨gᵢ⟩ ≲ 0.5 for all stars); nevertheless, we will see that our method
+> provides good constraints on the cluster parameters."*
+
+**Two consequences.** (1) A decade-old, citable precedent for **calibrated inference when no
+individual object is confidently classified** — exactly the regime a referee will call speculative.
+(2) It is **not a scoop**: a synthetic toy demonstrating *parameter* recovery, with **no calibration
+check on the per-star ⟨gᵢ⟩**. It strengthens our framing rather than threatening it.
+```
+
+**Calibration status — three tiers, and the top one is empty** `[S]`:
+
+| Tier | What exists | Limit |
+|---|---|---|
+| 1 | The **aggregate sum rule** — Σ`p_astro` over candidates >0.5 vs their count (GWTC-3 estimates ~10–15% contamination) | **Cannot fail.** Ashton+2024: it *"formally amounts to the posterior-estimated number of foreground events in the Farr et al. framework"* — near-tautological for a fitted mixture |
+| 2 | **Ashton+2024 Fig. 17** — purity vs `p_astro` threshold against injected truth. *"all pipelines under-estimating the actual purity"* | **Cumulative above threshold, not binned**, and conditioned on exactly **one** covariate (pipeline) |
+| 3 | Disjoint-bin reliability diagram; validation conditioned on SNR, chirp mass, network, source class | **Genuinely absent** |
+
+**The sign of the miscalibration is unresolved** — Ashton+2024 says `p_astro` is too *low*;
+Banagiri+2023 calls their own O3a values *"likely an overestimate."* A binned diagram would settle it.
+
+**Failure modes worth importing as predictions to test** `[S]`:
+- **Pipeline disagreement is large:** of 28 GWTC-2.1 candidates found by ≥2 pipelines, **≥7 have a
+  `p_astro` spread > 0.5** — GW190413_134308 is MBTA 0.99 / GstLAL **0.04** / PyCBC 0.48. Published
+  values for GW151216 span **0.03–0.71** across groups.
+- **Their own stated bias condition:** *"may be biased if this distribution deviates significantly
+  from the (unknown) true signal distribution. The risk of such bias is largest for regions of
+  parameter space containing few, or zero, confirmed detections."* → **predict our miscalibration is
+  worst where the training population is thinnest: faint G, crowded fields, sparse clusters.**
+- **Sub-class priors feed back into the membership probability:** GW190917_114630 was classified BBH
+  at p = 0.77, but parameter estimation found NSBH masses — *"Had it been classified as an NSBH to
+  begin with… the resulting pastro would not have made the threshold of 0.5."* **The probability of
+  being astrophysical at all depended on the assumed sub-class.** That is precisely our
+  binaries / tidal-tail / cluster-like-contaminant problem.
+- Andres+2022 budgets **±0.15 from parameter-space binning alone** — a ±0.1 systematic on a quantity
+  whose decision threshold is 0.5.
+
+**The asymmetry that makes this our opening** `[I]`: **LVK cannot re-inject synthetic populations into
+a rerun observing run. We can** — into real offset fields carrying true Gaia error structure and
+crowding.
+
+```{warning}
+**Do not pitch FGMC as a drop-in port.** It assumes each event is an independent draw in a **scalar**
+ranking statistic. Gaia gives per-star **heteroscedastic, correlated 5×5 covariance** plus spatially
+correlated systematics on ~0.1–1° scales. Convolving each mixture component with each star's own
+covariance — and deciding whether field-correlated systematics break the independent-Poisson
+assumption — **is the real methodological contribution.**
+```
+
 ## 7. Bottom line
 
 Two practices survive having no labels: the **decoy/entrapment FDP estimator** (proteomics, with
