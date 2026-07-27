@@ -1,4 +1,4 @@
-# Isochrone / evolutionary-model grids — reference for PUMPS
+# Isochrone / evolutionary-model grids — reference for EROTICA
 
 _2026-07-21. Which stellar-model grids exist, their photometric systems, and how to use/combine
 them in the fitter + P05 (model-choice ages). Grounded in the official model sites + the P01

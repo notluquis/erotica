@@ -1,4 +1,4 @@
-"""Tests for pumps.calibration — membership-probability calibration.
+"""Tests for erotica.calibration — membership-probability calibration.
 
 The synthetic design: draw true event rates ``p_true`` and Bernoulli labels
 ``y ~ Bernoulli(p_true)``. Then
@@ -16,7 +16,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from pumps.calibration import (
+from erotica.calibration import (
     CalibrationReport,
     HosmerLemeshowResult,
     ReliabilityDiagram,
@@ -163,7 +163,7 @@ class TestHosmerLemeshow:
             hosmer_lemeshow(*calibrated, n_groups=2)
 
     def test_point_mass_at_zero_does_not_crash(self):
-        # Real PUMPS p̃ has a spike of exact zeros (field stars, p_HDBSCAN=0).
+        # Real EROTICA p̃ has a spike of exact zeros (field stars, p_HDBSCAN=0).
         # The equal-count grouping must handle the tie-block without blowing up.
         rng = np.random.default_rng(7)
         p_field = np.zeros(5_000)
@@ -280,7 +280,7 @@ class TestValidation:
 # ---------------------------------------------------------------------------
 class TestFromClustering:
     def test_pulls_probability_column(self, calibrated):
-        from pumps.calibration import calibration_report_from_clustering
+        from erotica.calibration import calibration_report_from_clustering
 
         p, y = calibrated
 
@@ -302,7 +302,7 @@ class TestFromClustering:
             data = None
 
         with pytest.raises(ValueError):
-            from pumps.calibration import calibration_report_from_clustering
+            from erotica.calibration import calibration_report_from_clustering
 
             calibration_report_from_clustering(_Empty(), [0, 1])
 

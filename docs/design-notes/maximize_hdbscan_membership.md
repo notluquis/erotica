@@ -1,11 +1,11 @@
-# Maximizing HDBSCAN for OC membership — plan for PUMPS
+# Maximizing HDBSCAN for OC membership — plan for EROTICA
 
 _2026-07-21. How to push HDBSCAN as far as possible for NGC 6383 membership (NOT replace it),
 from a 3-agent sourced review + code audit. Feeds P02 (calibrated membership = lead novelty).
 `[S]`=sourced (docs/paper), `[I]`=inferred._
 
 ## Current state (code-audited)
-PUMPS clusters in **2D proper-motion only** (`search_pseudoprobability(columns=["pmra","pmdec"])`),
+EROTICA clusters in **2D proper-motion only** (`search_pseudoprobability(columns=["pmra","pmdec"])`),
 sweeps `min_cluster_size` ∈ range(10,300), stores `outlier_scores_` but never uses it,
 `cluster_persistence_` only for mcs selection. Two p̃ definitions exist:
 - **`pMember` (search_pseudoprobability):** p̃ = `probabilities_` (within-cluster λ-strength) × `pFreq`.
@@ -25,7 +25,7 @@ sweeps `min_cluster_size` ∈ range(10,300), stores `outlier_scores_` but never 
    Feature space is offered as the `columns=` argument with these trade-offs documented in the
    [membership user guide](../guides/membership.md).
 2. **CST (cluster significance test)** `[S]` — H&R (`2021A&A...646A.104H`): nearest-neighbour distance
-   of members vs surrounding field → S/N; keep >3σ (>5 = "real beyond doubt"). PUMPS selects a
+   of members vs surrounding field → S/N; keep >3σ (>5 = "real beyond doubt"). EROTICA selects a
    cluster but never tests it against random fields. Bonus: **tidal radius = the radius maximizing
    CST** (a membership-boundary tool).
 3. **Soft clustering — `all_points_membership_vectors`** `[S]` — the true soft-membership: probability
@@ -37,7 +37,7 @@ sweeps `min_cluster_size` ∈ range(10,300), stores `outlier_scores_` but never 
 4. **GLOSH `outlier_scores_` as a field-star flag** `[S]` — flag members above ~90th percentile as
    suspect. Do NOT fold (1−outlier_score) into p̃ as a second multiplier: `all_points_membership_
    vectors` already contains the GLOSH component → double-penalizes tail stars.
-5. **Fix `min_samples`** `[S/I]` — PUMPS leaves it `None` (≡ min_cluster_size, coupling both knobs);
+5. **Fix `min_samples`** `[S/I]` — EROTICA leaves it `None` (≡ min_cluster_size, coupling both knobs);
    H&R fix m_Pts=10 and sweep m_clSize. Decouple.
 6. **`exemplars_` + `approximate_predict`** (`prediction_data=True`) `[S]` — robust core/centroid + score
    NEW sources against a frozen clustering (extend membership to a wider Gaia query / tidal-tail
@@ -57,9 +57,9 @@ optional pass, no re-architecting.
 - **cuML HDBSCAN** (RAPIDS GPU) — for all-sky scale; mirrors the hdbscan API + soft clustering.
 
 ## Real calibration ground-truth (NOT synthetic)
-Crossmatch PUMPS sources to the published **H&R DR3 members** (CDS **J/A+A/673/A114**) by Gaia
-`source_id`; label = H&R member (prob>0.5). Reliability diagram of PUMPS p̃ vs H&R-membership
-frequency, feeding `pumps/calibration.py` (already built + validated on synthetic; needs the full
+Crossmatch EROTICA sources to the published **H&R DR3 members** (CDS **J/A+A/673/A114**) by Gaia
+`source_id`; label = H&R member (prob>0.5). Reliability diagram of EROTICA p̃ vs H&R-membership
+frequency, feeding `erotica/calibration.py` (already built + validated on synthetic; needs the full
 members+field catalog `data/40/clustering_results.ecsv`, not the members-only CDS table). **Flag:**
 H&R is itself HDBSCAN-based → this calibrates *consistency with the field standard*, not absolute
 correctness. Complement with P07's X-ray/Hα/IR youth indicators as an independent truth axis.

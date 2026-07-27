@@ -1,14 +1,14 @@
-"""Public entry point for PUMPS data preprocessing utilities."""
+"""Public entry point for EROTICA data preprocessing utilities."""
 from __future__ import annotations
 
-from pumps.preprocess._constants import (
+from erotica.preprocess._constants import (
     COLUMN_MAPPING,
     DEFAULT_DROP_COLUMNS,
     PM_CORRECTION_ROWS,
     PSEUDOCOLOUR_RANGE,
     ZERO_POINT_REQUIRED_COLUMNS,
 )
-from pumps.preprocess.preprocessor import DataPreprocessor
+from erotica.preprocess.preprocessor import DataPreprocessor
 
 __all__ = [
     'DataPreprocessor',

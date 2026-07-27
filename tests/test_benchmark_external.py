@@ -1,4 +1,4 @@
-"""Tests for the PUMPS-vs-ASteCA-vs-pyUPMASK benchmark harness.
+"""Tests for the EROTICA-vs-ASteCA-vs-pyUPMASK benchmark harness.
 
 All tests run on synthetic, co-indexed inputs with NO external clustering
 package installed -- they exercise the metrics + report core only. The external
@@ -16,7 +16,7 @@ import importlib.util
 import numpy as np
 import pytest
 
-from pumps.analysis.external.benchmark import (
+from erotica.analysis.external.benchmark import (
     AgreementMetrics,
     BenchmarkReport,
     CalibrationMetrics,
@@ -176,15 +176,15 @@ def test_build_report_end_to_end(synthetic):
 
     report = build_report(
         "synthetic_cluster",
-        {"PUMPS": cosmic, "ASteCA": asteca, "pyUPMASK": pyupmask},
+        {"EROTICA": cosmic, "ASteCA": asteca, "pyUPMASK": pyupmask},
         truth_membership=truth,
         truth_params={"loga": 7.0, "dm": 10.3},
         recovered_params={
-            "PUMPS": {"loga": 7.02, "dm": 10.28},
+            "EROTICA": {"loga": 7.02, "dm": 10.28},
             "ASteCA": {"loga": 6.95, "dm": 10.35},
         },
-        param_uncertainties={"PUMPS": {"loga": 0.1, "dm": 0.1}},
-        runtimes={"PUMPS": 12.5, "ASteCA": 40.0, "pyUPMASK": 88.0},
+        param_uncertainties={"EROTICA": {"loga": 0.1, "dm": 0.1}},
+        runtimes={"EROTICA": 12.5, "ASteCA": 40.0, "pyUPMASK": 88.0},
         notes=("synthetic smoke test",),
     )
     assert isinstance(report, BenchmarkReport)
@@ -195,22 +195,22 @@ def test_build_report_end_to_end(synthetic):
     assert len(report.agreements) == 3
 
     calib_df = report.calibration_table()
-    assert set(calib_df["method"]) == {"PUMPS", "ASteCA", "pyUPMASK"}
+    assert set(calib_df["method"]) == {"EROTICA", "ASteCA", "pyUPMASK"}
     # least-noisy method should be best calibrated
     ece = dict(zip(calib_df["method"], calib_df["ece"]))
-    assert ece["PUMPS"] <= ece["pyUPMASK"]
+    assert ece["EROTICA"] <= ece["pyUPMASK"]
 
     agr_df = report.agreement_table()
     assert len(agr_df) == 3
     rec_df = report.recovery_table()
-    assert set(rec_df["method"]) == {"PUMPS", "ASteCA"}
+    assert set(rec_df["method"]) == {"EROTICA", "ASteCA"}
     rt_df = report.runtime_table()
-    assert rt_df.set_index("method").loc["PUMPS", "runtime_s"] == 12.5
+    assert rt_df.set_index("method").loc["EROTICA", "runtime_s"] == 12.5
 
 
 def test_build_report_without_truth_skips_calibration(synthetic):
     p = synthetic["true_p"]
-    report = build_report("no_truth", {"PUMPS": p, "ASteCA": p})
+    report = build_report("no_truth", {"EROTICA": p, "ASteCA": p})
     assert report.truth_available is False
     assert all(m.calibration is None for m in report.methods)
     assert report.calibration_table().empty

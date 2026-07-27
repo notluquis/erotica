@@ -1,9 +1,9 @@
-# PUMPS — repo guidance
+# EROTICA — repo guidance
 
-Python package `pumps/` (clustering, isochrone, dynamics, kinematics,
+Python package `erotica/` (clustering, isochrone, dynamics, kinematics,
 photometry, structure, analysis) **plus** the full source of the NGC 6383 A&A
-paper (aa52082-24) under `data/test/NGC6383/`. Remote: `notluquis/pumps`,
-working branch `dev`. (Package renamed COSMIC→PUMPS 2026-07-21; the local dir
+paper (aa52082-24) under `data/test/NGC6383/`. Remote: `notluquis/erotica`,
+working branch `dev`. (Package renamed COSMIC→EROTICA 2026-07-21; the local dir
 stays `/Users/notluquis/COSMIC` — 26 figure scripts hardcode that path.)
 
 Pipeline/status/roadmap for **all** papers live in the hub repo (attached via

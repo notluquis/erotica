@@ -1,4 +1,4 @@
-"""Tests for pumps.core.clustering — Clustering and HDBSCANEstimator."""
+"""Tests for erotica.core.clustering — Clustering and HDBSCANEstimator."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def bad_data():
 
 @pytest.fixture
 def fitted_clust(good_data, bad_data):
-    from pumps.core.clustering import Clustering
+    from erotica.core.clustering import Clustering
     clust = Clustering(good_data, bad_data)
     clust.search_pseudoprobability(
         columns=["pmra", "pmdec"],
@@ -56,32 +56,32 @@ def fitted_clust(good_data, bad_data):
 
 class TestHDBSCANEstimator:
     def test_fit_returns_self(self, good_data):
-        from pumps.core._estimator import HDBSCANEstimator
+        from erotica.core._estimator import HDBSCANEstimator
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10)
         assert est.fit(X) is est
 
     def test_labels_length(self, good_data):
-        from pumps.core._estimator import HDBSCANEstimator
+        from erotica.core._estimator import HDBSCANEstimator
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10).fit(X)
         assert len(est.model_.labels_) == len(good_data)
 
     def test_predict_after_fit(self, good_data):
-        from pumps.core._estimator import HDBSCANEstimator
+        from erotica.core._estimator import HDBSCANEstimator
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10).fit(X)
         preds = est.predict(X)
         assert len(preds) == len(good_data)
 
     def test_predict_before_fit_raises(self):
-        from pumps.core._estimator import HDBSCANEstimator
+        from erotica.core._estimator import HDBSCANEstimator
         est = HDBSCANEstimator(min_cluster_size=10)
         with pytest.raises(RuntimeError):
             est.predict(np.zeros((10, 2)))
 
     def test_score_returns_float(self, good_data):
-        from pumps.core._estimator import HDBSCANEstimator
+        from erotica.core._estimator import HDBSCANEstimator
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10).fit(X)
         assert isinstance(est.score(X), float)
@@ -93,7 +93,7 @@ class TestHDBSCANEstimator:
 
 class TestClusteringInit:
     def test_default_attributes(self, good_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         clust = Clustering(good_data)
         assert clust.clusterer is None
         assert clust.best_params_ is None
@@ -104,7 +104,7 @@ class TestClusteringInit:
         assert clust.pseudoprobability_sweep_track_ is None
 
     def test_invalid_search_method_raises(self, good_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         with pytest.raises(ValueError):
             Clustering(good_data, search_method="nonexistent")
 
@@ -115,7 +115,7 @@ class TestClusteringInit:
 
 class TestSearchPseudoprobability:
     def test_runs_without_error(self, good_data, bad_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         clust = Clustering(good_data, bad_data)
         clust.search_pseudoprobability(
             columns=["pmra", "pmdec"],
@@ -165,7 +165,7 @@ class TestSearchPseudoprobability:
         assert -1 in labels
 
     def test_select_cluster_false_keeps_all_labels(self, good_data, bad_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         clust = Clustering(good_data, bad_data)
         clust.search_pseudoprobability(
             columns=["pmra", "pmdec"],
@@ -179,7 +179,7 @@ class TestSearchPseudoprobability:
         assert len(unique) >= 1
 
     def test_empty_range_raises(self, good_data, bad_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         clust = Clustering(good_data, bad_data)
         with pytest.raises(RuntimeError):
             clust.search_pseudoprobability(
@@ -188,7 +188,7 @@ class TestSearchPseudoprobability:
             )
 
     def test_min_max_cluster_members_filter(self, good_data, bad_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         clust = Clustering(good_data, bad_data)
         clust.search_pseudoprobability(
             columns=["pmra", "pmdec"],
@@ -216,7 +216,7 @@ class TestPublicHelpers:
         assert os.path.exists(out)
 
     def test_save_results_before_fit_raises(self, good_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         clust = Clustering(good_data)
         with pytest.raises(ValueError):
             clust.save_results("/tmp/nope.ecsv")
@@ -240,7 +240,7 @@ class TestPlotMcsSweep:
         fitted_clust.plot_mcs_sweep()
 
     def test_before_fit_raises(self, good_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         import matplotlib
         matplotlib.use("Agg")
         clust = Clustering(good_data)
@@ -267,7 +267,7 @@ class TestPlotCondensedTree:
         fitted_clust.plot_condensed_tree()
 
     def test_before_fit_raises(self, good_data):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         import matplotlib
         matplotlib.use("Agg")
         clust = Clustering(good_data)
@@ -289,27 +289,27 @@ class TestPlotCondensedTree:
 
 class TestStaticHelpers:
     def test_build_pseudoprobability_all_cluster(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         # 3 sources, 2 iterations, always in cluster
         storage = [[0, 0], [1, 1], [0, 1]]
         pt = Clustering._build_pseudoprobability(storage)
         np.testing.assert_array_equal(pt, [1.0, 1.0, 1.0])
 
     def test_build_pseudoprobability_all_noise(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         storage = [[-1, -1], [-1, -1]]
         pt = Clustering._build_pseudoprobability(storage)
         np.testing.assert_array_equal(pt, [0.0, 0.0])
 
     def test_build_pseudoprobability_mixed(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         storage = [[0, -1], [-1, -1]]  # first source: 1/2 in cluster
         pt = Clustering._build_pseudoprobability(storage)
         assert pt[0] == pytest.approx(0.5)
         assert pt[1] == pytest.approx(0.0)
 
     def test_select_max_members(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         results = [
             {"min_cluster_size": 10, "desired_len": 100, "lambda_value": 5.0},
             {"min_cluster_size": 20, "desired_len": 200, "lambda_value": 3.0},
@@ -318,7 +318,7 @@ class TestStaticHelpers:
         assert sel["min_cluster_size"] == 20
 
     def test_select_max_lambda(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         results = [
             {"min_cluster_size": 10, "desired_len": 100, "lambda_value": 9.0},
             {"min_cluster_size": 20, "desired_len": 200, "lambda_value": 3.0},
@@ -327,22 +327,22 @@ class TestStaticHelpers:
         assert sel["min_cluster_size"] == 10
 
     def test_select_invalid_raises(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         with pytest.raises(ValueError):
             Clustering._select_pseudoprobability_result([{}], "invalid")
 
     def test_cluster_label_for_size_exact_match(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         labels = np.array([0, 0, 0, 1, 1, -1])
         assert Clustering._cluster_label_for_size(labels, 3) == 0
 
     def test_cluster_label_for_size_no_match_returns_largest(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         labels = np.array([0, 0, 0, 1, 1, -1])
         # desired_len=99 doesn't exist → return largest cluster (0, size 3)
         assert Clustering._cluster_label_for_size(labels, 99) == 0
 
     def test_cluster_label_for_size_all_noise(self):
-        from pumps.core.clustering import Clustering
+        from erotica.core.clustering import Clustering
         labels = np.array([-1, -1, -1])
         assert Clustering._cluster_label_for_size(labels, 1) == -1

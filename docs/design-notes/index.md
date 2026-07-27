@@ -1,6 +1,6 @@
 # Design notes
 
-Grounded working notes behind PUMPS's methods — the "why", the literature, and the
+Grounded working notes behind EROTICA's methods — the "why", the literature, and the
 upgrade paths. These feed the peer-reviewed papers; they are more detailed and more
 provisional than the user guide.
 

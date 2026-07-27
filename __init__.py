@@ -1,4 +1,4 @@
-"""Top-level package for the PUMPS project."""
+"""Top-level package for the EROTICA project."""
 
 __all__ = [
     'DataLoader',
@@ -47,7 +47,7 @@ def __getattr__(name):
         "IsochroneFitter",
         "PhotometricMassEstimator",
     }:
-        from . import pumps as _pkg
+        from . import erotica as _pkg
 
         return getattr(_pkg, name)
-    raise AttributeError(f"module 'PUMPS' has no attribute {name!r}")
+    raise AttributeError(f"module 'EROTICA' has no attribute {name!r}")

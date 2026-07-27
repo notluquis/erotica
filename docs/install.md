@@ -1,16 +1,16 @@
 # Installation
 
-PUMPS targets Python ≥ 3.11.
+EROTICA targets Python ≥ 3.11.
 
 ```bash
-pip install pumps
+pip install erotica
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/notluquis/pumps
-cd pumps
+git clone https://github.com/notluquis/erotica
+cd erotica
 pip install -e .
 ```
 
@@ -28,5 +28,5 @@ opt-in:
 | `dev` | pytest, black, mypy | contributing |
 
 ```bash
-pip install "pumps[bayes]"
+pip install "erotica[bayes]"
 ```

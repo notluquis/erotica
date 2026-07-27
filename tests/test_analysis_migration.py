@@ -24,8 +24,8 @@ class _FakeTrace:
 
 
 def test_units_and_projected_velocity_values():
-    from pumps.analysis.kinematics import projected_velocity_values
-    from pumps.analysis.units import angular_size, linear_size
+    from erotica.analysis.kinematics import projected_velocity_values
+    from erotica.analysis.units import angular_size, linear_size
 
     angle = angular_size(1 * u.pc, 1 * u.kpc).to(u.arcmin)
     size = linear_size(angle, 1 * u.kpc)
@@ -38,7 +38,7 @@ def test_units_and_projected_velocity_values():
 
 
 def test_half_mass_and_half_light_radius():
-    from pumps.analysis.structure import calculate_half_light_radius, half_mass_radius
+    from erotica.analysis.structure import calculate_half_light_radius, half_mass_radius
 
     table = QTable(
         {
@@ -59,7 +59,7 @@ def test_half_mass_and_half_light_radius():
 
 
 def test_distance_comparison_and_trace_extraction():
-    from pumps.analysis.debugging import diagnose_distance_comparison, extract_distance_samples
+    from erotica.analysis.debugging import diagnose_distance_comparison, extract_distance_samples
 
     rng = np.random.default_rng(123)
     trace = _FakeTrace(mu_r=rng.normal(1.1, 0.01, size=(2, 100)))
@@ -73,7 +73,7 @@ def test_distance_comparison_and_trace_extraction():
 
 
 def test_distance_pathway_plot_smoke(tmp_path):
-    from pumps.analysis.figures import plot_distance_pathway_overlap
+    from erotica.analysis.figures import plot_distance_pathway_overlap
 
     rng = np.random.default_rng(456)
     trace = _FakeTrace(mu_r=rng.normal(1.1, 0.01, size=(2, 100)))
@@ -90,7 +90,7 @@ def test_distance_pathway_plot_smoke(tmp_path):
 
 
 def test_optional_external_asteca_error_when_missing(monkeypatch):
-    import pumps.analysis.external.asteca as asteca_adapter
+    import erotica.analysis.external.asteca as asteca_adapter
 
     original_import = __import__
 
@@ -126,7 +126,7 @@ def _analysis_table(n=24):
 
 
 def test_structure_analyzer_class_facade():
-    from pumps.analysis import ClusterStructureAnalyzer, RadialDensityProfile
+    from erotica.analysis import ClusterStructureAnalyzer, RadialDensityProfile
 
     table = _analysis_table()
     analyzer = ClusterStructureAnalyzer(table)
@@ -143,7 +143,7 @@ def test_structure_analyzer_class_facade():
 
 
 def test_dynamics_analyzer_class_facade():
-    from pumps.analysis import ClusterDynamicsAnalyzer
+    from erotica.analysis import ClusterDynamicsAnalyzer
 
     table = _analysis_table()
     analyzer = ClusterDynamicsAnalyzer(table, distance=1.1 * u.kpc, center=(263.7 * u.deg, -32.58 * u.deg))
@@ -158,7 +158,7 @@ def test_dynamics_analyzer_class_facade():
 
 
 def test_photometric_mass_estimator_legacy_samples():
-    from pumps.analysis import PhotometricMassEstimator, assign_masses
+    from erotica.analysis import PhotometricMassEstimator, assign_masses
 
     iso = [
         (
@@ -180,7 +180,7 @@ def test_photometric_mass_estimator_legacy_samples():
 
 
 def test_figure_builder_cumulative_smoke(tmp_path):
-    from pumps.analysis import ClusterFigureBuilder
+    from erotica.analysis import ClusterFigureBuilder
 
     table = _analysis_table()
     builder = ClusterFigureBuilder(table)
@@ -191,9 +191,9 @@ def test_figure_builder_cumulative_smoke(tmp_path):
 
 
 def test_top_level_analysis_exports():
-    import pumps
-    from pumps import ClusterDynamicsAnalyzer, ClusterInferenceAnalyzer, ClusterStructureAnalyzer
-    from pumps.analysis import (
+    import erotica
+    from erotica import ClusterDynamicsAnalyzer, ClusterInferenceAnalyzer, ClusterStructureAnalyzer
+    from erotica.analysis import (
         FitProperMotion2DGaussian,
         parallax_determination,
         pm_determination,
@@ -201,7 +201,7 @@ def test_top_level_analysis_exports():
         velocity_determination,
     )
 
-    assert pumps.ClusterStructureAnalyzer is ClusterStructureAnalyzer
+    assert erotica.ClusterStructureAnalyzer is ClusterStructureAnalyzer
     assert ClusterDynamicsAnalyzer.__name__ == "ClusterDynamicsAnalyzer"
     assert ClusterInferenceAnalyzer.__name__ == "ClusterInferenceAnalyzer"
     assert callable(FitProperMotion2DGaussian)
@@ -212,7 +212,7 @@ def test_top_level_analysis_exports():
 
 
 def test_public_cosmic_aux_api_is_exported_from_analysis():
-    import pumps.analysis as analysis
+    import erotica.analysis as analysis
 
     legacy_public_names = {
         "ensure_units",

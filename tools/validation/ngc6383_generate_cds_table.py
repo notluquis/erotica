@@ -128,7 +128,7 @@ def _write_readme(table: Table, output_dir: Path) -> None:
         "",
         "Source workflow:",
         "- Gaia DR3 cone search with the paper-faithful 40 arcmin radius.",
-        "- PUMPS preprocessing, HDBSCAN in proper-motion space only.",
+        "- EROTICA preprocessing, HDBSCAN in proper-motion space only.",
         "- Composite pseudo-probability pMember = pHDBSCAN * pFreq.",
         "- 2-sigma parallax clipping around the parallax histogram mode.",
         "",

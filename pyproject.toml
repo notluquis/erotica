@@ -3,9 +3,9 @@ requires = ["setuptools>=65", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pumps"
+name = "erotica"
 version = "0.0.1"
-description = "PUMPS: Probabilistic Unsupervised Membership & Parameter Sampling for Gaia open clusters"
+description = "EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "AGPL-3.0-or-later"
@@ -87,10 +87,10 @@ paper = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/notluquis/pumps"
-Repository = "https://github.com/notluquis/pumps"
-Issues = "https://github.com/notluquis/pumps/issues"
-Changelog = "https://github.com/notluquis/pumps/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/notluquis/erotica"
+Repository = "https://github.com/notluquis/erotica"
+Issues = "https://github.com/notluquis/erotica/issues"
+Changelog = "https://github.com/notluquis/erotica/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 py-modules = [
@@ -102,7 +102,7 @@ py-modules = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["pumps*"]
+include = ["erotica*"]
 exclude = ["legacy*", "tests*", "notebooks*", "backups*", "data*"]
 
 [tool.black]

@@ -1,4 +1,4 @@
-"""Tests for the PUMPS data loader and its column-alias / collection helpers.
+"""Tests for the EROTICA data loader and its column-alias / collection helpers.
 
 Covers:
   * ``resolve_alias``            -- canonical-name / alias resolution + case-sensitivity
@@ -19,18 +19,18 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-from pumps.io._constants import (
+from erotica.io._constants import (
     FLUX_ERROR_COLUMNS,
     GAIA_DISTANCE_COLUMNS,
     PHOTOMETRIC_SYSTEMS,
     ZP_COLUMNS,
 )
-from pumps.io._helpers import (
+from erotica.io._helpers import (
     collect_requested_columns,
     map_requested_columns,
     resolve_alias,
 )
-from pumps.io.loader import DataLoader
+from erotica.io.loader import DataLoader
 
 # Non-power-of-two 64-bit identifier that is NOT exactly representable as
 # float64: it survives an ECSV round-trip only because the loader keeps

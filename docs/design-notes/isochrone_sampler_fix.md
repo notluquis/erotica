@@ -1,6 +1,6 @@
 # Isochrone NUTS sampler — diagnosis + fix spec
 
-_2026-07-21. Why `pumps.analysis._isochrone` NUTS fit fails (R̂ 1.5–2.2, posterior at
+_2026-07-21. Why `erotica.analysis._isochrone` NUTS fit fails (R̂ 1.5–2.2, posterior at
 prior edges) and the golden-standard fix. Confirmed empirically + grounded in the 2026
 literature. This is **next-paper (P02/P05) infrastructure**; the published P01 numbers stand
 on the validated gradient-free DEMetropolis ensemble (see descope below)._
@@ -75,9 +75,9 @@ reparametrize; genuinely separated modes (rare) → tempered-SMC-NUTS (`blackjax
 
 ## Likelihood / interpolation fix (resolution — see ranked options below), 2026 golden standard
 
-**Headline:** PUMPS uses a galaxy-SFH tool (binned Hess + Poisson over an age–Z template
+**Headline:** EROTICA uses a galaxy-SFH tool (binned Hess + Poisson over an age–Z template
 grid — Dolphin 2002 `2002MNRAS.332...91D`; Garling 2025 `2025ApJS..277...61G`) on a
-**single-population cluster**. The SOTA for PUMPS's exact problem (one cluster, Gaia,
+**single-population cluster**. The SOTA for EROTICA's exact problem (one cluster, Gaia,
 continuous age/Z, NUTS) is **Chi et al. 2026** (A&A 710, A160, `2026A&A...710A.160C`), which
 **drops binning entirely** and kills both zero-gradient pathologies.
 
@@ -85,7 +85,7 @@ continuous age/Z, NUTS) is **Chi et al. 2026** (A&A 710, A160, `2026A&A...710A.1
    Chi: 4D **linear** interpolation over a *regular* precomputed PARSEC grid — inputs
    (mass/EEP, log age, [M/H], ω), outputs (G, BP−RP) — via `jax.scipy.ndimage.map_coordinates`
    on a `(N_ω, N_τ, N_[M/H], N_M, 2)` tensor; JAX makes it fully differentiable. **Not** a
-   neural net. For PUMPS: build a **dense regular MIST grid in (age, [Fe/H], EEP)** +
+   neural net. For EROTICA: build a **dense regular MIST grid in (age, [Fe/H], EEP)** +
    differentiable multilinear interp → nonzero gradient everywhere. **Interpolate on EEP
    index, not raw mass** (mass ranges shift with age/Z; the age signal is at the turnoff —
    standard MIST practice, Dotter 2016 / Choi 2016).

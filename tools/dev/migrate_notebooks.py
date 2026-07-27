@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script de migración automática de notebooks PUMPS v0.0.1
+Script de migración automática de notebooks EROTICA v0.0.1
 
 Este script actualiza todos los notebooks del proyecto para usar la nueva
 estructura modular, manteniendo compatibilidad con código existente.
@@ -19,7 +19,7 @@ def add_compatibility_cell(notebook_path: Path) -> bool:
         
         # Verificar si ya tiene la celda de compatibilidad
         for cell in notebook.get('cells', []):
-            if 'PUMPS v0.0.1 - Compatibilidad' in cell.get('source', ''):
+            if 'EROTICA v0.0.1 - Compatibilidad' in cell.get('source', ''):
                 print(f"  ✅ Ya actualizado: {notebook_path.name}")
                 return True
         
@@ -28,12 +28,12 @@ def add_compatibility_cell(notebook_path: Path) -> bool:
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "# 🌟 PUMPS v0.0.1 - Compatibilidad Automática\n",
+                "# 🌟 EROTICA v0.0.1 - Compatibilidad Automática\n",
                 "\n",
-                "**Este notebook ha sido actualizado para PUMPS v0.0.1**\n",
+                "**Este notebook ha sido actualizado para EROTICA v0.0.1**\n",
                 "\n",
                 "## ✨ Mejoras Disponibles\n",
-                "- **Estructura modular**: `pumps.core`, `pumps.io`, `pumps.preprocess`, `pumps.analysis`\n",
+                "- **Estructura modular**: `erotica.core`, `erotica.io`, `erotica.preprocess`, `erotica.analysis`\n",
                 "- **Imports modernos**: Específicos y organizados\n",
                 "- **API mejorada**: Mejor manejo de errores y configuración\n",
                 "- **Compatibilidad total**: El código existente sigue funcionando\n",
@@ -42,12 +42,12 @@ def add_compatibility_cell(notebook_path: Path) -> bool:
                 "Para usar las nuevas funcionalidades:\n",
                 "```python\n",
                 "# Nuevo (recomendado)\n",
-                "from pumps.analysis.analyzer import ClusterAnalyzer\n",
-                "from pumps.core.clustering import Clustering\n",
-                "from pumps.io.loader import DataLoader\n",
+                "from erotica.analysis.analyzer import ClusterAnalyzer\n",
+                "from erotica.core.clustering import Clustering\n",
+                "from erotica.io.loader import DataLoader\n",
                 "\n",
                 "# Legacy (sigue funcionando)\n",
-                "from PUMPS import ClusterAnalyzer\n",
+                "from EROTICA import ClusterAnalyzer\n",
                 "from clustering import HDBSCANClustering\n",
                 "from data_loader import DataLoader\n",
                 "```\n",
@@ -74,7 +74,7 @@ def migrate_notebooks():
     """Migra todos los notebooks del proyecto"""
     
     project_root = Path(__file__).parent.parent.parent
-    print(f"🌟 PUMPS v0.0.1 - Migración Automática de Notebooks")
+    print(f"🌟 EROTICA v0.0.1 - Migración Automática de Notebooks")
     print(f"📁 Proyecto: {project_root}")
     
     # Buscar todos los notebooks

@@ -1,14 +1,14 @@
 API reference
 =============
 
-PUMPS's public API. These are the classes and functions re-exported at the top level of
-the package (``pumps.__all__``); the modules they live in carry additional internals not
+EROTICA's public API. These are the classes and functions re-exported at the top level of
+the package (``erotica.__all__``); the modules they live in carry additional internals not
 listed here.
 
 Clustering & data
 -----------------
 
-.. currentmodule:: pumps
+.. currentmodule:: erotica
 
 .. autosummary::
    :toctree: generated
@@ -29,7 +29,7 @@ Clustering & data
 Analysis
 --------
 
-.. currentmodule:: pumps.analysis
+.. currentmodule:: erotica.analysis
 
 .. autosummary::
    :toctree: generated

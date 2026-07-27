@@ -1,6 +1,6 @@
-# PUMPS Development Tools
+# EROTICA Development Tools
 
-This directory contains development and maintenance tools for the PUMPS project.
+This directory contains development and maintenance tools for the EROTICA project.
 
 ## Structure
 

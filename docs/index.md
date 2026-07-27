@@ -1,9 +1,10 @@
-# PUMPS
+# EROTICA
 
-**P**robabilistic **U**nsupervised **M**embership & **P**arameter **S**ampling — Gaia
-open-cluster membership, isochrone fitting, and structural analysis.
+**E**stimation, **R**ecovery & **O**ptimization, **t**ogether with **I**nference, for
+**C**luster **A**nalysis — Gaia open-cluster membership, isochrone fitting, and
+structural analysis.
 
-PUMPS is built on a philosophy of **options with disclosure**: for each choice that
+EROTICA is built on a philosophy of **options with disclosure**: for each choice that
 affects the science (which features to cluster on, whether to fold in measurement errors,
 whether membership is a number or a posterior) the package offers the alternatives and
 documents their trade-offs. The scientist chooses what fits their cluster — the package

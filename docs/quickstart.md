@@ -4,7 +4,7 @@ A minimal membership run on a Gaia field, from an `astropy` table of sources.
 
 ```python
 from astropy.table import QTable
-from pumps.core.clustering import Clustering
+from erotica.core.clustering import Clustering
 
 data = QTable.read("my_gaia_field.ecsv")   # ra, dec, pmra, pmdec, parallax, ...
 
@@ -27,7 +27,7 @@ The `columns` argument **is** the feature-space choice. Clustering on velocity s
 clu.search_pseudoprobability(columns=("pmra", "pmdec", "parallax"))
 ```
 
-**But standardize first when you mix units:** PUMPS clusters on the raw column values and
+**But standardize first when you mix units:** EROTICA clusters on the raw column values and
 HDBSCAN uses a Euclidean metric, so raw `pmra,pmdec,parallax` under-weights parallax (and
 raw 5D is dominated by sky position). Rescale each axis to a common spread before passing
 them — see the [membership guide](guides/membership.md).

@@ -1,7 +1,7 @@
-"""Public entry point for PUMPS data loading utilities."""
+"""Public entry point for EROTICA data loading utilities."""
 from __future__ import annotations
 
-from pumps.io._constants import (
+from erotica.io._constants import (
     ALIASES,
     FLUX_ERROR_COLUMNS,
     GAIA_DISTANCE_COLUMNS,
@@ -13,7 +13,7 @@ from pumps.io._constants import (
     WISE_PHOTOMETRY_COLUMNS,
     ZP_COLUMNS,
 )
-from pumps.io.loader import DataLoader
+from erotica.io.loader import DataLoader
 
 __all__ = [
     'DataLoader',

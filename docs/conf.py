@@ -1,13 +1,13 @@
-# docs/conf.py — PUMPS documentation build
+# docs/conf.py — EROTICA documentation build
 import os
 from importlib.metadata import version as _pkg_version
 
 # -- Project information -----------------------------------------------------
-project = "PUMPS"
-author = "PUMPS developers"
-copyright = "2026, PUMPS developers"
+project = "EROTICA"
+author = "EROTICA developers"
+copyright = "2026, EROTICA developers"
 try:
-    release = _pkg_version("pumps")  # distribution name in pyproject
+    release = _pkg_version("erotica")  # distribution name in pyproject
 except Exception:
     release = "0.0.1"
 version = ".".join(release.split(".")[:2])
@@ -58,9 +58,9 @@ intersphinx_mapping = {
 
 # -- HTML output -------------------------------------------------------------
 html_theme = "pydata_sphinx_theme"
-html_title = "PUMPS"
+html_title = "EROTICA"
 html_theme_options = {
-    "github_url": "https://github.com/notluquis/pumps",
+    "github_url": "https://github.com/notluquis/erotica",
     "show_toc_level": 2,
     "navigation_with_keys": False,
     "use_edit_page_button": True,
@@ -68,7 +68,7 @@ html_theme_options = {
 # Edit-on-GitHub button + canonical URLs (Read the Docs sets the env var on build).
 html_context = {
     "github_user": "notluquis",
-    "github_repo": "pumps",
+    "github_repo": "erotica",
     "github_version": "dev",
     "doc_path": "docs",
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run comprehensive test suite for PUMPS."""
+"""Run comprehensive test suite for EROTICA."""
 import subprocess
 import sys
 from pathlib import Path
@@ -21,7 +21,7 @@ def run_command(cmd, description):
 def main():
     """Run comprehensive test suite."""
     project_root = Path(__file__).parent.parent.parent
-    print(f"🚀 Running comprehensive tests for PUMPS in {project_root}")
+    print(f"🚀 Running comprehensive tests for EROTICA in {project_root}")
     
     os.chdir(project_root)
     
@@ -35,25 +35,25 @@ def main():
     
     # Code formatting
     tests.append((
-        "black --check pumps/ tests/",
+        "black --check erotica/ tests/",
         "Code formatting (Black)"
     ))
     
     # Import sorting
     tests.append((
-        "isort --check-only pumps/ tests/",
+        "isort --check-only erotica/ tests/",
         "Import sorting (isort)"
     ))
     
     # Linting
     tests.append((
-        "flake8 pumps/ tests/",
+        "flake8 erotica/ tests/",
         "Code linting (flake8)"
     ))
     
     # Type checking
     tests.append((
-        "mypy pumps/ --ignore-missing-imports",
+        "mypy erotica/ --ignore-missing-imports",
         "Type checking (mypy)"
     ))
     
@@ -65,7 +65,7 @@ def main():
     
     # Import test
     tests.append((
-        "python -c 'import pumps; print(\"PUMPS imports successfully\")'\n",
+        "python -c 'import erotica; print(\"EROTICA imports successfully\")'\n",
         "Import test"
     ))
     

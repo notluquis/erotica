@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setup development environment for PUMPS."""
+"""Setup development environment for EROTICA."""
 import subprocess
 import sys
 from pathlib import Path
@@ -16,10 +16,10 @@ def run_command(cmd, check=True):
 def main():
     """Set up development environment."""
     project_root = Path(__file__).parent.parent.parent
-    print(f"Setting up PUMPS development environment in {project_root}")
+    print(f"Setting up EROTICA development environment in {project_root}")
     
     # Install package in development mode
-    print("\n1. Installing PUMPS in development mode...")
+    print("\n1. Installing EROTICA in development mode...")
     run_command(f"cd {project_root} && pip install -e '.[dev,docs,examples]'")
     
     # Install pre-commit hooks
@@ -46,7 +46,7 @@ def main():
     print("\nNext steps:")
     print("- Run tests: pytest")
     print("- Format code: black .")
-    print("- Check types: mypy pumps/")
+    print("- Check types: mypy erotica/")
     print("- Build docs: cd docs && make html")
     print("- Start Jupyter: jupyter lab")
 

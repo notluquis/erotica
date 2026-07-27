@@ -1,4 +1,4 @@
-"""Tests for pumps.analysis._isochrone.
+"""Tests for erotica.analysis._isochrone.
 
 Structure
 ---------
@@ -22,7 +22,7 @@ import numpy as np
 import pytest
 from astropy.table import QTable
 
-from pumps.analysis._isochrone import (
+from erotica.analysis._isochrone import (
     IsochroneFitter,
     MISTIsochrones,
     _chabrier2014_weights,
@@ -39,7 +39,7 @@ _BAYES_EXTRA_MISSING = [
 ]
 requires_bayes_extra = pytest.mark.skipif(
     bool(_BAYES_EXTRA_MISSING),
-    reason="requires PUMPS's optional bayes extra: missing "
+    reason="requires EROTICA's optional bayes extra: missing "
     + ", ".join(_BAYES_EXTRA_MISSING),
 )
 
