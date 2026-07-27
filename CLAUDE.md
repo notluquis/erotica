@@ -9,7 +9,7 @@ dist, GitHub repo, and the working dir `/Users/notluquis/COSMIC` →
 
 Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 `--add-dir`): `~/phd/PIPELINE.md` (state), `~/phd/ROADMAP.md` (plan),
-`~/phd/cosmic-package.md` (package backlog), `~/phd/papers/PXX.md` (dossiers).
+`~/phd/erotica-package.md` (package backlog), `~/phd/papers/PXX.md` (dossiers).
 Keep those current; do **not** spawn TODO files here.
 
 ## Landmines
@@ -27,7 +27,7 @@ Keep those current; do **not** spawn TODO files here.
 - **pre-commit is broken here:** the `nbstripout` hook chokes on the large
   working-tree stash and can revert unstaged changes into a `.cache/pre-commit/`
   patch. Commit with `git commit --no-verify` until the hook is fixed
-  (release-blocker: fix the pre-commit config — see `~/phd/cosmic-package.md`).
+  (release-blocker: fix the pre-commit config — see `~/phd/erotica-package.md`).
 
 ## Data traps (respect in any catalog work)
 - `comments_paper/_legacy/rerun_2026-05/members_DIFFERENT_RUN_DO_NOT_USE.csv` =

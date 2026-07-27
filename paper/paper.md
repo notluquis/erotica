@@ -1,5 +1,5 @@
 <!-- DRAFT — NOT SUBMITTABLE. JOSS hard-requires automated tests + CI + an
-archived DOI, none of which EROTICA has yet (see ~/phd/cosmic-package.md
+archived DOI, none of which EROTICA has yet (see ~/phd/erotica-package.md
 release-blockers). This is scaffolding for P02, not a ready submission.
 Author list, order, and ORCIDs are PLACEHOLDERS — confirm before use. -->
 ---
