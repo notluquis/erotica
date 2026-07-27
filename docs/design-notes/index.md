@@ -11,4 +11,5 @@ isochrone_sampler_fix
 hierarchical_isochrone_design
 maximize_hdbscan_membership
 bayesian_membership_posterior
+membership_ground_truth
 ```

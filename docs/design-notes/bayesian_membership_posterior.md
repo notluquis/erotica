@@ -184,6 +184,71 @@ Component selection by **AIC**, restricted to models with ≥10 stars per compon
   sky-torsion — but *all five* Melotte 111 catalogues fail that flag, so it is cluster geometry, not
   the method. `[S]`
 
+## 5b. The calibration claim, adversarially audited
+
+An agent was tasked with **falsifying** "nobody calibration-checks membership probabilities." It
+survives — but only in this narrow form, and with a counter-example that must be cited *first*.
+
+**Hard evidence (enumeration, not search):** across VizieR, **697 catalogs publish a stellar
+membership probability; exactly 2 publish a per-star uncertainty on one.** `[S]`
+
+```{danger}
+**Cite this up front or a referee will find it.** **redMaPPer IV** (`2015MNRAS.453...38R`)
+validates **galaxy**-cluster membership probabilities against spectroscopic rates to ~1%. The claim
+must therefore be **scoped to stellar/open clusters**, with the reason stated: there is no
+spectroscopic ground-truth analogue at the required depth (see `membership_ground_truth.md` §1).
+```
+
+**Import the photo-z literature as prior art — do not treat it as competition.** That line is mature
+and self-aware: Bordoloi 2010 (`2010MNRAS.406..881B`) → Wittman 2016 (`2016MNRAS.457.4005W`) →
+Schmidt 2020 (`2020MNRAS.499.1587S`) → **Dey 2025 Cal-PIT** (`2025MLS&T...6d5058D`), shipped as
+production infrastructure in RAIL/`qp`. An adversarial referee *will* find these. `[S]`
+
+**The transfer is exact, not analogical** — state it precisely:
+- **CRPS reduces *identically* to the Brier score in the binary limit.** For a Bernoulli(p)
+  predictive the CDF is a two-step function and `∫(F(z) − 1{z≥y})² dz` collapses to `(y − p)²`. Same
+  functional. Log-score → log-loss likewise.
+- **PIT does *not* transfer** — a Bernoulli predictive has no continuum, so its PIT is degenerate.
+  The binary counterpart of PIT-uniformity is the **reliability diagram**; both test *probabilistic
+  calibration* (`F(Y)~U(0,1)` continuous vs `E[Y|p̂=p]=p` binary). KS/CvM/AD on PIT ≡ ECE/MCE.
+- **Decomposition:** Murphy (1973) partitions Brier into reliability − resolution + uncertainty;
+  Hersbach (2000) gives the CRPS analogue. Naming both makes "aggregate proper score ≠ calibration
+  check" airtight.
+
+**Why the field's own proper-scoring work does not close the gap** `[S]`: pyUPMASK and PLAsTiCC's
+metric paper (`2019AJ....158..171M`) compute **aggregate** scores without ever separating reliability
+from resolution — PLAsTiCC selects a proper scoring rule while containing *zero* occurrences of
+"calibration". The **Murphy decomposition appears once in the entire astronomical corpus**, in a
+weather review. The one coarse membership check ever attempted (Jackson+2020: two bins, one cluster,
+against lithium) missed by a factor 2.5 and was never repeated.
+
+### The strongest novelty position: **conditional** calibration
+PIT-uniformity and a global reliability diagram both test *marginal* calibration — which can hold
+globally while failing in **every** subpopulation. Dey+2025 attacks exactly this for photo-z
+(instance-wise/local calibration). The binary analogue — **reliability diagrams in bins of magnitude,
+crowding, and cluster radius** — has no counterpart in the membership literature, and for us it is
+precisely where miscalibration would live (the faint/large-parallax-error regime). `[I]`
+
+**Final claim wording (use verbatim, then trim):**
+
+> Binary membership probabilities in Galactic star-cluster work are not calibration-checked. Across
+> VizieR, 697 catalogs publish a stellar membership probability and exactly two publish a per-star
+> uncertainty on one. No open-cluster paper isolates the calibration component — the field's own
+> proper-scoring-rule work computes aggregate scores without separating reliability from resolution,
+> and the Murphy decomposition appears once in the entire astronomical corpus, in a weather review.
+> Meanwhile the ensemble spread needed to do better is already computed and discarded by every major
+> code in the field. The conditional-calibration machinery developed for photo-z PDFs has never been
+> transposed to the binary case — and cannot be transposed naively, since PIT is degenerate for a
+> Bernoulli predictive while CRPS collapses exactly onto the Brier score.
+
+```{note}
+**Search-methodology caveat.** ADS `full:` is **not** strict phrase matching, and
+`database:astronomy` leaks other fields. Null results are only as good as a body-indexing control,
+so present the ADS nulls as *suggestive with stated controls*, never as proof. The VizieR 697/2
+census enumerates rather than searches and is the hard evidence. Huertas-Company & Lanusse 2023 is
+**not** body-indexed in ADS — do not cite it as a verified negative.
+```
+
 ## 6. Collaboration note
 
 `phd-targets.md` ranks **Olivares + Sarro (UNED)** as a top application target. The two genuine gaps —
