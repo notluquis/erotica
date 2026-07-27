@@ -17,15 +17,23 @@ better first filter than the indicator type.
 
 ## 1. The crux: does anything independent reach **G > 18** *and* **M < 0.3 M☉**?
 
-**G > 18 — yes, ~30 clusters.** Kuhn+2019 (`2019ApJ...870...32K`) matched MYStIX+SFiNCs to Gaia DR2
-and reports a median matched magnitude of G≈18.1 (IQR 16.6–19.1), ~17,509 sources with 5-parameter
-solutions, and a ~13% contamination rate.
+**G > 18 — yes, ~30 clusters.** Kuhn+2019 (`2019ApJ...870...32K`), **all figures verified against the
+full text 2026-07-27** (arXiv:1807.02115, ar5iv) — these were previously flagged unverified and are
+now confirmed verbatim `[S]`:
 
-```{attention}
-**These three Kuhn+2019 figures are `[UNVERIFIED]`** — median G=18.1, 17,509 usable labels, and the
-~13% label-noise rate. The bibcode is right and the numbers came through an automated full-text
-extractor, but a second agent could not confirm them (they are not in the abstract). **Open the PDF
-before any of them goes in a manuscript.** They are quoted here as a lead, not as evidence.
+- §2.2: *"We cross-matched 30,839 objects from the YSO catalogs to sources in the Gaia catalog… The
+  cross matching lead to 20,716 matches with the Gaia DR2 catalog, **17,509 of which have the
+  5-parameter 'astrometric global iterative solution' (AGIS)**"* → 17,509 is the usable label count.
+- §2.2: *"**The median magnitude of these sources is G=18.1 mag (inter-quartile range: 16.6–19.1
+  mag)**"* → half the X-ray-selected members are fainter than G=18.1.
+- §3.3: *"Overall, **contamination rates were about 13%**, with contamination rates for individual
+  systems mostly falling into the range 7–15%."*
+
+```{warning}
+**The per-system spread matters more than the 13% average** — and the earlier summaries omitted it.
+§3.3 also gives: NGC 6231 **7%**, but **M17 23%, NGC 2362 25%, NGC 7160 28%, RCW 120 38%.** So a flat
+"~87% pure" is wrong for a third of the fields. **Use the per-system rate**, not the global mean, and
+exclude or down-weight the high-contamination fields when using these as calibration labels. `[S]`
 ```
 
 **M < 0.3 M☉ *with* a Gaia counterpart — only ≲500 pc, plus two Hα fields at ~1 kpc:**
@@ -122,9 +130,8 @@ mode, measured independently, by someone else.** Cite it.
   spanning **0.1–2 M☉**. **No paper has ever re-derived COUP membership against Gaia** (40 of 369
   citing papers checked) — a genuine literature gap, i.e. an opening. `[S]`
 
-**Label-noise floor — assume labels are impure, but verify the number.** Kuhn+2019 §3.3 reportedly
-gives ~13% contamination for MYStIX/SFiNCs (~87% pure) `[UNVERIFIED — see the box in §1]`. Two
-figures that *were* independently verified and can be used now: **Jadhav+2026 WD audit**, >13%
+**Label-noise floor — VERIFIED** (Kuhn+2019 §3.3): ~13% overall, per-system 7-15% but reaching 38%
+in RCW 120 — use the per-system rate, not the mean (§1). Two further verified figures: **Jadhav+2026 WD audit**, >13%
 contamination in cluster cores and **>48% in tidal tails** `[S]`; and **OCCAM DR17** (§2b), where
 9.3% of Cantat-Gaudin members at P>0.7 fail an independent RV test and 19.8% fail on [Fe/H] `[S]`.
 
@@ -393,7 +400,7 @@ and verify all known methods."* That lane is open. `[S]`
 |---|---|---|
 | **Calibration with negatives** | Kashyap Cyg OB2 `J/ApJS/269/10` | ready-made 3-class labels + accuracies, Gaia-free |
 | **Bright-end purity** | **OCCAM DR17** `occam_member-DR17.fits` | spatial-cone selection, ~24,700 real negatives, parallax never used |
-| **Scale + negatives** | MYStIX `table7`, SFiNCs `xsources` | large label set; assume impure (Kuhn figure unverified) |
+| **Scale + negatives** | MYStIX `table7`, SFiNCs `xsources` | 17,509 usable labels; ~13% noise, per-system up to 38% |
 | **Faint Hα negatives at scale** | IGAPS `V/165/igapsdr1` `emitter=0` | ~300M tested sources, graded |
 | **M < 0.3 M☉** | COUP, nearest SFiNCs, Barentsen IC 1396, Kalari M8 | only sets reaching the low-mass regime |
 | **Purity only** | SPICY `J/ApJS/254/33`, Li/EAGLES | no completeness; spectroscopic sets die at G≈18 |
