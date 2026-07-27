@@ -209,8 +209,29 @@ production infrastructure in RAIL/`qp`. An adversarial referee *will* find these
   predictive the CDF is a two-step function and `∫(F(z) − 1{z≥y})² dz` collapses to `(y − p)²`. Same
   functional. Log-score → log-loss likewise.
 - **PIT does *not* transfer** — a Bernoulli predictive has no continuum, so its PIT is degenerate.
-  The binary counterpart of PIT-uniformity is the **reliability diagram**; both test *probabilistic
-  calibration* (`F(Y)~U(0,1)` continuous vs `E[Y|p̂=p]=p` binary). KS/CvM/AD on PIT ≡ ECE/MCE.
+  The binary counterpart of PIT-uniformity is the **reliability diagram**.
+
+```{attention}
+**Taxonomy correction (2026-07-27) — an earlier version of this section was wrong.** I wrote that
+PIT-uniformity and the reliability diagram "both test *probabilistic calibration*". They do not, and
+the Gneiting–Balabdaoui–Raftery trichotomy (probabilistic / exceedance / marginal) **does not apply
+to the binary case at all** — GBR §2.1 assumes *"continuous and strictly increasing CDFs"* and states
+outright: *"We are unaware of any prior discussion of notions of calibration for probabilistic
+forecasts of continuous variables."* The binary lineage (DeGroot–Fienberg, Dawid, Schervish) is a
+separate, older one. For binary Y, **probabilistic calibration ⟺ auto-calibration**
+(Gneiting & Resin 2023), and only *marginal* calibration survives as a distinct, much weaker
+condition reducing to `E[p̂] = E[Y]`. A reliability diagram tests **auto-calibration**,
+`E[Y|p̂] = p̂` — which for binary outcomes *is* the whole of calibration. Also note the GBR modes are
+Cesàro averages over *t* and none conditions on the forecast value, so "exceedance calibration" is
+**not** the conditional one.
+```
+
+```{warning}
+**"Maximise sharpness subject to calibration" is a CONJECTURE, not a theorem.** GBR verbatim:
+*"Our **conjectured** sharpness principle… This conjectured equivalence, **which we deliberately
+state loosely**… we are **unaware of a counter-example**."* Do not cite GBR as if it proved it; the
+theorem-grade version is Bröcker 2009's sufficiency-order result.
+```
 - **Decomposition:** Murphy (1973) partitions Brier into reliability − resolution + uncertainty;
   Hersbach (2000) gives the CRPS analogue. Naming both makes "aggregate proper score ≠ calibration
   check" airtight.

@@ -14,4 +14,5 @@ bayesian_membership_posterior
 membership_ground_truth
 oc_census_landscape
 cross_domain_calibration
+calibration_theory
 ```
