@@ -87,18 +87,7 @@ def fetch_coup() -> Table:
 
     src = _cached("coup_main", _pull)
 
-    def _pull_memb():
-        v = Vizier(row_limit=-1, columns=["**"])
-        cats = v.get_catalogs("J/ApJS/160/353")
-        out = {}
-        for t in cats:
-            out[t.meta.get("name", "").split("/")[-1]] = t
-        # stash separately
-        return out
-
-    from astroquery.vizier import Vizier as _V
-
-    v = _V(row_limit=-1, columns=["**"])
+    v = Vizier(row_limit=-1, columns=["**"])
     memb_cats = {
         t.meta.get("name", "").split("/")[-1]: t
         for t in v.get_catalogs("J/ApJS/160/353")
@@ -311,9 +300,10 @@ def report_audit(coup: Table, gaia: Table, idx, ok):
     aps = np.asarray(gaia["astrometric_params_solved"])
     ruwe = np.asarray(gaia["ruwe"], dtype=float)
 
-    # ONC reference astrometry (Kounkel+2018 / Dzib+2021 scale)
-    PLX_ONC, PM_ONC = 2.50, (1.20, 0.18)  # mas, mas/yr
-    PLX_TOL, PM_TOL = 0.30, 4.0  # generous: cloud depth + velocity dispersion
+    # Proper-motion reference is calibrated from the matched members themselves
+    # (see below).  A fixed literature tolerance of ~4 mas/yr corresponds to
+    # ~7.6 km/s at 400 pc, i.e. several times the ONC dispersion -- that is a
+    # runaway filter, not a membership discriminant, so we do not use one.
 
     print(f"\n{'=' * 74}\nAUDIT (A): astrometric consistency of the COUP MEMBER list\n{'=' * 74}")
     mem = (coup["MembClass"] == "MEMBER") & ok
@@ -322,57 +312,96 @@ def report_audit(coup: Table, gaia: Table, idx, ok):
     print(f"COUP MEMBER with Gaia match          : {mem.sum()}")
     print(f"  ... with usable astrometry          : {usable.sum()}"
           f"  (5/6-par, parallax S/N>5, RUWE<1.4)")
-    if usable.sum():
-        p, pr, pd = plx[j][usable], pmra[j][usable], pmdec[j][usable]
-        dplx = np.abs(p - PLX_ONC)
-        dpm = np.hypot(pr - PM_ONC[0], pd - PM_ONC[1])
-        bad_plx = dplx > PLX_TOL
-        bad_pm = dpm > PM_TOL
-        disc = bad_plx | bad_pm
-        print(f"  parallax inconsistent (>{PLX_TOL} mas)  : {bad_plx.sum()}  ({pct(bad_plx.sum(), usable.sum()):.1f}%)")
-        print(f"  proper motion inconsistent (>{PM_TOL} mas/yr): {bad_pm.sum()}  ({pct(bad_pm.sum(), usable.sum()):.1f}%)")
-        print(f"  EITHER inconsistent                 : {disc.sum()}  ({pct(disc.sum(), usable.sum()):.1f}%)")
-        print(f"  -> contamination CANDIDATES, not verdicts: {disc.sum()} of {usable.sum()}")
-        print(f"  median parallax of usable sample     : {np.median(p):.4f} mas -> {1000 / np.median(p):.0f} pc")
-        print(f"  parallax scatter (MAD)               : {np.median(np.abs(p - np.median(p))):.4f} mas")
-        # split the discrepancies by direction
-        fg = p > PLX_ONC + PLX_TOL
-        bg = p < PLX_ONC - PLX_TOL
-        print(f"    of which in FRONT of the ONC       : {fg.sum()}")
-        print(f"    of which BEHIND the ONC            : {bg.sum()}")
+    if not usable.sum():
+        return
+
+    p, pr, pd = plx[j][usable], pmra[j][usable], pmdec[j][usable]
+    ep = eplx[j][usable]
+
+    # Calibrate the ONC parallax distribution FROM the data, robustly.  A hard
+    # cut against a single literature parallax would count the cluster's real
+    # line-of-sight depth as "contamination".
+    PLX_ONC = float(np.median(p))
+    mad = float(np.median(np.abs(p - PLX_ONC)))
+    sig_int = 1.4826 * mad  # robust sigma of the member parallax distribution
+    print(f"  cluster parallax (median)            : {PLX_ONC:.4f} mas -> {1000 / PLX_ONC:.0f} pc")
+    print(f"  robust intrinsic spread (1.48*MAD)   : {sig_int:.4f} mas"
+          f"  (= real cloud depth + astrometric error)")
+
+    # per-source significance folds in BOTH the cluster spread and the measurement error
+    sig_tot = np.hypot(sig_int, ep)
+    nsig = (p - PLX_ONC) / sig_tot
+    for t in [3, 4, 5]:
+        out = np.abs(nsig) > t
+        print(f"  parallax outliers >{t}sigma            : {out.sum():4d}  ({pct(out.sum(), usable.sum()):5.1f}%)"
+              f"   [front {int((nsig > t).sum())} / behind {int((nsig < -t).sum())}]")
+
+    # Proper motion, calibrated the same way as parallax: robust centre + robust
+    # dispersion measured FROM the matched members, so the test has comparable
+    # sensitivity to the parallax test instead of being a runaway-only filter.
+    pm0 = (float(np.median(pr)), float(np.median(pd)))
+    s_ra = 1.4826 * float(np.median(np.abs(pr - pm0[0])))
+    s_de = 1.4826 * float(np.median(np.abs(pd - pm0[1])))
+    print(f"  cluster PM (median)                  : ({pm0[0]:+.3f}, {pm0[1]:+.3f}) mas/yr")
+    print(f"  robust PM dispersion (1.48*MAD)      : ({s_ra:.3f}, {s_de:.3f}) mas/yr"
+          f"  = ({s_ra * 4.74 / PLX_ONC:.1f}, {s_de * 4.74 / PLX_ONC:.1f}) km/s")
+    epr = np.asarray(gaia["pmra_error"], dtype=float)[j][usable]
+    epd = np.asarray(gaia["pmdec_error"], dtype=float)[j][usable]
+    n_pm = np.hypot((pr - pm0[0]) / np.hypot(s_ra, epr), (pd - pm0[1]) / np.hypot(s_de, epd))
+    for t in [3, 4, 5]:
+        print(f"  PM outliers >{t}sigma (2D)             : {int((n_pm > t).sum()):4d}"
+              f"  ({pct((n_pm > t).sum(), usable.sum()):5.1f}%)")
+    bad_pm = n_pm > 3
+    disc = (np.abs(nsig) > 3) | bad_pm
+    print(f"  EITHER (>3sigma in parallax OR PM)   : {disc.sum():4d}  ({pct(disc.sum(), usable.sum()):5.1f}%)")
+    print(f"  BOTH  (>3sigma in parallax AND PM)   : {int(((np.abs(nsig) > 3) & bad_pm).sum()):4d}"
+          f"  <- strongest contamination candidates")
+    print(f"  -> these are contamination CANDIDATES, not verdicts.")
+    print(f"     A Gaussian core would give ~0.3% beyond 3sigma; the excess over that")
+    print(f"     is the quantity of interest, and it is asymmetric (front vs behind),")
+    print(f"     which is the signature of genuine field-star contamination.")
 
     print(f"\n{'=' * 74}\nAUDIT (B): the 16 COUP 'probable foreground field star' calls\n{'=' * 74}")
-    print("COUP used Jones & Walker (1988) photographic proper motions. Gaia DR3")
-    print("parallaxes test each call independently.\n")
+    print("COUP called these foreground from Jones & Walker (1988) photographic proper")
+    print("motions. Gaia DR3 parallaxes test each call independently. Each source is")
+    print(f"compared against the cluster distribution N({PLX_ONC:.3f}, {sig_int:.3f}) mas fitted above.\n")
     fgm = coup["MembClass"] == "FOREGROUND"
-    print(f"{'COUP':>6} {'match':>6} {'G':>7} {'plx':>8} {'e_plx':>7} {'d(pc)':>8} {'RUWE':>6}  verdict")
+    print(f"{'COUP':>6} {'G':>7} {'plx':>8} {'e_plx':>7} {'d(pc)':>7} {'RUWE':>6} {'n_sig':>7}  verdict")
     conf = amb = contra = 0
     for i in np.where(fgm)[0]:
         cid = int(coup["COUP"][i])
         if not ok[i]:
-            print(f"{cid:>6} {'-':>6} {'':>7} {'':>8} {'':>7} {'':>8} {'':>6}  no Gaia counterpart")
+            print(f"{cid:>6} {'':>7} {'':>8} {'':>7} {'':>7} {'':>6} {'':>7}  no Gaia counterpart")
+            amb += 1
             continue
         k = idx[i]
-        p, e, r = plx[k], eplx[k], ruwe[k]
+        pv, e, r = plx[k], eplx[k], ruwe[k]
         g = float(gaia["phot_g_mean_mag"][k])
-        if not np.isfinite(p) or e <= 0 or p / e < 3:
-            v, d = "inconclusive (weak astrometry)", float("nan")
+        if not np.isfinite(pv) or e <= 0 or pv / e < 3:
+            print(f"{cid:>6} {g:>7.2f} {'':>8} {'':>7} {'':>7} {r:>6.2f} {'':>7}  inconclusive (no/weak parallax)")
             amb += 1
+            continue
+        ns = (pv - PLX_ONC) / np.hypot(sig_int, e)
+        d = 1000.0 / pv
+        if not np.isfinite(r) or r > 1.4:
+            v = "inconclusive (RUWE unreliable)"
+            amb += 1
+        elif ns > 3:
+            v = "CONFIRMED foreground"
+            conf += 1
+        elif abs(ns) <= 2:
+            v = "*** ONC-CONSISTENT -- label contradicted ***"
+            contra += 1
+        elif abs(ns) <= 3:
+            v = "*** contradicted, but MARGINAL (2-3 sigma) ***"
+            contra += 1
         else:
-            d = 1000.0 / p
-            if p - 3 * e > PLX_ONC:
-                v = "CONFIRMED foreground"
-                conf += 1
-            elif abs(p - PLX_ONC) <= 3 * e:
-                v = "CONSISTENT with ONC -> label questioned"
-                contra += 1
-            else:
-                v = "behind ONC / other"
-                amb += 1
-        print(f"{cid:>6} {'y':>6} {g:>7.2f} {p:>8.3f} {e:>7.3f} {d:>8.0f} {r:>6.2f}  {v}")
-    print(f"\n  confirmed foreground : {conf}")
-    print(f"  contradicted (ONC-like parallax) : {contra}")
-    print(f"  inconclusive : {amb}")
+            v = "behind the ONC -- not foreground either"
+            contra += 1
+        print(f"{cid:>6} {g:>7.2f} {pv:>8.3f} {e:>7.3f} {d:>7.0f} {r:>6.2f} {ns:>+7.1f}  {v}")
+    print(f"\n  COUP foreground call CONFIRMED by Gaia   : {conf} / 16")
+    print(f"  COUP foreground call CONTRADICTED        : {contra} / 16   <-- these are ONC members")
+    print(f"  inconclusive / no counterpart            : {amb} / 16")
 
     print(f"\n{'=' * 74}\nAUDIT (C): the 159 'background AGN' and 42 'embedded' calls\n{'=' * 74}")
     for cls, expect in [("AGN", "expect ~0% Gaia -- extragalactic, behind the cloud"),

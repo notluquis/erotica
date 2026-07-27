@@ -266,7 +266,70 @@ astrometric clustering measured *without* our method — cite it rather than dis
 2. **Pull `occam_member-DR17.fits`** from the SDSS SAS and split on `APOGEE2_TARGET1` bit 9.
 3. **Re-derive the Kalari+2019 NGC 6383 sample** from VPHAS+ DR2 (§5) — bears on the P07 thread about
    CTTS removed by the 2σ parallax clip.
-4. **Audit COUP against Gaia** — nobody has, and it sits exactly on our low-mass regime.
+4. ~~Audit COUP against Gaia~~ — **DONE, see §6d.**
+
+## 6d. COUP × Gaia audit — executed, and the answer is a clean null `[S]`
+
+Run with `tools/prototypes/coup_gaia_audit.py` (VizieR TAP + Gaia ADQL, epoch-propagated to 2003.04).
+
+**The gap was real but narrower than assumed.** Pérez-Díaz+2026 (`2026arXiv260619329P`, 4 months old,
+0 citations — which is why a most-cited sweep missed it) publishes a CSC 2.1 × Gaia DR3 crossmatch
+that **validates on the COUP field**. But it validates against COUP's *optical/IR counterpart
+identifications*, never against the **membership classification** in `2005ApJS..160..353G`. So the
+crossmatch is published; **the membership audit was not.** Independent corroboration: our crossmatch
+finds 1011 matches at 1″ vs their 1015 ML matches, from different catalogues and methods.
+
+**The ONC-is-too-crowded premise is inverted.** Measured:
+
+| | ONC (17′) | IC 348 (10′) | NGC 1333 (10′) |
+|---|---|---|---|
+| parallax S/N > 10 | **49.6%** | 37.6% | 36.3% |
+| median G of members | **17.77** | 18.69 | 18.94 |
+| RUWE < 1.4 | 88.2% | 93.3% | 88.9% |
+
+The ONC has **better** parallax S/N than either SFiNCs alternative — its members are brighter.
+Stay with the ONC; switching loses the deepest X-ray membership catalogue for no gain. The real
+structure is **radial**: member match rate 58.4% inside 1′ → 86.1% at 6–9′, and off-axis analysis
+shows this is *Gaia* degrading in the bright Trapezium nebulosity, **not** Chandra PSF (median
+`PosErr` 0.03″ on-axis). Extinction dominates the misses: unmatched members have median
+H−K = 1.45 vs 0.52 for matched.
+
+**Results.** 1011/1616 matched at 1″ (chance rate 1.2% from shifted controls); median parallax
+**2.4970 mas → 400 pc**, recovering the ONC distance with no tuning. Every COUP class behaves as
+predicted twenty years ago:
+
+| class | N | matched |
+|---|---|---|
+| MEMBER | 1315 | 75.5% |
+| FOREGROUND | 16 | 87.5% |
+| **AGN** | 159 | **0.0%** |
+| **EMBEDDED** | 42 | **0.0%** |
+| **AMBIGUOUS** | 33 | **0.0%** |
+| SPURIOUS | 33 | 3.0% |
+
+**Audit A — the member list is clean.** Of 706 members with usable astrometry: **6 parallax outliers
+>3σ (0.8%), symmetric 3 in front / 3 behind** (the signature of noise, not contamination). The
+data-driven PM dispersion, **(1.5, 2.1) km/s**, independently reproduces Dzib+2021's VLBA value —
+a free validation. **Zero sources are >3σ in both parallax and PM.**
+
+**Audit B — the one real finding.** Of the 16 *"probable foreground field stars"* — COUP's weakest
+labels, from Jones & Walker 1988 **photographic** proper motions with no parallax — **5 confirmed,
+7 contradicted, 4 inconclusive.** All 7 contradictions have a unique Gaia source within 1″ (next
+nearest 3.2–23.6″) at separations 0.10–0.44″, at or below COUP's own `OptOff`, so they are not
+crossmatch artefacts. *The one class COUP itself hedged as "probable" is the one Gaia overturns.*
+
+```{note}
+**This is not a standalone paper** — it is a strong **validation section**, or a methods demo showing
+the approach returns the right answer on a catalogue known to be good. The natural extension is the
+full SFiNCs/MYStIX sample, using COUP as the **calibrated control**.
+
+It measures **purity only**. A Gaia source with ONC-like astrometry and no COUP detection is not a
+COUP failure — it may simply be X-ray faint. The completeness handle exists (1618 Gaia sources within
+3σ of 2.50 mas vs 1315 COUP members) but converting it to a number needs an L_X floor plus a mass
+function. The confound is structural: X-ray selects magnetically active stars, Gaia selects on
+astrometric quality, so COUP-yes/Gaia-no is *expected* for embedded sources and AGN. The only clean
+test is the reverse — COUP-yes **with** good Gaia astrometry that contradicts the label.
+```
 
 **Framing gift:** the field's reference benchmark, **HR21, states *"we cut all stars fainter than
 G = 18"*** — it stops exactly where our question begins. And the 2026 review (`2026arXiv260713711R`)
