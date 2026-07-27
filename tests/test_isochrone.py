@@ -426,10 +426,12 @@ class TestIsochroneFitter:
         n = 2
         rng = np.random.default_rng(1)
         idata = az.from_dict({
-            "met":  rng.uniform(0.014, 0.016, (1, n)),
-            "loga": rng.uniform(6.5, 6.7, (1, n)),
-            "dm":   rng.uniform(9.8, 10.2, (1, n)),
-            "Av":   rng.uniform(0.0, 0.5, (1, n)),
+            "posterior": {
+                "met":  rng.uniform(0.014, 0.016, (1, n)),
+                "loga": rng.uniform(6.5, 6.7, (1, n)),
+                "dm":   rng.uniform(9.8, 10.2, (1, n)),
+                "Av":   rng.uniform(0.0, 0.5, (1, n)),
+            },
         })
         obs_mag, obs_col, cmds = fitter.posterior_cmd(idata, num_samples=n)
         assert obs_mag.shape == fitter._obs_mag.shape
@@ -893,10 +895,12 @@ class TestIsochroneFitterExtended:
         setup_fitter.setup(data, prob_threshold=0.0)
         rng = np.random.default_rng(3)
         idata = az.from_dict({
-            "met":  rng.uniform(0.014, 0.016, (1, 3)),
-            "loga": rng.uniform(6.5, 6.6, (1, 3)),
-            "dm":   rng.uniform(9.5, 10.5, (1, 3)),
-            "Av":   rng.uniform(0.0, 0.5, (1, 3)),
+            "posterior": {
+                "met":  rng.uniform(0.014, 0.016, (1, 3)),
+                "loga": rng.uniform(6.5, 6.6, (1, 3)),
+                "dm":   rng.uniform(9.5, 10.5, (1, 3)),
+                "Av":   rng.uniform(0.0, 0.5, (1, 3)),
+            },
         })
         obs_mag, obs_col, cmds = setup_fitter.posterior_cmd(idata, num_samples=3)
         mag_lo, mag_hi = setup_fitter._mag_range
@@ -913,10 +917,12 @@ class TestIsochroneFitterExtended:
         obs_before = setup_fitter._obs_mag.copy()
         rng = np.random.default_rng(4)
         idata = az.from_dict({
-            "met":  rng.uniform(0.014, 0.016, (1, 2)),
-            "loga": rng.uniform(6.5, 6.6, (1, 2)),
-            "dm":   rng.uniform(9.8, 10.2, (1, 2)),
-            "Av":   rng.uniform(0.0, 0.5, (1, 2)),
+            "posterior": {
+                "met":  rng.uniform(0.014, 0.016, (1, 2)),
+                "loga": rng.uniform(6.5, 6.6, (1, 2)),
+                "dm":   rng.uniform(9.8, 10.2, (1, 2)),
+                "Av":   rng.uniform(0.0, 0.5, (1, 2)),
+            },
         })
         setup_fitter.posterior_cmd(idata, num_samples=2)
         np.testing.assert_array_equal(setup_fitter._obs_mag, obs_before)
