@@ -1,7 +1,7 @@
 # BUG: numba backend samples `Cauchy`/`HalfCauchy` with the wrong loc and scale
 
 **Repo:** `pymc-devs/pytensor` · **Version:** 3.1.3 (and current `main`) · **Backend:** numba (the default linker)
-**Introduced:** Aesara commit `5ea74e973` (2022-03-03), inherited at the PyTensor fork — present for ~4.4 years.
+**Introduced:** Aesara commit `5ea74e973` (2022-03-03); rewritten and preserved in `14da898c6` (2024-05-10) — present for ~4.4 years.
 
 ## Description
 
@@ -76,18 +76,28 @@ Among ten continuous distributions checked the same way (`normal`, `gamma`, `exp
 
 ## Why it has survived 4.4 years
 
-`git log -S standard_cauchy` over the numba dispatch returns exactly one commit:
+The expression has been written **twice**, by two different authors, and survived a deliberate
+rewrite of that exact line:
 
 ```
-5ea74e973  2022-03-03  Brandon T. Willard  |  Fix the Numba implementation of CauchyRV
+5ea74e973  2022-03-03  Brandon T. Willard  Fix the Numba implementation of CauchyRV
+             -> introduced in Aesara as a string template:
+                f"    return ({loc} + np.random.standard_cauchy()) / {scale}"
+
+14da898c6  2024-05-10  Ricardo Vieira      Add support for RandomVariable with Generators
+                                           in Numba backend and drop support for RandomState
+             -> rewrote it from a template into a real njit function, carrying the
+                expression forward verbatim:
+                    def random(rng, loc, scale):
+                        return (loc + rng.standard_cauchy()) / scale
 ```
 
-introduced in **Aesara** and inherited by PyTensor at the fork. It moved `CauchyRV` out of a generic
-registration group into its own implementation, and added the current expression. The line has not
-been touched since; the only later commit affecting the test was a package rename
-(`9df55cc6c Update aliases to reflect package name`).
+(Nine further commits touched the surrounding region — the Aesara→PyTensor rename, style passes,
+the Generator contract fix — without altering the expression. Note that `git log -S standard_cauchy`
+reports only the 2022 commit, because the 2024 port kept the substring count unchanged; `git log -L`
+on the function is what shows both.)
 
-**The same commit also set the test parameters, and they are the one case that cannot fail.** The
+**The 2022 commit also set the test parameters, and they are the one case that cannot fail** — which is why neither author had a signal. The
 single `cauchy` entry in `tests/link/numba/test_random.py` is
 
 ```python
