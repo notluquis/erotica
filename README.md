@@ -4,8 +4,13 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/erotica)
 [![CI](https://github.com/notluquis/erotica/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/erotica/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/erotica/badge/?version=latest)](https://erotica.readthedocs.io/en/latest/)
 
-EROTICA is a professional Python package for analyzing star clusters using machine learning techniques and Bayesian inference. Built specifically for processing Gaia satellite data, EROTICA employs unsupervised clustering algorithms and statistical analysis to identify and characterize open star clusters.
+EROTICA is a Python package for analyzing star clusters using machine learning and Bayesian
+inference. Built for Gaia data, it uses unsupervised clustering to identify open star clusters
+and characterize their membership, ages, and structure.
+
+📖 **[Documentation](https://erotica.readthedocs.io/en/latest/)** · [Membership guide](https://erotica.readthedocs.io/en/latest/guides/membership.html) · [API reference](https://erotica.readthedocs.io/en/latest/api/index.html)
 
 ## 🚀 Quick Start
 
@@ -199,6 +204,7 @@ EROTICA builds upon excellent open-source libraries:
 
 ## 📞 Support
 
+- **Documentation**: [erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/)
 - **Issues**: [GitHub Issues](https://github.com/notluquis/erotica/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/notluquis/erotica/discussions)
 - **Email**: [lescobar2019@udec.cl](mailto:lescobar2019@udec.cl)

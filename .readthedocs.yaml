@@ -8,9 +8,12 @@ build:
   jobs:
     # Explicit build so the source dir is unambiguously docs/ (RTD otherwise
     # invoked sphinx-build with the repo root as source and failed to find conf.py).
+    # Must go through `uv run`: with the uv install method below, a bare `python`
+    # is the asdf interpreter rather than the venv uv installed into, so sphinx
+    # is not importable there.
     build:
       html:
-        - python -m sphinx -T -b html docs $READTHEDOCS_OUTPUT/html
+        - uv run --no-sync --no-dev sphinx-build -T -b html docs $READTHEDOCS_OUTPUT/html
 
 sphinx:
   configuration: docs/conf.py
