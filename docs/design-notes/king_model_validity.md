@@ -453,6 +453,70 @@ NGC 6383 is a defective cluster. It is a normally-sized open cluster observed ov
 does not contain it — which, post-Gaia, is the usual case rather than the exception.
 ```
 
+## What is the background term doing on a membership-selected sample?
+
+King (1962) fits a **three-component** law — core, tidal truncation, and an additive constant `b` —
+because the data were photographic star counts in which cluster and field could not be separated.
+You fitted both at once because you had no other option.
+
+Gaia plus astrometric clustering removes the field *before* the profile is fitted. So the question is
+sharp: **why is there still a background component, and what is it?**
+
+### For NGC 6383 it is not contamination, and the margin is not close
+
+| quantity | value |
+|---|---|
+| fitted flat background `b` | 0.02285 ± 0.00194 arcmin⁻² |
+| stars it accounts for over the 70′ field | **352 ± 30**, i.e. **56% of the 628-star sample** |
+| measured false-discovery proportion (target–decoy, `p ≥ 0.6`) | **6.1%** → ~38 stars |
+| discrepancy | **9.2×** |
+
+The membership pipeline's own false-positive rate, measured independently by the target–decoy
+construction in `tools/validation/decoy_fdp.py`, is an order of magnitude too small to account for
+the flat component. **Whatever `b` is absorbing, it is mostly real members.**
+
+### And the component really is flat
+
+Measured directly on the member sample, in arcmin⁻²:
+
+| `r` (′) | 1.0 | 3.0 | 5.0 | 7.5 | 10.5 | 14.0 | 18.5 | 24.0 | 30.5 | 38.0 | 47.0 | 57.0 | 66.0 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Σ | 4.138 | 1.645 | 0.382 | 0.248 | 0.101 | 0.091 | 0.041 | 0.045 | 0.035 | 0.022 | 0.027 | 0.020 | 0.029 |
+
+The profile falls by two orders of magnitude out to ~18′ and then **stops falling**, sitting at
+0.02–0.035 all the way to the field edge — matching the fitted `b` = 0.02285. So this is not a
+declining corona being mis-modelled as flat; within this footprint it genuinely is flat.
+
+### What that means
+
+The field radius is 70′ = **22 pc** at the P01 distance, and the flat component is 0.23 stars pc⁻²
+across all of it. Meanwhile **43.5%** of members lie beyond the Jacobi radius and **25.2%** beyond the
+fitted `R_t`.
+
+```{important}
+On a Gaia-selected sample the King background term stops meaning *"field stars I could not remove"*
+and starts meaning *"co-moving stars my profile cannot represent"*. It is doing the same arithmetic
+job King gave it in 1962 — soaking up whatever the core-plus-truncation form leaves over — but what
+it soaks up has changed identity, and nothing in the fit announces that.
+
+A flat projected surface density over the whole footprint is what you see when the footprint sits
+*inside* a structure much larger than itself. The candidates are the cluster's own corona/tidal tails
+(Meingast et al. 2021; Bouma et al. 2021's 500 pc halo) and the surrounding OB association. Both are
+real, co-moving, and correctly admitted by astrometric membership — and both are exactly what
+Hunt et al. (2026) exclude from their mock clusters on the stated assumption that their impact is
+negligible.
+```
+
+**Practical consequence for any King fit on Gaia members:** `b` is not a nuisance parameter to be
+marginalised and forgotten. Reporting `k`, `R_c`, `R_t` while silently absorbing 56% of the sample
+into a constant is reporting the profile of a minority of the data. At minimum the fraction attributed
+to `b` should be quoted alongside the structural parameters; at best the flat term should be replaced
+by an explicit extended component and the two compared by Bayes factor.
+
+**Open, and worth a paper on its own:** nothing in the literature search so far discusses what the
+background term represents once the field has already been removed astrometrically. See
+`~/phd/open-threads.md` G6.
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
