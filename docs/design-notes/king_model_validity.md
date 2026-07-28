@@ -379,6 +379,44 @@ Their §4.2 carries a warning that bears directly on the 43% of this sample lyin
 *"An artificial 'halo'-like substructure will appear when the contamination rate rises above 20%."*
 ```
 
+
+## An independent published criterion that NGC 6383 fails
+
+Muñoz, Padmanabhan & Geha (2012, ApJ 745, 127, `2012ApJ...745..127M`) ran a simulation suite asking
+when maximum-likelihood structural parameters are recoverable at all, and stated the answer as three
+inequalities in observables:
+
+> *"to recover structural parameters within 10% or better of their true values: (1) the ratio of the
+> field of view to the half-light radius … must be greater than three, (2) the total number of stars,
+> including background objects, should be larger than 1000, and (3) the central to background stellar
+> density ratio must be higher than 20."*
+
+Applied to the 628-member, 70′ NGC 6383 sample:
+
+| criterion | value | threshold | |
+|---|---|---|---|
+| FoV / half-number radius | **2.28** | > 3 | **fails** |
+| total N | **628** | > 1000 | **marginal / fails** |
+| central-to-background density (`k/b` = 7.433 / 0.0229) | 325 | > 20 | passes |
+
+**Two of three fail**, and the failure is independent of everything else in this note — it is about
+sample geometry and size, not about completeness, priors, likelihood or substructure.
+
+```{note}
+**Caveat, because the criterion is being transplanted.** Muñoz et al. work on dwarf galaxies, and
+their `r_half` is the half-light radius of the *system*. The 30.7′ used here is the half-number
+radius of the *selected member sample*, which extends to the field edge — arguably a different
+quantity, and one inflated by the very membership selection under discussion. Transplanting a
+criterion across sub-fields is exactly the kind of move this programme has been caught making before,
+so it is flagged rather than asserted.
+
+**But it points the same way as everything else.** A member sample whose half-number radius is 44% of
+the field radius is not contained by its field, which is the same fact behind the unconstrained `R_t`,
+the 43% beyond the Jacobi radius, and Tarricq's own statement that their tidal-radius distribution is
+truncated by a 50 pc query. The criterion did not discover the problem; it puts a published number on
+it.
+```
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
