@@ -1,0 +1,48 @@
+# erotica/analysis/ — the modules whose numbers reach papers
+
+Every scientific choice made here has a family of published alternatives. **Read the row for your
+module in `~/phd/model-landscape.md` before extending it**, and update that row when you make a
+choice — naming what you rejected. An `UNSURVEYED` row is a recorded liability, not a neutral state.
+
+## Standing conventions in this package
+
+- **Priors are fixed constants, independent of the data being fitted.** `KingPriors`, `EFFPriors`,
+  `ParallaxPriors` etc. exist because deriving prior bounds from `nanstd`/`nanmin`/`nanmax` of the
+  observed data is the data used twice — the P01 referee raised exactly this ("*appear arbitrary*").
+  Half-Cauchy, scale-free, following Olivares et al. (2018). Never reintroduce a data-derived bound
+  without labelling it empirical Bayes.
+- **Likelihoods are unbinned point processes**, `Σ log λ(rᵢ) − Λ`, not Gaussians on binned densities.
+  Binning discards the Poisson structure precisely in the sparse outer bins that set `R_t`.
+- **Per-star uncertainties enter the likelihood.** Treating precomputed distances as exact
+  observations discards the parallax errors entirely.
+- **Models return the trace.** Collapsing a posterior to mean±sd on exit is how `dynamics.py` ended
+  up with uncertainty-free tidal radii.
+- **Fixed-`ν` HalfStudentT, not HalfCauchy** — see the warning in `KingPriors`; a PyTensor numba
+  `CauchyRV` bug (issue #2308, PR #2309) makes the two non-identical in sampling.
+
+## Things that are easy to get wrong here, because they already were
+
+- **King's `+ b` is not King's**, and on a Gaia membership-selected sample it is not field
+  contamination — it absorbs the corona. For NGC 6383 it claims **56% of the sample** against a
+  measured false-discovery rate of 6.1%. Do not report `k`, `R_c`, `R_t` without the fraction
+  attributed to `b`. See `docs/design-notes/king_model_validity.md`.
+- **`R_t` is prior-determined** for this cluster and unidentifiable even inside the Jacobi radius.
+  Any `R_t` quoted must name its prior.
+- **The EFF `γ` estimator is biased high at small `N`** — `+0.075 ± 0.012` at `N = 628`, decaying as
+  roughly `N^-0.6`. Verified not to be a sampler artefact.
+- **Circular symmetry is the exception**, not the norm — Tarricq+2022 find median axis ratio 0.71 —
+  and every profile here assumes it.
+- **`synthetic.py` is for validation, not science.** Its `noise` parameter defaults to 0 because the
+  Goodwin & Whitworth per-level jitter manufactures a ×1.8 central cusp; read its docstring before
+  raising it.
+
+## Adding a profile or model
+
+The point-process machinery takes any `Σ(r)` that has a **closed-form radial integral** — that
+integral is evaluated at every leapfrog step, so quadrature inside the PyTensor graph is not viable.
+Follow `king_expected_count` / `eff_expected_count`: derive the closed form, verify it against
+`scipy.integrate.quad` to ~1e-9 across several decades of parameter space, and add it to
+`compare_radial_profiles` so it is scored by Bayes factor rather than asserted.
+
+Design decisions go in `docs/design-notes/decisions.md`, **append-only**, recording the number that
+was wrong and why — not only the fix.

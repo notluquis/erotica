@@ -25,6 +25,15 @@ Keep those current; do **not** spawn TODO files here.
   a recorded liability, not a neutral state; when you make a modelling choice, update the row and name
   what you rejected.
 
+### Nested guidance — these load automatically when you work in the directory
+
+| file | covers |
+|---|---|
+| `erotica/analysis/CLAUDE.md` | prior/likelihood conventions, the traps that already bit (King's `b`, `R_t`, the `γ` bias), how to add a profile |
+| `tests/CLAUDE.md` | what an oracle is, the four ways tests here failed to bite, mutation before claiming a test works |
+| `tools/validation/CLAUDE.md` | one-off experiments become paper numbers — docstring, controls, JSON sidecar, live queries |
+| `docs/design-notes/CLAUDE.md` | append-only about mistakes; citation, verified-vs-inferred, the falsifier |
+
 Design decisions are logged **append-only** in `docs/design-notes/decisions.md` — record the number
 that was wrong and why, not only the fix. A struck-through row in a results table is worth more than
 the row that replaced it.
