@@ -14,15 +14,20 @@ be applied rather than assumed.
 READ THIS BEFORE TRUSTING A FLAT ANSWER
 ---------------------------------------
 ``mode='hpx7'`` **cannot answer this question**. Its healpix pixels are ~27.5
-arcmin across; NGC 6383's core radius is ~1.38 arcmin, so the core is 0.25% of a
+arcmin across; NGC 6383's core radius is ~1.38 arcmin, so the core is 0.792% of a
 single pixel and the whole 70 arcmin field spans 2.55 pixels. Radial structure on
 cluster scales is below the map's resolution *by construction*, so a flat S̄(r)
 from hpx7 means **"invisible to this map"**, not "absent". Running it that way
 first, and only then checking the pixel size, is how one publishes a
 completeness correction that corrects nothing.
 
-``mode='patch'`` builds a local map at healpix order 6-12 (down to ~0.86 arcmin),
-which does resolve the core. It requires a live query to the ESA Gaia archive.
+``mode='multi'`` is precomputed and archive-free and reaches order 10 (~3.44 arcmin).
+Run on NGC 6383 it gives S(r) = 0.99381 in the core rising to 0.99818 outside --
+a core suppression of 0.258%, which against this repo's own synthetic benchmark
+(a neglected gradient inflates R_c by 50%) moves nothing. **The correction is
+not needed for this cluster.** ``mode='patch'`` (order 6-12, down to ~0.86 arcmin)
+resolves inside the core and needs a live ESA Gaia archive query; worth running,
+but the expected payoff is now known to be small.
 
 WHAT THE hpx7 PASS DID ESTABLISH (resolution-independent)
 ---------------------------------------------------------

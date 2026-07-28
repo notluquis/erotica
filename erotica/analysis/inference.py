@@ -52,9 +52,13 @@ class ParallaxPriors:
     mu_upper: float = 10.0
     sigma_scale: float = 0.05
     #: Prior width (mas) on the **residual** Gaia parallax zero-point, shared by all
-    #: members. 0.0103 mas is the systematic floor Vasiliev & Baumgardt (2021,
-    #: `2021MNRAS.505.5978V`) derive for individual stars or compact clusters from an
-    #: angular parallax covariance of 106 uas^2. Riess et al. measure a residual
+    #: members. 0.0103 mas is the systematic floor of Maiz Apellaniz, Pantaleoni
+    #: Gonzalez & Barba (2021, A&A 649, A13, `2021A&A...649A..13M`), whose abstract
+    #: states: "The angular covariance at zero separation is estimated to be
+    #: 106 microarcsec^2, yielding a minimum (systematic) uncertainty for EDR3
+    #: parallaxes of 10.3 microarcsec for individual stars or compact stellar
+    #: clusters." (An earlier version of this comment credited Vasiliev &
+    #: Baumgardt 2021 for that number; that was wrong.) Riess et al. measure a residual
     #: zp = -3 +/- 4 uas in open clusters. Lindegren et al. (2021,
     #: `2021A&A...649A...4L`) say of their own correction that it is "not perfect"
     #: and its use is "at the researcher's discretion" -- so treating the corrected

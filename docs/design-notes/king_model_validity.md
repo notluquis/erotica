@@ -217,7 +217,7 @@ The correction that matters for NGC 6383 is not the survey's. It is the pipeline
 
 ```{warning}
 **`mode='hpx7'` cannot answer the radial question at all, and its flat answer is not evidence.**
-Its healpix pixels are **27.5′** across; `R_c` is **1.38′**, so the core is 0.25% of a single pixel
+Its healpix pixels are **27.5′** across; `R_c` is **1.38′**, so the core is **0.792%** of a single pixel
 and the whole 70′ field spans 2.55 pixels. Radial structure at cluster scales is below the map's
 resolution *by construction*. A flat `S̄(r)` from hpx7 means **"invisible to this map"**, not
 "absent" — and crowding-driven incompleteness, which acts precisely in the core, is exactly what it
@@ -227,11 +227,25 @@ The first pass here did run hpx7 and did return a flat 0.998. That number is rec
 diagnostic only (`ngc6383_selection_function_hpx7.npz`) and must not be used as a correction.
 ```
 
-**Blocked:** `mode='patch'` builds a local map at healpix order 6–12 (~0.86′), which does resolve the
-core. It needs a live ESA Gaia archive query, and the archive was in a maintenance window on
-2026-07-27 (HTTP 500, then a failed SSL handshake). Re-run when it is up; the script is written and
-its output is already aligned to the 256-node quadrature grid the weighted normalisation uses, so it
-can be passed straight through as `completeness=`.
+```{admonition} Resolved 2026-07-27 by an independent audit — the correction is negligible here
+:class: note
+`mode='multi'` is **precomputed and archive-free**, and reaches healpix order 10 (**3.44′**), which
+does resolve radial structure across the field. Running it on NGC 6383 gives a **real but negligible**
+gradient: `S̄(r)` rises from **0.99381** in the core to **0.99818** in the outskirts — a core
+suppression of **0.258%**.
+
+Against the note's own synthetic benchmark, where ignoring a completeness gradient inflates `R_c` by
+50%, a 0.26% gradient moves nothing. **For this cluster, the Gaia DR3 selection-function correction
+to the radial profile is not needed.** `mode='patch'` (order 12, 0.86′) would still resolve inside
+the core and remains worth running when the ESA archive is up, but the expected payoff is now small.
+
+This does not weaken the corollary above — it strengthens it. Gaia's completeness is flat *and* ~1
+for this sample, so the selection acting on it really is the pipeline's own.
+```
+
+**Still to do:** `mode='patch'` (order 12, ~0.86′) needs a live ESA Gaia archive query; the archive
+was in a maintenance window on 2026-07-27 (HTTP 500, then a failed SSL handshake). The script is
+written and its output is aligned to the 256-node quadrature grid the weighted normalisation uses.
 
 ## What follows
 

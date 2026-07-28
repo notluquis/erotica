@@ -174,8 +174,18 @@ total 59% → 62%. Suite 363 → **386**.
 perfect"*, and its use is *"at the researcher's discretion"* (Lindegren et al. 2021,
 `2021A&A...649A...4L`). The residual is **spatially correlated on the scale of a cluster**, so every
 member carries essentially the *same* leftover offset — which no amount of averaging removes.
-Vasiliev & Baumgardt (2021, `2021MNRAS.505.5978V`) derive an angular parallax covariance of
-106 µas², giving a systematic floor of **10.3 µas** for individual stars or a compact cluster.
+Maíz Apellániz, Pantaleoni González & Barbá (2021, A&A 649, A13, `2021A&A...649A..13M`) estimate
+the angular covariance at zero separation at 106 µas², *"yielding a minimum (systematic) uncertainty
+for EDR3 parallaxes of **10.3 µas** for individual stars or compact stellar clusters"* — quoted from
+their abstract.
+
+```{warning}
+An earlier version of this entry attributed that number to Vasiliev & Baumgardt (2021,
+`2021MNRAS.505.5978V`). **That was wrong.** Both bibcodes appear in `~/phd/methodology.md` PART J
+and the figure was attached to the wrong one, then propagated into a shipped docstring. Caught by
+an independent audit, not by review. The lesson is the one already in this log: a number taken from
+a summary must be round-tripped to the source abstract before it enters code.
+```
 Riess et al. measure a residual `zp = −3 ± 4 µas` in open clusters.
 
 **Fix.** `fit_parallax_model(zero_point=True)` adds one nuisance offset shared by every member,
