@@ -585,3 +585,38 @@ def test_bayes_factor_identifies_the_generating_model():
 def test_compare_rejects_unknown_models():
     with pytest.raises(ValueError, match="unknown models"):
         compare_radial_profiles(np.linspace(1, 50, 100), field_radius=FIELD, models=("king", "nfw"))
+
+
+@requires_bayes_extra
+def test_eff_accepts_a_completeness_and_reduces_to_the_plain_fit_when_flat():
+    """EFF must take the same S(r) hook as King -- it did not, and the pipeline's
+    own selection (~35x Gaia's for NGC 6383) could not be applied to it at all.
+
+    Oracle: a FLAT completeness must leave every shape parameter unchanged. That
+    is exact, not approximate: Sigma is homogeneous of degree 1 in (k, b), so a
+    constant S is absorbed by k -> S*k, b -> S*b and cannot bias a shape.
+    """
+    from erotica.analysis.inference import SamplingConfig
+
+    radii = _sample_profile(51, lambda r: eff_surface_density(r, **TRUE_EFF))
+    cfg = SamplingConfig(draws=800, tune=1000, chains=2, target_accept=0.95,
+                         random_seed=9, progressbar=False)
+    plain = eff_unbinned(radii, field_radius=FIELD, sampling=cfg)
+    flat = eff_unbinned(radii, field_radius=FIELD, completeness=np.full(256, 0.6),
+                        sampling=cfg)
+
+    assert plain["completeness_corrected"] is False
+    assert flat["completeness_corrected"] is True
+    # shape parameters unchanged...
+    assert float(flat["gamma_median"]) == pytest.approx(float(plain["gamma_median"]), rel=0.05)
+    assert float(flat["a_median"].value) == pytest.approx(float(plain["a_median"].value), rel=0.08)
+    # ...while the amplitude absorbs the constant, k -> k / S
+    assert float(flat["k_median"]) > 1.3 * float(plain["k_median"])
+
+
+def test_eff_completeness_validation():
+    with pytest.raises(ValueError, match="within"):
+        eff_unbinned(np.linspace(1, 50, 40), field_radius=FIELD,
+                     completeness=np.full(256, 1.5))
+    with pytest.raises(ValueError, match="shape"):
+        eff_unbinned(np.linspace(1, 50, 40), field_radius=FIELD, completeness=np.ones(9))

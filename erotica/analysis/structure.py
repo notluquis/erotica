@@ -420,7 +420,7 @@ def _king_model(pm, r, field_radius, priors, tidal_prior, completeness):
     return model
 
 
-def _eff_model(pm, r, field_radius, priors, gamma):
+def _eff_model(pm, r, field_radius, priors, gamma, completeness=None):
     with pm.Model() as model:
         a = pm.HalfStudentT("a", nu=1, sigma=priors.a_scale)
         k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
@@ -433,7 +433,25 @@ def _eff_model(pm, r, field_radius, priors, gamma):
             g = pm.Deterministic("gamma", pm.math.constant(float(gamma)))
         surface = k * (1.0 + (r / a) ** 2) ** (-g / 2.0) + b
         log_intensity = pm.math.log(2.0 * np.pi * r * surface)
-        expected = eff_expected_count(k, b, a, g, field_radius, xp=pm.math)
+        if completeness is None:
+            expected = eff_expected_count(k, b, a, g, field_radius, xp=pm.math)
+        else:
+            # Same Gauss-Legendre rule as king_expected_count_weighted, so an
+            # S(r) built for one profile can be passed straight to the other.
+            x, w = np.polynomial.legendre.leggauss(256)
+            r_nodes = 0.5 * field_radius * (x + 1.0)
+            w_nodes = 0.5 * field_radius * w
+            s_nodes = np.asarray(
+                completeness(r_nodes) if callable(completeness) else completeness, dtype=float
+            )
+            if s_nodes.shape != r_nodes.shape:
+                raise ValueError(
+                    f"completeness has shape {s_nodes.shape}, expected {r_nodes.shape}"
+                )
+            if np.any(~np.isfinite(s_nodes)) or np.any(s_nodes < 0) or np.any(s_nodes > 1):
+                raise ValueError("completeness must be finite and within [0, 1].")
+            sig = k * (1.0 + (r_nodes / a) ** 2) ** (-g / 2.0) + b
+            expected = pm.math.sum(w_nodes * 2.0 * np.pi * r_nodes * sig * s_nodes)
         pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
     return model
 
@@ -777,6 +795,7 @@ def eff_unbinned(
     radii,
     *,
     field_radius,
+    completeness=None,
     gamma=None,
     priors: EFFPriors | None = None,
     sampling=None,
@@ -792,6 +811,11 @@ def eff_unbinned(
 
     Parameters
     ----------
+    completeness : callable or array-like, optional
+        Radial detection probability, exactly as in :func:`king_unbinned`. Note
+        that the selection acting on a sample is not only the survey's: the
+        pipeline's own cuts induce their own :math:`\bar{S}(r)`, and for
+        NGC 6383 that one is ~35x larger than Gaia's (see the decision log).
     gamma : float, optional
         Fix the slope instead of fitting it. ``gamma=4`` is the **Plummer**
         profile, so ``eff_unbinned(..., gamma=4.0)`` fits Plummer.
@@ -817,13 +841,14 @@ def eff_unbinned(
     priors = priors or EFFPriors()
     sampling = sampling or SamplingConfig(draws=2_000, tune=1_000, progressbar=progressbar)
 
-    model = _eff_model(pm, r, field_radius, priors, gamma)
+    model = _eff_model(pm, r, field_radius, priors, gamma, completeness)
 
     trace = _sample(pm, model, sampling)
     results = {
         "field_radius": field_radius * u.arcmin,
         "n_stars": int(r.size),
         "model": "plummer" if gamma == 4.0 else "eff",
+        "completeness_corrected": completeness is not None,
         "gamma_fixed": gamma,
     }
     for name, unit in (("k", None), ("b", None), ("a", u.arcmin), ("gamma", None)):
@@ -904,8 +929,8 @@ def compare_radial_profiles(
 
     builders = {
         "king": lambda: _king_model(pm, r, field_radius, king_priors, tidal_prior, completeness),
-        "eff": lambda: _eff_model(pm, r, field_radius, eff_priors, None),
-        "plummer": lambda: _eff_model(pm, r, field_radius, eff_priors, 4.0),
+        "eff": lambda: _eff_model(pm, r, field_radius, eff_priors, None, completeness),
+        "plummer": lambda: _eff_model(pm, r, field_radius, eff_priors, 4.0, completeness),
     }
     unknown = set(models) - set(builders)
     if unknown:

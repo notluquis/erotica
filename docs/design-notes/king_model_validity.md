@@ -252,6 +252,71 @@ for this sample, so the selection acting on it really is the pipeline's own.
 was in a maintenance window on 2026-07-27 (HTTP 500, then a failed SSL handshake). The script is
 written and its output is aligned to the 256-node quadrature grid the weighted normalisation uses.
 
+
+## The selection that actually acts on this sample is the pipeline's, not the survey's
+
+A causal reading of the pipeline — written as a DAG rather than as a likelihood — makes a prediction
+the likelihood formalism does not naturally surface, and the prediction is measurable.
+
+**The chain.** The cone query cuts on *parallax*, so nominally it is not a radial cut. But the cut
+bites through `σ_ϖ`, which grows with `G`, and `G` correlates with radius. Measured on the 627
+members: **Spearman ρ(G, r) = +0.150, p = 1.6×10⁻⁴**, with the faintest `G` quartile sitting at a mean
+radius of 39.1′ against ~29′ for the others. **A non-radial cut inherits a radial gradient.**
+
+**The size of it.** Reconstructing the pre-cut radial distribution by Horvitz–Thompson weighting
+(`w_i = 1/ret(G_i)`; averaging retention over survivors would be circular, since survivors are the
+cut's output):
+
+| `r` bin | N observed | N reconstructed | `S_pipe` |
+|---|---|---|---|
+| 0.10–3.75′ | 105 | 175.0 | **0.600** |
+| 3.75–13.76′ | 104 | 184.8 | 0.563 |
+| 13.76–30.63′ | 104 | 205.9 | 0.505 |
+| 30.63–47.08′ | 105 | 229.3 | 0.458 |
+| 47.08–61.43′ | 104 | 240.3 | **0.433** |
+| 61.43–69.99′ | 105 | 221.0 | 0.475 |
+
+**Core → 47–61′: `S_pipe` falls 27.9%. Over the same span `S_Gaia` falls 0.80%. The pipeline's own
+selection is ~35× the survey's.** The 40′ sample gives 28.5%, agreeing to ~1 pp.
+
+```{admonition} The misallocation this exposes
+:class: danger
+`king_unbinned` has a validated `completeness=` hook, and everything written about it in this
+programme wired it to **the survey selection function — the 1.16% term.** Nothing was wired to the
+pipeline's own cut, the 27.9% one. A correctly specified likelihood, fitted with the wrong `S`.
+
+Nothing in the likelihood formalism flags that a cut on parallax is a cut on radius. The DAG does,
+through `C ← ϖ_meas ← σ_ϖ(G) ← G ⇠ R`.
+```
+
+**And yet the fit barely moves.** Refitting with `completeness=S_pipe`:
+
+| fit | `R_c` | `R_t` |
+|---|---|---|
+| naive | 1.326 ± 0.205′ | 81.4 ± 1532′ |
+| `S_pipe` corrected | 1.345 ± 0.213′ | 81.2 ± 774′ |
+| shift | **+1.4% = +0.09σ** | −0.3% |
+
+The **direction is the one the DAG predicts** (outskirt suppression biases `R_c` low, so correcting
+raises it), and the **magnitude is what the analytic result predicts**: to first order
+`δθ = ε I⁻¹v`, the `λ₀`-weighted regression of the completeness gradient onto the score functions, so
+only the component of `S(r)` *degenerate with a parameter direction* biases anything. A smooth
+outward decline is nearly orthogonal to the core curvature that sets `R_c`.
+
+**A 35× larger selection gradient produces a 0.09σ parameter shift. Gradient magnitude is not bias
+magnitude** — which is the whole reason the analytic criterion is worth having rather than a
+rule of thumb about how big `S` looks.
+
+```{note}
+One selection remains **not correctable**. HDBSCAN membership runs in proper-motion space, and for an
+expanding cluster the outer stars carry larger outward proper motions, so they sit further from the
+PM centroid and are preferentially lost. That path needs a model for the internal velocity field —
+which, for a young expanding cluster, **is the quantity one is trying to measure.** The survey
+selection function cannot fix it: `gaiaunlimited` models catalogue detection, not pipeline retention.
+That is a genuine identifiability statement, and it is the one the likelihood framing does not
+produce on its own.
+```
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
