@@ -12,6 +12,23 @@ Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 `~/phd/erotica-package.md` (package backlog), `~/phd/papers/PXX.md` (dossiers).
 Keep those current; do **not** spawn TODO files here.
 
+## Before writing scientific code here, read these two
+
+- **`~/phd/methodology.md` PART K — the execution craft.** The failure modes that have actually
+  produced wrong numbers in this repo, each with its case: generators that produce something other
+  than their label, experiments degenerate with their own control, tests that cannot fail, and the
+  verification order (generator → estimator → interpretation). **Every generator needs a
+  parameter-free special case with a known closed form, and that case must be a test.** Re-apply each
+  bug you fix and confirm the suite goes red — a test you have not seen fail is a hypothesis.
+- **`~/phd/model-landscape.md`** — per-module map of the published model alternatives, marked
+  SURVEYED / PARTIAL / UNSURVEYED. Read the row for the module you are touching. An UNSURVEYED row is
+  a recorded liability, not a neutral state; when you make a modelling choice, update the row and name
+  what you rejected.
+
+Design decisions are logged **append-only** in `docs/design-notes/decisions.md` — record the number
+that was wrong and why, not only the fix. A struck-through row in a results table is worth more than
+the row that replaced it.
+
 ## Landmines
 - **~30 files hardcode `/Users/notluquis/erotica/...`** (paper figure regen). They
   were rewritten during the 2026-07-21 dir move; if this dir moves again, rewrite
