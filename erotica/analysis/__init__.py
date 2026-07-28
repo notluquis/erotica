@@ -81,6 +81,7 @@ from .provenance import (
     summarize_trace,
     write_metadata,
 )
+from .synthetic import fractal_cluster, radial_profile_of
 from .structure import (
     KingPriors,
     EFFPriors,
@@ -174,6 +175,7 @@ __all__ = [
     "extract_distance_samples",
     "file_checksum",
     "fit_parallax_model",
+    "fractal_cluster",
     "git_provenance",
     "graph_center_determination",
     "graph_king",
@@ -209,6 +211,7 @@ __all__ = [
     "proper_motion_2d_gaussian",
     "quantity_values",
     "radial_density_profile",
+    "radial_profile_of",
     "radial_velocity_model",
     "radial_velocity_values",
     "read_isochrones_with_metadata",

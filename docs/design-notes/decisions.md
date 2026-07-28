@@ -931,6 +931,57 @@ revert unstaged work into a `.cache/pre-commit/` patch. Until the hook is fixed,
 `git commit --no-verify`. **Consequence: no hook runs on any commit, including nbstripout itself.**
 Recorded so nobody assumes hooks are protecting them.
 
+### Synthetic validation data is fractal, not smooth — and the generator had two bugs worth recording
+
+Validating a radial-profile fit on data drawn from a smooth King or EFF profile begs the question:
+it assumes exactly the smoothness the fit assumes. `analysis/synthetic.py` therefore generates
+substructure by the Goodwin & Whitworth (2004, `2004A&A...413..929G`) box-fractal construction — the
+same algorithm McLuster uses (Küpper et al. 2011, `2011MNRAS.417.2300K`) — so the test data comes
+from a citable standard method rather than an ad-hoc sprinkling of Gaussian clumps.
+
+Two defects were found by writing the tests, **after** the generator had already been used to
+produce Q values:
+
+1. **It returned a cube, not a sphere.** The construction fills a cube of half-width 0.5, whose
+   corner is at 0.87; pruning at radius 1.0 removed nothing. Every radial statistic had a
+   corner-shaped outer edge. Fixed by pruning to the inscribed sphere and rescaling.
+2. **The prescription's own per-level jitter manufactures a central cusp.** The jitter displaces
+   each block *coherently with all its descendants*, and blocks that move inward pile up where they
+   meet at the origin. Measured on the `D = 3` case, where the answer must be a uniform ball, the
+   innermost shells come out over-dense by 1.35× at `noise = 0.10` and **1.80×** at `0.20`. The
+   default is now `noise = 0.0`; the cubic lattice it existed to break is erased exactly, and without
+   bias, by spreading each star inside its own final cell.
+
+The oracles are external and parameter-free: `D = 3` must reproduce a uniform ball (checked as
+Poisson pulls against the `r³` law, not a flat percentage — the innermost bin holds ~20 stars, where
+a 20% tolerance is 0.9σ and would fail on shot noise), and Q must rise monotonically with `D`,
+landing at Cartwright & Whitworth's ~0.8 for a uniform sphere. Both bugs are pinned by tests that
+were verified to fail when the bug is re-applied.
+
+**The general lesson, which is the same one the fixture-regime episode taught:** the first use of a
+new generator produced numbers that were quietly wrong in a way no amount of staring at the output
+would reveal. Only an external closed-form oracle caught it.
+
+### Post-Gaia, "the cluster fails criterion X" is usually the wrong sentence
+
+`king_model_validity.md` previously scored NGC 6383 as failing **two of three** Muñoz, Padmanabhan &
+Geha (2012) recoverability criteria. That framing imported a pre-Gaia ontology in which a cluster is
+a bounded King sphere. The corrected reading is *one fails, one is ill-posed, one passes*:
+
+* `FoV / r_half > 3` is **ill-posed**, not failed. `r_half` here is the half-number radius of the
+  *selected sample*, which runs to the edge of the query — so it measures where the footprint
+  stopped, not where the cluster stopped, and enlarging the query moves it. For a system with a
+  corona (Meingast et al. 2021; Bouma et al. 2021's 500 pc halo around NGC 2516) there is no field of
+  view large enough, because there is no outer edge for `r_half` to converge to.
+* `N > 1000` and `k/b > 20` are **not independent** on an astrometrically pre-filtered sample.
+  Filtering only removes stars, so `N` falls (hurts the first) and `b` falls, so `k/b` rises (helps
+  the second). Both directions are monotone and guaranteed. Reporting them as two verdicts
+  double-counts one fact.
+
+Only `N = 628 < 1000` survives as a clean failure. It still says the footprint does not contain the
+sample — but that is a statement about the *observation*, not a defect of the cluster, and post-Gaia
+it is the usual case rather than the exception.
+
 ---
 
 ## Known-and-accepted, with the reason

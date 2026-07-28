@@ -380,7 +380,7 @@ Their §4.2 carries a warning that bears directly on the 43% of this sample lyin
 ```
 
 
-## An independent published criterion that NGC 6383 fails
+## An independent published criterion, and what it can and cannot say here
 
 Muñoz, Padmanabhan & Geha (2012, ApJ 745, 127, `2012ApJ...745..127M`) ran a simulation suite asking
 when maximum-likelihood structural parameters are recoverable at all, and stated the answer as three
@@ -399,22 +399,58 @@ Applied to the 628-member, 70′ NGC 6383 sample:
 | total N | **628** | > 1000 | **marginal / fails** |
 | central-to-background density (`k/b` = 7.433 / 0.0229) | 325 | > 20 | passes |
 
-**Two of three fail**, and the failure is independent of everything else in this note — it is about
-sample geometry and size, not about completeness, priors, likelihood or substructure.
+The honest score is **not "two of three fail"**. It is *one fails, one is ill-posed, one passes* — and
+the two that can be evaluated cannot be read independently. Both corrections make the criterion harder
+to attack, not softer.
+
+### (1) is ill-posed for this system, not failed
+
+`FoV / r_half > 3` presupposes a system with a boundary, so that `r_half` is a property of the
+*object*. For NGC 6383 the 30.7′ is the half-number radius of the *selected sample*, and that sample
+runs to the edge of the query. `r_half` is therefore measuring **where the footprint stopped**, not
+where the cluster stopped: enlarge the query and it moves. A ratio whose denominator is set by its own
+numerator does not have a value to compare against 3.
+
+This is not a technicality about NGC 6383, it is the Gaia-era result. The bounded King sphere that
+Muñoz's criterion assumes is not what surveys find when they look outside the classical radius:
+Meingast et al. (2021) resolve coronae extending far past the tidal radius, Bouma et al. (2021)
+trace a **500 pc halo** around NGC 2516, Yeh et al. (2019) describe Ruprecht 147 as a dissolving
+cluster, and Kuhn et al. (2019) find ~75% of young clusters expanding. For an object with a corona
+there is no field of view large enough to satisfy criterion (1), because there is no outer edge for
+`r_half` to converge to. **Reporting this as "fails" imports a pre-Gaia ontology.** It should be
+reported as inapplicable, which is a stronger and more defensible statement.
+
+### (2) and (3) are coupled by the membership selection, in opposite directions
+
+Muñoz et al. calibrate on a *photometric* field where cluster and background are separated by the fit
+itself. Here they are separated beforehand, by proper motion and parallax — and that pre-filtering
+moves the two remaining criteria in opposite directions **by construction**:
+
+* filtering only ever removes stars, so `N` falls → criterion (2) moves toward *failing*;
+* the stars it removes are preferentially background, so `b` falls → `k/b` rises → criterion (3) moves
+  toward *passing*.
+
+Both directions are monotone and guaranteed, no measurement needed. So the sample's comfortable
+`k/b = 325` and its short `N = 628` are **the same fact seen twice**, not two independent verdicts,
+and "2 of 3" double-counts. The pair is only independent on the unfiltered field Muñoz assumes, and
+this analysis does not have one: the ASteCA input `NGC_6383_dr3_all.csv` holds just 194 sources inside
+70′, fewer than the member list, so it is a pre-cut subset and cannot serve as the unfiltered
+comparison.
+
+### What survives
+
+Criterion (2) is the one that survives intact, and it fails: `N = 628 < 1000`. Note this **is** the
+"total including background objects" the paper asks for — the point-process fit models the observed
+sample as `λ = k·King(r) + b`, so the 352 ± 30 stars implied by `b` over the 70′ field are already
+inside the 628, not additional to them.
 
 ```{note}
-**Caveat, because the criterion is being transplanted.** Muñoz et al. work on dwarf galaxies, and
-their `r_half` is the half-light radius of the *system*. The 30.7′ used here is the half-number
-radius of the *selected member sample*, which extends to the field edge — arguably a different
-quantity, and one inflated by the very membership selection under discussion. Transplanting a
-criterion across sub-fields is exactly the kind of move this programme has been caught making before,
-so it is flagged rather than asserted.
-
-**But it points the same way as everything else.** A member sample whose half-number radius is 44% of
-the field radius is not contained by its field, which is the same fact behind the unconstrained `R_t`,
-the 43% beyond the Jacobi radius, and Tarricq's own statement that their tidal-radius distribution is
-truncated by a 50 pc query. The criterion did not discover the problem; it puts a published number on
-it.
+That single surviving failure still points the same way as everything else in this note — the
+unconstrained `R_t`, the 43% of members beyond the Jacobi radius, and Tarricq's own statement that
+their tidal-radius distribution is truncated by a 50 pc query. The criterion did not discover the
+problem; it puts one published number on it. What it does **not** license is the conclusion that
+NGC 6383 is a defective cluster. It is a normally-sized open cluster observed over a footprint that
+does not contain it — which, post-Gaia, is the usual case rather than the exception.
 ```
 
 ## What follows
