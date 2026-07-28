@@ -513,9 +513,109 @@ into a constant is reporting the profile of a minority of the data. At minimum t
 to `b` should be quoted alongside the structural parameters; at best the flat term should be replaced
 by an explicit extended component and the two compared by Bayes factor.
 
-**Open, and worth a paper on its own:** nothing in the literature search so far discusses what the
-background term represents once the field has already been removed astrometrically. See
-`~/phd/open-threads.md` G6.
+### Three corrections from reading the primary sources
+
+**1. The `+ b` is not King's.** King (1962) Eq. (14) is the bracket squared and nothing more. His
+background was handled *outside* the formula — subtracted from the counts where a wide-field plate
+reached past the cluster (M15), and where it did not (NGC 5053 on the 200-inch), *"chosen so as to
+make the outermost points satisfy the empirical law of Eq. (14), with the same value of `r_t`"*. He
+even warns against the misreading the extra term invites: *"the second term in brackets in Eq. (14)
+could be replaced by a single constant; it is written in this more complicated form in order to show
+the role of `r_t`"* — the constant already inside the bracket is the **truncation** constant.
+
+The additive form is **folk practice with no primary citation**. Seleznev (2016) introduces it as
+*"in order to take into account stellar background, this formula is supplemented by stellar
+background density `F_b` as a constant addition"* and cites nobody.
+
+**2. King identified the degeneracy in 1962**, criticising Wallenquist for having *"underestimated
+the radii of the clusters and consequently chosen incorrect values for the background densities. In
+M37, for instance, Wallenquist chooses a limiting radius of 17′, a distance at which the data …
+indicate that the density is 15 or 20% above that of the true background."*
+
+**3. "King 1964" does not exist.** Paper II is King (1965, AJ 70, 376), on steady-state *velocity*
+distributions — not a density profile. Paper III is King (1966, AJ 71, 64), the lowered-isothermal
+dynamical model with concentration `W_0`, which King says *"supersedes the purely empirical curves"*
+of 1962 while agreeing closely with them for `W_0 < 7`. `ocelot`'s `king64.py` contains, in full,
+`class King64(BaseClusterDistributionModel): pass` — an unimplemented placeholder with no docstring
+and no ADS link, unlike its `king62.py`. Note also that `ocelot`'s King62 implements Eq. (14) **with
+no background term at all**, i.e. faithfully to King.
+
+### The mechanism has been published — qualitatively — and nobody followed it up
+
+```{admonition} Seleznev (2016, MNRAS 456, 3757) says it outright
+:class: important
+> *"The reason is that the King model does not have an extended corona, and the cluster corona … **is
+> perceived by the approximation algorithm as part of the stellar background**."*
+
+And gives the arithmetic: *"Stellar background density `F_b^King`, obtained in the limits of the King
+model, is usually larger than `F_b^comb` obtained in the limits of the combined model (the latter one
+is usually very close to the visual estimate of this value)."* His fix is a King core **plus a uniform
+sphere** for the corona, from Danilov & Putkov (2012) — and the projection of a uniform sphere,
+`ΔF(r) = 2 R₂ δ_f √(1 − (r/R₂)²)`, is **nearly flat over the inner region**. That near-degeneracy with
+a constant is precisely the mechanism.
+
+Caveat: Seleznev's sample is 2MASS star counts, **not** membership-selected, so what he sees absorbed
+is corona on top of a real field. The membership-cleaned case measured above is one step further.
+```
+
+Corroborating, from three independent directions:
+
+* **Nilakshi et al. (2002, A&A 383, 153)**, 38 rich open clusters: the corona *"contains ~75% of the
+  cluster members due to its larger area in comparison to the core region."* **The 56% measured here
+  is squarely in that range** — it is what a corona fraction is supposed to look like.
+* **Rui, Hosek, Lu et al. (2019, ApJ 877, 37)** fit King + `b` to an HST **membership-selected**
+  Quintuplet sample, calling `b` *"a background term to capture remaining contaminants"*, and then
+  report the compensation: *"our `r_t` posterior distribution runs up against the upper edge of the
+  prior, forcing a larger best-fit `r_c` (and field contamination) value to compensate."* Their `b` is
+  **4× larger in the King fit than in the EFF fit on the same data** — the same direction as
+  Seleznev's `F_b^King > F_b^comb`. They do not comment on the comparison.
+* **Pera, Perren, Navone & Vázquez (2021, BAAA 62, 119)** ran the cleaned-versus-uncleaned experiment
+  directly: *"We repeated this process two times: first using the subset of probable members estimated
+  with pyUPMASK, and then using all the stars in the frame … **We found the using the subset of most
+  probable members impacts negatively on the results.** … The reason behind this appears to be the
+  strong dependence of the fit on the field density parameter … **When using the sample cleaned by
+  pyUPMASK this value is zero** … This is a surprising result that we will investigate further in a
+  future more in depth analysis."* That follow-up does not appear to exist. They **reverted to fitting
+  the uncleaned frame.** Pera et al. (2024) then states the design assumption outright: *"in the
+  ASteCA method, King's profile models both field stars and cluster members."*
+
+ASteCA's own source documents the degeneracy where no paper does — `packages/structure/king_profile.py`:
+*"the value given to the field density has a **very large** influence on the final (rc, rt) values"*,
+with the free-background variant abandoned because *"emcee tends to (rc→0, rt→inf)"*.
+
+### What is actually unclaimed
+
+The concept is Seleznev's. What is **not** in the literature:
+
+1. **A quantitative test on a membership-selected sample against an independently measured
+   contamination rate.** The 56%-versus-6.1% comparison above needs a false-discovery estimate that
+   does not come from the profile fit itself; the target–decoy construction supplies one.
+2. **A reformulated likelihood for the `b → 0` regime that decontamination creates** — which is
+   exactly why Pera's cleaned fit degraded, and which they deferred and never returned to.
+3. **The consequence for the radius estimator.** A large fraction of single-cluster papers use King's
+   2-parameter Eq. (13), which never truncates, and define the radius *outside* the fit from the
+   background's **uncertainty** via Bukowiecki et al. (2011), `r_lim = r_c √(f₀/(3σ_bg) − 1)`. For
+   those papers, cleaning the sample first silently **destroys the radius estimator**, because there
+   is no `σ_bg` left. Nobody appears to have said this.
+
+Worth noting how the two most careful Gaia-era groups sidestep the problem entirely rather than solve
+it: Hunt & Reffert abandon profile fitting and define `r_t` as the radius of maximum field contrast;
+Olivares et al. make the field a **normalised mixture component with per-star weights** instead of an
+additive pedestal, and warn in their Appendix A that *"the inference of the parameters in the King's
+profile can be biased even after truncation has been accounted for … this effect can be generalised to
+any maximum-likelihood estimator."*
+
+### One more model this points at
+
+**Wilson (1975, AJ 80, 175)** is the published alternative that keeps a finite truncation but is
+spatially more extended than King. McLaughlin & van der Marel (2005, ApJS 161, 304) fit all three
+families to a large cluster sample and find *"in the majority of cases that the Wilson models — which
+are spatially more extended than King models but still include a finite, 'tidal' cutoff in density —
+fit clusters of any age, in any galaxy, as well as or better than King models"*, adding that *"the
+extended halos known to characterize many Magellanic Cloud clusters may be examples of the **generic
+envelope structure** of self-gravitating star clusters, not just transient features associated
+strictly with young age."* That belongs in the `compare_radial_profiles` Bayes-factor comparison
+alongside King, EFF and Plummer. See `~/phd/open-threads.md` G6, G7.
 
 ## What follows
 

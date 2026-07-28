@@ -369,7 +369,37 @@ def radial_density_profile(data, center, *, method="equip", width=None, **kwargs
 
 
 def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=0.0, amplitude=1.0):
-    """Projected King profile shape."""
+    r"""Projected King profile shape, plus an additive ``background``.
+
+    .. math:: \Sigma(r) = k\left[\frac{1}{\sqrt{1+(r/r_c)^2}}
+                               - \frac{1}{\sqrt{1+(r_t/r_c)^2}}\right]^2 + b
+
+    .. important::
+       **The** ``+ b`` **is not King's.** King (1962, AJ 67, 471) Eq. (14) is the bracket
+       squared and nothing more. His background was handled *outside* the formula: subtracted
+       from the counts where a wide-field plate reached past the cluster, and where it did
+       not, chosen "so as to make the outermost points satisfy the empirical law". He also
+       warns against exactly the misreading the extra term invites — *"the second term in
+       brackets in Eq. (14) could be replaced by a single constant; it is written in this
+       more complicated form in order to show the role of* :math:`r_t`" — i.e. the constant
+       already inside the bracket is the **truncation** constant, not a background.
+
+       The additive form is folk practice with no primary citation. Seleznev (2016, MNRAS
+       456, 3757) introduces it as *"in order to take into account stellar background, this
+       formula is supplemented by stellar background density* :math:`F_b` *as a constant
+       addition"*, citing nobody.
+
+       King identified the :math:`r_t \leftrightarrow` background degeneracy himself in the
+       same paper, criticising Wallenquist for having *"underestimated the radii of the
+       clusters and consequently chosen incorrect values for the background densities."*
+
+       On a Gaia membership-selected sample ``b`` is **not** field contamination. See
+       ``docs/design-notes/king_model_validity.md``.
+
+    The model is **empirical**: King calls Eq. (14) *"merely a convenient fitting formula"*.
+    The dynamical King model is King (1966, AJ 71, 64), a different object with a
+    concentration parameter :math:`W_0`. There is no "King 1964".
+    """
     r = quantity_values(radius)
     if len(args) == 4:
         amplitude, background, core_radius, tidal_radius = args
