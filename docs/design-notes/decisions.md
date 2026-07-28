@@ -109,6 +109,81 @@ of 'str' and 'float'`. Coerce with `pd.to_numeric(..., errors="coerce")` first.
 
 ---
 
+## 2026-07-27 — a mutation audit falsified "every test has an independent oracle"
+
+**39 mutations applied to the shipping source, one at a time; 21 caught, 18 survived. A 46%
+survival rate.** The claim made repeatedly in this log — that each new test has an oracle
+independent of the code under test and can fail for the reason it was written — **does not hold.**
+
+Three failure modes, and the third is the worst.
+
+**1. Ratio-only oracles leave prefactors free.** Every test of `tidal_radius_prior` checks a *ratio*
+(`r_J ∝ M^(1/3)`, or `doubled/base`), so the prefactor cancels. Changing `(M / 2M_G)^(1/3)` to
+`(M / 3M_G)^(1/3)` — a **14.5% shift in the Jacobi radius**, the physical boundary the entire `R_t`
+argument rests on — passed the suite. The only absolute assertions on it were `isfinite` and `> 0`.
+
+**2. Self-widening tolerances.** `assert abs(estimate - truth) < N * posterior_std` **cannot fail for
+the reason it was written**: a mutation that destroys the constraint inflates `posterior_std`, and
+with it the tolerance meant to catch the mutation. Measured on the parallax test: the unmutated fit
+gave `sigma = 0.00933 ± 0.00510`, so the window was **±0.0204 on a 0.010 quantity** — twice the value
+being measured, before any mutation. This pattern was used throughout `test_inference.py` and in
+`test_structure.py`.
+
+**3. Tests that reimplement rather than exercise.** `test_priors_do_not_depend_on_the_data` and
+`test_prior_predictive_covers_the_plausible_range` rebuilt the prior block **inline with their own
+`pm.Model()`** instead of calling `_king_model`. They tested a copy. Putting `sigma=np.std(r)` back
+into the shipping model — **the exact "data used twice" defect the P01 referee raised** — left the
+suite green.
+
+### What was repaired, each verified by re-applying the mutation
+
+| repair | mutation it now catches |
+|---|---|
+| prior tests call `_king_model` / the real function | `R_c` prior `sigma=np.std(r)` |
+| absolute tolerances replace `< N·std`, plus a bound on the posterior width itself | `sqrt(σ² + e_i)` — the dropped square |
+| the parallax fixture's per-star errors scaled down 5× | as above; see the note below |
+| `zero_point_scale` asserted as a **literal**, not read from the dataclass the model reads | hardcoding 8 µas in the model |
+| absolute Jacobi check against the closed form | prefactor `2 → 3` |
+| `posterior_summary` tested on a **lognormal**, not `np.arange` | reporting the mean as the median; swapping `minus`/`plus` |
+| `cos(b)` tested at `b = 0, ±15, 45, −30°` | deleting `cos(b)` from all three sites |
+
+```{admonition} The fixture change matters more than the tolerance change
+:class: important
+Three mutations survived even after the tolerances were made absolute, and measuring why was the
+real finding: **the test data sat in a regime where the parameter is not identifiable.** With
+per-star errors ≫ the intrinsic spread, `sigma_parallax` is barely constrained (posterior std half
+its own value), and dropping the square moved the estimate by *less than a tenth of its uncertainty*
+— in fact **toward** the truth. No tolerance can separate that.
+
+Scaling the fixture's errors down 5× so they are comparable to the injected spread changed the
+recovered value from `0.00933 ± 0.00510` to `0.00981 ± 0.00084` — a **6× tighter posterior**, 2%
+accuracy — and the mutation is now caught. *A recovery test is only a test where the parameter is
+recoverable.*
+```
+
+```{warning}
+**Known gap, deliberately left open.** The off-diagonal of the per-star proper-motion covariance is
+**not tested**: the fixture draws `e_ra` and `e_dec` from the same scale, so `ρ·e_ra·e_dec` and
+`ρ·e_ra·e_ra` are numerically indistinguishable. Setting `e_dec = 3·e_ra` makes it testable, but in
+that regime the fit stops recovering the intrinsic correlation — it returns **+0.37 for an injected
+0.0**, with `sigma_Dec` 30% low. Whether that is an identifiability limit or a modelling error is
+**unresolved**; a longer investigation timed out.
+
+Shipping a test tuned until it passed in a regime that is not understood would repeat exactly the
+failure this audit exposed, so the gap is recorded instead. See `~/phd/open-threads.md` C5.
+```
+
+**Still outstanding**, listed so they are not mistaken for fixed: `distance_model` still survives
+`σ = (hi − lo)` instead of `(hi − lo)/2`; `king_unbinned`/`eff_unbinned` still survive
+`nanmedian → nanmean`; `compare_radial_profiles` has **no behavioural coverage under
+`-m "not slow"`**, so model selection can invert silently; `photometry.add_photometric_errors` has
+none anywhere.
+
+**Suite 390 → 397.** The mutation harness itself was validated with a positive control before use,
+and the working tree was verified clean afterwards.
+
+---
+
 ## 2026-07-27 — two dispatch bugs in `dynamics.py`, and posteriors now reach it
 
 Found while wiring posterior propagation (plan step 3). Both fail on **scalars** too, so

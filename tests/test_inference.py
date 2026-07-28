@@ -207,7 +207,14 @@ def test_return_trace_false_discards_the_posterior():
 TRUE_INTRINSIC = 0.010  # mas; ~12 pc of depth at 1.1 kpc
 # Median e_Plx per Gmag quartile of the published NGC 6383 member table, so the
 # error distribution is the real one rather than a convenient one.
-REAL_ERROR_SCALE = np.array([0.027, 0.065, 0.123, 0.293])
+# Median e_Plx per Gmag quartile of the published NGC 6383 member table, SCALED
+# DOWN by 5x. At the real scale the per-star errors dwarf a realistic intrinsic
+# spread, sigma_int is barely identified (posterior std ~ half the value), and no
+# assertion on it can fail for the reason it was written -- a mutation audit beat
+# the earlier fixture by dropping the square from sqrt(sigma^2 + e_i^2) and the
+# recovered value moved by less than a tenth of its own uncertainty. The SHAPE of
+# the real error distribution is what matters here, not its absolute scale.
+REAL_ERROR_SCALE = np.array([0.027, 0.065, 0.123, 0.293]) / 5.0
 
 
 def _parallax_table(n=400, seed=5):
@@ -231,17 +238,25 @@ def test_per_star_errors_separate_cluster_depth_from_measurement_noise():
     assert naive.metadata["error_aware"] is False
     assert aware.metadata["error_aware"] is True
 
-    # The error-aware fit recovers the injected intrinsic spread.
-    assert abs(aware.sigma_parallax_mean - TRUE_INTRINSIC) < 4 * aware.sigma_parallax_std
+    # ABSOLUTE tolerance, not `< N * posterior_std`. A `< N*std` window is
+    # self-widening: degrading the fit inflates the very tolerance meant to catch
+    # the degradation, so it cannot fail for the reason it was written. A mutation
+    # audit beat the old form by dropping the square from sqrt(sigma^2 + e_i^2).
+    assert abs(aware.sigma_parallax_mean - TRUE_INTRINSIC) < 0.006, (
+        f"intrinsic spread {aware.sigma_parallax_mean:.5f} vs injected {TRUE_INTRINSIC}"
+    )
+    # and the posterior must actually be informative, not merely centred
+    assert aware.sigma_parallax_std < 0.003
 
     # The naive fit instead reports the total observed scatter, which is set by
     # the measurement errors and is an order of magnitude larger.
-    assert naive.sigma_parallax_mean > 5 * TRUE_INTRINSIC
-    assert naive.sigma_parallax_mean > 3 * aware.sigma_parallax_mean
+    assert naive.sigma_parallax_mean > 2.5 * TRUE_INTRINSIC
+    assert naive.sigma_parallax_mean > 2.5 * aware.sigma_parallax_mean
 
     # Both should still find the mean parallax -- the bias is in the width only.
     for res in (naive, aware):
-        assert abs(res.mu_parallax_mean - TRUE_PARALLAX) < 4 * res.mu_parallax_std
+        assert abs(res.mu_parallax_mean - TRUE_PARALLAX) < 0.03
+        assert res.mu_parallax_std < 0.005
 
 
 @requires_bayes_extra
@@ -303,6 +318,19 @@ PM_ERROR_SCALE = np.array([0.03, 0.08, 0.18, 0.40])  # per Gmag quartile, Gaia-l
 
 
 def _pm_table(n=400, seed=9, corr=0.4):
+    """Synthetic PM sample.
+
+    KNOWN GAP, recorded rather than papered over. ``e_ra`` and ``e_dec`` are drawn
+    from the same scale here, which means ``rho*e_ra*e_dec`` and ``rho*e_ra*e_ra``
+    are numerically indistinguishable, so **the off-diagonal of the per-star
+    covariance is not tested** -- a mutation audit beat this fixture exactly that
+    way. Setting ``e_dec = 3*e_ra`` makes the off-diagonal testable, but in that
+    regime the fit stops recovering the intrinsic correlation (returns +0.37 for an
+    injected 0.0, with sigma_Dec 30% low), and it is not yet established whether
+    that is an identifiability limit or a modelling error. Shipping a test tuned to
+    a regime that is not understood would repeat the failure this audit exposed.
+    See ~/phd/open-threads.md C5.
+    """
     rng = np.random.default_rng(seed)
     e_ra = np.repeat(PM_ERROR_SCALE, n // 4) * rng.uniform(0.8, 1.2, n)
     e_dec = np.repeat(PM_ERROR_SCALE, n // 4) * rng.uniform(0.8, 1.2, n)
@@ -337,10 +365,13 @@ def test_per_star_covariance_separates_dispersion_from_measurement_noise():
     assert aware.metadata["error_aware"] is True
     assert naive.metadata["error_aware"] is False
 
-    # the covariance-aware fit recovers the injected intrinsic dispersion
+    # the covariance-aware fit recovers the injected intrinsic dispersion.
+    # ABSOLUTE tolerance -- see the parallax test. The old `< 4 * std` form let a
+    # wrong off-diagonal (rho*e_ra*e_ra) through.
     for axis in ("RA", "Dec"):
         got = aware.results[f"sigma_{axis}_mean"]
-        assert abs(got - TRUE_PM["sigma_int"]) < 4 * aware.results[f"sigma_{axis}_std"]
+        assert abs(got - TRUE_PM["sigma_int"]) < 0.030, f"sigma_{axis} = {got:.4f}"
+        assert aware.results[f"sigma_{axis}_std"] < 0.040
         # the naive one reports the measurement scatter instead, several times larger
         assert naive.results[f"sigma_{axis}_mean"] > 3 * got
 
@@ -441,8 +472,14 @@ def test_bailer_jones_bounds_separate_depth_from_catalogue_error():
         assert abs(res.mu_r_mean - TRUE_DIST["mu"]) < 5 * res.mu_r_std
 
     # the error-aware fit recovers the injected depth; the naive one reports the
-    # catalogue scatter instead, which is several times larger
-    assert abs(aware.std_r_mean - TRUE_DIST["depth"]) < 4 * aware.std_r_std
+    # catalogue scatter instead, which is several times larger.
+    # ABSOLUTE tolerance -- see the note in the parallax test above. The old
+    # `< 4 * std` form was beaten by using (hi - lo) instead of (hi - lo)/2, i.e.
+    # assuming twice the catalogue uncertainty.
+    assert abs(aware.std_r_mean - TRUE_DIST["depth"]) < 0.012, (
+        f"depth {aware.std_r_mean:.4f} kpc vs injected {TRUE_DIST['depth']}"
+    )
+    assert aware.std_r_std < 0.020
     assert naive.std_r_mean > 3 * aware.std_r_mean
     assert naive.std_r_mean > 0.5 * float(np.median(sigma))
 
@@ -506,7 +543,8 @@ def test_velocity_errors_separate_dispersion_from_measurement_noise():
     assert naive.metadata["error_aware"] is False
     assert aware.metadata["error_aware"] is True
 
-    assert abs(aware.std_v_mean - TRUE_V["sigma_int"]) < 4 * aware.std_v_std
+    assert abs(aware.std_v_mean - TRUE_V["sigma_int"]) < 0.25   # absolute, not N*std
+    assert aware.std_v_std < 0.35
     assert naive.std_v_mean > 2 * aware.std_v_mean
     for res in (naive, aware):
         assert abs(res.mu_v_mean - TRUE_V["mu"]) < 5 * res.mu_v_std
@@ -570,9 +608,13 @@ def test_zero_point_nuisance_widens_the_mean_parallax_by_the_systematic_floor():
     assert plain.metadata["zero_point_nuisance"] is False
     assert withzp.metadata["zero_point_nuisance"] is True
 
-    floor = ParallaxPriors().zero_point_scale
-    expected = np.hypot(plain.mu_parallax_std, floor)
-    assert withzp.mu_parallax_std == pytest.approx(expected, rel=0.25)
+    # The floor is asserted as a LITERAL, not read from the dataclass the model
+    # also reads. The old form compared the model against its own constant, so
+    # hardcoding a different floor inside the model passed.
+    PUBLISHED_FLOOR_MAS = 0.0103   # Maiz Apellaniz+2021, A&A 649, A13
+    assert ParallaxPriors().zero_point_scale == pytest.approx(PUBLISHED_FLOOR_MAS)
+    expected = np.hypot(plain.mu_parallax_std, PUBLISHED_FLOOR_MAS)
+    assert withzp.mu_parallax_std == pytest.approx(expected, rel=0.12)
     # it must genuinely widen, not merely differ
     assert withzp.mu_parallax_std > plain.mu_parallax_std
     # and the mean itself must not move -- this adds uncertainty, not a shift

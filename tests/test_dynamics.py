@@ -12,6 +12,8 @@ import pytest
 from astropy.coordinates import SkyCoord
 
 from erotica.analysis.dynamics import (
+    SOLAR_RADIUS,
+    calculate_galactic_mass,
     calculate_galactocentric_distance,
     crossing_time,
     half_mass_relaxation_time,
@@ -244,3 +246,70 @@ def test_posterior_summary_preserves_units_and_widens_with_credible_mass():
 def test_posterior_summary_rejects_an_all_nan_sample():
     with pytest.raises(ValueError, match="finite"):
         posterior_summary(np.full(10, np.nan))
+
+
+# ---------------------------------------------------------------------------
+# Gaps found by a mutation audit on 2026-07-27. Each of these caught nothing
+# before: the Jacobi prefactor could move 14.5%, posterior_summary could report
+# the mean as the median, and cos(b) could be deleted entirely.
+# ---------------------------------------------------------------------------
+
+
+def test_jacobi_radius_matches_the_closed_form_absolutely_not_just_in_ratio():
+    """Oracle: r_J = (M / 2 M_G)^(1/3) * R_gc, evaluated here in full.
+
+    Every other test of this function checks a RATIO, so the prefactor cancels and
+    a mutation from 2 to 3 in the denominator -- a 14.5% shift in the Jacobi radius,
+    the physical boundary the whole R_t argument rests on -- passed unnoticed.
+    """
+    mass, r_gc, dist = 900 * u.Msun, 7.2 * u.kpc, 1.11 * u.kpc
+    galactic_mass = calculate_galactic_mass(r_gc)
+    expected_pc = ((mass / (2 * galactic_mass)) ** (1 / 3) * r_gc).to_value(u.pc)
+
+    got = tidal_radius_prior(mass, r_gc, distance=dist)["angular_size"]
+    got_pc = (got.to_value(u.arcmin) / 60 * np.pi / 180) * dist.to_value(u.pc)
+    assert got_pc == pytest.approx(expected_pc, rel=1e-6)
+
+
+def test_posterior_summary_distinguishes_median_from_mean():
+    """A skewed sample. The old test used np.arange, which is symmetric, so mean
+    and median coincide and swapping them -- or swapping `minus` and `plus` --
+    could not be detected."""
+    rng = np.random.default_rng(0)
+    skewed = rng.lognormal(0.0, 1.0, 200_000)
+    s = posterior_summary(skewed, credible_mass=0.68)
+    assert s["median"] == pytest.approx(1.0, rel=0.02)          # exp(mu)
+    assert s["median"] < skewed.mean() * 0.75                   # mean ~1.65: distinct
+    # asymmetric, and the right way round
+    assert s["plus"] > 2.0 * s["minus"]
+    assert s["upper"] - s["median"] == pytest.approx(s["plus"])
+    assert s["median"] - s["lower"] == pytest.approx(s["minus"])
+
+
+@pytest.mark.parametrize("b_deg", [0.0, 15.0, 45.0, -30.0])
+def test_galactocentric_distance_uses_galactic_latitude(b_deg):
+    """Oracle: the law of cosines with the cos(b) factor written out here.
+
+    Every earlier test used b = 0, where cos(b) = 1, so deleting cos(b) from all
+    three of its occurrences changed nothing any test could see.
+    """
+    d, l = 1.5 * u.kpc, 40.0 * u.deg
+    b = b_deg * u.deg
+    R0 = SOLAR_RADIUS.to_value(u.kpc)
+    dv = d.to_value(u.kpc)
+    expected = np.sqrt(
+        R0**2 + dv**2 - 2 * R0 * dv * np.cos(l.to_value(u.rad)) * np.cos(b.to_value(u.rad))
+    )
+    got = calculate_galactocentric_distance(distance=d, l=l, b=b).to_value(u.kpc)
+    assert got == pytest.approx(expected, rel=1e-9)
+
+
+def test_galactic_latitude_actually_changes_the_answer():
+    """Guard the guard: if b had no effect the parametrized test above would be vacuous."""
+    at_zero = calculate_galactocentric_distance(
+        distance=1.5 * u.kpc, l=40.0 * u.deg, b=0.0 * u.deg
+    ).to_value(u.kpc)
+    at_forty = calculate_galactocentric_distance(
+        distance=1.5 * u.kpc, l=40.0 * u.deg, b=45.0 * u.deg
+    ).to_value(u.kpc)
+    assert abs(at_forty - at_zero) > 0.1

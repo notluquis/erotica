@@ -236,19 +236,25 @@ def test_priors_do_not_depend_on_the_data():
     """
     import pymc as pm
 
+    from erotica.analysis.structure import _king_model
+
     def prior_draws(radii):
-        with pm.Model():
-            p = KingPriors()
-            R_c = pm.HalfStudentT("R_c", nu=1, sigma=p.r_c_scale)
-            pm.Deterministic("R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=p.r_t_scale))
-            pm.HalfStudentT("k", nu=1, sigma=p.k_scale)
-            pm.HalfStudentT("b", nu=1, sigma=p.b_scale)
-            idata = pm.sample_prior_predictive(draws=300, random_seed=0)
+        # Build the ACTUAL shipping model. An earlier version of this test
+        # reimplemented the prior block inline, so it tested a copy: a mutation
+        # putting `sigma=np.std(r)` back into _king_model -- the exact "data used
+        # twice" defect the P01 referee raised -- left this test green.
+        with _king_model(pm, np.asarray(radii, float), FIELD, KingPriors(), None, None):
+            idata = pm.sample_prior_predictive(draws=400, random_seed=0)
         return np.asarray(idata.prior["R_t"].values).ravel()
 
     compact = _sample_king(11, k=50.0, b=0.001, R_c=0.5, R_t=5.0, field=FIELD)
     diffuse = _sample_king(12, **TRUE_KING)
+    # the two datasets must differ enough that any data dependence would show
     assert len(compact) > 0 and len(diffuse) > 0
+    # Guard the guard: if the two samples were similar, agreement would prove
+    # nothing. They differ by 15x in count and 36x in median radius.
+    assert len(diffuse) > 5 * len(compact)
+    assert np.median(diffuse) > 10 * np.median(compact)
     np.testing.assert_allclose(prior_draws(compact), prior_draws(diffuse))
 
 
@@ -257,10 +263,11 @@ def test_prior_predictive_covers_the_plausible_range():
     """A prior that cannot generate the truth cannot recover it (PART A floor)."""
     import pymc as pm
 
-    with pm.Model():
-        p = KingPriors()
-        R_c = pm.HalfStudentT("R_c", nu=1, sigma=p.r_c_scale)
-        pm.Deterministic("R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=p.r_t_scale))
+    from erotica.analysis.structure import _king_model
+
+    # Again: the real model, not a reimplementation of its priors.
+    radii = _sample_king(13, **TRUE_KING)
+    with _king_model(pm, radii, FIELD, KingPriors(), None, None):
         idata = pm.sample_prior_predictive(draws=4000, random_seed=0)
 
     r_t = np.asarray(idata.prior["R_t"].values).ravel()
