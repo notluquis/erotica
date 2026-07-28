@@ -14,6 +14,7 @@ bayesian_membership_posterior
 membership_ground_truth
 decisions
 king_model_validity
+synthetic_validation_baseline
 oc_census_landscape
 cross_domain_calibration
 calibration_theory

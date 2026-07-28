@@ -112,6 +112,21 @@ def sample_fractal(rng, n=N_STARS, *, fractal_dimension=1.6, field_radius=FIELD_
     return unit * remapped[:, None]
 
 
+# The remap is not free: replacing each star's radius by the order statistic at its rank pulls
+# clump members apart radially, so some substructure is lost. Measured (mean of 4 realizations,
+# N = 628), it survives with room to spare:
+#
+#     D     raw fractal Q     after EFF rank-remap Q
+#     1.6       0.419                 0.591
+#     2.0       0.516                 0.729
+#
+# against a smooth EFF control at Q = 1.276 and the ad-hoc clumps at Q = 1.019 -- i.e. the remapped
+# fractal is far MORE substructured than the configuration the published table used. For reference
+# NGC 6383 itself sits at Q = 0.833, which the remapped fractal brackets between D = 2.0 and 2.5.
+# Checking this mattered: had the remap flattened the structure, the fractal row would have come
+# back null and read as "substructure does not matter".
+
+
 CONFIGS = {
     "smooth": (sample_smooth, {}),
     "clumps15": (sample_clumps, dict(n_clumps=15, clump_sigma=1.0)),
