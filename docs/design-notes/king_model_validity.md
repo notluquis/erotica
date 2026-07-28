@@ -317,6 +317,68 @@ That is a genuine identifiability statement, and it is the one the likelihood fr
 produce on its own.
 ```
 
+
+## Substructure: a control the profile fits need, and a Q-based justification that does not work
+
+```{danger}
+**The reported credible interval on `γ` is probably 2–3.5× too narrow.** Injection–recovery on the
+NGC 6383 geometry (N = 628, 70′ field, EFF `γ = 2.32`, `a = 1.65′`), with a fraction of stars moved
+into clumps *whose centres are drawn from the same EFF profile* — so the azimuthally-averaged radial
+profile is unchanged in expectation and any shift is attributable to substructure alone:
+
+| configuration | Q | `γ` recovered | reported σ | realization scatter | 1σ cov. | 2σ cov. |
+|---|---|---|---|---|---|---|
+| smooth control | 1.262 | 2.425 | 0.089 | 0.048 | 40% | **93%** |
+| 50% in 15 clumps, σ = 1′ | 1.007 | 2.586 | 0.120 | 0.248 | 20% | **33%** |
+| 50% in 8 clumps, σ = 2′ | 1.03–1.12 | 3.008 | 0.187 | **0.647** | 20% | **20%** |
+
+Nominal coverage is 68% / 95%. **The likelihood is well calibrated when the data really are a Poisson
+point process** (smooth control: 93% at 2σ), so the failure is caused by substructure, not by the
+code — clumping is over-dispersion the point-process likelihood does not model.
+```
+
+**The bias direction is favourable, and that matters.** It is **upward** in both `γ` and `a`.
+Substructure cannot manufacture a spurious `γ → 2`. So if the fitted `γ = 2.32 ± 0.21` is biased at
+all, the **true slope is even closer to the King/EFF degeneracy** — this is a control the argument
+needs, not a threat to it.
+
+```{warning}
+**The Q parameter cannot justify fitting a radial profile, and P01 uses it that way.** Two
+independent failures, both measured rather than argued:
+
+1. **Q is degenerate with contamination.** A perfectly smooth King cluster (`R_c` = 1.38′,
+   `R_t` = 54′, N = 628 in 70′) with **zero substructure**, diluted by uniform field, gives
+   Q = 1.251 → 1.053 → 0.957 → 0.898 → **0.850** at field fractions 0 → 0.3 → 0.4 → 0.5 → 0.6. The
+   observed Q = 0.833 is **fully reproduced by ~60% uniform dilution of a perfectly smooth cluster.**
+2. **Q is not monotonic in the quantity of interest.** Across clumped simulations, *higher* Q goes
+   with *larger* `γ` bias: Q = 0.986 → +0.29, Q = 1.032 → +0.56, Q = 1.148 → **+1.01**. The bias
+   tracks clump scale relative to `a`, which Q does not encode.
+
+So "compute Q; if it exceeds 0.8, the cluster is centrally concentrated and a radial fit is
+appropriate" is invalid **regardless of where the boundary is placed**. A calibration caveat
+compounds it: an independent implementation gives Q = 0.72–0.735 for a uniform random disc against
+Cartwright & Whitworth's quoted 0.79–0.80 — a ~0.07 offset — while reproducing P01's published value
+exactly, so P01's comparison to the 0.8 boundary rests on a zero-point that implementation does not
+reproduce.
+```
+
+```{note}
+**Two corrections to what this note previously implied about Pang et al. 2022.**
+Their f1/f2/h/t classification is explicitly **qualitative** — *"we qualitatively classify them into
+four types"*, by eye, with no Q, MST, fractal dimension or correlation function anywhere in the
+paper. There is no statistic separating filamentary from fractal. And **19 of their 60 clusters below
+100 Myr (32%) host no extended substructure at all**, so "below 100 Myr the morphology is
+filamentary/fractal" is not what they found. NGC 6383 is also **not in their sample** — 85 clusters
+within ~500 pc, against its 1110 pc.
+
+Also load-bearing for any comparison: Pang §4.4 does fit EFF to all 85 clusters, but as a **3D volume
+density**, so `γ_3D = γ_2D + 1` against the surface density fitted here. Their `γ` appears only in
+histograms, with no table column.
+
+Their §4.2 carries a warning that bears directly on the 43% of this sample lying beyond `r_J`:
+*"An artificial 'halo'-like substructure will appear when the contamination rate rises above 20%."*
+```
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
