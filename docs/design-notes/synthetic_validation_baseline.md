@@ -208,16 +208,47 @@ different number.
 | Unbinned point process beats equal-count binning | `king_binning_likelihood.py` | **SAFE** | Both estimators see the *same* realizations. Which one loses information is a property of the estimators. |
 | First-order selection bias is `δθ = ε I⁻¹v`; constant `S` biases no shape parameter | `king_model_validity.md` | **SAFE** | Analytic; degree-1 homogeneity. Synthetic runs only confirm the algebra. |
 | Likelihood is well calibrated on a genuine Poisson point process (93% at 2σ) | `substructure_coverage.py` | **SAFE** | This *is* the within-model check, and it is correctly scoped as one. |
-| **"Ignoring completeness inflates `R_c` by 50% and halves the central density"** | `king_model_validity.md:194`, `test_structure.py` | **VULNERABLE** | Drawn from a smooth King with a toy `S(r)` (`floor=0.35`). Load-bearing: it is the yardstick that declares NGC 6383's measured 1.156% suppression negligible, and that step is an **extrapolation over a factor of 44** which assumes the bias is linear in the suppression. |
+| **"Ignoring completeness inflates `R_c` by 50% and halves the central density"** | `king_model_validity.md:194`, `test_structure.py` | **VULNERABLE → SURVIVED, with a corrected number** | The extrapolation assumed a linearity nobody had measured. Measured: linear with χ²/dof = 0.18 **below ~20% suppression**, superlinear above, exactly as a first-order expansion should behave. NGC 6383 sits far inside the linear regime, so the step is legitimate — but the slope must come from there (0.663), not from the 50% anchor (1.13). Predicted `R_c` bias **+0.77%**, not +1.12%. See §2. |
 | **"The `γ` credible interval is 2–3.5× too narrow"** | `king_model_validity.md:324` | **VULNERABLE → SURVIVED** | Substructure was injected as ad-hoc Gaussian clumps. Re-tested with Goodwin & Whitworth fractal clumps at matched amplitude and matched `Q`: understatement 3.15 → 3.21. **The model does not matter, only the amplitude.** See §2. |
 | `R_t` is unidentifiable even inside `r_J` | `CANDIDATE-king-rt-identifiability.md` | **VULNERABLE** | Smooth-King recovery study. The direction is almost certainly robust (substructure can only widen the posterior) but the quoted magnitude is not. |
 
 ### What is being done about the two vulnerable ones
 
 * `tools/validation/completeness_bias_scaling.py` measures the bias as a function of suppression
-  amplitude instead of assuming linearity. The analytic result **predicts** linearity, so this tests
-  the analytic backbone at the same time; a measured departure at small suppression would mean the
-  extrapolation from 50% down to 1.2% is unsafe and the dossier's central claim needs re-deriving.
+  amplitude instead of assuming linearity. **Run, and the answer has a twist worth keeping.**
+
+  | core suppression | `R_c` bias | bias / suppression |
+  |---|---|---|
+  | 0.00% (null) | +0.61% ± 0.83% | — |
+  | 4.23% | +2.83% ± 0.85% | 0.670 |
+  | 8.46% | +5.51% ± 0.96% | 0.652 |
+  | 16.94% | +11.28% ± 1.02% | 0.666 |
+  | 29.71% | +22.41% ± 1.07% | 0.754 |
+  | 42.53% | +37.86% ± 1.30% | 0.890 |
+  | 55.42% | +62.65% ± 1.16% | 1.131 |
+
+  A single line through the origin fitted to **all** levels gives slope 0.971 with
+  **χ²/dof = 22.9** — the relation is *not* globally linear. But look at where it breaks: the ratio
+  is flat at **0.66** from 4% to 17% and only climbs above ~20%. Fitting the low-suppression levels
+  alone gives slope **0.663 with χ²/dof = 0.18**.
+
+  ```{important}
+  That is exactly what `δθ = ε I⁻¹v` predicts. It is a **first-order** expansion, so it must hold for
+  small `ε` and must fail once the perturbation is large — and the measured knee sits at ~20%
+  suppression. **The analytic backbone is validated, and so is the extrapolation, but only below the
+  knee.**
+
+  The consequence is a corrected number. The design note's yardstick was anchored at the toy's 50%
+  suppression, where the local slope is 1.13; used naively it predicts a **+1.12%** `R_c` bias at
+  NGC 6383's measured 1.156% suppression. The correct low-suppression slope gives **+0.77%**.
+  NGC 6383 sits far inside the linear regime, so the extrapolation is legitimate — it was simply
+  being done with the wrong slope.
+  ```
+
+  Both numbers are negligible: +0.77% of `R_c = 1.38′` is 0.011′, about **0.05σ**, which is
+  consistent with the −0.01σ measured by actually fitting with the real `S̄(r)`. Analytic prediction,
+  scaling experiment and direct measurement now agree. The null at zero suppression
+  (+0.61% ± 0.83%) confirms the harness has no bias of its own.
 * `tools/validation/substructure_coverage.py` re-runs the coverage experiment with fractal
   substructure alongside the original ad-hoc clumps. It also had **no script behind it** until now;
   the numbers in the design note were produced ad hoc and only the table survived.

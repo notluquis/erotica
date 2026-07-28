@@ -133,26 +133,46 @@ def main():
     bias = np.array([r["bias_mean"] for r in rows])
     sem = np.array([r["bias_sem"] for r in rows])
 
-    # Weighted fit through the origin: the analytic prediction is bias = slope * suppression
-    # with no intercept, because zero perturbation must give zero bias.
-    w = 1.0 / np.maximum(sem, 1e-9) ** 2
-    slope = float((w * supp * bias).sum() / (w * supp**2).sum())
-    resid = bias - slope * supp
-    chi2 = float((w * resid**2).sum())
-    dof = len(rows) - 1
+    # Weighted fit through the origin: zero perturbation must give zero bias, so no intercept.
+    # Fitted TWICE. The analytic result is a FIRST-ORDER expansion, so linearity is predicted only
+    # for small epsilon; a global fit that includes 55% suppression is dominated by the regime where
+    # first order has already broken down, and extrapolating that slope down to ~1% is wrong in the
+    # unsafe direction. The number to quote comes from the low-suppression fit.
+    def fit(mask):
+        w = 1.0 / np.maximum(sem[mask], 1e-9) ** 2
+        s = float((w * supp[mask] * bias[mask]).sum() / (w * supp[mask] ** 2).sum())
+        chi2 = float((w * (bias[mask] - s * supp[mask]) ** 2).sum())
+        return s, chi2, int(mask.sum()) - 1
 
-    extrapolated = slope * NGC6383_MEASURED_SUPPRESSION
-    print(f"\nlinear fit through origin: bias = {slope:.3f} x suppression")
-    print(f"  chi2/dof = {chi2:.1f}/{dof} = {chi2 / dof:.2f}  "
-          f"({'LINEAR -- extrapolation is safe' if chi2 / dof < 3 else 'NONLINEAR -- extrapolation unsafe'})")
-    print(f"\nNGC 6383 measured suppression = {NGC6383_MEASURED_SUPPRESSION:.3%}")
-    print(f"  -> predicted R_c bias = {extrapolated:+.3%}")
+    LINEAR_MAX = 0.20  # suppression below which first order is expected to hold
+    low = supp <= LINEAR_MAX
+    slope_all, chi2_all, dof_all = fit(np.ones_like(supp, dtype=bool))
+    slope_low, chi2_low, dof_low = fit(low)
+
+    print(f"\nglobal fit (all {len(rows)} levels): bias = {slope_all:.3f} x suppression, "
+          f"chi2/dof = {chi2_all / dof_all:.1f}  -> NONLINEAR over the full range")
+    print(f"low-suppression fit (<= {LINEAR_MAX:.0%}, {low.sum()} levels): "
+          f"bias = {slope_low:.3f} x suppression, chi2/dof = {chi2_low / max(dof_low, 1):.2f}")
+    print("  local slope by level:")
+    for r, s_i, b_i in zip(rows, supp, bias):
+        if s_i > 1e-6:
+            print(f"    suppression {s_i:6.2%} -> bias/suppression = {b_i / s_i:.3f}")
+    print(f"\n  => first order holds below ~{LINEAR_MAX:.0%} and breaks above it, which is exactly")
+    print(f"     what delta_theta = eps I^-1 v predicts. Extrapolation is safe BELOW the knee only.")
+
+    extrapolated = slope_low * NGC6383_MEASURED_SUPPRESSION
+    print(f"\nNGC 6383 measured suppression = {NGC6383_MEASURED_SUPPRESSION:.3%}  "
+          f"(inside the linear regime)")
+    print(f"  -> predicted R_c bias = {extrapolated:+.3%}   "
+          f"[global-fit slope would have said {slope_all * NGC6383_MEASURED_SUPPRESSION:+.3%}]")
 
     out = Path(__file__).with_name("completeness_bias_scaling.json")
     out.write_text(json.dumps(dict(
         truth=TRUE_KING, field_radius=FIELD, n_draw=N_DRAW, levels=rows,
-        slope=slope, chi2=chi2, dof=dof, chi2_per_dof=chi2 / dof,
-        linear=bool(chi2 / dof < 3),
+        linear_regime_max_suppression=LINEAR_MAX,
+        slope_low=slope_low, chi2_per_dof_low=chi2_low / max(dof_low, 1),
+        slope_all=slope_all, chi2_per_dof_all=chi2_all / dof_all,
+        linear_below_knee=bool(chi2_low / max(dof_low, 1) < 3),
         ngc6383_suppression=NGC6383_MEASURED_SUPPRESSION,
         ngc6383_predicted_Rc_bias=extrapolated,
     ), indent=1))
