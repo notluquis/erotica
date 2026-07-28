@@ -667,7 +667,7 @@ def test_corona_becomes_a_flat_background_when_large():
     This is why a corona wider than the footprint cannot be distinguished from a
     flat background, and why an unconstrained ``R_2`` posterior is itself the result.
     """
-    from erotica.analysis.structure import corona_surface_density
+    from erotica.analysis.structure import corona_surface_density, king_profile
 
     r = np.linspace(0.1, 70.0, 50)
     sigma = corona_surface_density(r, delta_f=1e-4, R_2=1e5)
@@ -676,9 +676,78 @@ def test_corona_becomes_a_flat_background_when_large():
 
 
 def test_corona_vanishes_outside_its_radius():
-    from erotica.analysis.structure import corona_surface_density
+    from erotica.analysis.structure import corona_surface_density, king_profile
 
     r = np.array([1.0, 10.0, 29.9, 30.0, 30.1, 50.0])
     sigma = corona_surface_density(r, delta_f=0.02, R_2=30.0)
     assert np.all(sigma[:3] > 0)
     assert np.all(sigma[3:] == 0)
+
+
+@requires_bayes_extra
+@pytest.mark.slow
+def test_bayes_factor_finds_a_corona_that_fits_inside_the_field():
+    """The corona model must be *identifiable* when the corona fits in the footprint.
+
+    This is the counterpart to the NGC 6383 result, where ``P(R_2 > field) = 1.000``
+    and the comparison against a flat background came back inconclusive
+    (``2 ln B = -2.27``). That was read as "the footprint does not contain the
+    object" rather than "the corona model does not work" -- and the reading is only
+    legitimate if the model *can* be distinguished when the corona is small enough
+    to be seen whole. So: inject a corona at ``R_2 = 20'`` in a 70' field and require
+    the comparison to prefer it over King + flat background.
+
+    Without this test the NGC 6383 interpretation is unfalsifiable.
+    """
+    from erotica.analysis.structure import corona_surface_density, king_profile
+
+    # The corona must extend BEYOND the tidal radius -- that is what a corona is, and
+    # it is also the only configuration in which the model is identifiable. Nested
+    # inside R_t (the first attempt used R_2 = 20 < R_t = 30) the corona is absorbed
+    # by a slightly different King and the comparison correctly prefers King.
+    king_truth = {"k": 8.0, "b": 0.0, "R_c": 2.0, "R_t": 10.0}
+    delta_f, R_2 = 0.006, 35.0
+
+    def surface(r):
+        return king_profile(
+            r, core_radius=king_truth["R_c"], tidal_radius=king_truth["R_t"],
+            amplitude=king_truth["k"], background=0.0,
+        ) + corona_surface_density(r, delta_f=delta_f, R_2=R_2)
+
+    data = _sample_profile(77, surface)
+    # SMC needs the draws here: the corona model has a genuine k <-> delta_f degeneracy
+    # and at 1000 draws the evidence scatter swamped the verdict.
+    res = compare_radial_profiles(
+        data, field_radius=FIELD, models=("king", "king_corona"),
+        draws=4000, chains=4, random_seed=3,
+    )
+    assert res["best"] == "king_corona", res["log_marginal_likelihood"]
+    assert res["resolvable"]["king"], "verdict is within the chain scatter of the evidence"
+    assert 2 * res["log_bayes_factor_vs_best"]["king"] < -6.0, "should be 'strong' at minimum"
+
+
+@requires_bayes_extra
+def test_reported_king_medians_are_medians_not_means():
+    """A summary that silently returned the mean would pass every recovery test and
+    quietly shift every published number.
+
+    The fixture puts the true ``R_t`` **outside** the field, which is the situation
+    that actually obtains for NGC 6383 and the one where the distinction bites: with
+    no truncation inside the footprint the posterior runs away to the right and mean
+    and median separate by **22%**. (With ``R_t`` inside the field the posterior is
+    nearly symmetric and they differ by only 2%, so a fixture chosen that way would
+    have made this test almost vacuous -- the same "is the fixture in a regime where
+    the test can fail?" trap that let three earlier mutations survive.)
+    """
+    from erotica.analysis.inference import SamplingConfig
+
+    radii = _sample_king(5, k=5.0, b=0.001, R_c=2.0, R_t=200.0)
+    fit = king_unbinned(
+        radii, field_radius=FIELD,
+        sampling=SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=4, progressbar=False),
+    )
+    draws = np.asarray(fit["king_trace"].posterior["R_t"].values).ravel()
+    reported = float(fit["R_t_median"].value)
+    assert reported == pytest.approx(float(np.median(draws)), rel=1e-6)
+    # and the distinction is not academic on this posterior
+    assert abs(np.mean(draws) - np.median(draws)) > 0.10 * np.median(draws)
