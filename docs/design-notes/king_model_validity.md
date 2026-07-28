@@ -605,6 +605,61 @@ additive pedestal, and warn in their Appendix A that *"the inference of the para
 profile can be biased even after truncation has been accounted for … this effect can be generalised to
 any maximum-likelihood estimator."*
 
+### Seleznev's fix, implemented and fitted — and the answer is that the footprint is too small
+
+`compare_radial_profiles(models=(..., "king_corona"))` now fits a **King core plus a uniform-sphere
+corona**, the Danilov & Putkov (2012) / Seleznev (2016) two-component model, replacing the flat `b`.
+The corona's projected density and its closed-form field integral are
+
+```
+ΔΣ(r) = 2 δ_f √(R₂² − r²)      Λ = (4πδ_f/3) [ R₂³ − (R₂² − min(R_f, R₂)²)^{3/2} ]
+```
+
+verified against quadrature to better than 1e-8 in all three regimes (corona inside the field, corona
+larger than the field, exact boundary).
+
+**Model comparison on NGC 6383** (SMC, 4 chains, 2000 draws; `2 ln B` on Kass & Raftery):
+
+| model | log ML | chain sd | `2 ln B` vs best |
+|---|---|---|---|
+| King + flat `b` | **806.36** | 0.071 | 0 |
+| EFF + flat `b` | 805.60 | 0.059 | −1.53 |
+| **King + corona** | 805.23 | 0.040 | **−2.27** |
+| Plummer | 796.40 | 0.039 | −19.93 |
+
+**The data cannot distinguish a flat background from a uniform-sphere corona.** `2 ln B = −2.27` is
+barely past "not worth more than a bare mention".
+
+That is not a failure of the corona model — it is the *prediction*. As `R₂ → ∞` the corona projection
+tends to the constant `2 δ_f R₂`, so a corona wider than the footprint **is** a flat background, exactly.
+The fit says which case obtains:
+
+```{important}
+Fitting King + corona directly (NUTS, 4 chains, R-hat = 1.00, **zero divergences**):
+
+| parameter | posterior |
+|---|---|
+| `R_c` | 1.30 ± 0.21′ — unchanged from every other fit |
+| **`R₂`** | median **176.6′**, 95% interval **[96.8, 895]′** |
+| `P(R₂ > field radius = 70′)` | **1.000** |
+| `P(R₂ > 2 × field radius)` | 0.704 |
+| corona stars inside the field | median **382 = 61%** of 627 |
+
+**The corona is larger than the footprint with probability 1, and its outer radius is unbounded
+above.** The 56% attributed to a flat background and the 61% attributed to a corona are the same
+stars, relabelled — and the model cannot separate them *because the structure does not fit inside the
+field*. `R₂`'s median of 176.6′ is **55 pc** at the P01 distance, against a 70′ = 22 pc footprint.
+```
+
+This closes the question the way the Gaia-era literature suggests it should: 55 pc is the scale of
+Meingast et al.'s coronae and an order below Bouma et al.'s 500 pc halo around NGC 2516, and it is
+consistent with 43.5% of members lying beyond `r_J` and 25.2% beyond the fitted `R_t`. **Nothing here
+is a defect of the cluster or of the fit; the observation is smaller than the object.**
+
+The practical consequence sharpens: a flat `b` is not merely mis-labelled, it is the best a
+single-footprint fit can do. Distinguishing corona from background requires a field that contains the
+corona — which is a statement about survey design, not about likelihoods.
+
 ### One more model this points at
 
 **Wilson (1975, AJ 80, 175)** is the published alternative that keeps a finite truncation but is

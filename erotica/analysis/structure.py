@@ -891,6 +891,115 @@ def eff_unbinned(
     return results
 
 
+@dataclass(frozen=True)
+class CoronaPriors:
+    """Scale-free priors for the King-plus-corona model.
+
+    Same discipline as :class:`KingPriors`: fixed constants, independent of the data.
+    """
+
+    r_c_scale: float = 5.0
+    r_t_scale: float = 30.0
+    k_scale: float = 10.0
+    r_2_scale: float = 60.0
+    delta_scale: float = 0.01
+
+
+def corona_surface_density(radius, *, delta_f, R_2):
+    r"""Projected surface density of a uniform sphere — the cluster corona.
+
+    .. math:: \Delta\Sigma(r) = 2\,\delta_f\sqrt{R_2^2 - r^2}\quad (r < R_2),\ 0\ \text{beyond}
+
+    From Danilov & Putkov (2012, Astron. Rep. 56, 609) as used by Seleznev (2016,
+    MNRAS 456, 3757), who fits a King core **plus** this corona and states the
+    reason it is needed:
+
+        *"the King model does not have an extended corona, and the cluster corona
+        … is perceived by the approximation algorithm as part of the stellar
+        background."*
+
+    That is the mechanism this repository measured independently on NGC 6383,
+    where the flat background term accounts for **56% of a membership-selected
+    sample** against a target–decoy false-discovery proportion of 6.1%. See
+    ``docs/design-notes/king_model_validity.md``.
+
+    .. important::
+       Note the near-degeneracy this model exists to expose: for
+       :math:`R_2 \gg r`, :math:`\Delta\Sigma \to 2\delta_f R_2`, a **constant**.
+       So a corona much larger than the field is indistinguishable from a flat
+       background, and an unconstrained posterior on ``R_2`` is itself the
+       answer — it says the corona does not fit inside the footprint.
+
+    Parameters
+    ----------
+    delta_f : float or tensor
+        Space density of the corona, in stars per unit volume.
+    R_2 : float or tensor
+        Corona radius, same units as `radius`.
+    """
+    r = quantity_values(radius)
+    # The clamp at zero *is* the truncation: beyond R_2 the radicand is negative,
+    # so clipping it sends the density to zero. An explicit `np.where(r < R_2, ...)`
+    # on top is dead code that reads as if it were doing the work.
+    return 2.0 * delta_f * np.sqrt(np.maximum(R_2**2 - r**2, 0.0))
+
+
+def corona_expected_count(delta_f, R_2, field_radius, *, xp=np):
+    r"""Expected corona count inside a circular field, in closed form.
+
+    .. math:: \Lambda = \frac{4\pi\delta_f}{3}
+              \left[R_2^3 - \left(R_2^2 - \min(R_f, R_2)^2\right)^{3/2}\right]
+
+    When the field encloses the corona this reduces to
+    :math:`\frac{4}{3}\pi R_2^3 \delta_f`, i.e. volume times density, which is the
+    check that the algebra is right.
+
+    Verified against :func:`scipy.integrate.quad` to a relative error below
+    ``1e-10`` across regimes including ``R_2 > field_radius`` and
+    ``R_2 == field_radius``.
+    """
+    upper = xp.minimum(field_radius, R_2)
+    remainder = xp.maximum(R_2**2 - upper**2, 0.0)
+    return (4.0 * np.pi * delta_f / 3.0) * (R_2**3 - remainder**1.5)
+
+
+def _king_corona_model(pm, r, field_radius, priors, tidal_prior, completeness):
+    """King core plus a uniform-sphere corona, replacing the flat background."""
+    if completeness is not None:
+        raise NotImplementedError(
+            "completeness weighting is not implemented for the corona model; the "
+            "weighted normalisation would need its own quadrature."
+        )
+    with pm.Model() as model:
+        R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
+        if tidal_prior is None:
+            R_t = pm.Deterministic(
+                "R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale)
+            )
+        else:
+            mu, sigma = tidal_prior
+            R_t = pm.Deterministic(
+                "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
+            )
+        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
+        R_2 = pm.HalfStudentT("R_2", nu=1, sigma=priors.r_2_scale)
+        delta_f = pm.HalfStudentT("delta_f", nu=1, sigma=priors.delta_scale)
+
+        core = 1.0 / pm.math.sqrt(1.0 + (r / R_c) ** 2)
+        edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)
+        cluster = pm.math.switch(r <= R_t, k * (core - edge) ** 2, 0.0)
+        corona = pm.math.switch(
+            r < R_2, 2.0 * delta_f * pm.math.sqrt(pm.math.maximum(R_2**2 - r**2, 0.0)), 0.0
+        )
+        surface = cluster + corona
+        log_intensity = pm.math.log(2.0 * np.pi * r * surface)
+        expected = king_expected_count(
+            k, 0.0, R_c, R_t, field_radius, xp=pm.math
+        ) + corona_expected_count(delta_f, R_2, field_radius, xp=pm.math)
+        pm.Potential("point_process", pm.math.sum(log_intensity) - expected)
+    return model
+
+
 def compare_radial_profiles(
     radii,
     *,
@@ -898,6 +1007,7 @@ def compare_radial_profiles(
     models=("king", "eff", "plummer"),
     king_priors: KingPriors | None = None,
     eff_priors: EFFPriors | None = None,
+    corona_priors: CoronaPriors | None = None,
     tidal_prior: tuple[float, float] | None = None,
     completeness=None,
     draws: int = 2000,
@@ -961,6 +1071,9 @@ def compare_radial_profiles(
         "king": lambda: _king_model(pm, r, field_radius, king_priors, tidal_prior, completeness),
         "eff": lambda: _eff_model(pm, r, field_radius, eff_priors, None, completeness),
         "plummer": lambda: _eff_model(pm, r, field_radius, eff_priors, 4.0, completeness),
+        "king_corona": lambda: _king_corona_model(
+            pm, r, field_radius, corona_priors or CoronaPriors(), tidal_prior, completeness
+        ),
     }
     unknown = set(models) - set(builders)
     if unknown:
@@ -1287,6 +1400,9 @@ class ClusterStructureAnalyzer:
 
 
 __all__ = [
+    "CoronaPriors",
+    "corona_surface_density",
+    "corona_expected_count",
     "CenterFitResult",
     "ClusterStructureAnalyzer",
     "KingProfileResult",

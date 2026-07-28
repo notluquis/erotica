@@ -620,3 +620,65 @@ def test_eff_completeness_validation():
                      completeness=np.full(256, 1.5))
     with pytest.raises(ValueError, match="shape"):
         eff_unbinned(np.linspace(1, 50, 40), field_radius=FIELD, completeness=np.ones(9))
+
+
+# ---------------------------------------------------------------------------
+# King + uniform-sphere corona (Seleznev 2016; Danilov & Putkov 2012)
+# ---------------------------------------------------------------------------
+
+
+def test_corona_normalisation_matches_quadrature():
+    """Oracle: numerical integration of the profile this closed form claims to integrate.
+
+    Covers the three regimes that differ algebraically -- corona inside the field,
+    corona larger than the field (so the integral truncates at the field edge), and
+    the exact boundary.
+    """
+    from scipy.integrate import quad
+
+    from erotica.analysis.structure import corona_expected_count, corona_surface_density
+
+    for delta_f, R_2, field in [(0.02, 40.0, 70.0), (0.02, 90.0, 70.0),
+                                (5.0, 10.0, 70.0), (0.02, 70.0, 70.0)]:
+        numeric = quad(
+            lambda x: 2 * np.pi * x * float(
+                corona_surface_density(np.array([x]), delta_f=delta_f, R_2=R_2)[0]
+            ),
+            0.0, field, limit=400,
+        )[0]
+        closed = corona_expected_count(delta_f, R_2, field)
+        assert abs(closed / numeric - 1) < 1e-8, (delta_f, R_2, field, closed, numeric)
+
+
+def test_corona_enclosing_field_is_volume_times_density():
+    """Oracle: when the field encloses the corona the answer is elementary geometry,
+    (4/3)pi R^3 * delta -- a check on the algebra that needs no integration at all."""
+    from erotica.analysis.structure import corona_expected_count
+
+    delta_f, R_2 = 0.03, 25.0
+    expected = (4.0 / 3.0) * np.pi * R_2**3 * delta_f
+    assert corona_expected_count(delta_f, R_2, 70.0) == pytest.approx(expected, rel=1e-12)
+
+
+def test_corona_becomes_a_flat_background_when_large():
+    """The near-degeneracy the model exists to expose, stated as a limit.
+
+    For ``R_2 >> r`` the projected density tends to the constant ``2 delta_f R_2``.
+    This is why a corona wider than the footprint cannot be distinguished from a
+    flat background, and why an unconstrained ``R_2`` posterior is itself the result.
+    """
+    from erotica.analysis.structure import corona_surface_density
+
+    r = np.linspace(0.1, 70.0, 50)
+    sigma = corona_surface_density(r, delta_f=1e-4, R_2=1e5)
+    assert np.ptp(sigma) / sigma.mean() < 1e-6
+    assert sigma.mean() == pytest.approx(2 * 1e-4 * 1e5, rel=1e-5)
+
+
+def test_corona_vanishes_outside_its_radius():
+    from erotica.analysis.structure import corona_surface_density
+
+    r = np.array([1.0, 10.0, 29.9, 30.0, 30.1, 50.0])
+    sigma = corona_surface_density(r, delta_f=0.02, R_2=30.0)
+    assert np.all(sigma[:3] > 0)
+    assert np.all(sigma[3:] == 0)
