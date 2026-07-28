@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Is the completeness-induced bias on ``R_c`` linear in the size of the suppression?
+
+WHY THIS EXISTS
+---------------
+The completeness dossier and ``docs/design-notes/king_model_validity.md`` both argue that NGC 6383's
+measured **1.156%** core suppression is negligible, and both do it by *extrapolation*: the repo's
+synthetic benchmark uses a toy completeness with a **50.44%** core suppression and shows it inflates
+``R_c`` by ~50%, so a 1.2% gradient "moves nothing".
+
+That step is a ratio, and it is only valid if the bias scales linearly with the suppression. Nobody
+measured the scaling -- it was assumed. **This script measures it.**
+
+WHAT IT SHOULD FIND, AND WHY
+----------------------------
+The analytic result derived for this programme,
+
+    delta_theta = epsilon * I^{-1} v,
+
+says the first-order bias is *linear* in the perturbation size ``epsilon``, with the Fisher
+information ``I`` and the score-covariance ``v`` fixed by the unperturbed model. So linearity is a
+prediction, not a hope, and this is a test of the analytic backbone as much as of the extrapolation.
+A measured departure from linearity at small ``epsilon`` would mean the extrapolation from 50% down
+to 1.2% is unsafe and the dossier's central claim needs re-deriving.
+
+THE DESIGN
+----------
+One-parameter family of radial completeness curves, same shape as the repo's test toy, with the core
+suppression dialled from 0 to ~65%:
+
+    S(r) = floor + (1 - floor) * (1 - exp(-r / scale))
+
+Core suppression is ``1 - S_bar(core) / S_bar(field)``. For each level, many realizations of a King
+point process are thinned by ``S``, fitted **without** the correction, and the fractional ``R_c``
+bias recorded against the injected truth. The realization spread gives an error bar, so a
+"consistent with zero" result is distinguishable from "too noisy to say".
+
+USAGE
+-----
+    python tools/validation/completeness_bias_scaling.py --realizations 12
+
+Writes ``completeness_bias_scaling.json``.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import warnings
+from pathlib import Path
+
+import numpy as np
+
+from erotica.analysis.inference import SamplingConfig
+from erotica.analysis.structure import king_unbinned
+
+# NGC 6383 geometry and the repo's benchmark truth, so the answer transfers directly.
+TRUE_KING = dict(k=1.0, R_c=1.38, R_t=54.0, b=0.0)
+FIELD = 70.0
+N_DRAW = 4000  # before thinning; the fit sees fewer
+CORE_RADIUS = 1.38  # = R_c, the aperture the suppression is quoted over
+NGC6383_MEASURED_SUPPRESSION = 0.01156  # order-12 patch mode
+
+
+def king_sigma(r, *, k, R_c, R_t, b):
+    r = np.asarray(r, float)
+    core = 1.0 / np.sqrt(1.0 + (r / R_c) ** 2)
+    edge = 1.0 / np.sqrt(1.0 + (R_t / R_c) ** 2)
+    return np.where(r <= R_t, k * (core - edge) ** 2 + b, b)
+
+
+def sample_king(rng, n, **params):
+    grid = np.linspace(0.0, FIELD, 100_001)
+    pdf = 2.0 * np.pi * grid * king_sigma(grid, **params)
+    cdf = np.concatenate([[0.0], np.cumsum(0.5 * (pdf[1:] + pdf[:-1]) * np.diff(grid))])
+    cdf /= cdf[-1]
+    return np.interp(rng.uniform(0.0, 1.0, n), cdf, grid)
+
+
+def completeness(floor, scale=6.0):
+    return lambda r: floor + (1.0 - floor) * (1.0 - np.exp(-np.asarray(r, float) / scale))
+
+
+def core_suppression(fn):
+    """1 - mean S inside one core radius / mean S over the field, area-weighted."""
+    inner = np.linspace(1e-6, CORE_RADIUS, 2000)
+    outer = np.linspace(1e-6, FIELD, 20000)
+    s_in = np.trapezoid(2 * np.pi * inner * fn(inner), inner) / (np.pi * CORE_RADIUS**2)
+    s_out = np.trapezoid(2 * np.pi * outer * fn(outer), outer) / (np.pi * FIELD**2)
+    return 1.0 - s_in / s_out
+
+
+def run_level(floor, realizations, seed):
+    fn = completeness(floor)
+    supp = core_suppression(fn)
+    cfg = SamplingConfig(draws=1200, tune=1000, chains=2, random_seed=7, progressbar=False)
+    biases = []
+    for i in range(realizations):
+        rng = np.random.default_rng(seed + i)
+        radii = sample_king(rng, N_DRAW, **TRUE_KING)
+        observed = radii[rng.uniform(size=radii.size) < fn(radii)]
+        fit = king_unbinned(observed, field_radius=FIELD, sampling=cfg)
+        rc = float(fit["R_c_median"].value)
+        biases.append(rc / TRUE_KING["R_c"] - 1.0)
+    b = np.array(biases)
+    return dict(
+        floor=floor,
+        core_suppression=float(supp),
+        n_observed=int(observed.size),
+        bias_mean=float(b.mean()),
+        bias_sem=float(b.std(ddof=1) / np.sqrt(b.size)),
+        realizations=realizations,
+    )
+
+
+def main():
+    warnings.filterwarnings("ignore")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--realizations", type=int, default=12)
+    ap.add_argument("--seed", type=int, default=20260728)
+    args = ap.parse_args()
+
+    # floor = 1.0 is no suppression at all (the null); 0.35 is the repo's test toy.
+    floors = [1.0, 0.95, 0.90, 0.80, 0.65, 0.50, 0.35]
+    rows = []
+    for f in floors:
+        r = run_level(f, args.realizations, args.seed)
+        rows.append(r)
+        print(f"  floor={f:.2f}  suppression={r['core_suppression']:7.2%}  "
+              f"R_c bias = {r['bias_mean']:+7.2%} +/- {r['bias_sem']:.2%}", flush=True)
+
+    supp = np.array([r["core_suppression"] for r in rows])
+    bias = np.array([r["bias_mean"] for r in rows])
+    sem = np.array([r["bias_sem"] for r in rows])
+
+    # Weighted fit through the origin: the analytic prediction is bias = slope * suppression
+    # with no intercept, because zero perturbation must give zero bias.
+    w = 1.0 / np.maximum(sem, 1e-9) ** 2
+    slope = float((w * supp * bias).sum() / (w * supp**2).sum())
+    resid = bias - slope * supp
+    chi2 = float((w * resid**2).sum())
+    dof = len(rows) - 1
+
+    extrapolated = slope * NGC6383_MEASURED_SUPPRESSION
+    print(f"\nlinear fit through origin: bias = {slope:.3f} x suppression")
+    print(f"  chi2/dof = {chi2:.1f}/{dof} = {chi2 / dof:.2f}  "
+          f"({'LINEAR -- extrapolation is safe' if chi2 / dof < 3 else 'NONLINEAR -- extrapolation unsafe'})")
+    print(f"\nNGC 6383 measured suppression = {NGC6383_MEASURED_SUPPRESSION:.3%}")
+    print(f"  -> predicted R_c bias = {extrapolated:+.3%}")
+
+    out = Path(__file__).with_name("completeness_bias_scaling.json")
+    out.write_text(json.dumps(dict(
+        truth=TRUE_KING, field_radius=FIELD, n_draw=N_DRAW, levels=rows,
+        slope=slope, chi2=chi2, dof=dof, chi2_per_dof=chi2 / dof,
+        linear=bool(chi2 / dof < 3),
+        ngc6383_suppression=NGC6383_MEASURED_SUPPRESSION,
+        ngc6383_predicted_Rc_bias=extrapolated,
+    ), indent=1))
+    print(f"\nwrote {out}")
+
+
+if __name__ == "__main__":
+    main()
