@@ -94,22 +94,103 @@ def sample_clumps(rng, n=N_STARS, *, clumped_fraction=0.5, n_clumps=15, clump_si
     return np.vstack([field, clumped])
 
 
-def sample_fractal(rng, n=N_STARS, *, fractal_dimension=1.6, field_radius=FIELD_RADIUS, **kw):
-    """Fractal angular substructure, radially remapped so the marginal profile stays EFF.
+def sample_fractal_clumps(rng, n=N_STARS, *, clumped_fraction=0.5, n_clumps=15, clump_sigma=1.0,
+                          fractal_dimension=1.6, **kw):
+    """The published clump configuration with **fractal** internal structure instead of Gaussian.
 
-    The box-fractal gives scale-free substructure but its own radial profile. Sorting its projected
-    radii and substituting the order statistics of an EFF draw keeps the **angular** structure
-    (which star is near which) while forcing the **radial** marginal to be exactly EFF -- so the
-    comparison against ``smooth`` isolates substructure and does not confound it with a change of
-    profile.
+    WHY THIS SHAPE AND NOT A REMAP
+    ------------------------------
+    The obvious design -- generate a fractal cluster and transform its radii onto the EFF profile --
+    cannot be made unbiased. Two attempts failed, for instructive reasons:
+
+    1. Substituting the *order statistics* of an EFF draw makes the radii an iid EFF sample, i.e.
+       statistically identical to the smooth control. Since the likelihood is radial and never sees
+       angles, that renders the substructure invisible by construction.
+    2. A fixed *population* quantile map fails differently: fractals at low `D` have enormous
+       realization-to-realization variance in extent, so the pooled CDF's upper quantiles are set by
+       rare wide realizations. A typical compact realization maps entirely into the low part of that
+       CDF and comes out too small -- a 7% median offset that no tuning removes, because it is
+       structural rather than an estimation error.
+
+    So the profile is fixed **by construction** instead. Clump centres are drawn from the same EFF
+    profile as the published configuration and offsets about them are zero-mean, so the expected
+    radial profile is exactly EFF, identical to :func:`sample_clumps`. The *only* thing that differs
+    from the published row is the internal structure of each clump. That makes it a one-variable
+    comparison: does the substructure **model** drive the reported 3.15x understatement, or does any
+    clumping at the same amplitude do it?
+    """
+    n_clumped = int(round(clumped_fraction * n))
+    field = sample_smooth(rng, n - n_clumped, **kw)
+    centres = sample_smooth(rng, n_clumps, **kw)
+    which = rng.integers(0, n_clumps, n_clumped)
+    # Fractal offsets, rescaled so their per-axis RMS matches the Gaussian case being replaced.
+    offsets = fractal_cluster(n_clumped, fractal_dimension=fractal_dimension, rng=rng)[:, :2]
+    offsets -= offsets.mean(axis=0)
+    offsets *= clump_sigma / np.sqrt((offsets**2).sum(axis=1).mean() / 2.0)
+    return np.vstack([field, centres[which] + offsets])
+
+
+_REFERENCE_CDF: dict[tuple[float, int], np.ndarray] = {}
+
+
+def _fractal_reference_cdf(fractal_dimension, n_stars=N_STARS, nodes=2001, n_realizations=300):
+    """Population-level radial CDF of the box fractal at this `D`, computed once.
+
+    THIS IS THE WHOLE POINT, AND THE FIRST VERSION GOT IT WRONG. The obvious remap -- sort the
+    realization's fractal radii and substitute the order statistics of a fresh EFF draw -- makes the
+    resulting radii an **iid EFF sample**, statistically identical to the smooth control. Since
+    ``eff_unbinned`` is a *radial* likelihood and never sees angles, that construction renders the
+    substructure invisible by design: the fractal configuration silently becomes a second copy of the
+    null, and its "well calibrated" result means nothing. Measured, it did exactly that -- an
+    understatement factor of 0.98 against the smooth control's 0.88.
+
+    Using a *fixed population* quantile map instead preserves each realization's own radial
+    fluctuations: a fractal clump sitting at some radius maps to a genuine radial over-density, which
+    is the over-dispersion the Poisson likelihood does not model and the thing being measured.
+
+    The reference must be pooled over many realizations **at the same n_stars**, not taken from one
+    large realization. The construction stops subdividing once it holds ``8 * n_stars`` points, so a
+    200,000-star draw runs to a different number of levels than a 628-star one and has a genuinely
+    different radial distribution: using the big one as the reference biased the mapped median to
+    2.64 against EFF's 6.17. The fractal's radial law is n-dependent, and the reference has to match.
+    """
+    key = (round(float(fractal_dimension), 6), int(n_stars))
+    if key not in _REFERENCE_CDF:
+        pooled = np.concatenate([
+            np.linalg.norm(
+                fractal_cluster(n_stars, fractal_dimension=fractal_dimension, rng=20260728 + i)[:, :2],
+                axis=1,
+            )
+            for i in range(n_realizations)
+        ])
+        _REFERENCE_CDF[key] = np.quantile(pooled, np.linspace(0.0, 1.0, nodes))
+    return _REFERENCE_CDF[key]
+
+
+def _eff_quantiles(nodes=2001, *, a=A_TRUE, gamma=GAMMA_TRUE, field_radius=FIELD_RADIUS):
+    """Inverse EFF CDF on the same probability grid."""
+    grid = np.linspace(0.0, field_radius, 200_001)
+    pdf = 2.0 * np.pi * grid * (1.0 + (grid / a) ** 2) ** (-gamma / 2.0)
+    cdf = np.concatenate([[0.0], np.cumsum(0.5 * (pdf[1:] + pdf[:-1]) * np.diff(grid))])
+    cdf /= cdf[-1]
+    return np.interp(np.linspace(0.0, 1.0, nodes), cdf, grid)
+
+
+def sample_fractal(rng, n=N_STARS, *, fractal_dimension=1.6, field_radius=FIELD_RADIUS, **kw):
+    """Fractal substructure, radially transformed so the *expected* profile is EFF.
+
+    Each star's radius is pushed through the fixed monotone map
+    ``F_EFF^{-1} ( F_fractal(r) )``, both CDFs being population-level and computed once. The
+    expected radial profile is therefore EFF while the realization's own clumping -- radial and
+    angular -- survives, so the comparison against ``smooth`` isolates substructure without
+    confounding it with a different profile.
     """
     xy = fractal_cluster(n, fractal_dimension=fractal_dimension, rng=rng)[:, :2]
     r = np.linalg.norm(xy, axis=1)
     unit = np.divide(xy, r[:, None], out=np.zeros_like(xy), where=r[:, None] > 0)
-    target = np.sort(eff_radii(rng, n, field_radius=field_radius, **kw))
-    remapped = np.empty(n)
-    remapped[np.argsort(r)] = target
-    return unit * remapped[:, None]
+    probability = np.linspace(0.0, 1.0, 2001)
+    u = np.interp(r, _fractal_reference_cdf(fractal_dimension), probability)
+    return unit * np.interp(u, probability, _eff_quantiles(**kw))[:, None]
 
 
 # The remap is not free: replacing each star's radius by the order statistic at its rank pulls
@@ -131,7 +212,8 @@ CONFIGS = {
     "smooth": (sample_smooth, {}),
     "clumps15": (sample_clumps, dict(n_clumps=15, clump_sigma=1.0)),
     "clumps8": (sample_clumps, dict(n_clumps=8, clump_sigma=2.0)),
-    "fractal": (sample_fractal, dict(fractal_dimension=1.6)),
+    "fracclump15": (sample_fractal_clumps, dict(n_clumps=15, clump_sigma=1.0, fractal_dimension=1.6)),
+    "fracclump8": (sample_fractal_clumps, dict(n_clumps=8, clump_sigma=2.0, fractal_dimension=1.6)),
 }
 
 

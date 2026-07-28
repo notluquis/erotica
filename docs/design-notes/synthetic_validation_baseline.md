@@ -209,7 +209,7 @@ different number.
 | First-order selection bias is `δθ = ε I⁻¹v`; constant `S` biases no shape parameter | `king_model_validity.md` | **SAFE** | Analytic; degree-1 homogeneity. Synthetic runs only confirm the algebra. |
 | Likelihood is well calibrated on a genuine Poisson point process (93% at 2σ) | `substructure_coverage.py` | **SAFE** | This *is* the within-model check, and it is correctly scoped as one. |
 | **"Ignoring completeness inflates `R_c` by 50% and halves the central density"** | `king_model_validity.md:194`, `test_structure.py` | **VULNERABLE** | Drawn from a smooth King with a toy `S(r)` (`floor=0.35`). Load-bearing: it is the yardstick that declares NGC 6383's measured 1.156% suppression negligible, and that step is an **extrapolation over a factor of 44** which assumes the bias is linear in the suppression. |
-| **"The `γ` credible interval is 2–3.5× too narrow"** | `king_model_validity.md:324` | **VULNERABLE** | Substructure injected as **ad-hoc Gaussian clumps**, which is not a citable model of cluster structure and gives `Q = 1.019` — barely displaced from the smooth control's 1.276. |
+| **"The `γ` credible interval is 2–3.5× too narrow"** | `king_model_validity.md:324` | **VULNERABLE → SURVIVED** | Substructure was injected as ad-hoc Gaussian clumps. Re-tested with Goodwin & Whitworth fractal clumps at matched amplitude and matched `Q`: understatement 3.15 → 3.21. **The model does not matter, only the amplitude.** See §2. |
 | `R_t` is unidentifiable even inside `r_J` | `CANDIDATE-king-rt-identifiability.md` | **VULNERABLE** | Smooth-King recovery study. The direction is almost certainly robust (substructure can only widen the posterior) but the quoted magnitude is not. |
 
 ### What is being done about the two vulnerable ones
@@ -219,15 +219,130 @@ different number.
   the analytic backbone at the same time; a measured departure at small suppression would mean the
   extrapolation from 50% down to 1.2% is unsafe and the dossier's central claim needs re-deriving.
 * `tools/validation/substructure_coverage.py` re-runs the coverage experiment with fractal
-  substructure alongside the original ad-hoc clumps. The fractal configuration is radially remapped
-  onto the same EFF profile, so the angular structure changes while the radial marginal does not and
-  the comparison isolates substructure. Measured `Q` after the remap: **0.591** at `D = 1.6` and
-  **0.729** at `D = 2.0`, against 1.019 for the ad-hoc clumps and 1.276 for the smooth control —
-  i.e. substantially more substructured than the configuration behind the published table, and
-  bracketing NGC 6383's observed `Q = 0.833`.
+  substructure alongside the original ad-hoc clumps. It also had **no script behind it** until now;
+  the numbers in the design note were produced ad hoc and only the table survived.
 
-  This experiment also had **no script behind it** until now; the numbers in the design note were
-  produced ad hoc and only the table survived.
+### First result, and one row of it had to be thrown away
+
+40 realizations per configuration, NGC 6383 geometry (`N = 628`, 70′, EFF `γ = 2.32`, `a = 1.65′`):
+
+| configuration | Q | `γ` recovered | reported σ | realization scatter | understatement | 1σ cov. | 2σ cov. |
+|---|---|---|---|---|---|---|---|
+| smooth control | 1.259 | 2.395 | 0.086 | 0.076 | **0.88** | 62% | **95%** |
+| 50% in 15 clumps, σ = 1′ | 0.985 | 2.608 | 0.121 | 0.381 | **3.15** | 20% | 45% |
+| 50% in 8 clumps, σ = 2′ | 1.036 | 2.808 | 0.159 | 0.555 | **3.49** | 12% | 38% |
+| ~~fractal, `D` = 1.6~~ | ~~0.537~~ | ~~2.416~~ | ~~0.087~~ | ~~0.085~~ | ~~0.98~~ | ~~48%~~ | ~~88%~~ |
+
+The clump rows **reproduce the published table**, so those numbers are now backed by a script, and
+the smooth control is well calibrated at 2σ — the likelihood is right when its assumptions hold.
+
+```{danger}
+**The fractal row is struck through because it measured nothing.** The first implementation remapped
+radii by substituting the *order statistics* of a fresh EFF draw, which makes the resulting radii an
+**iid EFF sample** — statistically identical to the smooth control. Since `eff_unbinned` is a *radial*
+likelihood that never sees angles, that construction rendered the substructure invisible by design.
+Its "well calibrated" answer (understatement 0.98 against the control's 0.88) was a tautology.
+
+Had it been reported, the conclusion would have been *"realistic fractal substructure does not bias
+the fit, unlike ad-hoc clumps"* — clean, publishable, and **completely false**.
+```
+
+The second attempt was a **population-level** quantile map, `F_EFF⁻¹(F_fractal(r))` with both CDFs
+fixed in advance. It fails too, and differently: fractals at low `D` have enormous
+realization-to-realization variance in extent, so the pooled CDF's upper quantiles are set by rare
+wide realizations, and a typical compact realization maps entirely into the low part of that CDF and
+comes out too small. A 7% median offset that no tuning removes, because it is structural.
+
+*(That attempt also surfaced a third generator defect worth recording: the reference CDF was first
+built from one 200,000-star realization, but the construction stops subdividing once it holds
+`8 × n_stars` points, so a 200k draw runs to a different number of levels than a 628-star one and
+obeys a different radial law — the mapped median came out at 2.64 against EFF's 6.17. **The fractal's
+radial distribution is n-dependent.**)*
+
+### The design that works, and the answer
+
+Fix the profile **by construction** rather than by a transform that has to be verified: keep the
+published configuration exactly — clump centres drawn from EFF, same clumped fraction, same clump
+count, same amplitude — and change **only** the internal structure of each clump from Gaussian to
+Goodwin & Whitworth fractal. Expected radial profile is then exactly EFF by construction, and `Q`
+lands on the Gaussian value (1.014 vs 1.039; 1.024 vs 1.051), so it is a genuine one-variable test.
+
+| configuration | Q | `γ` recovered | reported σ | realization scatter | understatement | 1σ cov. | 2σ cov. |
+|---|---|---|---|---|---|---|---|
+| smooth control | 1.259 | 2.395 | 0.086 | 0.076 | **0.88** | 62% | **95%** |
+| 15 clumps, σ = 1′, **Gaussian** | 0.985 | 2.608 | 0.121 | 0.381 | **3.15** | 20% | 45% |
+| 15 clumps, σ = 1′, **fractal** | 0.962 | 2.604 | 0.120 | 0.387 | **3.21** | 15% | 42% |
+| 8 clumps, σ = 2′, **Gaussian** | 1.036 | 2.808 | 0.159 | 0.555 | **3.49** | 12% | 38% |
+| 8 clumps, σ = 2′, **fractal** | 0.990 | 2.811 | 0.158 | 0.506 | **3.20** | 12% | 30% |
+
+```{important}
+**The substructure model does not matter; the amplitude does.** Swapping ad-hoc Gaussian clumps for
+the citable Goodwin & Whitworth construction moves nothing measurable — `γ` 2.608 → 2.604, reported σ
+0.121 → 0.120, understatement 3.15 → 3.21 at matched amplitude, and the same again for the wider
+configuration.
+
+**So the VULNERABLE claim survives the audit.** The published "the `γ` credible interval is 2–3.5×
+too narrow" is *not* an artifact of the ad-hoc clump model, which is precisely what the audit was
+built to find out. It can now be defended by pointing at the standard prescription rather than at a
+sprinkling of Gaussians.
+```
+
+### A second finding the run produced for free: the estimator is biased at this N
+
+The smooth control recovered `γ = 2.395` against an injected 2.32 — a bias of **+0.075 ± 0.012**, 6σ,
+with no substructure and no selection effect anywhere. The EFF radial sampler was checked against the
+analytic EFF CDF first and is exact (max deviation 7 × 10⁻⁴ on 400,000 draws), so this is
+**finite-sample estimator bias, not a generator bug**. It decays with sample size:
+
+| `N` | recovered `γ` | bias |
+|---|---|---|
+| 628 | 2.381 | +0.061 |
+| 2512 | 2.351 | +0.031 |
+| 10048 | 2.331 | +0.011 |
+
+roughly `N^-0.6`. **This bears on P01 directly.** The published `γ = 2.32 ± 0.21` is measured at
+`N = 628`, so the debiased value is nearer **2.25**, which sits *closer* to the King/EFF degeneracy at
+`γ = 2` — 1.2σ rather than 1.5σ. The correction strengthens the existing argument rather than
+threatening it, but it should be applied and stated rather than left implicit.
+
+---
+
+## 2b. Checked against the reference packages, not just against the papers
+
+Reading what the standard tools do is weaker than running them. Both were installed from PyPI and
+exercised on 2026-07-28.
+
+### `erotica`'s King agrees with `ocelot`'s `King62` to within Poisson noise
+
+`ocelot.model.distribution.King62` is the Hunt-lineage reference implementation — the one behind
+80,590 published injection/retrievals. Drawing 400,000 3D positions from it, projecting isotropically,
+and comparing the binned surface density against **area-averaged** `king_profile` over the same
+annuli (evaluating the model at bin centres instead is a 16% error on the innermost bin, and the
+first comparison did exactly that):
+
+> mean ratio **1.0036**, scatter **1.67%**, max deviation **3.7%** across 0–30 pc, against a Poisson
+> floor of **2.9%**.
+
+That is an independent external validation of the surface-density implementation the published
+`R_c` / `R_t` rest on.
+
+### Three reproducibility barriers in `ocelot`, verified rather than inferred
+
+Worth stating in P02, and they strengthen the case for contributing upstream rather than depending on
+it:
+
+1. **`ocelot.simulate` does not import from a clean `pip install ocelot`** (v0.4.10). It raises
+   `ValueError: zero-size array to reduction operation minimum` because `AVAILABLE_METALLICITIES` is
+   empty — the isochrone data is a manually downloaded blob behind the `OCELOT_DATA` environment
+   variable. The simulation half of the Gaia-aware standard is therefore not installable.
+2. **`ocelot.model.distribution` exports exactly one concrete model, `King62`** — not King62, King64
+   and Plummer as the file listing suggests. The gap is starker than a directory listing implies.
+3. **`King62` raises `NotImplementedError` for `dimensions=2`** ("Other levels of dimensionality are
+   coming soon"), so the *projected* surface density — the thing every observational radial-profile
+   fit actually needs — is not available, and it requires physical units (`pc`), rejecting `arcmin`.
+
+The extension point for a fractal model is small and stable: `BaseClusterDistributionModel` requires
+only `base_unit`, `pdf`, `cdf`, `rvs`.
 
 ---
 
