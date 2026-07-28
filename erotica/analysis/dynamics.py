@@ -257,7 +257,10 @@ def calculate_hill_radius(
         # calculate_galactic_mass returns a bare Quantity when no error is given
         # and a (mass, err) tuple when one is. Unpacking unconditionally -- as both
         # call sites did before 2026-07-27 -- breaks the DEFAULT path, where
-        # galactocentric_distance_err is None.
+        # galactocentric_distance_err is None. NOTE: an audit established that only
+        # tidal_radius_prior's copy was actually reachable; calculate_hill_radius
+        # always supplies a non-None error before reaching it, so its guard here is
+        # defensive rather than a fix.
         computed = calculate_galactic_mass(
             galactocentric_distance, galactocentric_distance_err
         )
@@ -371,7 +374,10 @@ def tidal_radius_prior(
         # calculate_galactic_mass returns a bare Quantity when no error is given
         # and a (mass, err) tuple when one is. Unpacking unconditionally -- as both
         # call sites did before 2026-07-27 -- breaks the DEFAULT path, where
-        # galactocentric_distance_err is None.
+        # galactocentric_distance_err is None. NOTE: an audit established that only
+        # tidal_radius_prior's copy was actually reachable; calculate_hill_radius
+        # always supplies a non-None error before reaching it, so its guard here is
+        # defensive rather than a fix.
         computed = calculate_galactic_mass(
             galactocentric_distance, galactocentric_distance_err
         )

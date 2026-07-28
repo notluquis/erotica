@@ -130,12 +130,20 @@ The fix has to discriminate all five forms, because a naive "equatorial requires
 `calculate_hill_radius(center=...)`, which passes `(ra, dec)` positionally *with* a keyword
 `distance`. Caught by the existing `solar_radius` test — which is exactly what it was written for.
 
-**Bug 2 — `tidal_radius_prior` was broken on its default path**, in two places.
+**Bug 2 — `tidal_radius_prior` was broken on its default path.**
 `calculate_galactic_mass` returns a bare `Quantity` when no error is supplied and a `(mass, err)`
-tuple when one is. Both `tidal_radius_prior` and `calculate_hill_radius` unpacked two values
-unconditionally, so with the **default** `galactocentric_distance_err=None` the call raised
-`ValueError: too many values to unpack` (arrays) or `TypeError: 'Quantity' object ... is not
-iterable` (scalars).
+tuple when one is. `tidal_radius_prior` unpacked two values unconditionally, so with the **default**
+`galactocentric_distance_err=None` the call raised `ValueError: too many values to unpack` (arrays)
+or `TypeError: 'Quantity' object ... is not iterable` (scalars).
+
+```{note}
+**Corrected 2026-07-27 after an audit.** This entry originally said the bug was "in two places",
+because `calculate_hill_radius` contains the identical unconditional unpack and both were patched
+together. The audit established that **only `tidal_radius_prior`'s was reachable** —
+`calculate_hill_radius` always supplies a non-`None` error on the path that reaches it, so its copy
+never raised. The fix to both is still correct (the second is defensive), but the claim that two
+functions were broken was an overstatement.
+```
 
 ```{warning}
 `tidal_radius_prior` is the function PART J recommends for the King `R_t` prior — the physical
@@ -704,6 +712,37 @@ clip sits at ~95.7% everywhere, which is simply what a 2σ cut *should* retain.
 
 So the current cut discards **about a third of genuine members**, and **roughly three-quarters of
 the faintest quartile**.
+
+```{admonition} CORRECTED 2026-07-27 — the attribution was wrong, the number was nearly right
+:class: danger
+An adversarial audit found the causal attribution above is **wrong**. The +72.4 pp gradient is not
+the 2σ clip's. It is the gradient of **the ADQL query window plus the clip**.
+
+The oracle draws synthetic member parallaxes with **no bound**, but the real cone was queried with a
+parallax constraint: the raw file `data/70/NGC_6383_70-result.ecsv` spans **0.750–1.100 mas** and all
+78 893 raw sources lie inside it. A faint-quartile member (median `e_Plx` = 0.293 mas) at a true
+0.90 mas scatters over 0.02–1.78 mas — mostly **outside** that window, so in reality it never enters
+the catalogue and the clip never sees it. The simulation charged those losses to the clip.
+
+Re-running with the query window applied first, 300 realizations:
+
+| stage | overall | Q1 | Q2 | Q3 | Q4 | gradient |
+|---|---|---|---|---|---|---|
+| clip alone, unbounded (the original, wrong, setup) | 67.6% | 99.1% | 85.8% | 59.3% | 26.7% | +72.4 pp |
+| **ADQL query window alone** | 80.6% | 99.8% | 97.4% | 82.8% | **43.0%** | **+56.7 pp** |
+| query window **then** clip (what actually happened) | 64.6% | 98.6% | 81.8% | 54.4% | 24.1% | +74.5 pp |
+
+**The query window alone accounts for +56.7 pp — 78% of the effect.** The clip adds the remaining
+~18 pp on top of it.
+
+So the corrected statement is: *a strong magnitude-dependent selection is present and the total
+gradient is ~+74 pp, but it is dominated by the parallax range of the cone query, which is fixed at
+data-acquisition time and is not an analysis choice.* Changing the clip — PART J's `[R3]` item 1 —
+addresses the smaller part of it.
+
+This sharpens rather than softens the point for P01's faint quartile: the selection acting on the
+sample is larger than previously stated and mostly precedes the pipeline entirely.
+```
 
 ```{admonition} What this experiment does *not* establish
 :class: caution

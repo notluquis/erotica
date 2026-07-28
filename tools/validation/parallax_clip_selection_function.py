@@ -14,6 +14,26 @@ This matters because P01 attributes a faint-quartile luminosity-function / KS
 signal to *Gaia* incompleteness. If the clip itself removes faint members at a
 different rate than bright ones, that attribution needs a control.
 
+CORRECTION 2026-07-27 -- READ BEFORE QUOTING THE GRADIENT
+---------------------------------------------------------
+This script's oracle draws synthetic member parallaxes with **no bound**, but the
+real cone was queried with a parallax constraint: the raw file spans 0.750-1.100
+mas and every one of the 78893 raw sources lies inside it. A faint-quartile member
+(median e_Plx = 0.293 mas) scatters far outside that window, so in reality it never
+enters the catalogue at all and the clip never sees it.
+
+The +72.4 pp gradient this script reports is therefore **the query window plus the
+clip**, not the clip. Measured separately over 300 realizations:
+
+    stage                              overall   Q1     Q4     gradient
+    clip alone, unbounded (this script)  67.6%  99.1%  26.7%   +72.4 pp
+    ADQL query window alone              80.6%  99.8%  43.0%   +56.7 pp
+    query window THEN clip (reality)     64.6%  98.6%  24.1%   +74.5 pp
+
+The query window alone is 78% of the effect. The total is real and slightly larger
+than reported here, but it is dominated by a data-acquisition choice, not by the
+clip. See the decision log.
+
 THE ORACLE
 ----------
 By construction: a synthetic cluster is generated in which **every star is a true
