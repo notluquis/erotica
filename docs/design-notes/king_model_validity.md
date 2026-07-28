@@ -231,12 +231,17 @@ diagnostic only (`ngc6383_selection_function_hpx7.npz`) and must not be used as 
 :class: note
 `mode='multi'` is **precomputed and archive-free**, and reaches healpix order 10 (**3.44′**), which
 does resolve radial structure across the field. Running it on NGC 6383 gives a **real but negligible**
-gradient: `S̄(r)` rises from **0.99381** in the core to **0.99818** in the outskirts — a core
-suppression of **0.258%**.
+gradient. **The number first recorded here, 0.258%, was a resolution artefact and is superseded:**
+order 10 (3.44′) resolves the field but not the core. Running `mode='patch'` (order 6–12, 0.86′) on
+the identical sample gives **1.156%** — a **4.5× under-read**. NGC 6383's `M_10` profile has a
+genuine centred depression of **0.36 mag** (20.474 at centre → 20.838 at 70′) that order 10 largely
+misses, reading 20.724 at the centre.
 
-Against the note's own synthetic benchmark, where ignoring a completeness gradient inflates `R_c` by
-50%, a 0.26% gradient moves nothing. **For this cluster, the Gaia DR3 selection-function correction
-to the radial profile is not needed.** `mode='patch'` (order 12, 0.86′) would still resolve inside
+Against the note's own synthetic benchmark — computed exactly, not estimated: the repo's
+`_crowding_completeness` gives a **50.44%** core suppression under this aperture — a 1.2% gradient
+moves nothing. Fitting with the order-12 `S̄(r)` shifts `R_c` by **−0.01σ**. **For this cluster the
+Gaia DR3 selection-function correction to the radial profile is not needed** — but the *number* to
+quote is 1.156%, not 0.258%. `mode='patch'` (order 12, 0.86′) would still resolve inside
 the core and remains worth running when the ESA archive is up, but the expected payoff is now small.
 
 This does not weaken the corollary above — it strengthens it. Gaia's completeness is flat *and* ~1

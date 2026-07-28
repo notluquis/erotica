@@ -807,16 +807,37 @@ Re-running with the query window applied first, 300 realizations:
 | **ADQL query window alone** | 80.6% | 99.8% | 97.4% | 82.8% | **43.0%** | **+56.7 pp** |
 | query window **then** clip (what actually happened) | 64.6% | 98.6% | 81.8% | 54.4% | 24.1% | +74.5 pp |
 
-**The query window alone accounts for +56.7 pp — 78% of the effect.** The clip adds the remaining
-~18 pp on top of it.
+```{danger}
+**CORRECTED AGAIN, 2026-07-27. The correction above was itself wrong.** It read "the query window
+alone accounts for 78% of the effect", and that 78% is **an artefact of evaluation order**, not a
+property of the data.
 
-So the corrected statement is: *a strong magnitude-dependent selection is present and the total
-gradient is ~+74 pp, but it is dominated by the parallax range of the cone query, which is fixed at
-data-acquisition time and is not an analysis choice.* Changing the clip — PART J's `[R3]` item 1 —
-addresses the smaller part of it.
+The two cuts are near-redundant — both act through the single channel of `e_Plx` growing with `G` —
+so marginal contributions depend entirely on which is applied first:
 
-This sharpens rather than softens the point for P01's faint quartile: the selection acting on the
-sample is larger than previously stated and mostly precedes the pipeline entirely.
+| decomposition | window | clip |
+|---|---|---|
+| window first | 56.7 pp (**76%**) | 17.8 pp (24%) |
+| clip first | 2.1 pp (3%) | 72.4 pp (**97%**) |
+| **Shapley (order-symmetric, the only order-free split)** | **29.4 pp (39%)** | **45.1 pp (61%)** |
+
+Shapley sums to 74.5 pp exactly, and it puts the **σ-clip ahead of the window** — inverting the
+claim made in this entry. The ADQL was independently recovered from the ECSV header of the raw file
+(`AND gs.parallax BETWEEN 0.75 AND 1.1`), and the +56.7 pp window figure was reproduced analytically
+by a Gaussian-CDF calculation agreeing with the Monte Carlo to <0.2 pp — so the *numbers* are right
+throughout. Only the ranking was wrong, twice.
+
+**The defensible statement:** *either mechanism alone reproduces most of the joint +74.5 pp gradient;
+they are not additive and cannot be rank-ordered by marginal contribution.* Any claim of the form
+"X dominates" requires naming the decomposition, and the order-free one favours the clip.
+
+Which means PART J's `[R3]` item 1 — change the clip — addresses at least as much of the problem as
+anything else, contrary to what this entry previously concluded.
+```
+
+**What survives unchanged:** a strong magnitude-dependent selection is present, the joint gradient is
+**+74.5 pp**, and it is larger than previously stated. That sharpens rather than softens the point
+for P01's faint quartile.
 ```
 
 ```{admonition} What this experiment does *not* establish
