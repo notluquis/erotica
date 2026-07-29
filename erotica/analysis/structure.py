@@ -754,16 +754,71 @@ def king_unbinned(
 class EFFPriors:
     """Scale-free priors for the EFF profile. Fixed constants, not data-derived.
 
+    WHERE THE NUMBERS COME FROM
+    ---------------------------
+    "Independent of the data being fitted" is necessary but not sufficient: the *values*
+    also need a stated provenance, or they are arbitrary constants with a good excuse.
+    These are set from **Hunt & Reffert (2024)**, `2024A&A...686A..42H`, an external
+    catalogue of 5647 open clusters, never from the cluster in hand. Regenerate with
+    ``tools/validation/fetch_hr24.py``. Their angular radii, converted to arcmin:
+
+    ========  =======  =======  =======  =======
+    quantity      16%   median      84%      99%
+    ========  =======  =======  =======  =======
+    ``r_c``      2.61     7.83    20.14    92.24
+    ``r_t``      8.48    15.03    37.02   236.23
+    ``r_tot``   13.98    25.43    54.81   362.22
+    ========  =======  =======  =======  =======
+
+    .. warning::
+       Those columns are published in **degrees**, not arcmin. Reading them as arcmin
+       understates every radius by 60x and would have set ``a_scale`` two orders of
+       magnitude too small. Caught by checking the implied physical radius against the
+       catalogue's own ``rcpc`` column, which agrees to the digit once the units are right.
+
+    A half-Cauchy with scale ``s`` has median ``s``, 95th percentile ``12.7 s`` and 99th
+    ``63.7 s``, so choosing ``s`` near the catalogue median makes the prior *weakly*
+    informative: it covers the observed 99th percentile at well under its own 99th, and
+    its tail is heavy enough that an order-of-magnitude error in the scale costs little.
+    That heavy tail is the reason for the half-Cauchy form, following Olivares et al.
+    (2018, A&A 612, A70), Gelman (2006) on weakly informative scale priors, and Polson &
+    Scott (2012) on the half-Cauchy as a default.
+
     Attributes
     ----------
     a_scale : float
-        Half-Cauchy scale (arcmin) for the EFF scale radius.
+        Half-Cauchy scale (arcmin) for the EFF scale radius. Default 5.0, against a
+        catalogue median core radius of 7.83'. Deliberately *below* the median so the
+        prior does not push small clusters outward.
     k_scale, b_scale : float
         Half-Cauchy scales for amplitude and background, stars per square arcmin.
+        **These two are the least defensible values here** and are flagged as such:
+        they are order-unity because surface densities in this geometry are order unity,
+        not because a catalogue was consulted. The point-process normalisation makes the
+        fit largely insensitive to them (``k`` is determined by the total count), but that
+        is an argument for why it does not matter much, not a derivation.
     gamma_mu, gamma_sigma : float
-        Normal prior on the asymptotic slope, truncated to be positive.
-        ``gamma = 4`` is the Plummer profile; observed young clusters cluster
-        around 2-4 (Elson, Fall & Freeman 1987; Ryon et al. 2015).
+        Normal prior on the asymptotic slope, truncated positive. ``gamma = 4`` is the
+        Plummer profile and ``gamma = 2`` is the untruncated-King limit. Observed values:
+        Elson, Fall & Freeman (1987, ApJ 323, 54) report 2.2 <~ gamma <~ 3.2 for ten young
+        LMC clusters; Mackey & Gilmore (2003a) get 2.01-3.79 (median 2.59) for 22 LMC
+        clusters younger than 3e8 yr. So ``gamma_mu = 3.0`` sits inside the observed range
+        and ``gamma_sigma = 2.0`` spans it several times over.
+
+        .. important::
+           **The convention matters and the literature is split.** This is the *surface*
+           convention, ``Sigma ~ (1 + (r/a)^2)^(-gamma/2)``, used by EFF87 and Mackey &
+           Gilmore. McLaughlin & van der Marel (2005) use a 3D convention in which
+           ``gamma_MvdM = gamma_EFF + 1``. Comparing gamma across papers without checking
+           which is meant will appear to shift every value by exactly 1.
+
+        .. warning::
+           This prior is **not** neutral where the data are weak. Measured in
+           ``tools/validation/eff_gamma_bias.py``: at a footprint-to-scale ratio of 2 --
+           the regime a quarter of the Hunt & Reffert census sits in -- the recovered
+           ``gamma`` is biased by **+1.6**, and true values of 2.00 / 2.32 / 3.00 come back
+           as 3.58 / 3.78 / 4.21. Widening the prior 2.5x does not remove it, so it is not
+           simple prior pull; but in that regime the number reported is not a measurement.
     """
 
     a_scale: float = 5.0

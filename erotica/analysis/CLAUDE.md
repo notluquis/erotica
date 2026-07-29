@@ -36,6 +36,48 @@ choice — naming what you rejected. An `UNSURVEYED` row is a recorded liability
   Goodwin & Whitworth per-level jitter manufactures a ×1.8 central cusp; read its docstring before
   raising it.
 
+## Documentation standard — paper-level, not code-level
+
+Every model, prior and physical constant here reaches a paper. The docstring is where its
+justification lives, and it is held to the standard a referee would apply to a methods section, not
+to the standard of "explains what the code does".
+
+**Each model or likelihood must carry:**
+
+1. **The formula, in LaTeX**, with every symbol defined. Not prose describing the formula.
+2. **The primary citation, with bibcode**, verified on ADS/SciX — and, when the implemented form
+   differs from the cited paper's, an explicit statement of the difference. (Worked example: the
+   `+ b` in `king_profile` is *not* in King 1962 Eq. 14; the docstring says so and names the folk
+   practice.)
+3. **Whether it is empirical or dynamical.** King 1962 is a fitting formula by its author's own
+   description; King 1966 is a dynamical model. Conflating them is a physics error, not a naming one.
+4. **The validity range and what breaks outside it**, with numbers where they are measured.
+5. **The known degeneracies**, named. Run `tools/validation/degeneracy_audit.py` before quoting
+   parameters; anything above |r| = 0.9 is not a separate measurement.
+
+**Each prior must additionally carry:**
+
+6. **Where the numbers came from.** "Independent of the data being fitted" is necessary but not
+   sufficient — the *values* need a provenance or they are arbitrary constants with a good excuse.
+   The pattern to follow is `EFFPriors`: scales set from an **external catalogue** (Hunt & Reffert
+   2024, regenerable via `tools/validation/fetch_hr24.py`), with the percentiles tabulated in the
+   docstring so a reader can check the choice rather than trust it.
+7. **The distributional argument.** Why half-Cauchy and not half-normal? Because the tail is heavy
+   enough that an order-of-magnitude error in the scale costs little — cite Gelman (2006), Polson &
+   Scott (2012), and the in-field precedent (Olivares et al. 2018).
+8. **Where the prior is NOT neutral**, measured. `EFFPriors.gamma_mu` carries the measurement that
+   at a footprint-to-scale ratio of 2 the recovered slope is biased +1.6 and true values of
+   2.00/2.32/3.00 return as 3.58/3.78/4.21. A prior that dominates somewhere must say where.
+9. **Values that are NOT justified must say so.** `k_scale` and `b_scale` are order-unity because
+   surface densities are order unity, not because a catalogue was consulted, and the docstring
+   states that in those words. An honest gap is documentation; a silent one is a defect.
+
+**Units are part of the physics.** Hunt & Reffert publish angular radii in **degrees**; reading them
+as arcmin understates every radius 60-fold and would have set a prior scale two orders of magnitude
+wrong. It was caught by checking the implied physical radius against the catalogue's own parsec
+column. **Cross-check every ingested quantity against an independent column or a physical
+expectation before it enters a model.**
+
 ## Adding a profile or model
 
 The point-process machinery takes any `Σ(r)` that has a **closed-form radial integral** — that
