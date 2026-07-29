@@ -26,7 +26,8 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+# CLAUDE.md files are per-directory agent guidance, not documentation pages.
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**/CLAUDE.md"]
 source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 myst_enable_extensions = ["colon_fence", "deflist", "dollarmath", "amsmath"]
 
