@@ -135,3 +135,4 @@ data/external/
 
 # Prototype query caches
 tools/prototypes/.*_cache/
+tools/validation/hr24_clusters.ecsv
