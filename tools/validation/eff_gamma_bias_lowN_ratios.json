@@ -1,0 +1,101 @@
+{
+ "field_radius": 70.0,
+ "a_true": 1.65,
+ "n_grid": [
+  60
+ ],
+ "gamma_grid": [
+  2.0,
+  2.32,
+  3.0
+ ],
+ "flat_prior": false,
+ "cells": [
+  {
+   "n": 60,
+   "gamma_true": 2.0,
+   "field_radius": 3.3,
+   "realizations": 4,
+   "gamma_mean": 3.576430108399175,
+   "bias": 1.5764301083991752,
+   "bias_sem": 0.1275070350902262,
+   "reported_sigma_mean": 1.6646773573442213,
+   "realization_scatter": 0.2550140701804524,
+   "field_over_a": 2.0
+  },
+  {
+   "n": 60,
+   "gamma_true": 2.0,
+   "field_radius": 69.3,
+   "realizations": 4,
+   "gamma_mean": 2.4156647758957153,
+   "bias": 0.41566477589571527,
+   "bias_sem": 0.34686207339820596,
+   "reported_sigma_mean": 0.42610372933441354,
+   "realization_scatter": 0.6937241467964119,
+   "field_over_a": 42.0
+  },
+  {
+   "n": 60,
+   "gamma_true": 2.32,
+   "field_radius": 3.3,
+   "realizations": 4,
+   "gamma_mean": 3.7837511774052968,
+   "bias": 1.463751177405297,
+   "bias_sem": 0.18736723379853523,
+   "reported_sigma_mean": 1.6322193434054224,
+   "realization_scatter": 0.37473446759707046,
+   "field_over_a": 2.0
+  },
+  {
+   "n": 60,
+   "gamma_true": 2.32,
+   "field_radius": 69.3,
+   "realizations": 4,
+   "gamma_mean": 2.5175749897460467,
+   "bias": 0.19757498974604681,
+   "bias_sem": 0.16314568610580654,
+   "reported_sigma_mean": 0.3245819932017343,
+   "realization_scatter": 0.3262913722116131,
+   "field_over_a": 42.0
+  },
+  {
+   "n": 60,
+   "gamma_true": 3.0,
+   "field_radius": 3.3,
+   "realizations": 4,
+   "gamma_mean": 4.211426153677895,
+   "bias": 1.2114261536778947,
+   "bias_sem": 0.13519538957810948,
+   "reported_sigma_mean": 1.5098194188714182,
+   "realization_scatter": 0.27039077915621895,
+   "field_over_a": 2.0
+  },
+  {
+   "n": 60,
+   "gamma_true": 3.0,
+   "field_radius": 69.3,
+   "realizations": 4,
+   "gamma_mean": 3.4870170080846146,
+   "bias": 0.48701700808461457,
+   "bias_sem": 0.15026659861565075,
+   "reported_sigma_mean": 0.5461189060405602,
+   "realization_scatter": 0.3005331972313015,
+   "field_over_a": 42.0
+  }
+ ],
+ "power_law_fits": {
+  "2.0": {
+   "resolved_cells": 1,
+   "note": "too few resolved cells"
+  },
+  "2.32": {
+   "resolved_cells": 1,
+   "note": "too few resolved cells"
+  },
+  "3.0": {
+   "resolved_cells": 2,
+   "note": "too few resolved cells"
+  }
+ }
+}

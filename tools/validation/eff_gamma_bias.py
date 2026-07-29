@@ -39,6 +39,31 @@ prior.** (This also matches the arithmetic: with a Normal(3.0, 2.0) prior and a 
 0.086 at N=628, the prior's weight is 0.0018 and its pull is ~0.001 -- two orders below the measured
 bias.)
 
+BIAS(N) IS THE WRONG PARAMETERISATION — MEASURED, NOT SUSPECTED
+---------------------------------------------------------------
+The first pass fixed the geometry at NGC 6383's: ``a = 1.65'`` in a 70' field, a footprint-to-scale
+ratio of **42**. The census does not live there: Hunt & Reffert's ``r_tot/r_c`` runs from below 2 to
+about 10, with a 25th percentile of 1.89. Holding ``N = 60`` (the census median is 61) and
+``gamma_true = 2.00`` and varying **only** the footprint:
+
+    r_tot/a      bias
+       2      +1.627 +/- 0.035
+       4      +1.931 +/- 0.056
+       8      +1.753 +/- 0.112
+      16      +1.214 +/- 0.160
+      42      +0.593 +/- 0.111   <- where the calibration had been done
+
+**At the ratios the census actually has, a true gamma = 2 is measured as 3.6-3.9** -- beyond the whole
+range the literature reports. The mechanism is a lever arm: ``gamma`` is a log-log slope and needs
+dynamic range in ``log r``. At ``r_tot/a = 2`` there is 0.3 dex of it; at 42 there is 1.6 dex. And the
+census sits at the low end *because* ``r_tot`` is defined by contrast against the field rather than by
+the cluster's own scale, so the footprint shrinks exactly where the cluster is faint -- which is where
+``N`` is small too, confounding the two axes.
+
+Use ``--field-ratios`` to map the ``(N, r_tot/a)`` plane. The deliverable is a **recoverability
+boundary**, not a correction surface: the bias is non-monotonic below ``r_tot/a ~ 4``, where prior pull
+and likelihood push compete, so a fitted law there would be meaningless.
+
 WHAT TO EXPECT, AND WHY
 -----------------------
 Maximum-likelihood and posterior-median estimators are generically biased at `O(1/N)` (Firth 1993 is
@@ -89,12 +114,12 @@ def eff_radii(rng, n, *, a=A_TRUE, gamma, field_radius=FIELD_RADIUS):
     return np.interp(rng.uniform(0.0, 1.0, n), cdf, grid)
 
 
-def run_cell(n, gamma_true, realizations, seed, priors, cfg):
+def run_cell(n, gamma_true, realizations, seed, priors, cfg, field_radius=FIELD_RADIUS):
     medians, sds = [], []
     for i in range(realizations):
         rng = np.random.default_rng(seed + 1000 * int(gamma_true * 100) + i)
-        r = eff_radii(rng, n, gamma=gamma_true)
-        fit = eff_unbinned(r, field_radius=FIELD_RADIUS, priors=priors,
+        r = eff_radii(rng, n, gamma=gamma_true, field_radius=field_radius)
+        fit = eff_unbinned(r, field_radius=field_radius, priors=priors,
                            sampling=cfg, progressbar=False)
         medians.append(float(fit["gamma_median"]))
         sds.append(float(fit["gamma_std"]))
@@ -102,6 +127,7 @@ def run_cell(n, gamma_true, realizations, seed, priors, cfg):
     return dict(
         n=int(n),
         gamma_true=float(gamma_true),
+        field_radius=float(field_radius),
         realizations=int(realizations),
         gamma_mean=float(m.mean()),
         bias=float(m.mean() - gamma_true),
@@ -121,6 +147,9 @@ def main():
                     help="widen the gamma prior, to separate prior pull from likelihood bias")
     ap.add_argument("--n-values", type=int, nargs="+", default=None,
                     help="override N_GRID, e.g. to fill in the low-N cells without redoing the rest")
+    ap.add_argument("--field-ratios", type=float, nargs="+", default=None,
+                    help="map bias against r_tot/a at fixed N instead of against N; this is the axis "
+                         "that actually controls recoverability")
     args = ap.parse_args()
 
     priors = EFFPriors(gamma_sigma=5.0) if args.flat_prior else EFFPriors()
@@ -129,10 +158,14 @@ def main():
     rows = []
     for gamma_true in GAMMA_GRID:
         for n in (args.n_values or N_GRID):
-            row = run_cell(n, gamma_true, args.realizations, args.seed, priors, cfg)
-            rows.append(row)
-            print(f"  gamma_true={gamma_true:.2f}  N={n:5d}  "
-                  f"bias = {row['bias']:+.4f} +/- {row['bias_sem']:.4f}", flush=True)
+            for ratio in (args.field_ratios or [FIELD_RADIUS / A_TRUE]):
+                field = ratio * A_TRUE
+                row = run_cell(n, gamma_true, args.realizations, args.seed, priors, cfg,
+                               field_radius=field)
+                row["field_over_a"] = float(ratio)
+                rows.append(row)
+                print(f"  gamma_true={gamma_true:.2f}  N={n:5d}  r_tot/a={ratio:5.1f}  "
+                      f"bias = {row['bias']:+.4f} +/- {row['bias_sem']:.4f}", flush=True)
 
     # Power law through the origin in log-space, per gamma_true: bias = A * N^-p.
     # Fitted only on cells where the bias is resolved, otherwise the fit chases noise.
@@ -162,6 +195,8 @@ def main():
     suffix = "_flatprior" if args.flat_prior else ""
     if args.n_values:
         suffix += "_lowN"
+    if args.field_ratios:
+        suffix += "_ratios"
     out = Path(__file__).with_name(f"eff_gamma_bias{suffix}.json")
     out.write_text(json.dumps(dict(
         field_radius=FIELD_RADIUS, a_true=A_TRUE, n_grid=list(args.n_values or N_GRID),
