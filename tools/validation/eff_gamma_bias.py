@@ -25,9 +25,19 @@ CDF first: maximum deviation `7e-4` over 400,000 draws across `r = 0.5-70` arcmi
 order was generator -> estimator -> interpretation, and the generator passed, which is what turned a
 suspected bug into a measurable property of the estimator.
 
-**Not the priors, at least not obviously.** `EFFPriors` are fixed scale-free constants independent of
-the data. The `--flat-prior` switch re-runs with a much wider `gamma` prior so prior pull can be
-separated from likelihood-driven bias.
+**Not the priors — the control was run and it passed.** `EFFPriors` are fixed scale-free constants
+independent of the data, and the `--flat-prior` switch re-runs with a 2.5x wider `gamma` prior. The
+fitted laws are unchanged:
+
+    gamma_true   default             flat prior
+    2.00         A=11.500 p=0.715    A=10.840 p=0.708
+    2.32         A= 8.905 p=0.777    A= 8.352 p=0.770
+    3.00         A=13.673 p=0.775    A=13.947 p=0.777
+
+So the bias is driven by the likelihood, not by prior pull, and **it cannot be removed by widening the
+prior.** (This also matches the arithmetic: with a Normal(3.0, 2.0) prior and a likelihood width of
+0.086 at N=628, the prior's weight is 0.0018 and its pull is ~0.001 -- two orders below the measured
+bias.)
 
 WHAT TO EXPECT, AND WHY
 -----------------------
@@ -57,7 +67,11 @@ from erotica.analysis.structure import EFFPriors, eff_unbinned
 
 FIELD_RADIUS = 70.0  # arcmin, the NGC 6383 footprint
 A_TRUE = 1.65  # arcmin
-N_GRID = (150, 300, 628, 1250, 2500, 5000)
+# The census is much poorer than intuition suggests: Hunt & Reffert 2024's open clusters have a
+# median N near 60, with ~40% below 50. A grid that starts at 150 would force the power law to be
+# extrapolated an order of magnitude below its calibration floor -- the exact failure recorded in
+# methodology PART K.1.5, in the direction where it is most dangerous. Hence the low-N cells.
+N_GRID = (20, 35, 60, 100, 150, 300, 628, 1250, 2500, 5000)
 GAMMA_GRID = (2.0, 2.32, 3.0)
 
 
@@ -105,6 +119,8 @@ def main():
     ap.add_argument("--seed", type=int, default=20260728)
     ap.add_argument("--flat-prior", action="store_true",
                     help="widen the gamma prior, to separate prior pull from likelihood bias")
+    ap.add_argument("--n-values", type=int, nargs="+", default=None,
+                    help="override N_GRID, e.g. to fill in the low-N cells without redoing the rest")
     args = ap.parse_args()
 
     priors = EFFPriors(gamma_sigma=5.0) if args.flat_prior else EFFPriors()
@@ -112,7 +128,7 @@ def main():
 
     rows = []
     for gamma_true in GAMMA_GRID:
-        for n in N_GRID:
+        for n in (args.n_values or N_GRID):
             row = run_cell(n, gamma_true, args.realizations, args.seed, priors, cfg)
             rows.append(row)
             print(f"  gamma_true={gamma_true:.2f}  N={n:5d}  "
@@ -143,11 +159,12 @@ def main():
         else:
             print(f"{g:>10s} {f['resolved_cells']:6d}   {f['note']}")
 
-    out = Path(__file__).with_name(
-        "eff_gamma_bias_flatprior.json" if args.flat_prior else "eff_gamma_bias.json"
-    )
+    suffix = "_flatprior" if args.flat_prior else ""
+    if args.n_values:
+        suffix += "_lowN"
+    out = Path(__file__).with_name(f"eff_gamma_bias{suffix}.json")
     out.write_text(json.dumps(dict(
-        field_radius=FIELD_RADIUS, a_true=A_TRUE, n_grid=list(N_GRID),
+        field_radius=FIELD_RADIUS, a_true=A_TRUE, n_grid=list(args.n_values or N_GRID),
         gamma_grid=list(GAMMA_GRID), flat_prior=args.flat_prior,
         cells=rows, power_law_fits=fits,
     ), indent=1))
