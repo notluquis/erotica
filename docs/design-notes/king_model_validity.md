@@ -672,6 +672,65 @@ envelope structure** of self-gravitating star clusters, not just transient featu
 strictly with young age."* That belongs in the `compare_radial_profiles` Bayes-factor comparison
 alongside King, EFF and Plummer. See `~/phd/open-threads.md` G6, G7.
 
+## What else is not separately identified — a systematic audit
+
+This programme kept finding degeneracies **one at a time and by accident**: `King(R_t→∞) ≡ EFF(γ=2)`,
+corona-wider-than-field ≡ flat background, `R_t` ↔ `b` (King's own 1962 warning), `Q` ↔ contamination.
+`tools/validation/degeneracy_audit.py` now looks for them on purpose, by reading the posterior
+correlation matrix before a number is quoted.
+
+On NGC 6383 (N = 627, 70′, 4 chains, zero divergences in all three fits):
+
+| model | condition number | pairs above \|r\| = 0.7 |
+|---|---|---|
+| King + `b` | 17.8 | `R_c`↔`k` = −0.873 |
+| **EFF + `b`** | **87.8** | `a`↔`γ` = **+0.871**, `a`↔`k` = −0.815, (`γ`↔`b` = +0.656) |
+| King + corona | **15.1** | `R_c`↔`k` = −0.870 |
+
+Three things follow, and the second is the one that matters for the census sweep.
+
+**1. `R_c`↔`k` is universal and benign.** Present in every model at ≈ −0.87: a compact bright core and
+a broader fainter one produce similar counts. It is the amplitude–scale trade every profile fit has,
+and it does not touch the shape parameters.
+
+**2. EFF is by far the worst-conditioned model, and `γ` is coupled to the background.** `γ`↔`b` at
++0.656 means **the slope is not measured independently of whatever the background term absorbs** — and
+§ above establishes that on a membership-selected sample what it absorbs is the corona. So `γ` inherits
+the footprint: a cluster whose field contains more of its corona has a larger `b` and, through the
+correlation, a different `γ`.
+
+Displayed on the real data by refitting NGC 6383 at nested footprints:
+
+| field radius | N | `γ` | `a` (′) | background fraction |
+|---|---|---|---|---|
+| 20′ | 245 | 2.471 ± 0.552 | 1.803 ± 0.617 | 0.15 |
+| 30′ | 310 | 2.542 ± 0.405 | 1.863 ± 0.521 | 0.29 |
+| 40′ | 365 | 2.194 ± 0.264 | 1.487 ± 0.409 | 0.27 |
+| 50′ | 445 | 2.300 ± 0.249 | 1.614 ± 0.408 | 0.41 |
+| 60′ | 508 | 2.119 ± 0.194 | 1.388 ± 0.347 | 0.41 |
+| 70′ | 627 | 2.322 ± 0.213 | 1.649 ± 0.380 | 0.56 |
+
+`γ` and `a` move together in **perfect rank order** across all six — the +0.871 correlation made
+visible — and the background fraction climbs from 0.15 to 0.56 as the footprint grows. The `γ` drift
+itself (2.12–2.54) is not resolved at this `N`: the samples are nested and the errors are 0.19–0.55.
+
+```{important}
+**The consequence for the census sweep (A5) is a design requirement, not a caveat.** `γ` is coupled
+to a background that depends on how much of each cluster's corona falls inside its footprint. Across
+5647 clusters with heterogeneous search radii that becomes a **population-level trend** even where it
+is unresolvable per cluster — and it correlates with distance, because nearby clusters have larger
+angular coronae.
+
+So the sweep must fix the footprint **physically** — in units of `r_J`, say — rather than accept
+whatever angular or fixed-parsec radius each catalogue entry came with. Otherwise any structure found
+in the `γ` distribution is partly a map of the survey geometry.
+```
+
+**3. The corona model is the best-conditioned of the three** (15.1), despite being the one with the
+most parameters, and its `R_2`↔`delta_f` coupling is only −0.427 — much milder than the SMC evidence
+noise suggested. The noise there is a property of the marginal likelihood estimate, not of the
+posterior geometry.
+
 ## What follows
 
 1. **Use the Jacobi radius as the `R_t` prior.** `king_unbinned` already accepts `tidal_prior=(mu, sigma)`
