@@ -400,7 +400,10 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
     The dynamical King model is King (1966, AJ 71, 64), a different object with a
     concentration parameter :math:`W_0`. There is no "King 1964".
     """
-    r = quantity_values(radius)
+    # Explicit unit: quantity_values(x) with no target strips whatever unit x carries.
+    # Passing degrees where arcmin is meant returns silently wrong values -- measured, a
+    # 480x error at r = 20. Plain arrays pass through unchanged and are taken as arcmin.
+    r = quantity_values(radius, u.arcmin)
     if len(args) == 4:
         amplitude, background, core_radius, tidal_radius = args
     elif len(args) == 2:
@@ -837,7 +840,7 @@ def eff_surface_density(radius, *, k, b, a, gamma):
     :math:`r^{-\gamma}` forever. That is the honest model for a cluster whose
     truncation radius cannot be located in the data.
     """
-    r = np.asarray(radius, dtype=float)
+    r = quantity_values(radius, u.arcmin)
     return k * (1.0 + (r / a) ** 2) ** (-gamma / 2.0) + b
 
 
@@ -992,7 +995,10 @@ def corona_surface_density(radius, *, delta_f, R_2):
     R_2 : float or tensor
         Corona radius, same units as `radius`.
     """
-    r = quantity_values(radius)
+    # Explicit unit: quantity_values(x) with no target strips whatever unit x carries.
+    # Passing degrees where arcmin is meant returns silently wrong values -- measured, a
+    # 480x error at r = 20. Plain arrays pass through unchanged and are taken as arcmin.
+    r = quantity_values(radius, u.arcmin)
     # The clamp at zero *is* the truncation: beyond R_2 the radicand is negative,
     # so clipping it sends the density to zero. An explicit `np.where(r < R_2, ...)`
     # on top is dead code that reads as if it were doing the work.

@@ -28,8 +28,11 @@ choice — naming what you rejected. An `UNSURVEYED` row is a recorded liability
   attributed to `b`. See `docs/design-notes/king_model_validity.md`.
 - **`R_t` is prior-determined** for this cluster and unidentifiable even inside the Jacobi radius.
   Any `R_t` quoted must name its prior.
-- **The EFF `γ` estimator is biased high at small `N`** — `+0.075 ± 0.012` at `N = 628`, decaying as
-  roughly `N^-0.6`. Verified not to be a sampler artefact.
+- **The EFF `γ` estimator is not usable at census-typical geometry.** The controlling variable is the
+  footprint-to-scale ratio, not `N`: at `r_tot/a = 2` a true `γ = 2` is recovered as **3.6**, and true
+  values of 2.00/2.32/3.00 come back as 3.58/3.78/4.21 — shrunk and shifted, not merely biased. At
+  NGC 6383's ratio of 42 the bias is +0.075 ± 0.012 at `N = 628`. Verified not to be a sampler
+  artefact and not removable by widening the prior. See `tools/validation/eff_gamma_bias.py`.
 - **Circular symmetry is the exception**, not the norm — Tarricq+2022 find median axis ratio 0.71 —
   and every profile here assumes it.
 - **`synthetic.py` is for validation, not science.** Its `noise` parameter defaults to 0 because the
@@ -72,11 +75,41 @@ to the standard of "explains what the code does".
    surface densities are order unity, not because a catalogue was consulted, and the docstring
    states that in those words. An honest gap is documentation; a silent one is a defect.
 
-**Units are part of the physics.** Hunt & Reffert publish angular radii in **degrees**; reading them
-as arcmin understates every radius 60-fold and would have set a prior scale two orders of magnitude
-wrong. It was caught by checking the implied physical radius against the catalogue's own parsec
-column. **Cross-check every ingested quantity against an independent column or a physical
-expectation before it enters a model.**
+## Units policy — because they have already gone wrong twice
+
+Units are part of the physics, and both failures here were **silent**: no exception, plausible
+numbers, wrong by orders of magnitude.
+
+1. **Hunt & Reffert publish angular radii in degrees.** Reading them as arcmin understates every
+   radius 60-fold and would have set a prior scale two orders of magnitude wrong. Caught by checking
+   the implied physical radius against the catalogue's own `rcpc` column, which agrees to the digit
+   once the units are right.
+2. **`quantity_values(x)` with no target unit strips whatever unit `x` carries.** Handing a profile
+   radii in degrees where arcmin was meant returned values wrong by up to **480×** — `king_profile`
+   gave 0.896 instead of 0.0019 at `r = 20′` — with no error raised.
+
+### The rules
+
+* **Always pass the target unit**: `quantity_values(x, u.arcmin)`, never `quantity_values(x)`, for
+  anything dimensional. It converts a `Quantity` correctly, lets a plain array through under the
+  documented convention, and **raises `UnitConversionError` on the wrong physical type** (a length
+  where an angle is meant). Verified in `tests/test_structure.py::test_profiles_respect_the_unit_of_the_radius`.
+* **State the convention for bare arrays in the docstring.** Here a plain array of radii is **arcmin**.
+  An undocumented convention is the same defect one layer down.
+* **Prefer `.ecsv` over `.csv` for any table with dimensional columns.** ECSV carries units in its
+  YAML header, so a round-trip preserves them; CSV silently discards them and the next reader guesses.
+* **Cross-check every ingested quantity** against an independent column or a physical expectation
+  before it enters a model. The degrees/arcmin error was caught this way and nothing else would have
+  caught it.
+
+### On `@u.quantity_input`
+
+Astropy's decorator is the idiomatic validator — `@u.quantity_input(radius='angle')` rejects a
+`Quantity` of the wrong physical type. It is **not** used here, for a stated reason: the astropy docs
+note it *"checks for unit compatibility but does not perform unit conversions on the input"*, and this
+package accepts bare arrays throughout. `quantity_values(x, unit)` validates **and** converts **and**
+admits plain arrays, which is the behaviour this API needs. Use the decorator in any new code path
+that requires a `Quantity`.
 
 ## Adding a profile or model
 

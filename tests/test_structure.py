@@ -438,9 +438,11 @@ def test_selection_correction_removes_the_bias_it_is_meant_to_remove():
 from erotica.analysis.structure import (  # noqa: E402
     EFFPriors,
     compare_radial_profiles,
+    corona_surface_density,
     eff_expected_count,
     eff_surface_density,
     eff_unbinned,
+    king_profile,
 )
 
 TRUE_EFF = {"k": 8.0, "b": 0.05, "a": 3.0, "gamma": 2.8}
@@ -751,3 +753,46 @@ def test_reported_king_medians_are_medians_not_means():
     assert reported == pytest.approx(float(np.median(draws)), rel=1e-6)
     # and the distinction is not academic on this posterior
     assert abs(np.mean(draws) - np.median(draws)) > 0.10 * np.median(draws)
+
+
+# ---------------------------------------------------------------------------
+# Units
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "func, kwargs",
+    [
+        (king_profile, dict(core_radius=1.38, tidal_radius=54.0)),
+        (eff_surface_density, dict(k=1.0, b=0.0, a=1.65, gamma=2.32)),
+    ],
+)
+def test_profiles_respect_the_unit_of_the_radius(func, kwargs):
+    """Passing the same physical radii in different units must give the same answer.
+
+    This is a regression test for a silent failure, not a hypothetical one.
+    ``quantity_values(x)`` with no target unit strips whatever unit ``x`` carries, so
+    handing a profile radii in degrees where arcmin was meant returned numbers that were
+    wrong by up to **480x** with no error raised -- `king_profile` gave 0.896 instead of
+    0.0019 at r = 20'. The same trap exists in the literature: Hunt & Reffert publish
+    angular radii in degrees, and reading them as arcmin understates every radius 60-fold.
+
+    The convention is that a plain array is taken as **arcmin**; a Quantity is converted.
+    """
+    r_arcmin = np.array([1.0, 5.0, 20.0]) * u.arcmin
+    same = np.asarray(func(r_arcmin, **kwargs))
+    in_degrees = np.asarray(func(r_arcmin.to(u.deg), **kwargs))
+    in_arcsec = np.asarray(func(r_arcmin.to(u.arcsec), **kwargs))
+    np.testing.assert_allclose(same, in_degrees, rtol=1e-12)
+    np.testing.assert_allclose(same, in_arcsec, rtol=1e-12)
+    # and a bare array is still interpreted as arcmin, not rejected
+    np.testing.assert_allclose(same, np.asarray(func(np.array([1.0, 5.0, 20.0]), **kwargs)))
+
+
+def test_corona_respects_the_unit_of_the_radius():
+    r = np.array([1.0, 5.0, 20.0]) * u.arcmin
+    np.testing.assert_allclose(
+        np.asarray(corona_surface_density(r, delta_f=0.02, R_2=40.0)),
+        np.asarray(corona_surface_density(r.to(u.deg), delta_f=0.02, R_2=40.0)),
+        rtol=1e-12,
+    )
