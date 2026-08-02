@@ -875,10 +875,33 @@ same signal** that the paper does not currently address. That is a referee-grade
 
 **This does not show the P01 result is wrong.** Both effects act in the same direction and can
 coexist; nothing here quantifies their relative size on the *real* (contaminated) field. The
-discriminating test is a re-run of the faint-quartile LF/KS on a normalized-residual-clipped
-sample: if the signal survives, the incompleteness attribution is strengthened rather than
-weakened. Estimated ~1 h. **Not yet run** — recorded here so the claim is not made in either
-direction without it.
+discriminating test is a re-run of the faint-quartile LF/KS on a normalized-residual-clipped sample.
+
+```{admonition} RUN 2026-08-02 — the signal survives, and strengthens
+:class: important
+`tools/validation/faint_quartile_clip_test.py`. The published numbers are reproduced exactly first —
+quartile edges 8.80 / 15.44 / 16.99 / 17.93 / 20.66 mag and `D` = 0.156, 0.230, 0.278 with
+`p` = 0.418, 0.052, 0.0097 against the paper's 0.16, 0.23, 0.28 and 0.42, 0.052, 0.010 — so any change
+is attributable to the change in the clip.
+
+Replacing the raw 2σ parallax clip (retention gradient across magnitude quartiles **0.724**) with a
+normalised-residual clip `|ϖ − ϖ₀|/σ_ϖ < 2` (gradient **−0.002**, i.e. magnitude-blind):
+
+| faintest quartile vs | published `D` (`p`) | normalised-clip `D` (`p`) |
+|---|---|---|
+| brightest | 0.156 (0.418) | **0.230 (0.040)** |
+| second | 0.230 (0.052) | **0.284 (0.0050)** |
+| third | 0.278 (0.0097) | **0.335 (0.0003)** |
+| | N = 254, **1** significant after Holm | N = 295, **3** significant after Holm |
+
+**The raw clip was diluting the signal, not manufacturing it** — the opposite of the objection. And
+the *ordering* is preserved: `D` still rises monotonically toward the adjacent quartile and is
+weakest against the brightest, which is the pattern P01 uses to argue against dynamical mass
+segregation. So the attribution to Gaia incompleteness survives, and so does its supporting argument.
+
+**The objection is answered and the answer is favourable.** It should still be stated in the paper —
+a referee who notices the clip's magnitude dependence will ask, and the answer is now measured.
+```
 ```
 
 **Tests.** `tests/test_clipping.py` pins the behaviour with two fast characterisation tests
