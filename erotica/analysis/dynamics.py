@@ -443,9 +443,27 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
 
        Giersz & Heggie (1996) describe the multi-mass value as *"a factor 7 smaller than the value
        found in Paper I for systems with equal masses"*, and Heggie & Hut (2003) p. 142 states the
-       distinction plainly. **Every Gaia open cluster has a mass function**, so 0.02 is the
-       applicable branch and neither this module's 0.11 nor the open-cluster literature's common 0.4
-       is. The difference is **×5.3 at N = 100** and ×2.0 at N = 1000.
+       distinction plainly. Every Gaia open cluster has a mass function, so 0.11 is certainly the
+       wrong branch — the difference is **×5.3 at N = 100** and ×2.0 at N = 1000.
+
+       .. caution::
+          **But 0.02 is not simply "the right value" either, and saying so would repeat the
+          extrapolation error this codebase already documents.** Giersz & Heggie (1996) state their
+          own setup in the abstract: *"The distribution of stellar masses is a power law, and the
+          systems are **isolated**"*, with **N from 250 to 1000**.
+
+          A Gaia open cluster is **not isolated** — it is tidally limited — and the census median is
+          **N = 61**, below their calibration range. Applying 0.02 here extrapolates in two
+          directions at once, which is exactly the failure mode recorded in ``methodology.md``
+          K.1.5.
+
+          Paper IV, **Giersz & Heggie (1997, MNRAS 286, 709,** ``1997MNRAS.286..709G``**),
+          "Unequal masses with a tidal field"**, is the matching physical setup and is the reference
+          to check before adopting any value. Its abstract does not quote :math:`\gamma`; the number
+          has to come from the text.
+
+          **Until that is read, treat the Coulomb argument as a stated uncertainty of at least a
+          factor of a few, not as a parameter with a known value.**
 
        The default is left at 0.11 rather than changed silently, because changing it would move every
        previously published relaxation time from this code without a record. Pass
