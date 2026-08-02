@@ -33,6 +33,27 @@ cause.
 - Claims that bear on novelty belong in `~/phd/software-landscape.md` as well, which is where the
   adjudication against competitors lives.
 
+## Where each kind of content belongs (Diátaxis)
+
+The documentation follows [Diátaxis](https://diataxis.fr), and the quadrant boundaries are quoted
+because they are easy to blur:
+
+| quadrant | orientation | what it is |
+|---|---|---|
+| Tutorials | learning | *"an experience that takes place under the guidance of a tutor … its purpose is not to help the user get something done, but to help them learn."* |
+| How-to guides | goals | *"directions that guide the reader through a problem or towards a result."* |
+| Reference | information | *"technical descriptions of the machinery and how to operate it … It should be austere. One hardly reads reference material; one consults it."* |
+| **Explanation** | understanding | *"a discursive treatment of a subject, that permits reflection."* |
+
+**Design notes are Explanation, and Diátaxis says so explicitly**: *"Provide background and context in
+your explanation: explain why things are so — design decisions, historical reasons, technical
+constraints."* That is exactly this directory. Keep the *why* here and out of the API reference, which
+must stay consultable rather than readable.
+
+The corollary that matters: **a measured limitation is Explanation, not a caveat buried in Reference.**
+"The tidal radius is prior-determined for this footprint" belongs in a design note with the evidence,
+and is *summarised* in the docstring with a pointer — not the other way round.
+
 ## Before writing a "nobody has done X"
 
 Check it. Six such claims in this programme have been falsified, two after being written into a

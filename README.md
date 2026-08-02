@@ -12,6 +12,21 @@ and characterize their membership, ages, and structure.
 
 📖 **[Documentation](https://erotica.readthedocs.io/en/latest/)** · [Membership guide](https://erotica.readthedocs.io/en/latest/guides/membership.html) · [API reference](https://erotica.readthedocs.io/en/latest/api/index.html)
 
+## 📦 Installation
+
+### From Source (Current)
+
+```bash
+git clone https://github.com/notluquis/erotica.git
+cd erotica
+pip install -e ".[dev,docs]"
+```
+
+### Requirements
+
+- Python 3.11 or higher
+- See `pyproject.toml` for complete dependency list
+
 ## 🚀 Quick Start
 
 ```python
@@ -40,21 +55,6 @@ clusterer.save_results("members.ecsv", format="ascii.ecsv")
 Downstream analysis (isochrone fitting, structure, dynamics) goes through
 `ClusterAnalyzer`, which is constructed from a saved catalog — see the
 [quickstart](https://erotica.readthedocs.io/en/latest/quickstart.html).
-
-## 📦 Installation
-
-### From Source (Current)
-
-```bash
-git clone https://github.com/notluquis/erotica.git
-cd erotica
-pip install -e ".[dev,docs]"
-```
-
-### Requirements
-
-- Python 3.11 or higher
-- See `pyproject.toml` for complete dependency list
 
 ## 🏗️ Project Structure
 
@@ -232,6 +232,30 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 5. Commit your changes: `git commit -m 'Add amazing feature'`
 6. Push to the branch: `git push origin feature/amazing-feature`
 7. Open a Pull Request
+
+## 📣 Citing EROTICA
+
+If EROTICA contributes to work you publish, please cite it. Machine-readable metadata is in
+[`CITATION.cff`](CITATION.cff), which GitHub renders as a "Cite this repository" button.
+
+```bibtex
+@software{erotica,
+  author = {Pulgar, Lucas M.},
+  title  = {{EROTICA}: Estimation, Recovery \& Optimization, together with Inference,
+            for Cluster Analysis},
+  url    = {https://github.com/notluquis/erotica},
+  license = {AGPL-3.0-or-later}
+}
+```
+
+> **Pre-release.** The author list, ORCIDs and a Zenodo DOI are not final — see the header of
+> `CITATION.cff`. A software paper is in preparation; this entry will be superseded by it.
+
+**Please also cite the methods you actually used**, which are not ours: King (1962) or Elson, Fall &
+Freeman (1987) for the profile you fitted, Hunt & Reffert (2024) for census cross-matches,
+Cantat-Gaudin et al. (2023) via `gaiaunlimited` for the selection function, Kallioinen et al. (2024)
+for the power-scaling diagnostics, and Goodwin & Whitworth (2004) for the synthetic generator. Each
+is cited at the point of use in the API documentation.
 
 ## 📄 License
 
