@@ -1,0 +1,57 @@
+{
+ "field_radius": 70.0,
+ "a_true": 1.65,
+ "gamma_true": 2.32,
+ "footprint_over_scale": 42.42424242424243,
+ "cells": [
+  {
+   "n": 60,
+   "gamma_true": 2.32,
+   "realizations": 16,
+   "median_bias": 0.4287231334486332,
+   "median_sem": 0.11597513326860322,
+   "mean_bias": 0.4953241423394372,
+   "mean_sem": 0.12201488995415875,
+   "mode_bias": 0.3304237974525792,
+   "mode_sem": 0.10144085847900716,
+   "mode_over_median": 0.7707160441627263
+  },
+  {
+   "n": 150,
+   "gamma_true": 2.32,
+   "realizations": 16,
+   "median_bias": 0.19181206108194804,
+   "median_sem": 0.04069987144573307,
+   "mean_bias": 0.21342085153419044,
+   "mean_sem": 0.041688556767638454,
+   "mode_bias": 0.16408349697104674,
+   "mode_sem": 0.037905868712389795,
+   "mode_over_median": 0.8554388918272725
+  },
+  {
+   "n": 628,
+   "gamma_true": 2.32,
+   "realizations": 16,
+   "median_bias": 0.046147655938956866,
+   "median_sem": 0.018284066226208335,
+   "mean_bias": 0.05124556962441407,
+   "mean_sem": 0.018568169477448368,
+   "mode_bias": 0.037072901211353315,
+   "mode_sem": 0.017591161028140036,
+   "mode_over_median": 0.8033539398055788
+  },
+  {
+   "n": 2500,
+   "gamma_true": 2.32,
+   "realizations": 16,
+   "median_bias": 0.01960923545114346,
+   "median_sem": 0.008594482426766055,
+   "mean_bias": 0.021597494401136785,
+   "mean_sem": 0.008695063993247926,
+   "mode_bias": 0.015699738377435768,
+   "mode_sem": 0.008230676662756727,
+   "mode_over_median": 0.8006298061212928
+  }
+ ],
+ "mean_mode_over_median": 0.8075346704792176
+}

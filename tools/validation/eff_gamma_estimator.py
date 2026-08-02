@@ -47,14 +47,27 @@ would remove the ``1/sqrt(N)`` term and leave the classical ``1/N``.
 
 **It is not the whole story.** Measured at ``gamma_true = 2.32``, 16 realizations per cell:
 
-    N        median            mean             mode (KDE)
-    60     +0.647 +/- 0.169  +0.720 +/- 0.178  +0.532 +/- 0.155
-    150    +0.253 +/- 0.063  +0.280 +/- 0.066  +0.211 +/- 0.059
+    N        median     mean      mode(KDE)   mode/median
+    60      +0.4287   +0.4953    +0.3304        0.77
+    150     +0.1918   +0.2134    +0.1641        0.86
+    628     +0.0461   +0.0512    +0.0371        0.80
+    2500    +0.0196   +0.0216    +0.0157        0.80
 
-The ordering ``mode < median < mean`` is exactly right-skew, confirming the mechanism exists. But the
-mode retains **~82%** of the median's bias at both sample sizes. So skewness of the posterior is real
-and is *not* the dominant term: **the estimator itself is biased, not merely the summary we take from
-it.** A different point estimate is not the fix.
+The ordering ``mode < median < mean`` is exactly right-skew, so the mechanism is real. But the mode
+retains **~81%** of the median's bias. **The estimator itself is biased, not merely the summary taken
+from it, and a different point estimate is not the fix.**
+
+.. important::
+   **The most informative number here is the constancy, not the size.** ``mode/median`` sits at
+   0.77-0.86 across a factor of 40 in ``N``. Had the skewness contributed a ``1/sqrt(N)`` term while
+   the remainder scaled as ``1/N``, that ratio would drift with ``N``. It does not, so the posterior
+   shape is **self-similar in N** -- it shrinks without changing form.
+
+   That weakens the tidy reading of H3 as "skewness plus Cox-Snell": the two terms fit, but they do
+   not map onto two separable mechanisms. A single mechanism whose amplitude happens to scale between
+   ``N^-1/2`` and ``N^-1`` fits the evidence better, and weak identification is the candidate --
+   ``corr(a, gamma) = +0.871``, and the two parameters enter only as ``gamma/a^2`` for ``R << a``.
+   **Quote H3 as a fitted description, not as a decomposition into named effects.**
 
 That leaves identifiability as the remaining explanation, which is consistent with everything else
 measured: ``a`` and ``gamma`` are correlated at **+0.871** in the posterior, and for ``R << a`` they
