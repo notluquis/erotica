@@ -513,6 +513,42 @@ into a constant is reporting the profile of a minority of the data. At minimum t
 to `b` should be quoted alongside the structural parameters; at best the flat term should be replaced
 by an explicit extended component and the two compared by Bayes factor.
 
+```{admonition} Checked against the published paper from several angles — and the severity was overstated
+:class: warning
+**This note previously implied the published statement was a serious defect. Measured, it is a
+wording issue and not a numerical one.** Four angles, 2026-08-02:
+
+**1. The 56% is the 70′ fit, which P01 does not adopt for `R_c` or `k`.** The paper says so outright:
+*"The core radius and central density of the 70 arcmin fit are contamination-biased … and are not
+adopted."* The adopted structural parameters come from the 40′ window.
+
+**2. In the adopted 40′ fit the background claims 23.5%, not 56%** — 59.5 of 253 stars. Against a
+target–decoy false-discovery proportion of ~6% that is a factor of **3.9**, not 9. Still a
+discrepancy, and still not "residual contamination", but a much milder one.
+
+**3. `b` grows with footprint exactly as a corona should.** 40′ = 1.06 `r_J` gives 23.5%; 70′ = 1.85
+`r_J` gives 59.5%. A residual-contamination term would not track the Jacobi radius that way; a corona
+does, because a wider footprint contains more of it.
+
+**4. The decisive test — does it move the adopted numbers?** The paper's `R_t` **is** taken from the
+70′ fit, and `b`↔`R_t` are coupled, so this is where it could bite. Refitting under the paper's own
+prior bound with the flat background replaced by the corona component:
+
+| | flat `b` | corona | published |
+|---|---|---|---|
+| `R_t` | 59.1 (+12.6/−10.4)′ | **56.1 (+12.3/−10.5)′** | 54 (+7/−11)′ |
+| `R_c` | 1.422′ | **1.364′** | 1.38′ |
+
+`R_t` moves **3.0′** and `R_c` **0.06′**, both far inside the published uncertainties.
+
+**So the published numbers stand.** What does not survive is the interpretive sentence *"The
+background of this membership-selected sample measures the residual contamination level of the
+selection, not the raw field density."* It is measuring cluster structure, not selection residue —
+and EFF's own 1987 abstract anticipated the scale: *"up to 50% of the total masses in unbound
+halos."* The correction is one sentence, and it makes the paper stronger rather than weaker, because
+the alternative reading it currently forecloses is the interesting one.
+```
+
 ### Three corrections from reading the primary sources
 
 **1. The `+ b` is not King's.** King (1962) Eq. (14) is the bracket squared and nothing more. His
