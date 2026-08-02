@@ -19,7 +19,36 @@ asks.
 
 THE FOUR ANGLES, AND WHY ONE IS NOT ENOUGH
 ------------------------------------------
-Each answers a different question, and a parameter can pass one while failing another.
+Each answers a **different question**, and a parameter can pass one while failing another. The
+questions, and the function that answers each:
+
+======  ================================  ==============================  ==========================
+angle   the question it answers           what a failure means            function
+======  ================================  ==============================  ==========================
+1       *Do the data determine this, or   the number quoted is a prior     :func:`prior_sensitivity`
+        is the prior answering?*          restated, not a measurement
+2       *Is it separately identified,     a prior on one parameter         :func:`posterior_geometry`
+        or locked to another             silently determines the other
+        parameter?*
+3       *Is it precise — and is that      narrow because the prior is      :func:`posterior_geometry`
+        precision from the data?*         narrow, not because the data     (``relative_width``)
+                                          are informative
+4       *Does the geometry admit          the object should be excluded,   :func:`munoz_criteria`
+        measuring it at all?*             not corrected
+======  ================================  ==============================  ==========================
+
+:func:`identifiability_report` runs all four and returns a per-parameter ``verdict`` that is
+deliberately conservative: **measured** only if angle 1 clears it *and* angle 2 does not find it
+locked. Angles 3 and 4 are reported for judgement rather than folded into the verdict, because a wide
+interval is not by itself a defect and a geometric criterion can be ill-posed (see
+:func:`munoz_criteria`).
+
+**Why all four.** In the case that motivated this module, angle 1 alone gives the right answer and
+angle 3 alone gives the wrong one: reparameterising the EFF fit onto the identified combination
+:math:`\kappa = \gamma/a^2` produces an *unbiased* parameter with a **213%** relative width, while the
+biased ``gamma`` has 43%. Judging by precision would have preferred the wrong quantity. Conversely
+angle 2 alone misses the case where a single parameter is prior-dominated without being correlated
+with anything.
 
 **1. Power-scaling prior sensitivity** — Kallioinen, Paananen, Bürkner & Vehtari (2024, *Statistics
 and Computing* 34, 57, `arXiv:2107.14054`). Perturbs the prior and the likelihood by small powers

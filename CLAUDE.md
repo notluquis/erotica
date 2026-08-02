@@ -55,10 +55,11 @@ the row that replaced it.
   patch. Commit with `git commit --no-verify` until the hook is fixed
   (release-blocker: fix the pre-commit config — see `~/phd/erotica-package.md`).
 
-- **Read the Docs slug is `cosmic-clusters`, not `erotica`.** The project was renamed but the slug
-  was not; `erotica.readthedocs.io` is a 404 and `cosmic-clusters.readthedocs.io` serves the live
-  docs. Verified against the RTD API 2026-08-02. Do not "fix" the README links — changing the slug
-  needs a new RTD project plus redirects.
+- **Read the Docs slug migration is pending.** The RTD project is named `erotica` but its slug was
+  still `cosmic-clusters` as of 2026-08-02 (verified against the RTD API), so
+  `cosmic-clusters.readthedocs.io` serves the live docs. **README links now point at
+  `erotica.readthedocs.io` deliberately, ahead of the slug migration** — they 404 until it lands.
+  Do not "fix" them backwards.
 
 ## Data traps (respect in any catalog work)
 - `comments_paper/_legacy/rerun_2026-05/members_DIFFERENT_RUN_DO_NOT_USE.csv` =

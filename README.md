@@ -4,13 +4,13 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/erotica)
 [![CI](https://github.com/notluquis/erotica/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/erotica/actions/workflows/ci.yml)
-[![Docs](https://readthedocs.org/projects/cosmic-clusters/badge/?version=latest)](https://cosmic-clusters.readthedocs.io/en/latest/)
+[![Docs](https://readthedocs.org/projects/erotica/badge/?version=latest)](https://erotica.readthedocs.io/en/latest/)
 
 EROTICA is a Python package for analyzing star clusters using machine learning and Bayesian
 inference. Built for Gaia data, it uses unsupervised clustering to identify open star clusters
 and characterize their membership, ages, and structure.
 
-📖 **[Documentation](https://cosmic-clusters.readthedocs.io/en/latest/)** · [Membership guide](https://cosmic-clusters.readthedocs.io/en/latest/guides/membership.html) · [API reference](https://cosmic-clusters.readthedocs.io/en/latest/api/index.html)
+📖 **[Documentation](https://erotica.readthedocs.io/en/latest/)** · [Membership guide](https://erotica.readthedocs.io/en/latest/guides/membership.html) · [API reference](https://erotica.readthedocs.io/en/latest/api/index.html)
 
 ## 🚀 Quick Start
 
@@ -39,7 +39,7 @@ clusterer.save_results("members.ecsv", format="ascii.ecsv")
 
 Downstream analysis (isochrone fitting, structure, dynamics) goes through
 `ClusterAnalyzer`, which is constructed from a saved catalog — see the
-[quickstart](https://cosmic-clusters.readthedocs.io/en/latest/quickstart.html).
+[quickstart](https://erotica.readthedocs.io/en/latest/quickstart.html).
 
 ## 📦 Installation
 
@@ -144,27 +144,27 @@ Each of these is measured, scripted under `tools/validation/`, and written up in
 
 ## 📖 Documentation
 
-Full documentation: **[cosmic-clusters.readthedocs.io](https://cosmic-clusters.readthedocs.io/en/latest/)**
+Full documentation: **[erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/)**
 
 > **The URL is stale and the slug cannot be changed in place.** The Read the Docs *project* was
 > renamed to `erotica` in the 2026-07-21 rename, but its **slug is still `cosmic-clusters`**, so
-> `erotica.readthedocs.io` returns 404 while `cosmic-clusters.readthedocs.io` serves the current
+> `erotica.readthedocs.io` returns 404 while `erotica.readthedocs.io` serves the current
 > docs. Verified 2026-08-02 against the RTD API: `project__slug=cosmic-clusters` returns
 > `{"name": "erotica", "slug": "cosmic-clusters"}`, and `project__slug=erotica` returns nothing.
 > Fixing it means creating a new RTD project and redirecting; until then **do not "correct" these
 > links.**
 
 ### Getting started
-- [Installation](https://cosmic-clusters.readthedocs.io/en/latest/install.html)
-- [Quickstart](https://cosmic-clusters.readthedocs.io/en/latest/quickstart.html)
+- [Installation](https://erotica.readthedocs.io/en/latest/install.html)
+- [Quickstart](https://erotica.readthedocs.io/en/latest/quickstart.html)
 
 ### Guides
-- [Membership](https://cosmic-clusters.readthedocs.io/en/latest/guides/membership.html) —
+- [Membership](https://erotica.readthedocs.io/en/latest/guides/membership.html) —
   which features to cluster on, error-aware membership, calibration, and the trade-offs of each choice
 
 ### Reference
-- [API reference](https://cosmic-clusters.readthedocs.io/en/latest/api/index.html)
-- [Design notes](https://cosmic-clusters.readthedocs.io/en/latest/design-notes/index.html) —
+- [API reference](https://erotica.readthedocs.io/en/latest/api/index.html)
+- [Design notes](https://erotica.readthedocs.io/en/latest/design-notes/index.html) —
   grounded notes on the isochrone sampler, model grids, and HDBSCAN membership
 
 Build the docs locally with `pip install -e ".[docs]" && sphinx-build -b html docs docs/_build/html`.
@@ -253,7 +253,7 @@ EROTICA builds upon excellent open-source libraries:
 
 ## 📞 Support
 
-- **Documentation**: [cosmic-clusters.readthedocs.io](https://cosmic-clusters.readthedocs.io/en/latest/)
+- **Documentation**: [erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/)
 - **Issues**: [GitHub Issues](https://github.com/notluquis/erotica/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/notluquis/erotica/discussions)
 - **Email**: [lescobar2019@udec.cl](mailto:lescobar2019@udec.cl)
