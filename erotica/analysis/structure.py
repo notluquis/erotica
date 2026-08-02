@@ -515,15 +515,54 @@ class KingPriors:
        ``HalfStudentT`` is correct in both paths. Full analysis and a one-line
        patch: ``tools/validation/pytensor_cauchy_bug_report.md``.
 
+    WHERE THE NUMBERS COME FROM
+    ---------------------------
+    Set from **Hunt & Reffert (2024)**, `2024A&A...686A..42H`, 5647 open clusters, never from the
+    cluster in hand. Regenerate with ``tools/validation/fetch_hr24.py``. Angular radii in arcmin
+    (their columns are published in **degrees** — see the units warning in :class:`EFFPriors`):
+
+    ========  =======  =======  =======  =======
+    quantity      16%   median      84%      99%
+    ========  =======  =======  =======  =======
+    ``r_c``      2.61     7.83    20.14    92.24
+    ``r_t``      8.48    15.03    37.02   236.23
+    ``r_J``     11.05    16.14    27.12    85.24
+    ========  =======  =======  =======  =======
+
+    A half-Cauchy with scale ``s`` has median ``s``, 95th percentile ``12.7 s``, 99th ``63.7 s``. The
+    defaults sit **below** the catalogue medians so the prior does not push compact clusters outward,
+    while the heavy tail keeps it weakly informative — the reason for the half-Cauchy form, following
+    Olivares et al. (2018, A&A 612, A70), Gelman (2006) and Polson & Scott (2012).
+
     Attributes
     ----------
     r_c_scale, r_t_scale : float
-        Half-Cauchy scales (arcmin) for the core radius and for the *increment*
-        ``R_t - R_c``. Fitting the increment rather than ``R_t`` enforces
-        ``R_t > R_c`` by construction instead of by a data-dependent bound.
+        Half-Cauchy scales (arcmin) for the core radius and for the *increment* ``R_t - R_c``.
+        Fitting the increment rather than ``R_t`` enforces ``R_t > R_c`` by construction instead of by
+        a data-dependent bound. Defaults 5.0 and 20.0 against catalogue medians of 7.83′ and 15.03′.
+
+        .. warning::
+           **For NGC 6383 this prior determines the answer.** With a scale-free prior the posterior
+           SD on ``R_t`` is ~7000′; with a Jacobi-informed prior at ±50% it returns 59.1 ± 11.4′.
+           Restricting the fit to stars inside ``r_J`` does not help — ``R_t`` is still unconstrained
+           at 85.9 ± 2661′. The measured reason is that **the footprint does not contain the object**:
+           fitting the corona model gives ``P(R_2 > field) = 1.000``. Any ``R_t`` quoted must name its
+           prior. See ``docs/design-notes/king_model_validity.md``.
     k_scale, b_scale : float
-        Half-Cauchy scales for the cluster amplitude and the background level,
-        in stars per square arcmin.
+        Half-Cauchy scales for the cluster amplitude and the background level, in stars per square
+        arcmin. **Neither is derived** — they are order-unity because surface densities in this
+        geometry are order unity, not because a catalogue was consulted. The point-process
+        normalisation makes the fit largely insensitive to ``k`` (it is set by the total count), which
+        is an argument for why it matters little, not a derivation.
+
+        .. important::
+           ``b`` is **not** field contamination on a membership-selected sample. On NGC 6383 it
+           accounts for **56% of the sample** against a target–decoy false-discovery proportion of
+           **6.1%** — a factor of 9. What it absorbs is the corona, exactly as Seleznev (2016, MNRAS
+           456, 3757) states: *"the cluster corona … is perceived by the approximation algorithm as
+           part of the stellar background."* Report the fraction attributed to ``b`` alongside
+           ``k``, ``R_c`` and ``R_t``, or the profile of a minority of the data is being presented as
+           the profile of the cluster.
     """
 
     r_c_scale: float = 5.0
@@ -951,9 +990,35 @@ def eff_unbinned(
 
 @dataclass(frozen=True)
 class CoronaPriors:
-    """Scale-free priors for the King-plus-corona model.
+    r"""Scale-free priors for the King-plus-corona model.
 
     Same discipline as :class:`KingPriors`: fixed constants, independent of the data.
+
+    WHERE THE NUMBERS COME FROM — AND WHERE THEY DO NOT
+    ---------------------------------------------------
+    ``r_c_scale``, ``r_t_scale`` and ``k_scale`` follow :class:`KingPriors`, set from Hunt & Reffert
+    (2024). The two corona parameters have **no catalogue to be set from**, and that is stated rather
+    than hidden:
+
+    * ``r_2_scale`` (default 60′) is anchored on HR24's ``r_tot`` — median **25.4′**, 84th percentile
+      54.8′, 99th 362′ — which is the closest published proxy for a corona extent, though `r_tot` is
+      defined by *contrast against the field* (Hunt & Reffert 2023) rather than by a physical edge, so
+      it measures the footprint as much as the object. The scale is set generously above the median
+      because the quantity being inferred is expected to exceed it.
+    * ``delta_scale`` (default 0.01, stars per cubic arcmin) is **not derived**. It is chosen so the
+      implied corona count over a typical field is order-100, i.e. the same order as the flat
+      background it replaces. There is no independent measurement of open-cluster corona space
+      densities to anchor it.
+
+    .. important::
+       **This model is deliberately near-degenerate with a flat background, and the prior does not
+       resolve that — the data must.** As :math:`R_2 \to \infty`, :math:`2\delta_f\sqrt{R_2^2-r^2}
+       \to 2\delta_f R_2`, a constant. On NGC 6383 the two models sit at ``2 ln B = -2.27``, i.e.
+       indistinguishable, and the fit reports why: ``P(R_2 > 70' field) = 1.000``, ``R_2`` median
+       176.6′ = 55 pc with a 95% interval of [96.8, 895]′, unbounded above. **An unconstrained
+       ``R_2`` posterior is the result, not a failure** — it says the corona does not fit inside the
+       footprint. The model is identifiable when it does: injecting a corona at ``R_2 = 35'`` in a 70′
+       field gives ``2 ln B = -16.18`` in its favour (``tests/test_structure.py``).
     """
 
     r_c_scale: float = 5.0
