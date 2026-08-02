@@ -1,0 +1,82 @@
+{
+ "a_true": 1.65,
+ "ratios": [
+  2.0,
+  4.0,
+  8.0,
+  16.0,
+  42.0
+ ],
+ "cells": [
+  {
+   "ratio": 2.0,
+   "gamma_true": 2.0,
+   "n": 150,
+   "realizations": 24,
+   "kappa_true": 0.7346189164370983,
+   "gamma_bias": 1.672871433566661,
+   "gamma_bias_sem": 0.056981064517243635,
+   "kappa_frac_bias": 0.15159993890551093,
+   "kappa_frac_bias_sem": 0.15055803960862915,
+   "corr_a_gamma": 0.7090884080516231,
+   "gamma_relative_width": 0.4263551534696978,
+   "kappa_relative_width": 2.1261500507971207
+  },
+  {
+   "ratio": 4.0,
+   "gamma_true": 2.0,
+   "n": 150,
+   "realizations": 24,
+   "kappa_true": 0.7346189164370983,
+   "gamma_bias": 1.8187675593291623,
+   "gamma_bias_sem": 0.09851241106820295,
+   "kappa_frac_bias": -0.14847295430299567,
+   "kappa_frac_bias_sem": 0.09267073999980578,
+   "corr_a_gamma": 0.8274497964582848,
+   "gamma_relative_width": 0.36840076675282535,
+   "kappa_relative_width": 0.6959150082069447
+  },
+  {
+   "ratio": 8.0,
+   "gamma_true": 2.0,
+   "n": 150,
+   "realizations": 24,
+   "kappa_true": 0.7346189164370983,
+   "gamma_bias": 1.3302900072321662,
+   "gamma_bias_sem": 0.12342859472018239,
+   "kappa_frac_bias": -0.3215285240348055,
+   "kappa_frac_bias_sem": 0.09725561545677572,
+   "corr_a_gamma": 0.8899504600979459,
+   "gamma_relative_width": 0.3320845969579316,
+   "kappa_relative_width": 0.6915464636456297
+  },
+  {
+   "ratio": 16.0,
+   "gamma_true": 2.0,
+   "n": 150,
+   "realizations": 24,
+   "kappa_true": 0.7346189164370983,
+   "gamma_bias": 0.6521646593831716,
+   "gamma_bias_sem": 0.08929276726288041,
+   "kappa_frac_bias": -0.3133806139820594,
+   "kappa_frac_bias_sem": 0.10434151343741147,
+   "corr_a_gamma": 0.8916774020388782,
+   "gamma_relative_width": 0.2327712321470097,
+   "kappa_relative_width": 0.7620708014010531
+  },
+  {
+   "ratio": 42.0,
+   "gamma_true": 2.0,
+   "n": 150,
+   "realizations": 24,
+   "kappa_true": 0.7346189164370983,
+   "gamma_bias": 0.25221330869295855,
+   "gamma_bias_sem": 0.04032049741635283,
+   "kappa_frac_bias": -0.22504496618037217,
+   "kappa_frac_bias_sem": 0.10800209525928803,
+   "corr_a_gamma": 0.8215172400190506,
+   "gamma_relative_width": 0.10370834487108398,
+   "kappa_relative_width": 0.6674671918941014
+  }
+ ]
+}

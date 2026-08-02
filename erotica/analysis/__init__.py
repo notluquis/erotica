@@ -82,6 +82,13 @@ from .provenance import (
     write_metadata,
 )
 from .synthetic import fractal_cluster, radial_profile_of
+from .identifiability import (
+    attach_log_likelihood,
+    identifiability_report,
+    munoz_criteria,
+    posterior_geometry,
+    prior_sensitivity,
+)
 from .structure import (
     KingPriors,
     EFFPriors,
@@ -120,6 +127,11 @@ from .units import (
 from .analyzer import ClusterAnalyzer
 
 __all__ = [
+    "prior_sensitivity",
+    "posterior_geometry",
+    "munoz_criteria",
+    "identifiability_report",
+    "attach_log_likelihood",
     "CenterFitResult",
     "ClusterAnalyzer",
     "ClusterDynamicsAnalyzer",
