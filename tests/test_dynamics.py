@@ -367,3 +367,54 @@ def test_the_pole_moves_into_the_census_for_the_correct_coulomb_argument():
     assert half_mass_relaxation_time(40, *args, lambda_value=0.11).value > 0
     with _pytest.raises(ValueError):
         half_mass_relaxation_time(40, *args, lambda_value=0.02)
+
+
+def test_calibration_guard_catches_the_error_this_project_actually_made():
+    """The failure mode is extrapolating past a calibration boundary, and it recurs.
+
+    It is recorded twice in this project's own history: once in the completeness work (a bias law
+    fitted at 50% suppression and applied at 1.2%) and once here — a commit asserted that
+    ``gamma = 0.02`` "is the applicable branch" for Gaia open clusters, when Giersz & Heggie (1996)
+    state in their abstract that their systems are **isolated** with **N from 250 to 1000**, while
+    open clusters are tidally limited with a census median of N = 61.
+
+    So the guard is the machine-checkable form of a mistake that documentation alone did not
+    prevent. This test asserts it fires on exactly that case.
+    """
+    from erotica.analysis.dynamics import coulomb_calibration_warnings
+
+    # the census median, with the "physically correct" multi-mass value
+    reasons = coulomb_calibration_warnings(0.02, 61)
+    assert any("outside the calibration range 250-1000" in r for r in reasons), reasons
+    assert any("ISOLATED" in r for r in reasons), reasons
+
+    # inside the N range, the isolation mismatch still stands -- it is not an N problem
+    inside = coulomb_calibration_warnings(0.02, 500)
+    assert not any("calibration range" in r for r in inside), inside
+    assert any("ISOLATED" in r for r in inside), inside
+
+    # the equal-mass value must be flagged as such for a cluster with a mass function
+    equal_mass_value = coulomb_calibration_warnings(0.11, 500)
+    assert any("EQUAL-MASS" in r for r in equal_mass_value), equal_mass_value
+    # ...and not flagged when the caller says the cluster really is equal-mass
+    assert not any(
+        "EQUAL-MASS" in r for r in coulomb_calibration_warnings(0.11, 500, equal_mass=True)
+    )
+
+    # an undocumented value must not pass silently
+    assert coulomb_calibration_warnings(0.07, 500), "unknown gamma should report missing provenance"
+
+
+def test_relaxation_time_warns_rather_than_silently_extrapolating():
+    """The guard has to reach the caller, not just exist."""
+    import warnings as _warnings
+
+    import astropy.units as u
+
+    from erotica.analysis.dynamics import half_mass_relaxation_time
+
+    with _warnings.catch_warnings(record=True) as caught:
+        _warnings.simplefilter("always")
+        half_mass_relaxation_time(61, 2.0 * u.pc, 900 * u.Msun, lambda_value=0.02)
+    messages = [str(w.message) for w in caught]
+    assert any("outside its calibration" in m for m in messages), messages

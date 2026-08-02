@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from astropy import units as u
 from astropy.constants import G
@@ -411,6 +413,65 @@ def crossing_time(radius, velocity_dispersion) -> u.Quantity:
     return (radius / velocity_dispersion).to(u.Myr)
 
 
+# Calibration provenance for the Coulomb-logarithm argument. Each entry records the range the value
+# was calibrated over, so calling outside it can WARN instead of silently extrapolating -- which is
+# this programme's most repeated error (see methodology.md K.1.5).
+COULOMB_CALIBRATIONS = {
+    0.4: dict(
+        source="analytic, equal mass",
+        reference="standard derivation; not an N-body fit",
+        n_range=None,          # analytic, so no calibration range in N
+        equal_mass=True,
+        isolated=None,
+    ),
+    0.11: dict(
+        source="N-body, equal mass",
+        reference="Giersz & Heggie (1994), 1994MNRAS.268..257G",
+        n_range=(250, 1000),
+        equal_mass=True,
+        isolated=True,
+    ),
+    0.02: dict(
+        source="N-body, multi-mass (power-law MF)",
+        reference="Giersz & Heggie (1996), 1996MNRAS.279.1037G",
+        n_range=(250, 1000),   # verbatim from their abstract: "from 250 to 1000 stars each"
+        equal_mass=False,
+        isolated=True,         # verbatim: "the systems are isolated"
+    ),
+}
+
+
+def coulomb_calibration_warnings(lambda_value, n_stars, *, tidally_limited=True, equal_mass=False):
+    """Reasons the requested Coulomb argument is being used outside its calibration.
+
+    Returns a list of strings, empty if the use is inside the calibrated regime. Separated from
+    :func:`half_mass_relaxation_time` so it is testable on its own and so a caller can inspect the
+    reasons rather than only catch a warning.
+    """
+    entry = COULOMB_CALIBRATIONS.get(round(float(lambda_value), 6))
+    if entry is None:
+        return [f"gamma={lambda_value} has no recorded calibration provenance in this module."]
+    problems = []
+    if entry["n_range"] is not None:
+        low, high = entry["n_range"]
+        if not (low <= n_stars <= high):
+            problems.append(
+                f"N={n_stars:g} is outside the calibration range {low}-{high} of "
+                f"{entry['reference']}."
+            )
+    if entry["equal_mass"] and not equal_mass:
+        problems.append(
+            f"gamma={lambda_value} is an EQUAL-MASS value ({entry['source']}); this cluster has a "
+            "mass function."
+        )
+    if entry["isolated"] and tidally_limited:
+        problems.append(
+            f"gamma={lambda_value} was calibrated on ISOLATED systems; this cluster is tidally "
+            "limited. Giersz & Heggie (1997), 1997MNRAS.286..709G, is the matching setup."
+        )
+    return problems
+
+
 def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda_value=0.11):
     r"""Half-mass relaxation time.
 
@@ -497,6 +558,8 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
     half_mass_radius = ensure_units(half_mass_radius, u.pc)
     cluster_mass = ensure_units(cluster_mass, u.Msun)
     n_stars = float(n_stars)
+    for reason in coulomb_calibration_warnings(lambda_value, n_stars):
+        warnings.warn(f"Coulomb argument used outside its calibration: {reason}", stacklevel=2)
     argument = lambda_value * n_stars
     if argument <= 1.0:
         raise ValueError(
