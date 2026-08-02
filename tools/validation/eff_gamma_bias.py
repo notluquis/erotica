@@ -64,11 +64,23 @@ Use ``--field-ratios`` to map the ``(N, r_tot/a)`` plane. The deliverable is a *
 boundary**, not a correction surface: the bias is non-monotonic below ``r_tot/a ~ 4``, where prior pull
 and likelihood push compete, so a fitted law there would be meaningless.
 
-WHAT TO EXPECT, AND WHY
------------------------
-Maximum-likelihood and posterior-median estimators are generically biased at `O(1/N)` (Firth 1993 is
-the standard reference for the correction). A power-law fit `bias = A * N^-p` with `p` near 0.5-1 is
-the expected shape; a departure would itself be informative.
+THE POWER LAW IS A PLACEHOLDER — SEE eff_gamma_estimator.py FOR THE MODEL THAT HAS CONTENT
+------------------------------------------------------------------------------------------
+`bias = A * N^-p` is fitted here for convenience, and the `p ~ 0.72-0.78` it returns **has no
+theoretical content**. Cox & Snell (1968) -- matrix form in Kosmidis (2014, `arXiv:1311.6311`) --
+expand the maximum-likelihood bias as `b1/n + b2/n^2 + O(n^-3)`, so the leading term is `O(1/n)` and
+`p` should be 1. It is not, and that is not a regularity failure of the point process: by the
+conditioning property of a Poisson process, given `N` points in a window they are iid draws from the
+window-normalised intensity, so for shape parameters Cox-Snell applies with `n = N`.
+
+Model comparison on this grid at fixed geometry (reduced chi-square, `gamma_true` = 2.00/2.32/3.00):
+
+    H1  bias = A N^-p              0.93 / 0.23 / 0.95     empirical, no content
+    H2  bias = b1/N                8.72 / 2.06 / 4.90     Cox-Snell alone -- REJECTED
+    H3  bias = A/sqrt(N) + b1/N    1.12 / 0.43 / 1.48     accepted
+
+So `p ~ 0.75` is just the effective slope of a `1/sqrt(N)` term plus a `1/N` term over this range.
+**Quote H3's coefficients, never `p`.**
 
 USAGE
 -----
