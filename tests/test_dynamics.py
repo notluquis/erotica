@@ -313,3 +313,57 @@ def test_galactic_latitude_actually_changes_the_answer():
         distance=1.5 * u.kpc, l=40.0 * u.deg, b=45.0 * u.deg
     ).to_value(u.kpc)
     assert abs(at_forty - at_zero) > 0.1
+
+
+# ---------------------------------------------------------------------------
+# Coulomb logarithm: the pole, and which calibration applies
+# ---------------------------------------------------------------------------
+
+
+def test_relaxation_time_refuses_to_return_a_negative_time():
+    """Oracle: a relaxation time is positive. Below N = 1/gamma the expression is not.
+
+    This is a regression test for silent nonsense, not a hypothetical. Before the guard,
+    ``half_mass_relaxation_time(5, ...)`` returned **-1.6 Myr** and ``(9, ...)`` returned
+    **-173.7 Myr**, with no warning — the logarithm ``ln(gamma*N)`` goes negative below the pole
+    and the sign propagates straight through.
+    """
+    import astropy.units as u
+    import pytest as _pytest
+
+    from erotica.analysis.dynamics import half_mass_relaxation_time
+
+    for n in (5, 9):
+        with _pytest.raises(ValueError, match="non-positive"):
+            half_mass_relaxation_time(n, 2.0 * u.pc, 900 * u.Msun, lambda_value=0.11)
+    # just above the pole it is finite and positive again
+    assert half_mass_relaxation_time(10, 2.0 * u.pc, 900 * u.Msun, lambda_value=0.11).value > 0
+
+
+def test_the_pole_moves_into_the_census_for_the_correct_coulomb_argument():
+    """The Coulomb argument is not a cosmetic choice, and this pins how much it matters.
+
+    ``gamma = 0.11`` is the **equal-mass** N-body calibration (Giersz & Heggie 1994); ``gamma = 0.02``
+    is the **multi-mass** one (Giersz & Heggie 1996, *"a factor 7 smaller than the value found in
+    Paper I for systems with equal masses"*). Every real cluster has a mass function, so 0.02 is the
+    applicable branch — and its pole sits at N = 50, inside a census whose median is 61 and 40% of
+    which lies below 50.
+
+    At the census median the two give answers differing by nearly an order of magnitude, because the
+    correct one sits close to its own pole.
+    """
+    import astropy.units as u
+    import pytest as _pytest
+
+    from erotica.analysis.dynamics import half_mass_relaxation_time
+
+    args = (2.0 * u.pc, 900 * u.Msun)
+    equal_mass = half_mass_relaxation_time(61, *args, lambda_value=0.11).value
+    multi_mass = half_mass_relaxation_time(61, *args, lambda_value=0.02).value
+    assert multi_mass / equal_mass > 5.0, (equal_mass, multi_mass)
+
+    # N = 40 is below the multi-mass pole and must be refused, while the equal-mass value happily
+    # returns a number -- which is exactly the trap.
+    assert half_mass_relaxation_time(40, *args, lambda_value=0.11).value > 0
+    with _pytest.raises(ValueError):
+        half_mass_relaxation_time(40, *args, lambda_value=0.02)

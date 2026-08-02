@@ -412,13 +412,84 @@ def crossing_time(radius, velocity_dispersion) -> u.Quantity:
 
 
 def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda_value=0.11):
-    """Spitzer-style half-mass relaxation time."""
+    r"""Half-mass relaxation time.
+
+    .. math:: t_{rh} = \frac{0.138\, N^{1/2} r_h^{3/2}}
+                            {\sqrt{G \bar{m}}\; \ln(\gamma N)}
+
+    The arrangement implemented here is **Heggie & Hut (2003) Eq. 9**; Spitzer (1987) gives it as
+    Eq. 2-63 (2-62 is the *local* reference time, coefficient 0.065). Note that 0.138, 0.0600 and
+    8.9e5 are the **same constant** in different unit systems — ``0.065 × 0.4^1.5 × 8π/3 = 0.13776``
+    and ``0.138/ln(10) = 0.05993`` — so pairing a ``log10`` coefficient with a natural log is a
+    silent factor of 2.303.
+
+    Parameters
+    ----------
+    lambda_value : float, default 0.11
+        The Coulomb-logarithm argument :math:`\gamma` in :math:`\ln(\gamma N)`. **The default is
+        very likely wrong for a Gaia open cluster** — see the warning below.
+
+    .. warning::
+       **The default ``lambda_value = 0.11`` is the EQUAL-MASS calibration, and no real cluster has
+       equal masses.** The three values in circulation are not interchangeable:
+
+       ==========  ==========================================  ===========================
+       :math:`\gamma`  what it is                                  source
+       ==========  ==========================================  ===========================
+       0.4         analytic, equal mass — *not* an N-body fit  standard textbook derivation
+       **0.11**    N-body calibration, **equal mass**          Giersz & Heggie (1994)
+       **0.02**    N-body calibration, **multi-mass**          Giersz & Heggie (1996)
+       ==========  ==========================================  ===========================
+
+       Giersz & Heggie (1996) describe the multi-mass value as *"a factor 7 smaller than the value
+       found in Paper I for systems with equal masses"*, and Heggie & Hut (2003) p. 142 states the
+       distinction plainly. **Every Gaia open cluster has a mass function**, so 0.02 is the
+       applicable branch and neither this module's 0.11 nor the open-cluster literature's common 0.4
+       is. The difference is **×5.3 at N = 100** and ×2.0 at N = 1000.
+
+       The default is left at 0.11 rather than changed silently, because changing it would move every
+       previously published relaxation time from this code without a record. Pass
+       ``lambda_value=0.02`` for a mass-segregated cluster and say so.
+
+    .. danger::
+       **The formula has a pole at** :math:`N = 1/\gamma` **and below it returns a negative time.**
+       That is not a rounding artefact: at ``lambda_value=0.11`` this code returned −1.6 Myr for
+       N = 5 and −173.7 Myr for N = 9, silently, before the guard below was added.
+
+       The pole sits at N = 9.1 for :math:`\gamma` = 0.11 but at **N = 50** for the physically correct
+       :math:`\gamma` = 0.02 — and **40% of the Hunt & Reffert (2024) census has N < 50**, with a
+       median of 61. So adopting the correct Coulomb argument puts a large part of the census
+       *outside the formula's domain*. That is a real limitation of the expression, not of the
+       implementation, and it is raised rather than papered over.
+
+    Raises
+    ------
+    ValueError
+        If ``lambda_value * n_stars <= 1``, where the logarithm is non-positive and the result would
+        be infinite or negative.
+
+    Notes
+    -----
+    A second convention differs in the **prefactor**: Binney & Tremaine (2008) Eq. 7.108 uses 0.17
+    rather than 0.138, a flat 23%, and parts of the Gaia cluster literature pair it with
+    :math:`\gamma` = 0.1. Compounded across both conventions the worst-case spread at N = 200 is a
+    factor of **3.9**. Neither Tarricq et al. (2022) nor Hunt & Reffert (2024) publishes a relaxation
+    time, so there is no external catalogue to validate against.
+    """
     half_mass_radius = ensure_units(half_mass_radius, u.pc)
     cluster_mass = ensure_units(cluster_mass, u.Msun)
     n_stars = float(n_stars)
+    argument = lambda_value * n_stars
+    if argument <= 1.0:
+        raise ValueError(
+            f"ln(gamma*N) is non-positive: gamma={lambda_value}, N={n_stars:g}, "
+            f"gamma*N={argument:.3f}. The half-mass relaxation time is undefined at or below "
+            f"N = 1/gamma = {1 / lambda_value:.1f}; the expression returns a negative time there. "
+            "This is a limit of the formula, not of the input."
+        )
     mean_mass = cluster_mass / n_stars
-    numerator = 0.138 * np.sqrt(n_stars) * half_mass_radius ** 1.5
-    denominator = np.sqrt(G * mean_mass) * np.log(lambda_value * n_stars)
+    numerator = 0.138 * np.sqrt(n_stars) * half_mass_radius**1.5
+    denominator = np.sqrt(G * mean_mass) * np.log(argument)
     return (numerator / denominator).to(u.Myr)
 
 
