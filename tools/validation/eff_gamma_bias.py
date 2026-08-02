@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Calibrate the finite-sample bias of the EFF slope, as a function of N and of the true slope.
+r"""Calibrate the finite-sample bias of the EFF slope, as a function of N and of the true slope.
 
 WHY THIS EXISTS — IT BLOCKS THE CENSUS SWEEP
 --------------------------------------------

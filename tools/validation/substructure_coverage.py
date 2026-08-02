@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Does the point-process likelihood report honest error bars on a *substructured* cluster?
+r"""Does the point-process likelihood report honest error bars on a *substructured* cluster?
 
 WHY THIS EXISTS
 ---------------

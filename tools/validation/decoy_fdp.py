@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Target-decoy false-discovery estimate for HDBSCAN cluster membership.
+r"""Target-decoy false-discovery estimate for HDBSCAN cluster membership.
 
 WHY THIS EXISTS
 ---------------

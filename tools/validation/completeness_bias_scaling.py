@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Is the completeness-induced bias on ``R_c`` linear in the size of the suppression?
+r"""Is the completeness-induced bias on ``R_c`` linear in the size of the suppression?
 
 WHY THIS EXISTS
 ---------------

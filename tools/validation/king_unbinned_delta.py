@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Delta report: published binned King fit vs the unbinned point-process fit.
+r"""Delta report: published binned King fit vs the unbinned point-process fit.
 
 WHY THIS EXISTS
 ---------------

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Where do NGC 6383's King parameters sit in the modern Gaia literature?
+r"""Where do NGC 6383's King parameters sit in the modern Gaia literature?
 
 WHY THIS EXISTS
 ---------------

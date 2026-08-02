@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch the Hunt & Reffert (2024) cluster table once, for the census sweep.
+r"""Fetch the Hunt & Reffert (2024) cluster table once, for the census sweep.
 
 WHY A CACHE AT ALL
 ------------------

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Measure the parallax sigma-clip as a magnitude-dependent selection function.
+r"""Measure the parallax sigma-clip as a magnitude-dependent selection function.
 
 WHY THIS EXISTS
 ---------------

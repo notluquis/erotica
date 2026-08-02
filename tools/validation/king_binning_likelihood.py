@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Which likelihood does a King radial-density profile actually want?
+r"""Which likelihood does a King radial-density profile actually want?
 
 WHY THIS EXISTS
 ---------------

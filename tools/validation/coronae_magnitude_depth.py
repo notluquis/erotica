@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""How faint do open-cluster *coronae* get, and does the Gaia DR3 selection function reach them?
+r"""How faint do open-cluster *coronae* get, and does the Gaia DR3 selection function reach them?
 
 WHY THIS EXISTS
 ---------------

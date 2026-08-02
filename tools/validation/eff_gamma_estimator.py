@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Is the EFF slope bias a property of the estimator, or of the summary we report from it?
+r"""Is the EFF slope bias a property of the estimator, or of the summary we report from it?
 
 WHY THIS EXISTS
 ---------------

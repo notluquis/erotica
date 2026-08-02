@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Which parameters are not separately identified? A systematic posterior-correlation audit.
+r"""Which parameters are not separately identified? A systematic posterior-correlation audit.
 
 WHY THIS EXISTS
 ---------------

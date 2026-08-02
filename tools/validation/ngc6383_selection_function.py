@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the radial completeness profile S̄(r) for NGC 6383 from the Gaia DR3
+r"""Build the radial completeness profile S̄(r) for NGC 6383 from the Gaia DR3
 selection function, for use as ``king_unbinned(completeness=...)``.
 
 WHY THIS EXISTS
