@@ -65,6 +65,11 @@ erotica/
 │   ├── io/                # 📊 Data loading and I/O
 │   ├── preprocess/        # 🧹 Data preprocessing
 │   ├── analysis/          # 📈 Isochrones, structure, dynamics, inference
+│   │   ├── structure.py       #   radial profiles: King, EFF, Plummer, King+corona
+│   │   ├── identifiability.py #   is this parameter measured, or is the prior answering?
+│   │   ├── synthetic.py       #   fractal cluster generation, for validation
+│   │   └── provenance.py      #   git SHA, checksums, seeds, dependency versions
+│   ├── selection.py       # 🔭 Gaia DR3 selection function
 │   ├── calibration.py     # 🎯 Probability calibration
 │   └── utils/             # 🛠️ Utility functions
 ├── docs/                  # 📚 Sphinx documentation
@@ -72,39 +77,82 @@ erotica/
 │   ├── design-notes/      # Grounded method notes
 │   └── api/               # Auto-generated API reference
 ├── tools/                 # 🔧 Development + release tooling
+│   └── validation/        #   every quoted number has a script here
 ├── data/test/NGC6383/     # 🔬 Paper reproduction artifacts
 └── tests/                 # 🧪 Test suite
 ```
 
-## 🌟 Features
+## 🌟 What it does
 
-### 🔬 Advanced Clustering
-- **HDBSCAN** with persistence thresholding
-- **Hyperparameter optimization** via Grid Search and Optuna
-- **Multiple validation metrics** (relative validity, DBCV, persistence)
-- **Robust outlier detection** and noise handling
+### Radial structure, without binning
+Profiles are fitted as an **unbinned inhomogeneous Poisson point process**, `Σ log λ(rᵢ) − Λ`, so
+there is no bin width to choose and no Gaussian approximation to break in the sparse outer bins that
+set the truncation radius. Four families share the machinery and are scored against each other by
+SMC Bayes factor:
 
-### 📊 Multi-System Data Support
-- **Gaia** (positions, proper motions, parallaxes, photometry)
-- **2MASS** (near-infrared photometry)
-- **WISE** (mid-infrared photometry)
-- **Automatic unit handling** and data validation
+| model | when |
+|---|---|
+| **King (1962)** | the empirical standard. Note the additive background is *not* King's — see the docstring |
+| **EFF** (Elson, Fall & Freeman 1987) | no tidal cutoff; the honest model when truncation is not locatable |
+| **Plummer** | `EFF(γ = 4)` |
+| **King + uniform-sphere corona** (Danilov & Putkov 2012; Seleznev 2016) | when the flat background is absorbing cluster structure rather than field |
 
-### 🧹 Comprehensive Preprocessing
-- **Zero-point corrections** for Gaia photometry
-- **Proper motion corrections** for systematic effects
-- **Quality-based data splitting** with fidelity metrics
-- **Missing value handling** and outlier detection
+Each carries a closed-form normalisation verified against quadrature, because the integral is
+evaluated at every leapfrog step.
 
-### 📈 Statistical Analysis
-- **Cluster characterization** with kinematic properties
-- **Membership probability** assessment
-- **Sagitta integration** for stellar parameter estimation
-- **Comprehensive visualization** suite
+### Asking whether a number means anything
+`erotica.analysis.identifiability` answers *"is this parameter measured, or is the prior answering for
+it?"* — **before** it is quoted. Four angles, because a parameter can pass one and fail another:
+power-scaling prior sensitivity (Kallioinen et al. 2024), posterior geometry and condition number,
+relative width, and the Muñoz et al. (2012) geometric criteria. It exists because this project
+repeatedly reported numbers the data did not determine and found out late.
+
+### Membership and calibration
+HDBSCAN with persistence thresholding and a hyperparameter sweep scored by recovery frequency ×
+strength. The resulting pseudo-probability is **calibrated against an external benchmark** rather than
+assumed to be a probability, and a target–decoy construction measures the false-discovery proportion
+independently of the fit.
+
+### Selection functions
+Gaia DR3 completeness via `gaiaunlimited`, foldable directly into the point-process normalisation, so
+a radial completeness gradient enters the likelihood rather than being corrected afterwards.
+
+### Synthetic clusters for validation, not for science
+`fractal_cluster` implements the Goodwin & Whitworth (2004) box-fractal construction — still the live
+standard in 2026 — because drawing test data from a smooth profile begs the question when the thing
+under test *is* a profile fit.
+
+### Reproducibility
+`build_metadata` records git SHA and dirty flag, input-data checksums, RNG seeds, sampler
+configuration and dependency versions. A result without those is not reproducible, only repeatable.
+
+## ⚠️ What it will not tell you
+
+Stated up front because the alternative is a referee stating it:
+
+- **A tidal radius is often prior-determined.** For a footprint that does not contain the cluster,
+  `R_t` is unconstrained regardless of how well the sampler converged. Any `R_t` must name its prior.
+- **The EFF slope is not recoverable at typical Gaia-census geometry.** The controlling variable is
+  the footprint-to-scale ratio, not the sample size.
+- **Circular symmetry is assumed and is the exception** — the published median axis ratio is 0.71.
+- **On a membership-selected sample the background term is not contamination.** It absorbs the
+  corona, and for one cluster it accounts for 56% of the sample against a 6.1% measured
+  false-discovery rate.
+
+Each of these is measured, scripted under `tools/validation/`, and written up in
+`docs/design-notes/`.
 
 ## 📖 Documentation
 
 Full documentation: **[cosmic-clusters.readthedocs.io](https://cosmic-clusters.readthedocs.io/en/latest/)**
+
+> **The URL is stale and the slug cannot be changed in place.** The Read the Docs *project* was
+> renamed to `erotica` in the 2026-07-21 rename, but its **slug is still `cosmic-clusters`**, so
+> `erotica.readthedocs.io` returns 404 while `cosmic-clusters.readthedocs.io` serves the current
+> docs. Verified 2026-08-02 against the RTD API: `project__slug=cosmic-clusters` returns
+> `{"name": "erotica", "slug": "cosmic-clusters"}`, and `project__slug=erotica` returns nothing.
+> Fixing it means creating a new RTD project and redirecting; until then **do not "correct" these
+> links.**
 
 ### Getting started
 - [Installation](https://cosmic-clusters.readthedocs.io/en/latest/install.html)
