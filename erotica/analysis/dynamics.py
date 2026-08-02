@@ -484,6 +484,29 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
     and ``0.138/ln(10) = 0.05993`` — so pairing a ``log10`` coefficient with a natural log is a
     silent factor of 2.303.
 
+    .. danger::
+       **``n_stars`` is the number of BOUND stars, ``M/<m>`` — not the observed member count.**
+       Giersz & Heggie (1996) define it that way, and Cordoni et al. (2023) Eq. 5 writes the argument
+       as ``M/<m>`` explicitly. Passing an observed member list corrupts **both** terms, because this
+       function derives the mean stellar mass as ``M/N``:
+
+       ==========  ===============  ==========  =========================================
+       ``N``       implied ``<m>``  ``t_rh``    what it is
+       ==========  ===============  ==========  =========================================
+       254         3.54 M☉          14.8 Myr    NGC 6383's observed members at 40′ — **wrong**
+       687         1.31 M☉          30.8 Myr    ``M/<m>`` with P01's measured mean per system
+       1800        0.50 M☉          66.0 Myr    ``M/<m>`` with a Kroupa mean
+       ==========  ===============  ==========  =========================================
+
+       A **factor 4.5**, and it never announces itself — the implied ``<m>`` of 3.54 M☉ is the tell,
+       since no IMF produces it. The function warns when the implied mean mass is unphysical.
+
+       This also corrects an earlier claim in this codebase. The pole at ``N = 1/γ`` was said to sit
+       *inside* the census because the census median observed membership is 61. With ``N`` defined as
+       Giersz & Heggie define it, ``N`` for a 900 M☉ cluster is 1500–1800, and the pole survives only
+       for very young, very low-mass clusters — which are out of virial equilibrium anyway, so
+       ``t_rh`` is undefined there for a different reason.
+
     .. seealso::
        **Knowledge-graph node**: ``kb/methods/coulomb-logarithm-argument.md`` in the research hub
        carries the full provenance -- every value, what it was calibrated on, what it costs to get
@@ -566,6 +589,17 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
     n_stars = float(n_stars)
     for reason in coulomb_calibration_warnings(lambda_value, n_stars):
         warnings.warn(f"Coulomb argument used outside its calibration: {reason}", stacklevel=2)
+    # Posterior samples arrive as arrays; the guard is about the typical value, not each draw.
+    implied_mean_mass = float(np.median(np.atleast_1d((cluster_mass / n_stars).to_value(u.Msun))))
+    if not 0.1 <= implied_mean_mass <= 2.0:
+        warnings.warn(
+            f"n_stars={n_stars:g} with a cluster mass of "
+            f"{np.median(np.atleast_1d(cluster_mass.to_value(u.Msun))):.0f} Msun implies a mean stellar mass of "
+            f"{implied_mean_mass:.2f} Msun, which no IMF produces. n_stars must be the number of "
+            "BOUND stars, M/<m>, not an observed member count -- passing the latter corrupts both "
+            "the Coulomb logarithm and the mean mass.",
+            stacklevel=2,
+        )
     argument = lambda_value * n_stars
     if argument <= 1.0:
         raise ValueError(

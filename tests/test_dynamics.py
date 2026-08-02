@@ -418,3 +418,37 @@ def test_relaxation_time_warns_rather_than_silently_extrapolating():
         half_mass_relaxation_time(61, 2.0 * u.pc, 900 * u.Msun, lambda_value=0.02)
     messages = [str(w.message) for w in caught]
     assert any("outside its calibration" in m for m in messages), messages
+
+
+def test_relaxation_time_flags_an_unphysical_implied_mean_mass():
+    """``n_stars`` is ``M/<m>``, not an observed member count, and confusing them costs 4.5x.
+
+    The function derives the mean stellar mass as ``M/N``, so passing an incomplete member list
+    corrupts both the Coulomb logarithm and the mean mass. For NGC 6383 (M = 900 Msun) passing the
+    254 observed members implies a mean stellar mass of 3.54 Msun -- no IMF produces that, and it is
+    the only visible tell. Giersz & Heggie (1996) define N as bound stars; Cordoni et al. (2023)
+    Eq. 5 writes the argument as M/<m> explicitly.
+    """
+    import warnings as _warnings
+
+    import astropy.units as u
+
+    from erotica.analysis.dynamics import half_mass_relaxation_time
+
+    with _warnings.catch_warnings(record=True) as caught:
+        _warnings.simplefilter("always")
+        half_mass_relaxation_time(254, 2.0 * u.pc, 900 * u.Msun)
+    assert any("no IMF produces" in str(w.message) for w in caught), [str(w.message) for w in caught]
+
+    # a physical mean mass must not warn about it
+    with _warnings.catch_warnings(record=True) as clean:
+        _warnings.simplefilter("always")
+        half_mass_relaxation_time(1800, 2.0 * u.pc, 900 * u.Msun)
+    assert not any("no IMF produces" in str(w.message) for w in clean)
+
+    # and the size of the mistake is what makes it worth catching
+    with _warnings.catch_warnings():
+        _warnings.simplefilter("ignore")
+        wrong = half_mass_relaxation_time(254, 2.0 * u.pc, 900 * u.Msun).value
+        right = half_mass_relaxation_time(1800, 2.0 * u.pc, 900 * u.Msun).value
+    assert right / wrong > 4.0
