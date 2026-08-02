@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://erotica.readthedocs.io/en/latest/
+    about: Guides, API reference, and the design notes explaining why each method is what it is.
+  - name: Design notes — what the methods cannot do
+    url: https://erotica.readthedocs.io/en/latest/design-notes/index.html
+    about: Measured limitations, failed approaches and retracted claims, documented deliberately.

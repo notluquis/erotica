@@ -1,0 +1,25 @@
+name: Method question or challenge
+description: Question a modelling choice, a prior, or a claim made in the documentation
+labels: ["methods"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Challenges to the methods are welcome and are the reason `docs/design-notes/` exists. If a
+        prior, a likelihood, a default or a stated limitation looks wrong, this is the right place.
+  - type: textarea
+    id: claim
+    attributes:
+      label: The choice or claim in question
+      description: Link the docstring, design note or line of code.
+    validations:
+      required: true
+  - type: textarea
+    id: objection
+    attributes:
+      label: The objection
+      description: >
+        What would you do instead, and what evidence distinguishes the two? A citation, a limiting
+        case, or an experiment that would come out differently.
+    validations:
+      required: true

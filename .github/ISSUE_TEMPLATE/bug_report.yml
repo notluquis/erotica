@@ -1,0 +1,41 @@
+name: Bug report
+description: Something behaves incorrectly, crashes, or produces a wrong number
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **A wrong number is the most important kind of bug here.** If a result looks plausible but
+        you believe it is incorrect, that is worth reporting even without a stack trace — say what
+        you expected and why.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Include the traceback if there is one, or the number you got.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and why
+      description: >
+        For a numerical disagreement, the "why" is the important part — an analytic result, another
+        code, a published value, a limiting case.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Smallest script that shows it. Include the random seed if sampling is involved.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: "Output of: `python -c \"import erotica, pymc, numpy, astropy; print(erotica.__version__, pymc.__version__, numpy.__version__, astropy.__version__)\"`"
+    validations:
+      required: true

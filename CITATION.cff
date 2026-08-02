@@ -1,6 +1,11 @@
 # CITATION.cff — DRAFT. Confirm author list/order/ORCIDs and mint the Zenodo DOI
-# before release. License here matches pyproject (AGPL-3.0-or-later); note the
-# LICENSE file currently contains GPL-3.0 text — reconcile (release-blocker).
+# before release.
+#
+# Licence: AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and this
+# file — verified 2026-08-02. (The earlier note here claiming LICENSE held GPL-3.0
+# text was stale; it holds the AGPL, 661 lines with the network-server preamble.)
+# GitHub'"'"'s licensee still *displays* GPL-3.0, which is a detection artefact and
+# is tracked as an issue, not a licensing inconsistency.
 cff-version: 1.2.0
 message: "If you use EROTICA, please cite it using these metadata."
 title: "EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis"
