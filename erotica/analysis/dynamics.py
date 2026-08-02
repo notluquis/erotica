@@ -484,6 +484,12 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
     and ``0.138/ln(10) = 0.05993`` — so pairing a ``log10`` coefficient with a natural log is a
     silent factor of 2.303.
 
+    .. seealso::
+       **Knowledge-graph node**: ``kb/methods/coulomb-logarithm-argument.md`` in the research hub
+       carries the full provenance -- every value, what it was calibrated on, what it costs to get
+       wrong, and the open questions. The machine-readable form is
+       :data:`COULOMB_CALIBRATIONS` in this module. Keep the two in step.
+
     Parameters
     ----------
     lambda_value : float, default 0.11

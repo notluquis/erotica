@@ -394,7 +394,8 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
        clusters and consequently chosen incorrect values for the background densities."*
 
        On a Gaia membership-selected sample ``b`` is **not** field contamination. See
-       ``docs/design-notes/king_model_validity.md``.
+       ``docs/design-notes/king_model_validity.md`` for the evidence and
+       ``kb/methods/king-background-term.md`` in the research hub for the grounded node.
 
     The model is **empirical**: King calls Eq. (14) *"merely a convenient fitting formula"*.
     The dynamical King model is King (1966, AJ 71, 64), a different object with a
