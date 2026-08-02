@@ -34,6 +34,36 @@ class ParallaxPriors:
     default path in :func:`fit_parallax_model` previously centred a
     ``Uniform(0.5x, 1.5x)`` on ``nanmean(parallax)`` *of the data*, and put a
     ``HalfNormal(sigma=nanstd(parallax))`` on the spread -- the data used twice.
+    WHERE THE NUMBERS COME FROM
+    ---------------------------
+    Set from **Hunt & Reffert (2024)**, `2024A&A...686A..42H`, 5647 open clusters — an external
+    catalogue, never the cluster being fitted. Regenerate with ``tools/validation/fetch_hr24.py``.
+    Percentiles across that census:
+
+    ========================  =========  =========  =========  =========
+    quantity                       0.5%        16%     median      99.5%
+    ========================  =========  =========  =========  =========
+    parallax (mas)                0.087      0.235      0.406      3.564
+    distance (kpc)                0.278      1.094      2.259      8.084
+    ``pmRA`` (mas/yr)           -11.617     -4.796     -1.794      4.956
+    ``pmDE`` (mas/yr)           -10.602     -3.778     -1.265      7.024
+    radial velocity (km/s)      -94.559    -29.142      0.000    126.823
+    ``pmRA`` dispersion           0.036      0.067      0.097      0.696
+    parallax dispersion           0.009      0.023      0.037      0.136
+    ========================  =========  =========  =========  =========
+
+    ``mu_upper = 10`` mas covers the census with room to spare — the richest cluster parallax is
+    21.2 mas but the 99.5th percentile is 3.6, and a cluster nearer than 100 pc is not what this
+    pipeline is for. ``sigma_scale = 0.05`` mas sits between the census median cluster parallax
+    dispersion (0.037) and its 84th percentile (0.056), so it is weakly informative about a real
+    internal spread rather than about measurement error.
+
+    .. important::
+       ``zero_point_scale = 0.0103`` mas is **not** a free choice: it is the systematic floor on the
+       Gaia parallax zero point measured by **Maíz Apellániz, Pantaleoni González & Barbá (2021,
+       A&A 649, A13,** ``2021A&A...649A..13M``**)**, 10.3 µas. Attributing it to Vasiliev &
+       Baumgardt is a mis-citation this project made once and corrected.
+
 
     Attributes
     ----------
@@ -69,6 +99,34 @@ class ParallaxPriors:
 @dataclass(frozen=True)
 class DistancePriors:
     """Scale-free priors for the hierarchical distance model. Fixed constants.
+    WHERE THE NUMBERS COME FROM
+    ---------------------------
+    Set from **Hunt & Reffert (2024)**, `2024A&A...686A..42H`, 5647 open clusters — an external
+    catalogue, never the cluster being fitted. Regenerate with ``tools/validation/fetch_hr24.py``.
+    Percentiles across that census:
+
+    ========================  =========  =========  =========  =========
+    quantity                       0.5%        16%     median      99.5%
+    ========================  =========  =========  =========  =========
+    parallax (mas)                0.087      0.235      0.406      3.564
+    distance (kpc)                0.278      1.094      2.259      8.084
+    ``pmRA`` (mas/yr)           -11.617     -4.796     -1.794      4.956
+    ``pmDE`` (mas/yr)           -10.602     -3.778     -1.265      7.024
+    radial velocity (km/s)      -94.559    -29.142      0.000    126.823
+    ``pmRA`` dispersion           0.036      0.067      0.097      0.696
+    parallax dispersion           0.009      0.023      0.037      0.136
+    ========================  =========  =========  =========  =========
+
+    ``mu_lower = 0.05`` kpc and ``mu_upper = 20`` kpc bracket a census that runs 0.28 to 12.9 kpc,
+    with the 99.5th percentile at 8.1. The bounds are deliberately loose: they exist to keep the
+    sampler in a physical region, not to express belief.
+
+    .. warning::
+       These are **uniform** bounds, so unlike the half-Cauchy scales elsewhere in the package they
+       do not degrade gracefully if wrong. A cluster genuinely beyond 20 kpc would be silently pushed
+       to the boundary rather than pulling the posterior. Check the posterior is not against a bound
+       before quoting a distance.
+
 
     Attributes
     ----------
@@ -88,6 +146,35 @@ class DistancePriors:
 @dataclass(frozen=True)
 class VelocityPriors:
     """Scale-free priors for the velocity model. Fixed constants.
+    WHERE THE NUMBERS COME FROM
+    ---------------------------
+    Set from **Hunt & Reffert (2024)**, `2024A&A...686A..42H`, 5647 open clusters — an external
+    catalogue, never the cluster being fitted. Regenerate with ``tools/validation/fetch_hr24.py``.
+    Percentiles across that census:
+
+    ========================  =========  =========  =========  =========
+    quantity                       0.5%        16%     median      99.5%
+    ========================  =========  =========  =========  =========
+    parallax (mas)                0.087      0.235      0.406      3.564
+    distance (kpc)                0.278      1.094      2.259      8.084
+    ``pmRA`` (mas/yr)           -11.617     -4.796     -1.794      4.956
+    ``pmDE`` (mas/yr)           -10.602     -3.778     -1.265      7.024
+    radial velocity (km/s)      -94.559    -29.142      0.000    126.823
+    ``pmRA`` dispersion           0.036      0.067      0.097      0.696
+    parallax dispersion           0.009      0.023      0.037      0.136
+    ========================  =========  =========  =========  =========
+
+    ``mu_scale = 50`` km/s is a half-Cauchy scale against a census whose radial velocities run from
+    −94.6 to +126.8 km/s at the 0.5/99.5 percentiles; a half-Cauchy at 50 puts its 95th percentile
+    at 635 km/s, so the tail comfortably admits the 664 km/s extreme without the bulk of the prior
+    sitting out there.
+
+    ``sigma_scale = 2.0`` km/s is the internal velocity dispersion scale. **This one is not derived
+    from the census**: the catalogue's ``s_RV`` column has a median of 9.6 km/s, but that is
+    dominated by measurement scatter in samples with few RV members, not by the true dispersion of a
+    bound open cluster, which is of order 1 km/s. The value encodes that physical expectation, and
+    is flagged rather than dressed up as a measurement.
+
 
     Attributes
     ----------
@@ -113,6 +200,30 @@ class ProperMotionPriors:
 
     The previous defaults centred ``mu_RA``/``mu_Dec`` on ``nanmedian`` of the
     data and scaled every width by ``nanstd`` of the data -- the data used twice.
+    WHERE THE NUMBERS COME FROM
+    ---------------------------
+    Set from **Hunt & Reffert (2024)**, `2024A&A...686A..42H`, 5647 open clusters — an external
+    catalogue, never the cluster being fitted. Regenerate with ``tools/validation/fetch_hr24.py``.
+    Percentiles across that census:
+
+    ========================  =========  =========  =========  =========
+    quantity                       0.5%        16%     median      99.5%
+    ========================  =========  =========  =========  =========
+    parallax (mas)                0.087      0.235      0.406      3.564
+    distance (kpc)                0.278      1.094      2.259      8.084
+    ``pmRA`` (mas/yr)           -11.617     -4.796     -1.794      4.956
+    ``pmDE`` (mas/yr)           -10.602     -3.778     -1.265      7.024
+    radial velocity (km/s)      -94.559    -29.142      0.000    126.823
+    ``pmRA`` dispersion           0.036      0.067      0.097      0.696
+    parallax dispersion           0.009      0.023      0.037      0.136
+    ========================  =========  =========  =========  =========
+
+    ``mu_scale = 20`` mas/yr as a half-Cauchy scale covers a census whose proper motions run to about
+    ±11 mas/yr at the 0.5/99.5 percentiles in both axes, with a maximum of 104. ``sigma_scale = 1.0``
+    mas/yr is again generous against the census median dispersion of 0.097 mas/yr and its 99.5th
+    percentile of 0.70 — deliberately, since a dispersion prior that is too tight is the failure that
+    matters here, biasing every cluster toward being colder than it is.
+
 
     Attributes
     ----------
