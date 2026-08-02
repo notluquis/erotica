@@ -31,3 +31,17 @@ license: AGPL-3.0-or-later
 version: 0.0.1
 date-released: "2026-07-19"
 # doi: 10.5281/zenodo.XXXXXXX   # TODO: mint on first tagged release
+
+# Once the NGC 6383 A&A paper has a DOI, uncomment this block. GitHub's "Cite this
+# repository" button then points at the paper instead of the software entry, which
+# is the correct target for a methods paper with a companion code release.
+#
+# preferred-citation:
+#   type: article
+#   title: "<paper title>"
+#   authors:
+#     - family-names: Pulgar
+#       given-names: "Lucas M."
+#   journal: "Astronomy & Astrophysics"
+#   year: 2026
+#   doi: "<10.1051/0004-6361/...>"

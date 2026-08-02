@@ -28,6 +28,7 @@ guides/index
 :maxdepth: 1
 :caption: Design notes
 design-notes/index
+citing
 ```
 
 ```{toctree}

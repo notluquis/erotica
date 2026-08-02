@@ -61,6 +61,16 @@ the row that replaced it.
   `erotica.readthedocs.io` deliberately, ahead of the slug migration** — they 404 until it lands.
   Do not "fix" them backwards.
 
+- **CDS accepts ASCII and FITS only — no HDF5, no parquet.** A&A mandates data deposit, usually at
+  CDS, so any table destined for the NGC 6383 paper must be produced in an accepted format. Verified
+  2026-08-02. This constrains the deposit pipeline, not just the final export.
+- **A&A does have a software track**: *"Numerical methods and codes"* (Sect. 15). It imposes no README
+  or code-availability requirement, unlike JOSS. **Write to JOSS's bar and A&A is satisfied
+  automatically; the reverse is not true** — in particular JOSS requires an AI-usage disclosure naming
+  tools, versions, scope and human review, and calls non-disclosure *"an ethical breach"*, whereas
+  A&A's 18 June 2026 statement permits undisclosed AI use for language, coding and search under human
+  oversight.
+
 ## Data traps (respect in any catalog work)
 - `comments_paper/_legacy/rerun_2026-05/members_DIFFERENT_RUN_DO_NOT_USE.csv` =
   a different run (177 not 254 members, corrupted float source_ids). Never use.

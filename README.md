@@ -142,6 +142,36 @@ Stated up front because the alternative is a referee stating it:
 Each of these is measured, scripted under `tools/validation/`, and written up in
 `docs/design-notes/`.
 
+## 🔭 How it relates to other packages
+
+Written once because three reviewers ask for it: pyOpenSci's review template asks for a comparison to
+similar packages, JOSS requires a **State of the field** section, and Astropy's affiliated criteria
+ask that a package avoid duplicating existing functionality.
+
+**Supported Python: 3.11+.**
+
+| package | what it does that EROTICA does not | overlap |
+|---|---|---|
+| [**ASteCA**](https://github.com/asteca/ASteCA) | The standard for **photometric** synthetic clusters and CMD fitting: IMF, mass-dependent binary fraction fitted to Offner et al. (2023), extinction with free `R_V`, differential reddening, errors calibrated on the observed cluster. **Cite it; do not compete with it.** | membership; a private, unwired least-squares King fit |
+| [**ocelot**](https://github.com/emilyhunt/ocelot) | Injects mock clusters into real Gaia DR3 with a two-stage selection function and error twin-resampling — 80,590 injection/retrievals behind the census completeness function. | radial profiles (it ships King62 only) |
+| [**Kalkayotl**](https://github.com/olivares-j/Kalkayotl) | Bayesian cluster distances with **parallax spatial correlations** (Lindegren et al. 2020), which EROTICA does not model. The strongest error model in the Bayesian open-cluster set. | distance inference |
+| [**gaiaunlimited**](https://github.com/gaia-unlimited/gaiaunlimited) | The Gaia DR3 selection function itself. EROTICA **uses** it rather than reimplementing it. | — |
+| [**pyUPMASK**](https://github.com/msolpera/pyUPMASK) / UPMASK | Membership by iterative clustering plus a random-field null. | membership |
+| [**SPISEA**](https://github.com/astropy/SPISEA) | Stellar population synthesis: IMF, multiplicity, extinction, IFMR. No spatial structure. | — |
+
+**What is distinctive here**, stated narrowly enough to survive checking:
+
+- Radial profiles as an **unbinned inhomogeneous Poisson point process**, with King, EFF, Plummer and
+  King-plus-corona compared by Bayes factor under one likelihood.
+- A **selection function folded into the normalisation** rather than applied as an after-the-fact
+  correction.
+- An **identifiability toolkit** that asks whether a parameter is measured before it is quoted.
+
+**What is not distinctive, and is documented as such**: Bayesian King fitting is not new — Pera et al.
+(2021, 2024) precede it. EFF fits to Galactic open clusters as a population are not new either;
+Cordoni et al. (2023) fit 78 and Pang et al. (2022) fit 82. Claims of novelty in this project have
+been falsified seven times, so they are checked before they are written.
+
 ## 📖 Documentation
 
 Full documentation: **[erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/)**
