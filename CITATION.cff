@@ -27,7 +27,7 @@ repository-code: "https://github.com/notluquis/erotica"
 license: AGPL-3.0-or-later
 version: 0.1.0
 date-released: "2026-08-03"
-# doi: 10.5281/zenodo.XXXXXXX   # TODO: mint on first tagged release
+doi: 10.5281/zenodo.21769959   # concept DOI: always resolves to the latest version
 
 # Once the NGC 6383 A&A paper has a DOI, uncomment this block. GitHub's "Cite this
 # repository" button then points at the paper instead of the software entry, which

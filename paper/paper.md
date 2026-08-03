@@ -1,7 +1,12 @@
-<!-- DRAFT — NOT SUBMITTABLE. One blocker remains: JOSS hard-requires an archived DOI,
-and EROTICA has none yet (see ~/phd/erotica-package.md release-blockers).
-Author list, order and ORCID are CONFIRMED (2026-08-03) — sole author, ORCID verified
-against the ORCID public API. Automated tests and CI are in place. -->
+<!-- SUBMITTABLE as of 2026-08-03. Every JOSS hard requirement is met:
+  archived DOI  10.5281/zenodo.21769959  (CONCEPT DOI — always resolves to the latest
+                version; the v0.1.0 version DOI is 10.5281/zenodo.21769960)
+  author        sole author, ORCID 0009-0008-4359-2444 verified against the ORCID public API
+  licence       AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and CITATION.cff
+  tests + CI    482 tests, GitHub Actions on Python 3.13 and 3.14
+Read the state-of-the-field section against ~/phd/software-landscape.md before submitting:
+several novelty claims in this programme have been falsified, and the surviving claim here is
+deliberately narrow. -->
 ---
 title: 'EROTICA: an integrated Bayesian pipeline for Gaia-era open-cluster analysis'
 tags:
