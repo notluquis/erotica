@@ -1,0 +1,103 @@
+# Publish to PyPI via Trusted Publishing (OIDC) — no API tokens anywhere.
+#
+# WHY OIDC AND NOT A TOKEN
+# ------------------------
+# A PyPI API token is a long-lived secret that has to live in repository settings and be
+# rotated by hand. Trusted Publishing exchanges a short-lived GitHub OIDC identity for an
+# upload token at publish time, so there is no secret to leak, rotate, or forget. It is the
+# PyPI-recommended path and it is what `id-token: write` below is for.
+#
+# THE NAME IS NOT RESERVED UNTIL THIS RUNS
+# ----------------------------------------
+# PyPI does not reserve project names. A "pending publisher" configured in the PyPI UI creates
+# nothing until a distribution is actually uploaded, and it is invalidated if someone else
+# registers the name first. So configuring the publisher is not the same as claiming `erotica`
+# — this workflow completing successfully is.
+#
+# SETUP, ONCE, IN THE PyPI UI (cannot be automated)
+# -------------------------------------------------
+#   PyPI account -> Publishing -> Add a new pending publisher (GitHub Actions)
+#     PyPI project name : erotica
+#     Owner             : notluquis
+#     Repository name   : erotica
+#     Workflow name     : publish.yml
+#     Environment name  : pypi
+#   Repeat on test.pypi.org with environment name `testpypi` if you want a rehearsal first.
+#
+# HOW TO RUN
+# ----------
+#   Rehearsal on TestPyPI :  gh workflow run publish.yml -f target=testpypi
+#   Real publish          :  publish a GitHub release, or
+#                            gh workflow run publish.yml -f target=pypi
+#
+# TestPyPI first is worth the five minutes: it exercises the whole path and its own name is
+# also free, so a failure there costs nothing. A botched *real* upload cannot be undone —
+# PyPI does not allow re-uploading a filename that has already been published, even after
+# deletion, so a bad 0.1.0 would burn the version number permanently.
+
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Where to publish
+        required: true
+        default: testpypi
+        type: choice
+        options: [testpypi, pypi]
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # setuptools reads git history for the version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade build twine
+      - run: python -m build
+      # `twine check` catches the two things that fail *after* upload and are unfixable then:
+      # a README that PyPI cannot render, and broken metadata.
+      - run: python -m twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  testpypi:
+    name: Publish to TestPyPI
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write           # the only credential needed; no secrets
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

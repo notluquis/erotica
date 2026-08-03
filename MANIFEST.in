@@ -17,8 +17,20 @@ recursive-include examples *.ecsv *.csv *.json
 # Include tools
 recursive-include tools *.py *.sh *.md
 
-# Include data files
-recursive-include data *.ecsv *.npz *.fits
+# NO data files.
+#
+# `recursive-include data *.ecsv *.npz *.fits` used to be here and produced a **342 MB sdist**,
+# against PyPI's 100 MB per-file limit -- the upload would have been rejected outright. The
+# directory holds 3.2 GB (3.1 GB of it `data/test`), and the package reads none of it at run
+# time: the "precompute" paths in `_isochrone.py` build in-memory tensors, not files.
+#
+# Observational data for one cluster belongs in an archive with a DOI (Zenodo, CDS), not in a
+# distribution every user downloads. The NGC 6383 products are cited from the paper; the
+# package itself is code.
+prune data
+
+# Generated, never shipped.
+prune docs/_build
 
 # Include tests
 recursive-include tests *.py
