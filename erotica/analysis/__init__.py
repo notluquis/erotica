@@ -9,6 +9,10 @@ from .debugging import (
     validate_cluster_table,
 )
 from .dynamics import (
+    coulomb_argument_from_mass_function,
+    coulomb_calibration_warnings,
+)
+from .dynamics import (
     posterior_summary,
     ClusterDynamicsAnalyzer,
     calculate_galactic_mass,
@@ -127,6 +131,8 @@ from .units import (
 from .analyzer import ClusterAnalyzer
 
 __all__ = [
+    "coulomb_argument_from_mass_function",
+    "coulomb_calibration_warnings",
     "prior_sensitivity",
     "posterior_geometry",
     "munoz_criteria",

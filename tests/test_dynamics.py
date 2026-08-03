@@ -452,3 +452,72 @@ def test_relaxation_time_flags_an_unphysical_implied_mean_mass():
         wrong = half_mass_relaxation_time(254, 2.0 * u.pc, 900 * u.Msun).value
         right = half_mass_relaxation_time(1800, 2.0 * u.pc, 900 * u.Msun).value
     assert right / wrong > 4.0
+
+
+# ---------------------------------------------------------------------------
+# Henon (1975) closed-form gamma(mass function)
+# ---------------------------------------------------------------------------
+
+
+def test_henon_reproduces_his_own_published_tables():
+    """The strongest oracle available: the author's own tabulated values.
+
+    Hénon (1975, IAU Symp. 69, 133) Table II tabulates ``I3/I1`` for a continuous
+    ``h ∝ m^-2`` spectrum over a mass ratio Q. Reproducing it to four decimals is a real check on
+    the double integral, the log-measure and the mean-mass normalisation at once -- none of which
+    could be verified by inspecting the output.
+    """
+    import numpy as np
+
+    from erotica.analysis.dynamics import coulomb_argument_from_mass_function
+
+    published = {2: -0.0498, 4: -0.1964, 8: -0.4322, 16: -0.7458, 32: -1.1246, 64: -1.5562}
+    for ratio, expected in published.items():
+        got = coulomb_argument_from_mass_function(
+            lambda m: np.asarray(m, dtype=float) ** -2.0, 1.0, float(ratio)
+        )["i3_over_i1"]
+        assert abs(got - expected) < 2e-4, f"Q={ratio}: got {got:.4f}, Hénon {expected:.4f}"
+
+
+def test_henon_equal_mass_limit_matches_his_analytic_value():
+    """Parameter-free limit: as the mass range collapses, gamma must reach Hénon Eq. (19)'s 0.15.
+
+    Note this is a **fourth** value distinct from the 0.4, 0.11 and 0.02 in circulation -- the
+    analytic equal-mass result with a Maxwellian velocity distribution.
+    """
+    import numpy as np
+
+    from erotica.analysis.dynamics import coulomb_argument_from_mass_function
+
+    result = coulomb_argument_from_mass_function(
+        lambda m: np.asarray(m, dtype=float) ** -2.0, 1.0, 1.0001
+    )
+    assert abs(result["i3_over_i1"]) < 1e-4
+    assert abs(result["gamma"] - 0.15) < 0.001, result["gamma"]
+
+
+def test_gamma_falls_as_the_mass_range_widens_and_that_is_age_dependent():
+    """The result that matters: gamma is not a constant, and its variation tracks cluster age.
+
+    A Kroupa IMF truncated at the turn-off gives gamma from 0.0050 at 1 Myr to 0.0686 at 1 Gyr --
+    a factor of 14 -- so a single gamma imposes an age-dependent systematic on any age/t_rh trend.
+    """
+    import numpy as np
+
+    from erotica.analysis.dynamics import coulomb_argument_from_mass_function
+
+    def kroupa(m):
+        m = np.asarray(m, dtype=float)
+        return np.where(m < 0.5, m**-1.3, 0.5 ** (-1.3 + 2.3) * m**-2.3)
+
+    young = coulomb_argument_from_mass_function(kroupa, 0.08, 100.0)["gamma"]
+    old = coulomb_argument_from_mass_function(kroupa, 0.08, 2.0)["gamma"]
+    assert young < old, (young, old)
+    assert old / young > 10.0, f"expected a factor >10, got {old / young:.1f}"
+    assert abs(young - 0.0050) < 0.0005 and abs(old - 0.0686) < 0.002
+
+    # and the mean stellar mass must fall as the massive stars are removed
+    assert (
+        coulomb_argument_from_mass_function(kroupa, 0.08, 2.0)["mean_mass"]
+        < coulomb_argument_from_mass_function(kroupa, 0.08, 100.0)["mean_mass"]
+    )

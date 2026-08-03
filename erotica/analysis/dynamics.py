@@ -413,6 +413,102 @@ def crossing_time(radius, velocity_dispersion) -> u.Quantity:
     return (radius / velocity_dispersion).to(u.Myr)
 
 
+# Henon's Eq. (15): the velocity-distribution term for a Maxwellian, ln(2/3) - EulerGamma.
+_HENON_MAXWELLIAN_TERM = np.log(2.0 / 3.0) - 0.5772156649015329
+
+
+def coulomb_argument_from_mass_function(mass_function, m_min, m_max, *, n_grid=4000):
+    r"""Compute the Coulomb-logarithm argument :math:`\gamma` from the mass function.
+
+    .. math:: \ln\gamma = \ln(0.4) + \frac{I_2}{I_1} + \frac{I_3}{I_1}
+
+    Hénon (1975, IAU Symp. 69, 133, `1975IAUS...69..133H`) Eq. (11), with :math:`I_2/I_1` his
+    Eq. (15) for a Maxwellian velocity distribution and :math:`I_3/I_1` his Eq. (26), a functional of
+    the mass spectrum alone:
+
+    .. math:: \frac{I_3}{I_1} = \frac{\iint h(m_1)h(m_2)\,m_1 m_2^2
+                                      \ln\!\frac{2\bar{m}}{m_1+m_2}\,dm_1 dm_2}
+                                     {\int h(m_1) m_1 dm_1 \int h(m_2) m_2^2 dm_2}
+
+    **There is a closed form for the mass-function dependence of** :math:`\gamma` **and the
+    open-cluster literature does not use it.** Every open-cluster paper found that quotes a Coulomb
+    argument at all uses a single constant.
+
+    Parameters
+    ----------
+    mass_function : callable
+        ``h(m)`` — the number of stars per unit mass, up to normalisation. Only its shape matters.
+    m_min, m_max : float
+        Mass limits in solar masses. For a real cluster ``m_max`` is the **turn-off mass**, not the
+        IMF's upper bound, which is why :math:`\gamma` evolves with age.
+    n_grid : int
+        Log-spaced grid points. 4000 reproduces Hénon's own tables to four decimals.
+
+    Returns
+    -------
+    dict
+        ``gamma``, ``i3_over_i1``, ``mean_mass`` and ``mass_ratio``.
+
+    Notes
+    -----
+    **Verified against the primary source.** This reproduces Hénon's Table II (continuous
+    :math:`h \propto m^{-2}`) and Table III (discrete spectrum) **to four decimal places**, recovers
+    the equal-mass limit :math:`\gamma = 0.1497` against his Eq. (19) value of 0.15, and gives 0.0454
+    for the :math:`m^{-2.5}` spectrum over a range of 37.5 that Giersz & Heggie (1996) quote Hénon's
+    theory as predicting :math:`\approx 0.044` for.
+
+    .. important::
+       **Theory and N-body calibration disagree.** For Giersz & Heggie's own mass function this gives
+       0.0454 where their N-body fit gives 0.02 — a factor of **2.3**. Use this to understand *how*
+       :math:`\gamma` depends on the mass spectrum, not as a drop-in replacement for a calibration.
+
+    .. important::
+       **The dependence is strong, and it is age-dependent.** For a Kroupa (2001) IMF truncated at the
+       turn-off:
+
+       ==========  =================  =========
+       age         :math:`m_{max}`    :math:`\gamma`
+       ==========  =================  =========
+       1 Myr       100 M☉             **0.0050**
+       10 Myr      20 M☉              0.0175
+       40 Myr      8 M☉               0.0325
+       400 Myr     3 M☉               0.0566
+       1 Gyr       2 M☉               **0.0686**
+       ==========  =================  =========
+
+       **A factor of 14 across the range.** So a single :math:`\gamma` imposes an age-dependent
+       systematic on any ``age / t_rh`` trend — which is precisely the quantity open-cluster
+       mass-function studies correlate against.
+
+    Examples
+    --------
+    >>> kroupa = lambda m: np.where(np.asarray(m) < 0.5, np.asarray(m)**-1.3,
+    ...                             0.5**1.0 * np.asarray(m)**-2.3)
+    >>> round(coulomb_argument_from_mass_function(kroupa, 0.08, 8.0)["gamma"], 4)
+    0.0325
+    """
+    if not m_max > m_min > 0:
+        raise ValueError(f"require 0 < m_min < m_max, got {m_min} and {m_max}")
+    log_m = np.linspace(np.log(m_min), np.log(m_max), int(n_grid))
+    m = np.exp(log_m)
+    # h(m) dm = h(m) m d(log m), so the log-measure is folded in once here.
+    weight = np.asarray(mass_function(m), dtype=float) * m
+    mean_mass = np.trapezoid(weight * m, log_m) / np.trapezoid(weight, log_m)
+
+    m1, m2 = np.meshgrid(m, m, indexing="ij")
+    kernel = np.outer(weight * m, weight * m) * m2
+    i3 = np.trapezoid(
+        np.trapezoid(kernel * np.log(2.0 * mean_mass / (m1 + m2)), log_m, axis=1), log_m
+    ) / (np.trapezoid(weight * m, log_m) * np.trapezoid(weight * m**2, log_m))
+
+    return dict(
+        gamma=float(0.4 * np.exp(_HENON_MAXWELLIAN_TERM + i3)),
+        i3_over_i1=float(i3),
+        mean_mass=float(mean_mass),
+        mass_ratio=float(m_max / m_min),
+    )
+
+
 # Calibration provenance for the Coulomb-logarithm argument. Each entry records the range the value
 # was calibrated over, so calling outside it can WARN instead of silently extrapolating -- which is
 # this programme's most repeated error (see methodology.md K.1.5).
