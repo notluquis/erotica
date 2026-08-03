@@ -8,7 +8,8 @@ found late and by accident:
 * ``R_t`` for NGC 6383 has a posterior SD of ~7000′ under a scale-free prior. What is normally quoted
   is a **prior**, not a measurement.
 * The King background ``b`` absorbs 56% of a membership-selected sample while the measured
-  false-discovery proportion is 6.1% — the parameter is real but it is not measuring contamination.
+  false-discovery proportion has a median of 2.8% — the parameter is real but it is not measuring
+  contamination.
 * The EFF slope ``gamma`` recovers a true 2.00 as **3.6** at the footprint-to-scale ratio where most
   of the Gaia census sits, and no bias correction repairs it, because the problem is identifiability
   rather than bias.

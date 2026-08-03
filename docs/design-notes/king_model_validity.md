@@ -468,8 +468,8 @@ sharp: **why is there still a background component, and what is it?**
 |---|---|
 | fitted flat background `b` | 0.02285 ± 0.00194 arcmin⁻² |
 | stars it accounts for over the 70′ field | **352 ± 30**, i.e. **56% of the 628-star sample** |
-| measured false-discovery proportion (target–decoy, `p ≥ 0.6`) | **6.1%** → ~38 stars |
-| discrepancy | **9.2×** |
+| measured false-discovery proportion (target–decoy, `p ≥ 0.6`) | **median 2.8%**, mean 10.5%, p90 30.8% (40 realizations) |
+| discrepancy vs the median FDP | **20×** |
 
 The membership pipeline's own false-positive rate, measured independently by the target–decoy
 construction in `tools/validation/decoy_fdp.py`, is an order of magnitude too small to account for
@@ -624,8 +624,13 @@ with the free-background variant abandoned because *"emcee tends to (rc→0, rt�
 The concept is Seleznev's. What is **not** in the literature:
 
 1. **A quantitative test on a membership-selected sample against an independently measured
-   contamination rate.** The 56%-versus-6.1% comparison above needs a false-discovery estimate that
-   does not come from the profile fit itself; the target–decoy construction supplies one.
+   contamination rate.** The comparison above needs a false-discovery estimate that does not come
+   from the profile fit itself, and the target–decoy construction supplies one — but at 40
+   realizations it supplies a **distribution, not a rate**: median 2.8%, mean 10.5%, p90 30.8% at
+   `p ≥ 0.6`, with the decoy finding *nothing* in 11 of 40 realizations and as many as 516 stars in
+   the worst. The mean moved 72% between 20 and 40 realizations while the median did not, so the mean
+   is tail-dominated and not converged. **Quote the median as the central estimate and the p90 as the
+   risk; a single mean is not a contamination bound.**
 2. **A reformulated likelihood for the `b → 0` regime that decontamination creates** — which is
    exactly why Pera's cleaned fit degraded, and which they deferred and never returned to.
 3. **The consequence for the radius estimator.** A large fraction of single-cluster papers use King's

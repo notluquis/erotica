@@ -53,6 +53,32 @@ structureless field*. It does not capture contamination by other real comoving
 structures along the line of sight, which a decoy built this way cannot contain
 by construction. The number is a floor, not a total.
 
+RESULT AT 40 REALIZATIONS — THE FDP IS NOT A RATE
+--------------------------------------------------
+Run 2026-08-02. **Reporting a single false-discovery proportion for this pipeline is misleading**,
+and the 20-realization run that gave 6.1% at ``p >= 0.6`` was not converged — 40 realizations give a
+*mean* of 10.5% and a *median* of 2.8%.
+
+    threshold   FDP mean   FDP median   FDP p90   realizations finding zero decoys
+    p >= 0.5     0.120       0.053       0.326     7/40
+    p >= 0.6     0.105       0.028       0.308    11/40
+    p >= 0.7     0.082       0.003       0.293    18/40
+    p >= 0.8     0.072       0.000       0.317    27/40
+    p >= 0.9     0.081       0.000       0.415    30/40
+
+At ``p >= 0.6`` the decoy finds **nothing at all in 11 of 40 realizations**, and as many as **516
+stars** in the worst — against a target count of 771.
+
+**So this is not a steady contamination rate; it is occasional catastrophic failure.** Most of the
+time the mirrored field yields no spurious cluster; roughly a quarter of the time HDBSCAN latches
+onto a chance overdensity and returns a structure comparable in size to the real one. The mean is
+dominated by that tail, which is why it moved 72% between run sizes while the median did not.
+
+**How to quote it.** The median is the honest central estimate and the p90 is the honest risk. A
+single mean should not be used as a contamination bound, and any argument resting on "the FDP is
+X%" — including this repository's own comparison of the King background against it — must say which
+statistic and acknowledge the tail.
+
 USAGE
 -----
     python tools/validation/decoy_fdp.py --realizations 30

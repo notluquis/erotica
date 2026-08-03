@@ -559,7 +559,8 @@ class KingPriors:
         .. important::
            ``b`` is **not** field contamination on a membership-selected sample. On NGC 6383 it
            accounts for **56% of the sample** against a target–decoy false-discovery proportion of
-           **6.1%** — a factor of 9. What it absorbs is the corona, exactly as Seleznev (2016, MNRAS
+           a **median of 2.8%** (mean 10.5%, p90 30.8% over 40 realizations — the distribution is
+           tail-dominated, so quote the median). What it absorbs is the corona, exactly as Seleznev (2016, MNRAS
            456, 3757) states: *"the cluster corona … is perceived by the approximation algorithm as
            part of the stellar background."* Report the fraction attributed to ``b`` alongside
            ``k``, ``R_c`` and ``R_t``, or the profile of a minority of the data is being presented as
@@ -1044,7 +1045,7 @@ def corona_surface_density(radius, *, delta_f, R_2):
 
     That is the mechanism this repository measured independently on NGC 6383,
     where the flat background term accounts for **56% of a membership-selected
-    sample** against a target–decoy false-discovery proportion of 6.1%. See
+    sample** against a target–decoy false-discovery proportion whose median is 2.8%. See
     ``docs/design-notes/king_model_validity.md``.
 
     .. important::
