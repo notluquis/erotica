@@ -318,14 +318,25 @@ def test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug():
     iqr = float(np.subtract(*np.percentile(draws, [75, 25])))
     assert iqr == pytest.approx(ref.ppf(0.75) - ref.ppf(0.25), rel=0.02)
 
-    # And the bug itself, so we notice when a PyMC upgrade fixes it and this
-    # workaround can be dropped.
+    # And the bug itself. It is FIXED in pytensor 3.2.4 (PR pytensor#2309, this project's own
+    # contribution), so assert the broken behaviour below that version and the correct behaviour
+    # at or above it. Without the version split this test fails on upgrade while asserting
+    # something that is no longer true, which reads as a regression rather than as the fix landing.
+    import pytensor
+    from packaging.version import Version
+
     buggy = pm.draw(pm.HalfCauchy.dist(scale), draws=100_000, random_seed=0)
     buggy_iqr = float(np.subtract(*np.percentile(buggy, [75, 25])))
-    assert buggy_iqr == pytest.approx(iqr / scale**2, rel=0.1), (
-        "pm.HalfCauchy draws no longer show the 1/beta scale bug -- "
-        "re-check whether HalfStudentT is still needed"
-    )
+    if Version(pytensor.__version__) >= Version("3.2.4"):
+        assert buggy_iqr == pytest.approx(iqr, rel=0.1), (
+            f"pytensor {pytensor.__version__} carries the CauchyRV fix, but HalfCauchy draws still "
+            "disagree with HalfStudentT -- the fix regressed"
+        )
+    else:
+        assert buggy_iqr == pytest.approx(iqr / scale**2, rel=0.1), (
+            f"pytensor {pytensor.__version__} is below 3.2.4 but no longer shows the 1/beta scale "
+            "bug -- re-check whether the HalfStudentT workaround is still needed"
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,62 @@
+{
+ "a_true": 1.65,
+ "n_stars": 19000,
+ "field_radius": 70.0,
+ "axis_ratios": [
+  1.0,
+  0.71,
+  0.5,
+  0.3
+ ],
+ "gammas": [
+  2.0,
+  2.5,
+  3.0,
+  4.0
+ ],
+ "realizations": 6,
+ "sampler": "numpyro",
+ "n_keep": 15000,
+ "draws": 1000,
+ "tune": 800,
+ "background": false,
+ "complete": false,
+ "cells": [
+  {
+   "gamma_true": 2.0,
+   "axis_ratio": 1.0,
+   "delta_gamma": -0.0018818678935634825,
+   "delta_gamma_sem": 0.003376854054879597,
+   "a_fit_over_a": 0.9939155497690569,
+   "a_fit_over_geometric_mean": 0.9939155497690569,
+   "max_rhat": 1.0,
+   "min_ess": 610.0,
+   "divergences": 0,
+   "converged": true
+  },
+  {
+   "gamma_true": 2.0,
+   "axis_ratio": 0.71,
+   "delta_gamma": -0.0028483757231152484,
+   "delta_gamma_sem": 0.0050513993403485,
+   "a_fit_over_a": 0.8437759857662676,
+   "a_fit_over_geometric_mean": 1.0013778635318442,
+   "max_rhat": 1.0,
+   "min_ess": 624.0,
+   "divergences": 0,
+   "converged": true
+  },
+  {
+   "gamma_true": 2.0,
+   "axis_ratio": 0.5,
+   "delta_gamma": -0.017870457662351624,
+   "delta_gamma_sem": 0.0023167597292242806,
+   "a_fit_over_a": 0.7067359294876624,
+   "a_fit_over_geometric_mean": 0.9994755364978076,
+   "max_rhat": 1.0,
+   "min_ess": 631.0,
+   "divergences": 0,
+   "converged": true
+  }
+ ]
+}

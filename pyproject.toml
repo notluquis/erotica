@@ -7,7 +7,7 @@ name = "erotica"
 version = "0.0.1"
 description = "EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 license = "AGPL-3.0-or-later"
 authors = [
   {name = "Lucas Pulgar-Escobar", email = "lescobar2019@udec.cl"},
@@ -18,22 +18,25 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Astronomy",
 ]
+# Floors match what actually resolves on the supported Pythons. They were previously numpy>=1.23,
+# astropy>=6 and similar — versions with no build for 3.13+, so they advertised support that could
+# not be installed. See environment.yml for the resolved set.
 dependencies = [
-  "hdbscan>=0.8.40",
-  "optuna>=4.5.0",
-  "numpy>=1.23",
-  "scipy>=1.10",
-  "pandas>=1.5",
-  "astropy>=6",
-  "scikit-learn>=1.3",
+  "hdbscan>=0.8.44",
+  "optuna>=4.9",
+  "numpy>=2.4",
+  "scipy>=1.18",
+  "pandas>=3.0",
+  "astropy>=8",
+  "scikit-learn>=1.9",
   "tqdm>=4.65",
-  "matplotlib>=3.7",
+  "matplotlib>=3.11",
   "dill>=0.3.8",
-  "adjusttext>=1.3.0",
+  "adjusttext>=1.4",
   "gaiadr3-zeropoint>=0.1.0",
 ]
 
@@ -66,6 +69,16 @@ bayes = [
   "pymc>=6",
   "arviz>=1",
   "xarray>=2023",
+  # numpyro is the NUTS backend the validation sweeps use: measured 2.71x faster than the
+  # default PyTensor NUTS on the unbinned EFF fit, with |d gamma| = 0.00006 between them.
+  # Same algorithm, different substrate -- see tools/validation/pymc_blackjax_progress_bar_bug.md.
+  "numpyro>=0.15",
+  # blackjax is declared but is NOT currently usable as a nuts_sampler: it raises
+  # TypeError: kernel() got an unexpected keyword argument 'progress_bar'. Traced to a
+  # kwarg-ordering bug in pymc/sampling/jax.py that is still present on pymc main as of
+  # 2026-08-02, and verified in the RELEASED 6.2.0 source, so upgrading does not fix it.
+  # Upstream: pymc-devs/pymc#8367, fix pending in PR #8373. (An earlier version of this comment
+  # cited #7049 — wrong: that is a 2023 issue about progress bars under pmap, closed in a week.)
   "blackjax>=1",
   "fast-histogram>=0.11",
 ]
@@ -80,6 +93,7 @@ paper = [
   "pymc>=6",
   "arviz>=1",
   "xarray>=2023",
+  "numpyro>=0.15",
   "blackjax>=1",
   "asteca>=0.6",
   "seaborn>=0.12",
@@ -107,7 +121,7 @@ exclude = ["legacy*", "tests*", "notebooks*", "backups*", "data*"]
 
 [tool.black]
 line-length = 100
-target-version = ["py311"]
+target-version = ["py313"]
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -132,7 +146,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

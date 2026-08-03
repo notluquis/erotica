@@ -1,0 +1,112 @@
+# EROTICA development environment — the single source of truth for dependencies.
+#
+#   mamba env create -f environment.yml
+#   mamba activate erotica
+#   pip install -e . --no-deps        # the package itself only; see "Why pip appears" below
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# Until 2026-08-02 the package was developed and tested in the mamba *base* environment,
+# which also carries boto3, fastapi, alembic, streamlit and the conda tooling itself — 374
+# packages against this file's ~40. That is not a reproducibility problem in the abstract: it
+# means `provenance.py` recorded the versions of an environment nobody could recreate, and
+# "the tests pass" was a statement about one laptop. A JOSS reviewer installing from
+# `pyproject.toml` alone would have been running different code.
+#
+# THE RULE
+# --------
+# **Never install into base.** Never run the test suite, a validation sweep, or a doc build
+# from base. `.claude/check-env.sh` enforces this by refusing the command; that guard exists
+# because writing the rule down here is not the same as following it (methodology.md K.1.9).
+#
+# WHY PIP APPEARS AT ALL
+# ----------------------
+# Four dependencies have no conda-forge package, checked with `mamba repoquery search` on
+# 2026-08-02: gaiadr3-zeropoint, asteca, gaiaunlimited, hr-selection-function. Everything else
+# resolves on conda-forge and is pinned there. The pip block lives *inside* this file rather
+# than in a separate `pip install` step so the environment stays reproducible from one command
+# — that is the documented conda pattern, not a workaround.
+#
+# `pip install -e . --no-deps` installs only the package. `--no-deps` is load-bearing: without
+# it pip re-resolves the whole tree and silently shadows the conda-forge builds with PyPI
+# wheels, which is how a conda environment becomes unreproducible.
+#
+# PYTHON VERSION
+# --------------
+# 3.14, verified by solve rather than assumed. An earlier draft of this file said 3.13 "because
+# hdbscan and numba are the binding constraint" — that was a guess and it was wrong. A dry-run
+# solve of the full 389-package set on 2026-08-03 resolves cleanly on conda-forge, with a native
+# `hdbscan 0.8.44 py314h2115a04_0` build. Reproduce the check before changing this line:
+#
+#   mamba create -n _probe --dry-run -c conda-forge python=3.14 <every dependency below>
+
+name: erotica
+
+channels:
+  - conda-forge
+  - nodefaults          # never silently pull from `defaults`; mixing channels breaks ABI
+
+dependencies:
+  - python=3.14
+
+# Floors are set to what the 2026-08-03 solve actually resolved, so a rebuild cannot silently
+# regress to an older stack. Resolved versions on python=3.14, osx-arm64:
+#   numpy 2.4.6 | scipy 1.18.0 | pandas 3.0.5 | astropy 8.0.1 | scikit-learn 1.9.0
+#   matplotlib 3.11.1 | hdbscan 0.8.44 | optuna 4.9.0 | pymc 6.2.0 | pytensor 3.2.4
+#   arviz 1.2.0 | numpyro 0.21.0 | blackjax 1.6.2 | jax/jaxlib 0.10.2 | xarray 2026.7.0
+#   sphinx 9.1.0
+# The mamba base environment this package was actually developed in was BEHIND on several of
+# these — astropy 7.2.0 and pymc 6.1.0 among them.
+
+  # --- core (mirrors [project.dependencies] in pyproject.toml) ---
+  - numpy>=2.4
+  - scipy>=1.18
+  - pandas>=3.0
+  - astropy>=8
+  - scikit-learn>=1.9
+  - matplotlib>=3.11
+  - tqdm>=4.65
+  - dill>=0.3.8
+  - hdbscan>=0.8.44
+  - optuna>=4.9
+  - adjusttext>=1.4
+
+  # --- [bayes] ---
+  - pymc>=6.2
+  - arviz>=1.2
+  - xarray>=2026.7
+  - numpyro>=0.21       # the adopted NUTS backend: 2.71x faster than PyTensor NUTS, same answer
+  - blackjax>=1.6       # declared, but see tools/validation/pymc_blackjax_progress_bar_bug.md
+  - fast-histogram>=0.14
+  # ArviZ 1.x ships NO netCDF engine of its own. Without this, `az.from_netcdf` and
+  # `trace.to_netcdf` raise on a clean environment -- four call sites, including the provenance
+  # trace WRITER (provenance.py:164) and the published-trace reader (figures.py:70). It works in
+  # the old mamba `base` only because h5netcdf happens to be an unrelated leaf there, which is
+  # exactly the kind of accidental dependency a clean environment is meant to expose.
+  - h5netcdf
+
+  # --- [dev] ---
+  - pytest>=8
+  - pytest-cov>=4
+  - black>=23
+  - isort>=5.12
+  - flake8>=6
+  - mypy>=1.5
+  - pre-commit>=3
+  - nbstripout>=0.7
+
+  # --- [docs] ---
+  - sphinx>=7
+  - pydata-sphinx-theme>=0.15
+  - numpydoc>=1.6
+  - myst-parser>=2
+  - sphinx-copybutton>=0.5
+  - sphinx-design>=0.6
+
+  # --- not on conda-forge (verified 2026-08-02) ---
+  - pip
+  - pip:
+      - gaiadr3-zeropoint>=0.1.0
+      - asteca>=0.6
+      - gaiaunlimited>=0.3
+      - hr-selection-function>=1.0

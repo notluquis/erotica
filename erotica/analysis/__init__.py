@@ -86,6 +86,14 @@ from .provenance import (
     write_metadata,
 )
 from .synthetic import fractal_cluster, radial_profile_of
+from .segregation import (
+    SegregationProfile,
+    SegregationResult,
+    SegregationValidityWarning,
+    lambda_msr,
+    lambda_msr_profile,
+    mst_edges,
+)
 from .identifiability import (
     attach_log_likelihood,
     identifiability_report,
@@ -206,9 +214,15 @@ __all__ = [
     "king_expected_count_weighted",
     "king_profile",
     "king_unbinned",
+    "lambda_msr",
+    "lambda_msr_profile",
     "linear_size",
+    "SegregationProfile",
+    "SegregationResult",
+    "SegregationValidityWarning",
     "load_results",
     "mass_segregation_timescale",
+    "mst_edges",
     "parallax_determination",
     "plot_color_color",
     "plot_cumulative",

@@ -493,6 +493,41 @@ The field radius is 70′ = **22 pc** at the P01 distance, and the flat componen
 across all of it. Meanwhile **43.5%** of members lie beyond the Jacobi radius and **25.2%** beyond the
 fitted `R_t`.
 
+### It also invents a background where there is none, and the shape parameter pays
+
+Everything above measures what `b` absorbs from *real* data, where a corona plausibly exists. A
+synthetic control settles the harder question: what does `b` do when the truth is that there is **no
+background at all**?
+
+Measured in `tools/validation/ellipticity_bias.py` on its circular null — an EFF surface density
+sampled with no background whatsoever, N = 15 000, so the true `b` is **exactly zero**:
+
+| true `γ` | background | bias in fitted `γ` | inferred `b` |
+|---|---|---|---|
+| 2.0 | free | **+0.0116 ± 0.0020** (5.8σ) | **0.00716** |
+| 2.0 | pinned ≈ 0 | −0.0038 ± 0.0034 (1.1σ) | 0.00000 |
+| 2.5 | free | +0.0098 ± 0.0065 (1.5σ) | 0.00247 |
+| 2.5 | pinned ≈ 0 | −0.0010 ± 0.0064 (0.2σ) | 0.00000 |
+
+```{danger}
+**A free background term fabricates one, and the slope pays for it.** With `b` free the fit returns
+a background of 0.0072 where the truth is zero, and biases `γ` **upward** by 5.8σ. Pinning `b`
+removes both. The spurious `b` is ~3× larger at `γ` = 2.0 than at 2.5 — a shallower profile leaves
+more wing density to absorb — so **the size of the artefact depends on the very shape being
+measured**, and no single offset corrects it.
+
+Found by running the null cell of an ellipticity experiment: `q` = 1 is a circle, so the answer had
+to be zero, and it was not. The control was in the design as a formality; it caught a defect that
+would have contaminated every number that experiment produced.
+```
+
+The two findings compose badly. On real data `b` absorbs the corona (56% of the sample); on clean
+data it manufactures a background from nothing. **Both push the same way**: density that belongs to
+the profile ends up in the constant, and the shape parameter compensates. Any `γ` or `R_c` from a
+free-background fit carries that, and neither the posterior nor the standard diagnostics announce it.
+
+The practical rule: **fit both ways and report the difference**, or state which was used and why.
+
 ```{important}
 On a Gaia-selected sample the King background term stops meaning *"field stars I could not remove"*
 and starts meaning *"co-moving stars my profile cannot represent"*. It is doing the same arithmetic

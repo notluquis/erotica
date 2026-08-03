@@ -1270,7 +1270,6 @@ class IsochroneFitter:
             Same as :meth:`cmd_distances`, sorted by ``pms_score`` descending.
         """
         import matplotlib.pyplot as plt
-        import matplotlib.cm as mcm
         import matplotlib.colors as mcolors
 
         df = self.cmd_distances(
@@ -1306,7 +1305,11 @@ class IsochroneFitter:
                                      vmax=float(np.nanmax(scores[finite])))
         else:
             norm = mcolors.Normalize(0, 1)
-        cmap = mcm.get_cmap("plasma")
+        # plt.get_cmap, not matplotlib.cm.get_cmap: the latter was removed for good in matplotlib
+        # 3.11.0 (removed in 3.9.0, re-added in 3.9.1, removed again in 3.11.0), while the
+        # changelog explicitly preserves plt.get_cmap. This path has no test, so nothing here
+        # would have caught it -- it was found by reading the 3.11 changelog against a grep.
+        cmap = plt.get_cmap("plasma")
 
         fig, ax = plt.subplots(figsize=figsize)
 
