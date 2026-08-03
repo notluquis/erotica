@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -1322,8 +1323,63 @@ def RDP_bayesian(
     return_priors=None,
     sampling=None,
 ):
-    """Fit a King radial-density profile with PyMC."""
+    r"""Fit a King radial-density profile with PyMC. **Superseded — see the warning.**
+
+    .. deprecated:: 2026-08-02
+       Kept reachable **only** to reproduce results published before 2026-08-02.
+       New work must use :func:`king_unbinned`. Calling this emits a
+       :class:`UserWarning`.
+
+    .. warning::
+       **This likelihood is mis-specified by a measured factor of ~25, and its
+       priors are derived from the data being fitted.**
+
+       *The likelihood.* It puts a Normal on **binned** surface densities with a
+       single shared scatter ``sigma``. The package's default binner
+       (``method="equip"``) uses **equal-count** annuli, so the count per bin is
+       fixed by construction and the *area* is what varies. For
+       :math:`n \sim \mathrm{Poisson}(\Lambda)` split into ``n_bins``
+       equal-count annuli, :math:`\mathrm{Var}(N_i) = \Lambda/n_\mathrm{bins}^2`
+       while :math:`E(N_i) = \Lambda/n_\mathrm{bins}`, so the Poisson dispersion
+       index is :math:`1/n_\mathrm{bins}`. Measured over 400 realizations of a
+       known King point process it is **0.045** at the 25 bins the published fit
+       used, against the 1.0 a count likelihood asserts -- a **~25x**
+       mis-specification. Oracle: ``tools/validation/king_binning_likelihood.py``.
+
+       *The priors.* All four bounds come from ``nanstd`` / ``nanmin`` /
+       ``nanmax`` **of the observed densities and radii** -- the data used twice,
+       which the P01 referee raised in those words ("*appear arbitrary*"). In
+       particular ``R_t ~ Uniform(R_c, 1.5 * max(d_center))`` **truncates** the
+       ``R_t`` posterior rather than letting the data turn it over.
+
+    :func:`king_unbinned` replaces both defects at once with an inhomogeneous
+    Poisson point process, :math:`\log L = \sum_i \log \lambda(r_i) - \Lambda`
+    (the continuous Cash 1979 statistic, `1979ApJ...228..939C`), and the
+    scale-free :class:`KingPriors`. There is no binned-Poisson middle ground on
+    offer and none ever shipped here: a per-annulus Poisson likelihood on
+    equal-count bins would assert the same false ``Var = E`` and is the *other*
+    way to get this wrong.
+
+    Notes
+    -----
+    See ``docs/design-notes/decisions.md`` (2026-07-27, "the King fit is now
+    unbinned") for the full measurement, and
+    ``tools/validation/king_unbinned_delta.py`` for what the change does to the
+    published NGC 6383 numbers.
+    """
     from .inference import SamplingConfig, _sample
+
+    warnings.warn(
+        "RDP_bayesian fits a Normal likelihood to *binned* densities with "
+        "data-derived prior bounds. On equal-count annuli its Poisson dispersion "
+        "index is ~0.045 against the 1.0 asserted (a ~25x mis-specification, "
+        "measured in tools/validation/king_binning_likelihood.py), and every prior "
+        "bound is a function of the data being fitted. Use "
+        "erotica.analysis.structure.king_unbinned instead; this path is retained "
+        "only to reproduce results published before 2026-08-02.",
+        UserWarning,
+        stacklevel=2,
+    )
 
     try:
         import pymc as pm
@@ -1380,8 +1436,27 @@ def RDP_bayesian_log_space(
     d_center=None,
     sampling=None,
 ):
-    """Log-space variant of :func:`RDP_bayesian` for sparse radial profiles."""
+    """Log-space variant of :func:`RDP_bayesian` for sparse radial profiles.
+
+    .. deprecated:: 2026-08-02
+       Carries **the same two defects** as :func:`RDP_bayesian` -- a Gaussian
+       likelihood on binned densities, and prior bounds derived from the data
+       being fitted -- and taking the logarithm changes neither. Working in log
+       space also makes the Gaussian assumption *less* defensible in the sparse
+       outer bins, where the density is small and its log is strongly skewed.
+       Use :func:`king_unbinned`. Calling this emits a :class:`UserWarning`.
+    """
     from .inference import SamplingConfig, _sample
+
+    warnings.warn(
+        "RDP_bayesian_log_space has the same defects as RDP_bayesian -- a Gaussian "
+        "likelihood on binned densities and data-derived prior bounds -- which "
+        "taking a logarithm does not fix. Use "
+        "erotica.analysis.structure.king_unbinned instead; this path is retained "
+        "only to reproduce results published before 2026-08-02.",
+        UserWarning,
+        stacklevel=2,
+    )
 
     try:
         import pymc as pm
@@ -1514,17 +1589,78 @@ class ClusterStructureAnalyzer:
         self,
         profile: RadialDensityProfile,
         *,
+        method: str = "unbinned",
+        field_radius=None,
         log_space: bool = False,
         **kwargs,
     ):
-        """Fit a King profile to a :class:`RadialDensityProfile`."""
-        fitter = RDP_bayesian_log_space if log_space else RDP_bayesian
-        return fitter(
-            profile.density,
-            profile.radius,
-            d_center=profile.distances,
-            **kwargs,
-        )
+        r"""Fit a King profile to a :class:`RadialDensityProfile`.
+
+        Parameters
+        ----------
+        profile : RadialDensityProfile
+            Used for its ``distances`` attribute -- the **per-star** angular
+            separations from the centre -- when ``method="unbinned"``, and for
+            its binned ``density`` / ``radius`` when ``method="binned"``.
+        method : {"unbinned", "binned"}, default "unbinned"
+            ``"unbinned"`` fits :func:`king_unbinned`: an inhomogeneous Poisson
+            point process on the individual stellar radii,
+            :math:`\log L = \sum_i \log \lambda(r_i) - \Lambda`, with the
+            scale-free :class:`KingPriors`.
+
+            ``"binned"`` routes to :func:`RDP_bayesian` (or
+            :func:`RDP_bayesian_log_space` when `log_space`), which is retained
+            only for reproducing results published before 2026-08-02 and warns
+            when called.
+        field_radius : float or Quantity, **required for** ``method="unbinned"``
+            Radius of the circular selection footprint, in arcmin. There is no
+            default, deliberately: the point-process normalisation
+            :math:`\Lambda = \int_0^{R_f} 2\pi r\,\Sigma(r)\,dr` assumes the
+            sample is **complete inside that disc**, and inferring it from
+            ``max(profile.distances)`` would let a footprint assumption be made
+            silently by the code instead of stated by the caller. For a
+            membership-selected list the footprint is whatever the selection
+            carved out and is *not* a disc -- see
+            ``docs/design-notes/king_model_validity.md``.
+        log_space : bool, default False
+            Only meaningful for ``method="binned"``.
+
+        Notes
+        -----
+        **What changed on 2026-08-02.** The default was ``RDP_bayesian``: a
+        Normal likelihood on equal-count binned densities whose Poisson
+        dispersion index is **0.045** against the 1.0 such a likelihood asserts
+        (measured over 400 realizations in
+        ``tools/validation/king_binning_likelihood.py``, a ~25x
+        mis-specification), with all four prior bounds taken from ``nanstd`` /
+        ``nanmin`` / ``nanmax`` of the data being fitted. :func:`king_unbinned`
+        existed, was correct, and was simply not what this method called.
+
+        Passing ``method="binned"`` restores the old behaviour exactly.
+        """
+        if method == "binned":
+            fitter = RDP_bayesian_log_space if log_space else RDP_bayesian
+            return fitter(
+                profile.density,
+                profile.radius,
+                d_center=profile.distances,
+                **kwargs,
+            )
+        if method != "unbinned":
+            raise ValueError("method must be 'unbinned' or 'binned'.")
+        if log_space:
+            raise ValueError(
+                "log_space applies only to method='binned'. The unbinned point "
+                "process has no binned densities to take a logarithm of."
+            )
+        if field_radius is None:
+            raise ValueError(
+                "field_radius is required for method='unbinned': the normalisation "
+                "integral assumes the sample is complete inside that disc, so the "
+                "footprint must be stated rather than inferred from the data. Pass "
+                "the selection radius, or method='binned' for the legacy fit."
+            )
+        return king_unbinned(profile.distances, field_radius=field_radius, **kwargs)
 
 
 __all__ = [

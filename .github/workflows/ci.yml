@@ -3,13 +3,18 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  # Core suite on every supported Python. The `bayes` extra is deliberately NOT
-  # installed here: pymc>=6 requires Python >=3.12, so it cannot run on 3.11.
+  # Core suite on every supported Python, WITHOUT the `bayes` extra. That omission is
+  # the point: it is the only thing enforcing that `import erotica` works with pymc,
+  # pytensor, arviz, numpyro, jax and blackjax all absent.
+  #
+  # The matrix must match `requires-python` in pyproject.toml. It said 3.11/3.12/3.13
+  # while requires-python had moved to >=3.13, so those two legs could not install the
+  # package at all -- a red CI caused by the config disagreeing with itself.
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - run: pip install -e .[dev,bayes]
       - name: Fail if the bayes extra did not actually install
         run: python -c "import pymc, arviz; print('pymc', pymc.__version__, '| arviz', arviz.__version__)"

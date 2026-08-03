@@ -4,7 +4,7 @@
 # Licence: AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and this
 # file — verified 2026-08-02. (The earlier note here claiming LICENSE held GPL-3.0
 # text was stale; it holds the AGPL, 661 lines with the network-server preamble.)
-# GitHub'"'"'s licensee still *displays* GPL-3.0, which is a detection artefact and
+# GitHub's licensee still *displays* GPL-3.0, which is a detection artefact and
 # is tracked as an issue, not a licensing inconsistency.
 cff-version: 1.2.0
 message: "If you use EROTICA, please cite it using these metadata."
@@ -17,19 +17,16 @@ abstract: >-
   with ArviZ InferenceData provenance for every fit.
 type: software
 authors:
-  # TODO: confirm final list + ORDER + ORCIDs before release. Affiliation confirmed (UdeC).
+  # Sole author, confirmed 2026-08-03. This list is also the Zenodo deposit's author list:
+  # the archive IS the software, so they are decided once and kept identical.
   - family-names: "Pulgar-Escobar"
     given-names: "Lucas"
     affiliation: "Universidad de Concepción, Chile"
-    orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO
-  - family-names: "Henríquez Salgado"
-    given-names: "Nicolás"
-    affiliation: "Universidad de Concepción, Chile"
-    orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO
+    orcid: "https://orcid.org/0009-0008-4359-2444"
 repository-code: "https://github.com/notluquis/erotica"
 license: AGPL-3.0-or-later
-version: 0.0.1
-date-released: "2026-07-19"
+version: 0.1.0
+date-released: "2026-08-03"
 # doi: 10.5281/zenodo.XXXXXXX   # TODO: mint on first tagged release
 
 # Once the NGC 6383 A&A paper has a DOI, uncomment this block. GitHub's "Cite this

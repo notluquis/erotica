@@ -1,18 +1,35 @@
 """Head-to-head membership benchmark harness: EROTICA vs ASteCA vs pyUPMASK.
 
-This is the P02 *comparability* deliverable. The three pipelines are compared as
-**complementary** methods (not to declare a winner) along four axes:
+This is the P02 *comparability* deliverable. **ASteCA and pyUPMASK are the reference
+implementations in this field, and the baselines EROTICA has to be measured against.**
+The harness compares the three pipelines along four axes:
 
     (a) membership AGREEMENT  -- pairwise overlap / confusion / rank AUC / kappa
     (b) parameter RECOVERY    -- fundamental parameters vs. known synthetic truth
     (c) RUNTIME               -- wall-clock per method
     (d) CALIBRATION           -- reliability curve / ECE / MCE / Brier
 
-Axis (d) is the axis the others typically do not *report*. It is computable for
-**any** method once a ground-truth membership is known -- ASteCA and pyUPMASK
-emit membership probabilities too. The complementary point is that EROTICA's
-pipeline foregrounds and reports this axis, not that the others are incapable of
-it. Keep that framing symmetric in any paper text built on this harness.
+.. important::
+   **A ranking is a legitimate output of this harness -- but only from a run.** Axes (b)
+   and (d) have ground truth, so "better" is well defined there, and establishing it is
+   what this file is for. What is not legitimate is asserting a win the harness has not
+   produced: **no benchmark run is committed anywhere in this repository**, so any
+   superiority claim in the paper is a claim about capability, not a measured result, and
+   has to say so.
+
+   An earlier version of this docstring instructed that the methods be framed as
+   "complementary (not to declare a winner)" and that the framing be kept "symmetric in
+   any paper text built on this harness". That was the wrong instruction: it made an
+   unmeasured tie the default conclusion, which is no better supported than an unmeasured
+   win. The two honest positions are "measured, and here is the number" and "not yet
+   measured".
+
+Axis (d) is the one the others do not typically *report*, though they can compute it:
+ASteCA and pyUPMASK emit membership probabilities, and pyUPMASK's own Sect. 3.2 already
+scores its output with six probabilistic-classification metrics including Brier, log-loss
+and the H-measure (Pera et al. 2021, A&A 650, A109). So the open question is not whether
+such scores exist, but whether the probabilities are **calibrated** -- reliability
+conditional on magnitude, crowding and radius. Concede the first; measure the second.
 
 Design
 ------

@@ -807,3 +807,174 @@ def test_corona_respects_the_unit_of_the_radius():
         np.asarray(corona_surface_density(r.to(u.deg), delta_f=0.02, R_2=40.0)),
         rtol=1e-12,
     )
+
+
+# ---------------------------------------------------------------------------
+# Which King fitter the DEFAULT path uses -- Defect 2.
+#
+# ``king_unbinned`` was already here, already correct, and already tested. What
+# was not tested is which fitter ``ClusterStructureAnalyzer.fit_king_profile``
+# reaches, and until 2026-08-02 it reached ``RDP_bayesian``: a Normal likelihood
+# on equal-count binned densities (measured Poisson dispersion index 0.045
+# against the asserted 1.0) with all four prior bounds taken from the data.
+#
+# The load-bearing oracle below is STRUCTURAL, not numerical: a point process has
+# no nuisance scatter parameter, so the default's posterior must contain no
+# ``sigma``. That cannot be satisfied by accident by a binned fit.
+# ---------------------------------------------------------------------------
+
+from erotica.analysis.structure import ClusterStructureAnalyzer  # noqa: E402
+
+
+def _king_table(seed, *, field=FIELD, **params):
+    """Sky positions whose separations from the centre ARE the injected radii.
+
+    Built with :meth:`~astropy.coordinates.SkyCoord.directional_offset_by`, i.e.
+    exact spherical geometry, so ``profile.distances`` reproduces the sampled
+    radii to machine precision and no small-angle error leaks into the recovery
+    tolerance -- and no star lands outside ``field_radius`` by rounding.
+    """
+    from astropy.coordinates import SkyCoord
+    from astropy.table import QTable as _QTable
+
+    radii = _sample_king(seed, field=field, **params)
+    rng = np.random.default_rng(seed + 1)
+    centre = SkyCoord(263.6826 * u.deg, -32.5838 * u.deg)
+    offsets = centre.directional_offset_by(
+        rng.uniform(0.0, 360.0, radii.size) * u.deg, radii * u.arcmin
+    )
+    return centre, _QTable(
+        {
+            "ra": offsets.ra.to(u.deg),
+            "dec": offsets.dec.to(u.deg),
+            "probability": np.full(radii.size, 0.9),
+        }
+    )
+
+
+@requires_bayes_extra
+def test_the_default_king_fit_is_a_point_process_with_no_nuisance_scatter():
+    """Structural oracle: a point process has no shared ``sigma``. A binned
+    Gaussian on densities necessarily does, because that is the parameter that
+    absorbs the binning scatter. Asking whether the posterior contains ``sigma``
+    therefore distinguishes the two likelihoods with no tolerance to tune.
+    """
+    from erotica.analysis.inference import SamplingConfig
+
+    centre, table = _king_table(31, **TRUE_KING)
+    analyzer = ClusterStructureAnalyzer(table)
+    profile = analyzer.radial_density_profile(centre)
+
+    unbinned = analyzer.fit_king_profile(
+        profile,
+        field_radius=FIELD * u.arcmin,
+        return_trace=True,
+        sampling=SamplingConfig(
+            draws=500, tune=500, chains=2, random_seed=31, progressbar=False
+        ),
+    )
+    variables = set(unbinned["king_trace"].posterior.data_vars)
+    assert "sigma" not in variables, f"the default fit carries a nuisance sigma: {variables}"
+    assert {"k", "b", "R_c", "R_t"} <= variables
+    # ... and the binned path, which is what it used to call, does have one.
+    with pytest.warns(UserWarning, match="king_unbinned"):
+        binned = analyzer.fit_king_profile(
+            profile,
+            method="binned",
+            return_trace=True,
+            sampling=SamplingConfig(
+                draws=300, tune=300, chains=2, random_seed=31, progressbar=False
+            ),
+        )
+    assert "sigma" in set(binned["king_trace"].posterior.data_vars)
+
+
+@requires_bayes_extra
+def test_the_default_king_fit_recovers_the_injected_core_radius():
+    """Oracle: the ``R_c`` this test injected into the point process.
+
+    ABSOLUTE tolerance tied to the injected truth, never ``N * posterior_std`` --
+    a self-widening window passes automatically whenever the fit is poor, which
+    is exactly when it should fail.
+    """
+    import arviz as az
+
+    from erotica.analysis.inference import SamplingConfig
+
+    centre, table = _king_table(32, **TRUE_KING)
+    analyzer = ClusterStructureAnalyzer(table)
+    profile = analyzer.radial_density_profile(centre)
+
+    res = analyzer.fit_king_profile(
+        profile,
+        field_radius=FIELD * u.arcmin,
+        sampling=SamplingConfig(
+            draws=1000, tune=1000, chains=2, random_seed=32, progressbar=False
+        ),
+    )
+    r_c = float(res["R_c_median"].to_value(u.arcmin))
+    assert abs(r_c - TRUE_KING["R_c"]) < 0.6, (
+        f"R_c = {r_c:.3f}' vs injected {TRUE_KING['R_c']}'"
+    )
+    # az.rhat / az.ess rather than az.summary: arviz >= 1 formats the summary
+    # frame for display and rounds R-hat to two decimals, so a genuine 1.0051
+    # reads back as exactly 1.01 and the PART A floor cannot be applied to it.
+    assert float(az.rhat(res["king_trace"], var_names=["R_c"])["R_c"]) < 1.01
+    assert float(az.ess(res["king_trace"], var_names=["R_c"])["R_c"]) > 400
+    assert int(res["king_trace"].sample_stats["diverging"].values.sum()) == 0
+
+
+@requires_bayes_extra
+def test_the_binned_fitter_warns_and_names_what_replaces_it():
+    """A silent legacy path is how a superseded number keeps getting published."""
+    from erotica.analysis.inference import SamplingConfig
+    from erotica.analysis.structure import RDP_bayesian, RDP_bayesian_log_space
+
+    radius = np.array([1.0, 2.0, 4.0, 8.0, 16.0]) * u.arcmin
+    density = np.array([2.0, 1.2, 0.5, 0.2, 0.08])
+    cfg = SamplingConfig(draws=200, tune=200, chains=1, random_seed=1, progressbar=False)
+
+    for fitter in (RDP_bayesian, RDP_bayesian_log_space):
+        with pytest.warns(UserWarning) as record:
+            fitter(density, radius, sampling=cfg)
+        message = str(record[0].message)
+        assert "king_unbinned" in message, f"{fitter.__name__} does not name its replacement"
+        assert "binned" in message
+
+
+def test_the_unbinned_default_will_not_guess_the_footprint():
+    """The normalisation assumes completeness inside a disc, so the caller states it.
+
+    Inferring ``field_radius`` from ``max(radii)`` would let the footprint
+    assumption -- the one that is false for a membership-selected list -- be made
+    silently by the code.
+    """
+    centre, table = _king_table(33, **TRUE_KING)
+    analyzer = ClusterStructureAnalyzer(table)
+    profile = analyzer.radial_density_profile(centre)
+
+    with pytest.raises(ValueError, match="field_radius is required"):
+        analyzer.fit_king_profile(profile)
+    with pytest.raises(ValueError, match="log_space applies only"):
+        analyzer.fit_king_profile(profile, log_space=True, field_radius=FIELD)
+    with pytest.raises(ValueError, match="'unbinned' or 'binned'"):
+        analyzer.fit_king_profile(profile, method="rdp")
+
+
+@requires_bayes_extra
+def test_the_legacy_figure_facade_still_uses_the_published_fitter():
+    """``graph_king`` reproduces figures published before 2026-08-02.
+
+    Re-plotting them from a different likelihood would move a published curve
+    without saying so, so this facade is pinned while the analyzer default moved.
+    Behavioural check: only the binned fit produces ``king_std``, the posterior of
+    the nuisance scatter that the point process does not have.
+    """
+    from erotica.analysis.figures import graph_king
+
+    centre, table = _king_table(34, **TRUE_KING)
+    with pytest.warns(UserWarning, match="king_unbinned"):
+        payload = graph_king(table, [centre], prob_number=(0.5,))
+    assert "king_std" in payload["bayesian_results"], (
+        "graph_king no longer runs the binned fit the published figures used"
+    )

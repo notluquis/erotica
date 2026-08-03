@@ -1,22 +1,52 @@
-% COSMIC JOSS paper references. DRAFT — verify all fields (volume/page/DOI) at submission.
+% EROTICA JOSS paper references.
+%
+% VERIFICATION: every entry below was checked on 2026-08-03 by fetching NASA
+% SciX/ADS — title, author list, journal, volume, page and DOI confirmed against
+% the record. Do not "correct" any field from memory; re-fetch instead.
+%
+% Three errors were found and fixed in that pass; they are flagged inline so the
+% same mistakes are not reintroduced.
+
+@article{cash1979,
+  author  = {Cash, W.},
+  title   = {Parameter estimation in astronomy through application of the likelihood ratio},
+  journal = {The Astrophysical Journal},
+  volume  = {228},
+  pages   = {939},
+  year    = {1979},
+  doi     = {10.1086/156922},
+  note    = {bibcode 1979ApJ...228..939C; SciX-verified 2026-08-03}
+}
 
 @article{pulgar2024a,
-  author  = {Pulgar-Escobar, L. M. and others},
+  author  = {Pulgar-Escobar, L. M. and Henr{\'i}quez-Salgado, N. A.},
   title   = {Bayesian characterization of the young open cluster NGC 6383 using HDBSCAN and Gaia DR3},
+  journal = {Boletin de la Asociacion Argentina de Astronomia},
+  volume  = {65},
+  pages   = {146},
   year    = {2024},
+  doi     = {10.48550/arXiv.2403.01030},
   eprint  = {2403.01030},
   archivePrefix = {arXiv},
-  primaryClass  = {astro-ph.GA},
-  note    = {A\&A, aa52082-24 (resubmission)}
+  note    = {bibcode 2024BAAA...65..146P; SciX-verified 2026-08-03.
+             CORRECTED: arXiv 2403.01030 is PUBLISHED as this BAAA proceeding, not
+             an unpublished preprint. The earlier note carried the A\&A manuscript
+             number aa52082-24, which SciX does not associate with this record;
+             confirm which paper that number belongs to before reusing it.}
 }
 
 @article{pulgar2024b,
-  author  = {Pulgar-Escobar, L. M. and others},
-  title   = {Characterizing NGC 6383: pre-main-sequence stars, mass segregation, and age using Gaia DR3 and 2MASS},
+  author  = {Pulgar-Escobar, L. M. and Henr{\'i}quez-Salgado, N. A. and Cerulo, Pierluigi and others},
+  title   = {Characterizing NGC 6383: A study of pre-main sequence stars, mass segregation, and age using Gaia DR3 and 2MASS},
+  journal = {arXiv e-prints},
   year    = {2024},
+  doi     = {10.48550/arXiv.2405.09145},
   eprint  = {2405.09145},
   archivePrefix = {arXiv},
-  primaryClass  = {astro-ph.SR}
+  primaryClass  = {astro-ph.SR},
+  note    = {bibcode 2024arXiv240509145P; SciX-verified 2026-08-03.
+             CORRECTED title: "A study of pre-main sequence stars", not
+             "pre-main-sequence stars". Defines the membership statistic p-tilde.}
 }
 
 @article{perren2015,
@@ -28,11 +58,23 @@
   year    = {2015},
   doi     = {10.1051/0004-6361/201424946},
   eprint  = {1412.2366},
-  archivePrefix = {arXiv}
+  archivePrefix = {arXiv},
+  note    = {bibcode 2015A\&A...576A...6P; SciX-verified 2026-08-03}
+}
+
+@article{kronemartins2014,
+  author  = {Krone-Martins, A. and Moitinho, A.},
+  title   = {UPMASK: unsupervised photometric membership assignment in stellar clusters},
+  journal = {Astronomy \& Astrophysics},
+  volume  = {561},
+  pages   = {A57},
+  year    = {2014},
+  doi     = {10.1051/0004-6361/201321143},
+  note    = {bibcode 2014A\&A...561A..57K; SciX-verified 2026-08-03}
 }
 
 @article{pera2021,
-  author  = {Pera, M. S. and Perren, G. I. and Moitinho, A. and Navone, H. D. and Vazquez, R. A.},
+  author  = {Pera, M. S. and Perren, G. I. and Moitinho, A. and others},
   title   = {pyUPMASK: an improved unsupervised clustering algorithm},
   journal = {Astronomy \& Astrophysics},
   volume  = {650},
@@ -40,11 +82,30 @@
   year    = {2021},
   doi     = {10.1051/0004-6361/202040252},
   eprint  = {2101.01660},
-  archivePrefix = {arXiv}
+  archivePrefix = {arXiv},
+  note    = {bibcode 2021A\&A...650A.109P; SciX-verified 2026-08-03. Abstract:
+             "six different statistical metrics that measure the accuracy of
+             probabilistic classification" on 600 synthetic clusters -- this is
+             the prior art that narrows any EROTICA calibration-novelty claim.}
+}
+
+@article{pera2021king,
+  author  = {Pera, M. S. and Perren, G. I. and Navone, H. D. and others},
+  title   = {Bayesian estimation of King's profile parameters for ten open clusters in the Milky Way},
+  journal = {Boletin de la Asociacion Argentina de Astronomia},
+  volume  = {62},
+  pages   = {119},
+  year    = {2021},
+  note    = {bibcode 2021BAAA...62..119P; SciX-verified 2026-08-03. NO DOI --
+             BAAA proceedings are not DOI-registered; cite by bibcode.
+             Fits an elliptical rotated King profile on SPATIAL data (rotation
+             angle, eccentricity, r_core, r_tidal). The abstract does NOT state
+             whether the likelihood is an unbinned point process or a binned RDP
+             -- do not assert priority on that axis without reading the paper.}
 }
 
 @article{hunt2021,
-  author  = {Hunt, E. L. and Reffert, S.},
+  author  = {Hunt, Emily L. and Reffert, Sabine},
   title   = {Improving the open cluster census. I. Comparison of clustering algorithms applied to Gaia DR2 data},
   journal = {Astronomy \& Astrophysics},
   volume  = {646},
@@ -52,120 +113,148 @@
   year    = {2021},
   doi     = {10.1051/0004-6361/202039341},
   eprint  = {2012.04267},
-  archivePrefix = {arXiv}
-}
-
-@article{chi2026,
-  author  = {Chi, Huanbin and others},
-  title   = {Dissecting Ruprecht 147: A Bayesian 4D analysis of stellar rotation and binarity from differentiable PARSEC isochrones and Gaia DR3},
-  journal = {Astronomy \& Astrophysics},
-  volume  = {710},
-  pages   = {A160},
-  year    = {2026},
-  note    = {bibcode 2026A\&A...710A.160C (verified 2026-07-20 at aanda.org full text); manuscript no. aa59486-26; NUTS + differentiable PARSEC, per-star (not binned Hess)}
-}
-
-@article{garling2025,
-  author  = {Garling, C. T. and others},
-  title   = {Measuring Resolved Star Formation Histories from High-precision Color-Magnitude Diagrams with StarFormationHistories.jl},
-  journal = {The Astrophysical Journal Supplement Series},
-  volume  = {277},
-  pages   = {61},
-  year    = {2025},
-  eprint  = {2407.19534},
   archivePrefix = {arXiv},
-  note    = {bibcode 2025ApJS..277...61G (ADS-verified 2026-07-20)}
+  note    = {bibcode 2021A\&A...646A.104H; SciX-verified 2026-08-03}
 }
 
-@article{dolphin2002,
-  author  = {Dolphin, Andrew E.},
-  title   = {Numerical methods of star formation history measurement and applications to seven dwarf spheroidals},
-  journal = {Monthly Notices of the Royal Astronomical Society},
-  volume  = {332},
-  pages   = {91},
-  year    = {2002},
-  note    = {bibcode 2002MNRAS.332...91D; origin of the binned Poisson Hess-diagram likelihood}
-}
-
-@article{vonhippel2006,
-  author  = {von Hippel, Ted and others},
-  title   = {BASE-9: Bayesian Analysis for Stellar Evolution with nine parameters},
-  year    = {2006},
-  journal = {The Astrophysical Journal},
-  volume  = {645},
-  pages   = {1436},
-  note    = {bibcode 2006ApJ...645.1436V; manual arXiv:1411.3786}
+@article{olivares2018,
+  author  = {Olivares, J. and Sarro, L. M. and Moraux, E. and others},
+  title   = {The seven sisters DANCe. IV. Bayesian hierarchical model},
+  journal = {Astronomy \& Astrophysics},
+  volume  = {617},
+  pages   = {A15},
+  year    = {2018},
+  doi     = {10.1051/0004-6361/201730972},
+  note    = {bibcode 2018A\&A...617A..15O; SciX-verified 2026-08-03. Propagates
+             observational uncertainties into per-star membership probabilities.}
 }
 
 @article{jackson2022,
-  author  = {Jackson, R. J. and others},
-  title   = {The Gaia-ESO Survey: membership probabilities for stars in 63 open and 7 globular clusters from 3D kinematics},
+  author  = {Jackson, R. J. and Jeffries, R. D. and Wright, N. J. and others},
+  title   = {The Gaia-ESO Survey: Membership probabilities for stars in 63 open and 7 globular clusters from 3D kinematics},
   journal = {Monthly Notices of the Royal Astronomical Society},
   volume  = {509},
   pages   = {1664},
   year    = {2022},
-  note    = {bibcode 2022MNRAS.509.1664J}
+  doi     = {10.1093/mnras/stab3032},
+  note    = {bibcode 2022MNRAS.509.1664J; SciX-verified 2026-08-03. Validates by
+             discrimination, not calibration.}
+}
+
+@article{rozo2015,
+  author  = {Rozo, E. and Rykoff, E. S. and Becker, M. and others},
+  title   = {redMaPPer -- IV. Photometric membership identification of red cluster galaxies with 1 per cent precision},
+  journal = {Monthly Notices of the Royal Astronomical Society},
+  volume  = {453},
+  pages   = {38},
+  year    = {2015},
+  doi     = {10.1093/mnras/stv1560},
+  note    = {bibcode 2015MNRAS.453...38R; SciX-verified 2026-08-03. First author
+             is Rozo, NOT Rykoff -- checked, because the key could mislead.}
 }
 
 @article{myles2021,
-  author  = {Myles, J. and others},
+  author  = {Myles, J. and Alarcon, A. and Amon, A. and others},
   title   = {Dark Energy Survey Year 3 results: redshift calibration of the weak lensing source galaxies},
   journal = {Monthly Notices of the Royal Astronomical Society},
   volume  = {505},
   pages   = {4249},
   year    = {2021},
-  note    = {bibcode 2021MNRAS.505.4249M}
-}
-
-@article{myles2023,
-  author  = {Myles, J. and others},
-  title   = {Mapping variations of redshift distributions with probability integral transforms},
-  journal = {Monthly Notices of the Royal Astronomical Society},
-  volume  = {519},
-  pages   = {1792},
-  year    = {2023},
-  note    = {bibcode 2023MNRAS.519.1792M}
+  doi     = {10.1093/mnras/stab1515},
+  note    = {bibcode 2021MNRAS.505.4249M; SciX-verified 2026-08-03}
 }
 
 @article{disanto2018,
   author  = {D'Isanto, A. and Polsterer, K. L.},
-  title   = {Photometric redshift estimation via deep learning: Generalized and pre-classification-less, image-based, fully probabilistic redshifts},
+  title   = {Photometric redshift estimation via deep learning. Generalized and pre-classification-less, image based, fully probabilistic redshifts},
   journal = {Astronomy \& Astrophysics},
   volume  = {609},
   pages   = {A111},
   year    = {2018},
-  note    = {bibcode 2018A&A...609A.111D}
+  doi     = {10.1051/0004-6361/201731326},
+  note    = {bibcode 2018A\&A...609A.111D; SciX-verified 2026-08-03}
 }
 
-@article{ramezani2026,
-  author  = {Ramezani, T. and Faltov{\'a}, N. and Mondal, P. and Neumannov{\'a}, K. and Paunzen, E. and Sup{\'i}kov{\'a}, J. and Sz{\'a}sz, G.},
-  title   = {The different methods to calculate cluster membership probabilities},
-  year    = {2026},
-  eprint  = {2607.13711},
+@article{dolphin2002,
+  author  = {Dolphin, A. E.},
+  title   = {Numerical methods of star formation history measurement and applications to seven dwarf spheroidals},
+  journal = {Monthly Notices of the Royal Astronomical Society},
+  volume  = {332},
+  pages   = {91},
+  year    = {2002},
+  doi     = {10.1046/j.1365-8711.2002.05271.x},
+  note    = {bibcode 2002MNRAS.332...91D; SciX-verified 2026-08-03.
+             Origin of the binned Poisson Hess-diagram likelihood.}
+}
+
+@article{vonhippel2006,
+  author  = {von Hippel, Ted and Jefferys, William H. and Scott, James and others},
+  title   = {Inverting Color-Magnitude Diagrams to Access Precise Star Cluster Parameters: A Bayesian Approach},
+  journal = {The Astrophysical Journal},
+  volume  = {645},
+  pages   = {1436},
+  year    = {2006},
+  doi     = {10.1086/504369},
+  note    = {bibcode 2006ApJ...645.1436V; SciX-verified 2026-08-03.
+             CORRECTED TITLE. The earlier entry read "BASE-9: Bayesian Analysis
+             for Stellar Evolution with nine parameters", which is the name of the
+             CODE and its manual (arXiv:1411.3786), NOT the title of this paper.}
+}
+
+@article{garling2025,
+  author  = {Garling, Christopher T. and Kallivayalil, Nitya and McQuinn, Kristen B. W. and others},
+  title   = {Measuring Resolved Star Formation Histories from High-precision Color-Magnitude Diagrams with StarFormationHistories.jl},
+  journal = {The Astrophysical Journal Supplement Series},
+  volume  = {277},
+  pages   = {61},
+  year    = {2025},
+  doi     = {10.3847/1538-4365/adbb64},
+  eprint  = {2407.19534},
   archivePrefix = {arXiv},
-  primaryClass  = {astro-ph.SR},
-  note    = {Review of OC membership methods; performs no calibration validation}
+  note    = {bibcode 2025ApJS..277...61G; SciX-verified 2026-08-03.
+             Poisson-Hess + HMC, but over LINEAR star-formation-history
+             coefficients, not nonlinear single-population isochrone parameters.}
+}
+
+@article{chi2026,
+  author  = {Chi, Huanbin and Wang, Feng and Tian, Xuefen and others},
+  title   = {Dissecting Ruprecht 147: A Bayesian 4D analysis of stellar rotation and binarity: Constraints from differentiable PARSEC isochrones and Gaia data release 3},
+  journal = {Astronomy \& Astrophysics},
+  volume  = {710},
+  pages   = {A160},
+  year    = {2026},
+  doi     = {10.1051/0004-6361/202659486},
+  note    = {bibcode 2026A\&A...710A.160C; SciX-verified 2026-08-03 (DOI added;
+             full subtitle restored). NUTS + differentiable PARSEC via JAX, but a
+             PER-STAR rotation/binarity model, not a binned Hess-diagram
+             likelihood. Concurrent independent work, not prior art.}
 }
 
 @article{plevne2026,
-  author  = {Plevne, O. and Akbaba, F.},
+  author  = {Plevne, Olcay and Akbaba, Furkan},
   title   = {Astrophysical Parameters of 5056 Open Star Clusters from Bayesian Nested Sampling with PARSEC Isochrones},
+  journal = {arXiv e-prints},
   year    = {2026},
+  doi     = {10.48550/arXiv.2605.23802},
   eprint  = {2605.23802},
   archivePrefix = {arXiv},
   primaryClass  = {astro-ph.GA},
-  note    = {Bayesian OC fundamental-parameter fitting at survey scale (nested sampling); arXiv-only, cite as preprint}
+  note    = {bibcode 2026arXiv260523802P; SciX-verified 2026-08-03.
+             arXiv-only at time of writing; cite as preprint.}
 }
 
-@article{hunt2026sf,
-  author  = {Hunt, E. L. and Reffert, S. and others},
-  title   = {The selection function of the Gaia DR3 open cluster census},
-  journal = {Astronomy \& Astrophysics},
-  volume  = {706},
-  pages   = {A341},
+@article{ramezani2026,
+  author  = {Ramezani, Tahereh and Mondal, Prapti and Neumannova, Katerina and others},
+  title   = {The different methods to calculate cluster membership probabilities},
+  journal = {arXiv e-prints},
   year    = {2026},
-  eprint  = {2510.18343},
+  doi     = {10.48550/arXiv.2607.13711},
+  eprint  = {2607.13711},
   archivePrefix = {arXiv},
-  doi     = {10.1051/0004-6361/202557781},
-  note    = {bibcode 2026A\&A...706A.341H (ADS-verified 2026-07-20); Python pkg github.com/emilyhunt/hr_selection_function}
+  primaryClass  = {astro-ph.SR},
+  note    = {bibcode 2026arXiv260713711R; SciX-verified 2026-08-03.
+             CORRECTED author order -- the earlier entry listed Faltova second;
+             SciX gives Ramezani, Mondal, Neumannova. Reviews spatial, kinematic,
+             photometric, maximum-likelihood, Bayesian and ML membership methods;
+             performs no calibration validation.}
 }

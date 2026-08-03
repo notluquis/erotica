@@ -8,11 +8,24 @@ exception**: Tarricq et al. (2022) measure a median axis ratio ``b/a = 0.71`` fo
 across 233 open clusters, with 92.9% below 0.9 and a 10th percentile of 0.42. So the assumption is
 violated for almost every cluster, and the size of the resulting bias was unknown.
 
-**Three ADS full-text sweeps return zero papers quantifying it.** Tarricq et al. state the assumption
-(*"The function described in the previous section assumes a circular distribution of the members"*)
-and warn qualitatively that the King profile *"might not be the best way to describe the density of
-some clusters with extended halos … especially if they are elongated, like for Blanco 1"*, but
-publish no bias.
+.. warning::
+   **An earlier version of this docstring implied nobody fits an axis ratio. That is false, and the
+   counter-examples are in this repository's own bibliography.** Pera et al. (2021,
+   `2021BAAA...62..119P`) fit an **elliptical, rotated** King profile — rotation angle and
+   eccentricity as free parameters — to ten Milky Way open clusters, and Olivares et al. (2018)
+   treat cluster elongation as a fitted parameter selected by Bayes factor. The claim being made
+   here is narrower and survives: **what is unquantified is the bias in the recovered slope that
+   results from fitting a circular model to an elliptical cluster** — the error made by the
+   majority of published fits, which are circular, not the impossibility of doing better.
+
+   This is the eighth novelty claim in this programme to need narrowing before publication. The
+   pattern is always the same: a true statement about what *most* papers do, written as a statement
+   about what *no* paper does.
+
+Tarricq et al. state the assumption (*"The function described in the previous section assumes a
+circular distribution of the members"*) and warn qualitatively that the King profile *"might not be
+the best way to describe the density of some clusters with extended halos … especially if they are
+elongated, like for Blanco 1"*, but publish no bias.
 
 It also matters for a specific claim. The A5 recoverability work asks whether the EFF slope piles up
 near ``gamma = 2``, the untruncated-King limit. If ellipticity pushed ``gamma`` toward 2, a pile-up
@@ -189,12 +202,21 @@ def main():
     # The full grid is 4 gammas x 4 axis ratios x --realizations fits: over an hour even on
     # numpyro. Writing only at the end means a run that dies loses everything, which this one
     # already did once. So each cell is checkpointed and a restart resumes.
-    def checkpoint(rows):
+    def checkpoint(rows, complete=False):
+        """The ONLY writer of this JSON, for both the per-cell checkpoint and the final file.
+
+        There used to be two: this one and a separate ``json.dumps`` at the end of ``main``. Keys
+        added here -- ``sampler``, ``n_keep``, ``draws``, ``tune``, ``background`` -- were not added
+        there, so a run that *completed* wrote a file missing the very fields the resume check
+        compares, and the next invocation silently redid all 16 cells instead of resuming. Two
+        writers for one format is the defect; one writer with a flag is the fix.
+        """
         out.write_text(json.dumps(dict(a_true=A_TRUE, n_stars=N_STARS, field_radius=FIELD_RADIUS,
                                        axis_ratios=list(AXIS_RATIOS), gammas=list(GAMMAS),
                                        realizations=args.realizations, sampler=args.sampler,
-                                       n_keep=N_KEEP, draws=cfg.draws, tune=cfg.tune, background=bool(args.background),
-                                       complete=False, cells=rows), indent=1))
+                                       n_keep=N_KEEP, draws=cfg.draws, tune=cfg.tune,
+                                       background=bool(args.background),
+                                       complete=bool(complete), cells=rows), indent=1))
 
     rows = []
     if out.is_file():
@@ -227,10 +249,17 @@ def main():
                 gammas.append(float(fit["gamma_median"]))
                 scales.append(float(fit["a_median"].value))
 
-                summary = az.summary(fit["eff_trace"], var_names=["gamma", "a"])
-                worst_rhat = max(worst_rhat, float(summary["r_hat"].max()))
-                worst_ess = min(worst_ess, float(summary["ess_bulk"].min()))
-                divergences += int(np.asarray(fit["eff_trace"].sample_stats["diverging"]).sum())
+                # az.rhat / az.ess, NOT az.summary. `az.summary` has round_to="auto" and returns
+                # ROUNDED diagnostics, so a true r-hat of 1.00996 comes back as 1.0100 and fails
+                # `< 1.01` by equality -- ambiguous at exactly the boundary the gate exists to
+                # police. Two cells reported 1.0100 exactly, and the same value appearing twice in
+                # independent fits is the tell: that is the formatter, not the statistic.
+                idata = fit["eff_trace"]
+                rhat = az.rhat(idata, var_names=["gamma", "a"])
+                ess = az.ess(idata, var_names=["gamma", "a"])
+                worst_rhat = max(worst_rhat, max(float(rhat[v]) for v in rhat.data_vars))
+                worst_ess = min(worst_ess, min(float(ess[v]) for v in ess.data_vars))
+                divergences += int(np.asarray(idata.sample_stats["diverging"]).sum())
 
             g, sc = np.asarray(gammas), np.asarray(scales)
             converged = worst_rhat < RHAT_MAX and worst_ess > ESS_MIN and divergences == 0
@@ -289,10 +318,7 @@ def main():
     print("  -> if that is 1, the circular fit recovers the GEOMETRIC MEAN scale radius, so a")
     print("     published circular r_c is not biased, it is a different quantity (low by sqrt(q)).")
 
-    out.write_text(json.dumps(dict(a_true=A_TRUE, n_stars=N_STARS, field_radius=FIELD_RADIUS,
-                                   axis_ratios=list(AXIS_RATIOS), gammas=list(GAMMAS),
-                                   realizations=args.realizations, complete=True,
-                                   cells=rows), indent=1))
+    checkpoint(rows, complete=True)
     print(f"\nwrote {out}")
 
 

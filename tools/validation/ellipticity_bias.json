@@ -20,7 +20,7 @@
  "draws": 1000,
  "tune": 800,
  "background": false,
- "complete": false,
+ "complete": true,
  "cells": [
   {
    "gamma_true": 2.0,
@@ -32,7 +32,8 @@
    "max_rhat": 1.0,
    "min_ess": 610.0,
    "divergences": 0,
-   "converged": true
+   "converged": true,
+   "delta_gamma_vs_circular": 0.0
   },
   {
    "gamma_true": 2.0,
@@ -44,7 +45,8 @@
    "max_rhat": 1.0,
    "min_ess": 624.0,
    "divergences": 0,
-   "converged": true
+   "converged": true,
+   "delta_gamma_vs_circular": -0.000966507829551766
   },
   {
    "gamma_true": 2.0,
@@ -56,7 +58,177 @@
    "max_rhat": 1.0,
    "min_ess": 631.0,
    "divergences": 0,
-   "converged": true
+   "converged": true,
+   "delta_gamma_vs_circular": -0.015988589768788142
+  },
+  {
+   "gamma_true": 2.0,
+   "axis_ratio": 0.3,
+   "delta_gamma": -0.02577893241026974,
+   "delta_gamma_sem": 0.0018246584371065684,
+   "a_fit_over_a": 0.5623660784369483,
+   "a_fit_over_geometric_mean": 1.0267352891187873,
+   "max_rhat": 1.0,
+   "min_ess": 567.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.023897064516706257
+  },
+  {
+   "gamma_true": 2.5,
+   "axis_ratio": 0.71,
+   "delta_gamma": 0.003028170829141086,
+   "delta_gamma_sem": 0.00469287305512165,
+   "a_fit_over_a": 0.8572478421957946,
+   "a_fit_over_geometric_mean": 1.0173660156442281,
+   "max_rhat": 1.0,
+   "min_ess": 654.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": 0.006023350167456254
+  },
+  {
+   "gamma_true": 2.5,
+   "axis_ratio": 0.5,
+   "delta_gamma": -0.027633068668712735,
+   "delta_gamma_sem": 0.00255666057250154,
+   "a_fit_over_a": 0.7137378169589793,
+   "a_fit_over_geometric_mean": 1.0093777007219542,
+   "max_rhat": 1.0,
+   "min_ess": 541.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.024637889330397567
+  },
+  {
+   "gamma_true": 3.0,
+   "axis_ratio": 1.0,
+   "delta_gamma": -0.009957221515610737,
+   "delta_gamma_sem": 0.004628754982814634,
+   "a_fit_over_a": 0.9908674408076139,
+   "a_fit_over_geometric_mean": 0.9908674408076139,
+   "max_rhat": 1.0,
+   "min_ess": 574.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": 0.0
+  },
+  {
+   "gamma_true": 3.0,
+   "axis_ratio": 0.5,
+   "delta_gamma": -0.04651571575618929,
+   "delta_gamma_sem": 0.008141235068880962,
+   "a_fit_over_a": 0.7229494554386648,
+   "a_fit_over_geometric_mean": 1.0224049247916034,
+   "max_rhat": 1.0,
+   "min_ess": 552.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.036558494240578554
+  },
+  {
+   "gamma_true": 3.0,
+   "axis_ratio": 0.3,
+   "delta_gamma": -0.10181574970827123,
+   "delta_gamma_sem": 0.0071307986938522515,
+   "a_fit_over_a": 0.5834912979087475,
+   "a_fit_over_geometric_mean": 1.0653044865752934,
+   "max_rhat": 1.0,
+   "min_ess": 519.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.0918585281926605
+  },
+  {
+   "gamma_true": 4.0,
+   "axis_ratio": 1.0,
+   "delta_gamma": 0.017522370072448723,
+   "delta_gamma_sem": 0.017660205305742627,
+   "a_fit_over_a": 1.0074963389652565,
+   "a_fit_over_geometric_mean": 1.0074963389652565,
+   "max_rhat": 1.0,
+   "min_ess": 496.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": 0.0
+  },
+  {
+   "gamma_true": 4.0,
+   "axis_ratio": 0.71,
+   "delta_gamma": -0.06070094302693185,
+   "delta_gamma_sem": 0.011476694358152979,
+   "a_fit_over_a": 0.836076061610749,
+   "a_fit_over_geometric_mean": 0.992239734774591,
+   "max_rhat": 1.0,
+   "min_ess": 590.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.07822331309938058
+  },
+  {
+   "gamma_true": 4.0,
+   "axis_ratio": 0.5,
+   "delta_gamma": -0.1309163190048639,
+   "delta_gamma_sem": 0.013813712487619399,
+   "a_fit_over_a": 0.712638435123168,
+   "a_fit_over_geometric_mean": 1.0078229400195233,
+   "max_rhat": 1.0,
+   "min_ess": 558.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.1484386890773126
+  },
+  {
+   "gamma_true": 4.0,
+   "axis_ratio": 0.3,
+   "delta_gamma": -0.346031351126713,
+   "delta_gamma_sem": 0.012640503662839859,
+   "a_fit_over_a": 0.5616218719202197,
+   "a_fit_over_geometric_mean": 1.0253765601299387,
+   "max_rhat": 1.0,
+   "min_ess": 484.0,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.36355372119916174
+  },
+  {
+   "gamma_true": 2.5,
+   "axis_ratio": 1.0,
+   "delta_gamma": -0.002995179338315168,
+   "delta_gamma_sem": 0.005122503971904835,
+   "a_fit_over_a": 1.0066870984825174,
+   "a_fit_over_geometric_mean": 1.0066870984825174,
+   "max_rhat": 1.0055247878181428,
+   "min_ess": 618.1897347562417,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": 0.0
+  },
+  {
+   "gamma_true": 2.5,
+   "axis_ratio": 0.3,
+   "delta_gamma": -0.060781369863193824,
+   "delta_gamma_sem": 0.005140033789641845,
+   "a_fit_over_a": 0.5797134704246076,
+   "a_fit_over_geometric_mean": 1.058407148803872,
+   "max_rhat": 1.005643663195634,
+   "min_ess": 589.5009574820795,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": -0.057786190524878656
+  },
+  {
+   "gamma_true": 3.0,
+   "axis_ratio": 0.71,
+   "delta_gamma": -0.003040781220322586,
+   "delta_gamma_sem": 0.004150488223902733,
+   "a_fit_over_a": 0.8590768537383574,
+   "a_fit_over_geometric_mean": 1.0195366529955663,
+   "max_rhat": 1.0071685130694716,
+   "min_ess": 548.7069770768527,
+   "divergences": 0,
+   "converged": true,
+   "delta_gamma_vs_circular": 0.006916440295288151
   }
  ]
 }

@@ -598,8 +598,25 @@ def graph_center_determination(data, *, prob_number=(50, 60, 70, 80), savefig=No
     return centers, best_params
 
 
-def graph_king(data, centers, *, prob_number=(0.5, 0.6, 0.7, 0.8), density_method="equip", log_space=False, return_results=True, **kwargs):
-    """Legacy-compatible King-profile analysis facade."""
+def graph_king(data, centers, *, prob_number=(0.5, 0.6, 0.7, 0.8), density_method="equip", log_space=False, return_results=True, king_method="binned", field_radius=None, **kwargs):
+    """Legacy-compatible King-profile analysis facade.
+
+    Parameters
+    ----------
+    king_method : {"binned", "unbinned"}, default ``"binned"``
+        **Pinned to the legacy binned fitter on purpose.** This facade exists to
+        reproduce the figures published before 2026-08-02, and those figures were
+        made with :func:`~erotica.analysis.structure.RDP_bayesian`; silently
+        re-plotting them from a different likelihood would move a published curve
+        without saying so. The default of
+        :meth:`~erotica.analysis.structure.ClusterStructureAnalyzer.fit_king_profile`
+        moved to ``"unbinned"`` on that date and this one deliberately did not.
+        Pass ``king_method="unbinned"`` (with `field_radius`) for new work --
+        the legacy path warns when used.
+    field_radius : float or Quantity, optional
+        Selection footprint radius in arcmin. Required when
+        ``king_method="unbinned"``.
+    """
     analyzer = ClusterStructureAnalyzer(data)
     thresholds = _normalise_probabilities(prob_number)
     center_coords = _centers_as_skycoord([item[0] if isinstance(item, (list, tuple)) and len(item) and isinstance(item[0], (list, tuple)) else item for item in centers], len(thresholds))
@@ -607,7 +624,10 @@ def graph_king(data, centers, *, prob_number=(0.5, 0.6, 0.7, 0.8), density_metho
     traces = []
     for threshold, center in zip(thresholds, center_coords):
         profile = analyzer.radial_density_profile(center, probability_threshold=float(threshold), method=density_method, width=kwargs.get("width"))
-        fit = analyzer.fit_king_profile(profile, log_space=log_space, return_trace=kwargs.get("return_trace", False), progressbar=kwargs.get("progressbar_bayesian", False))
+        if king_method == "binned":
+            fit = analyzer.fit_king_profile(profile, method="binned", log_space=log_space, return_trace=kwargs.get("return_trace", False), progressbar=kwargs.get("progressbar_bayesian", False))
+        else:
+            fit = analyzer.fit_king_profile(profile, method=king_method, field_radius=field_radius, progressbar=kwargs.get("progressbar_bayesian", False))
         for key, value in fit.items():
             if key == "king_trace":
                 traces.append(value)

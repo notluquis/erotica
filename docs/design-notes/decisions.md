@@ -932,6 +932,175 @@ cannot alter them silently, and the wart is recorded here for the next major ver
 
 ---
 
+## 2026-08-02 — three defaults that did not use the capability sitting next to them
+
+Three separate defects, one shape: **the correct code already existed and the default path did not
+reach it.** Fixed together because they are the same class of defect, measured apart because they
+are not the same mechanism. Ladder, reproduction gates and every number below:
+`tools/validation/wiring_fix_deltas.py`.
+
+| where | default was | default is | old behaviour reachable via |
+|---|---|---|---|
+| `ClusterInferenceAnalyzer.distance_and_parallax_by_probability` | `parallax_error` read only to discard stars; errors, `r_lo_geo`/`r_hi_geo` and `zero_point` never forwarded | all three forwarded | `parallax_error_column=None`, `distance_lo_column=None`, `zero_point=False` |
+| `ClusterStructureAnalyzer.fit_king_profile` | `RDP_bayesian` (binned Gaussian, data-derived priors) | `king_unbinned` (point process) | `method="binned"` — warns |
+| `_clipping.sigma_clip_parallax` | 2σ on the **raw** parallax, `maxiters` implicit | 2σ on `(ϖ−ϖ₀)/√(σ_exc²+σ_ϖ,i²)`, `maxiters=5` explicit | `method="raw"` |
+
+**Reproduction gates, run before anything changed.** Membership counts 701 / 412 / 321 / 254 at 40′;
+KS statistics 0.156 / 0.230 / 0.278 against the published 0.16 / 0.23 / 0.28; the old-defaults
+parallax fit returns ϖ = 0.9083 ± 0.0040 mas and d = 1.1166 ± 0.0052 kpc against a published
+0.908 ± 0.004 and 1.11.
+
+### The clip: the alternative that was planned is worse than what it replaces
+
+The entry of 2026-07-27 above measures a **−0.002** retention gradient for a normalised-residual
+clip, against **+0.724** for the raw one, and its own `{caution}` block says the −0.002 is "close to
+tautological". That caution was right, and the number does not survive contact with the catalogue.
+Measured on the 412 pre-clip members with the package's own estimators:
+
+| clip basis | Q1 bright | Q4 faint | gradient | post-clip N |
+|---|---|---|---|---|
+| published (histogram mode + std, raw ϖ) | 94.2% | 72.8% | **+0.214** | 321 |
+| raw ϖ, package estimators | 96.1% | 81.6% | +0.146 | 369 |
+| `z = d/σ_ϖ`, scale re-fitted from the sample | 50.5% | 100.0% | **−0.495** | 327 |
+| `z = d/σ_ϖ`, fixed 2σ | 81.6% | 100.0% | −0.184 | 389 |
+| **shipped: `z = d/√(σ_exc²+σ_ϖ²)`, fixed 2σ** | **93.2%** | **100.0%** | **−0.068** | **403** |
+
+The naive normalised clip does not remove the magnitude dependence — it **inverts and enlarges** it.
+Two mechanisms, neither present in the simulation that produced the −0.002:
+
+1. **It injects no excess scatter**, so `z` is `N(0,1)` by construction. The real sample has a
+   maximum-likelihood excess variance of **σ_exc = 0.044 mas**, larger than the 0.030 mas median
+   error of the brightest quartile, so dividing by σ_ϖ alone inflates `|z|` for the best-measured
+   stars and clips them preferentially.
+2. **It has no query window.** The real cone was queried `parallax BETWEEN 0.75 AND 1.1` — about
+   1.2 median errors wide for the faintest quartile — which makes a large `|z|` *structurally
+   unreachable* there. This is the same ADQL window whose contribution this log has already
+   mis-attributed twice; it bites the normalised clip far harder than the raw one.
+
+Three choices in the shipped form, each measured against its alternative and each pinned by a
+mutation-verified test:
+
+* **σ_exc is in the denominator**, matching `fit_parallax_model`'s `√(σ_int² + σ_i²)`.
+* **The threshold is asserted at 2σ, not re-fitted.** Normalising already fixes the scale of `z` at
+  1. The re-fitted scale on this sample is 0.71, i.e. a nominal 2σ cut acting at 1.4σ, 56 extra
+  stars discarded.
+* **The dispersion is fitted on the whole selection, never on the survivors.** Re-fitting a variance
+  inside its own 2σ cut is the classic shrinkage, and here it does not bias the estimate, it
+  destroys it: iterating on survivors drives σ_exc **0.0443 → 0.0241 → 0.0000 mas** in three passes
+  and the bright-quartile retention 93.2% → 86.4% → 82.5%. Fitted on the full selection it is stable
+  and the selection is identical at `maxiters` 1, 2, 5, 20, `None`.
+
+```{important}
+**σ_exc is an excess-variance term, not a cluster depth, and must never be reported as one.** At
+ϖ₀ = 0.926 mas, 0.044 mas is 4.8% — an implied ~52 pc against this paper's own `R_t` = 17.4 pc and
+against `DistancePriors`, which states in its own docstring that 50 pc is "larger than any bound
+cluster". It absorbs real depth **plus** underestimated bright-end Gaia uncertainties (the brightest
+quartile has observed robust scatter 0.0469 mas against a 0.0295 mas median quoted error, ratio
+**1.59**) **plus** residual contamination. Same discipline as `p̃`: label the proxy.
+```
+
+```{caution}
+**The contaminated ROC this log asked for still does not exist**, and every number above counts
+rejections rather than *false* rejections. The clip default was changed anyway, because the raw
+clip's magnitude dependence is measured and real — but the defensible statement is *"+0.214 became
+−0.068"*, not *"the new clip is better"*. The normalised basis is necessarily more permissive and
+nothing here measures what that costs in contamination.
+```
+
+**`maxiters` was not free.** astropy's implicit default of 5 was doing real work on the raw basis:
+396 / 385 / 377 / 369 / 358 / 358 stars survive at `maxiters` = 1 / 2 / 3 / 5 / 10 / converged —
+**38 stars, 9.2%**, between one pass and convergence. Pinned at 5, which is what astropy applied, so
+making it explicit moves nothing.
+
+**P01's faint-quartile conclusion was re-derived, not assumed.** The clip changes the member list, so
+the KS test that supports the Gaia-incompleteness attribution had to be re-run on the list the
+package now produces (`wiring_fix_deltas.py`, Stage A2):
+
+| member list | N | D vs Q1 | D vs Q2 | D vs Q3 | significant after Holm |
+|---|---|---|---|---|---|
+| paper, Sect. 5 | 254 | 0.160 | 0.230 | 0.280 | 1 |
+| published clip, reproduced | 254 | 0.156 | 0.230 | 0.278 | 1 |
+| shipped normalised clip | 313 | **0.222** | **0.295** | **0.321** | **3** |
+
+The signal **strengthens** (p = 0.036, 0.0021, 0.0006) and, decisively, the *ordering* is preserved:
+`D` still rises toward the adjacent quartile and is weakest against the brightest, which is the
+pattern P01 uses to argue against dynamical mass segregation. The raw clip was diluting the signal,
+not manufacturing it.
+
+### The pre-cuts
+
+`ϖ > 0` and `σ_ϖ/ϖ ≤ 0.1` are removed from the default path. They discarded **124 of the 254
+published members (49%)** — and 351 of 628 on the 70′ list — and they are the practice Luri et al.
+(2018, A&A 616, A9, `2018A&A...616A...9L`) argue against: *"negative parallaxes, or parallaxes with
+relatively large uncertainties still contain valuable information"*. Truncating on σ_ϖ/ϖ is a second
+magnitude-dependent selection, imposed on the inference sample on top of the one in the member list.
+With the errors in the likelihood the imprecise stars are down-weighted instead of deleted, which is
+what the cut was approximating.
+
+`zero_point=True` by default. Cruz Reyes & Anderson (2023, A&A 672, A85, `2023A&A...672A..85C`)
+measure cluster parallaxes to ~7 µas from non-variable members and report that over 12.5 < G < 17
+the Lindegren et al. (2021) corrections "are accurate and require no further offset corrections", so
+the residual offset is consistent with zero and the prior is correctly centred there. **It widens the
+uncertainty; it does not correct a bias**, and giving the nuisance a non-zero mean would turn it into
+a correction that measurement does not support.
+
+### A defect the fix exposed: the error-aware distance model does not converge at N > 250
+
+**Status: measured, not fixed. It is in the new default path.**
+
+Turning on the Bailer-Jones bounds gives `distance_model` one latent `r_true` per star, and the
+Gamma hierarchy over those latents does not sample adequately once the member list grows. Measured
+in `wiring_fix_deltas.py --stage B`, PART A floor (R-hat < 1.01, bulk-ESS > 400, zero divergences):
+
+| rung | N | R-hat | bulk-ESS | divergences | verdict |
+|---|---|---|---|---|---|
+| B0 old defaults (no latents) | 130 | 1.0004 | 2726 | 0 | pass |
+| B1/B2 error-aware | 130 | 1.0009 | 579 | 0 | pass |
+| B3, published clip | 254 | 1.0058 | **272** | 0 | **fails ESS** |
+| B3, normalised clip | 313 | **1.0409** | **43** | **9** | **fails everything** |
+
+The **parallax** model is clean at every rung (R-hat ≤ 1.0019, ESS 1275–2874, zero divergences),
+including with the zero-point nuisance whose exact degeneracy with the mean was the obvious suspect.
+So this is specifically the hierarchical distance model, and it is not the zero-point.
+
+**Consequence for the deltas.** The only floor-passing distance comparison in the ladder is
+B0 → B1/B2 at N = 130: `sigma_r` 0.0598 → 0.0330 kpc, −45%, against a published 0.06 that B0
+reproduces exactly. That is the defensible D1 result on the distance side. **No `mu_r` or `std_r`
+from a fit with more than ~250 stars should be quoted** until this is fixed.
+
+**Remedy, deliberately not attempted here.** A non-centred parameterisation of `r_true` (or a higher
+`target_accept`, or more draws) is a *modelling* change, not a wiring fix; putting it in the same
+diff would make its own delta unattributable — the mistake this whole entry exists to avoid. It
+needs its own diff and its own measurement.
+
+### Also fixed, same defect class
+
+Every model in `inference.py` called `_require_pymc()` *before* validating its input, so a malformed
+table raised `ImportError` rather than the `ValueError` naming the actual problem. Validation now
+runs first — which is what made eight input-validation tests unrunnable in the CI job that installs
+`.[dev]` without the `bayes` extra.
+
+`figures.graph_king` is pinned to `king_method="binned"` while the analyzer default moved. It exists
+to reproduce published figures; re-plotting them from a different likelihood would move a published
+curve without saying so.
+
+### Mutations re-applied
+
+21 of 21 killed. Two survived first and are worth recording, both instances of failure mode 4,
+*fixtures in a non-identifiable regime*:
+
+* **Dropping the square from `√(σ_int² + e_i²)`** survived the new wrapper test at n = 200 and
+  n = 400. The mutant returns σ_int = 0.0046 against an injected 0.010 — inside a 0.006 band — while
+  its posterior width quadruples, 0.0008 → 0.0035. An informativeness gate,
+  `sigma_parallax_std < 0.003`, kills it; a mean-only assertion never can.
+* **Re-estimating the clip threshold from the sample scale of `z`** survived every synthetic fixture,
+  because without a query window `z` really is `N(0,1)` and the two forms coincide — the same blind
+  spot that produced the −0.002. Killed by an invariance test: adding a window-truncated
+  sub-population whose `|z|` is bounded near zero by the survey query rather than by membership must
+  not change the retention of the well-measured stars.
+
+---
+
 ## Standing decisions (not tied to one date)
 
 ### The pseudo-probability `p̃` is a score, not a probability

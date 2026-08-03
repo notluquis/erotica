@@ -48,6 +48,8 @@ def _make_table() -> QTable:
             "parallax": [2.0, 2.0, 0.0, -10.0] * u.mas,
             "parallax_error": [0.1, 0.5, 0.1, 0.5] * u.mas,
             "r_med_geo": [500.0, 500.0, 500.0, 500.0] * u.pc,
+            "r_lo_geo": [450.0, 450.0, 450.0, 450.0] * u.pc,
+            "r_hi_geo": [550.0, 550.0, 550.0, 550.0] * u.pc,
         }
     )
 
@@ -621,3 +623,198 @@ def test_zero_point_nuisance_widens_the_mean_parallax_by_the_systematic_floor():
     assert abs(withzp.mu_parallax_mean - plain.mu_parallax_mean) < 3 * plain.mu_parallax_std
     # the cluster's intrinsic depth is a different parameter and must be unaffected
     assert withzp.sigma_parallax_mean == pytest.approx(plain.sigma_parallax_mean, rel=0.35)
+
+
+# ---------------------------------------------------------------------------
+# The analyzer wrapper -- Defect 1.
+#
+# Every error-aware branch exercised above already existed. Until 2026-08-02 the
+# wrapper that the pipeline actually calls reached none of them: it loaded
+# ``parallax_error`` only in order to DISCARD stars and then forwarded neither
+# the errors, nor the Bailer-Jones bounds, nor ``zero_point``.
+#
+# ORACLE: the same injected-truth design as the model-level tests. An intrinsic
+# spread deliberately far below the measurement scatter, so a wrapper that drops
+# the errors on the floor must report the scatter as cluster depth and cannot
+# accidentally land on the injected value.
+# ---------------------------------------------------------------------------
+
+WRAPPER_TRUE_DEPTH_KPC = 0.005     # 5 pc of line-of-sight depth
+WRAPPER_DISTANCE_ERR_KPC = 0.050   # 50 pc per-star Bailer-Jones error, 10x larger
+WRAPPER_MU_R_KPC = 1.11
+
+
+def _wrapper_table(n=400, seed=20260802):
+    """One cluster, known depth, known per-star errors, all columns wired.
+
+    ``r_lo_geo``/``r_hi_geo`` are placed symmetrically about ``r_med_geo`` at
+    exactly the error used to generate the scatter, so ``(hi - lo)/2`` recovers
+    the injected ``sigma_i`` with no modelling assumption.
+    """
+    rng = np.random.default_rng(seed)
+    errors = np.repeat(REAL_ERROR_SCALE, n // 4)
+    errors = errors * rng.uniform(0.8, 1.2, errors.size)
+    true_plx = rng.normal(TRUE_PARALLAX, TRUE_INTRINSIC, errors.size)
+    observed_plx = true_plx + rng.normal(0.0, errors)
+
+    d_err = np.full(errors.size, WRAPPER_DISTANCE_ERR_KPC)
+    true_r = rng.normal(WRAPPER_MU_R_KPC, WRAPPER_TRUE_DEPTH_KPC, errors.size)
+    observed_r = true_r + rng.normal(0.0, d_err)
+
+    return QTable(
+        {
+            "probability": np.full(errors.size, 0.9),
+            "parallax": observed_plx * u.mas,
+            "parallax_error": errors * u.mas,
+            "r_med_geo": observed_r * u.kpc,
+            "r_lo_geo": (observed_r - d_err) * u.kpc,
+            "r_hi_geo": (observed_r + d_err) * u.kpc,
+        }
+    )
+
+
+def _wrapper_fit(table, **kwargs):
+    analyzer = ClusterInferenceAnalyzer(
+        table,
+        sampling=SamplingConfig(
+            draws=600, tune=600, chains=2, random_seed=21, progressbar=False,
+            extra_kwargs={"cores": 1},
+        ),
+    )
+    out = analyzer.distance_and_parallax_by_probability((0.5,), **kwargs)
+    return {key: values[0] for key, values in out.items()}
+
+
+@requires_bayes_extra
+def test_the_wrapper_default_puts_per_star_errors_into_both_likelihoods():
+    """The shipped default must separate measurement scatter from cluster depth.
+
+    Absolute tolerances tied to the injected truth -- never ``N * posterior_std``,
+    which self-widens whenever the fit degrades and so cannot fail for the reason
+    it was written.
+    """
+    table = _wrapper_table()
+
+    aware = _wrapper_fit(table)
+    naive = _wrapper_fit(
+        table,
+        parallax_error_column=None,
+        distance_lo_column=None,
+        distance_hi_column=None,
+        zero_point=False,
+    )
+
+    # --- parallax: intrinsic depth, not measurement scatter ------------------
+    assert abs(aware["sigma_parallax_mean"] - TRUE_INTRINSIC) < 0.004, (
+        f"intrinsic parallax spread {aware['sigma_parallax_mean']:.5f} "
+        f"vs injected {TRUE_INTRINSIC}"
+    )
+    # The posterior must also be INFORMATIVE, not merely centred. A recovery test
+    # in a non-identifiable regime cannot fail for the reason it was written --
+    # and this exact gate is what kills the mutation that drops the square from
+    # sqrt(sigma^2 + e_i^2): the mean stays within a loose band (0.0046 against an
+    # injected 0.010) while the posterior width quadruples, 0.0008 -> 0.0035.
+    assert aware["sigma_parallax_std"] < 0.003, (
+        f"posterior on the intrinsic spread is uninformative: "
+        f"sd = {aware['sigma_parallax_std']:.5f}"
+    )
+    assert naive["sigma_parallax_mean"] > 2.5 * TRUE_INTRINSIC
+    assert naive["sigma_parallax_mean"] > 2.5 * aware["sigma_parallax_mean"]
+
+    # --- distance: the Bailer-Jones bounds must reach distance_model ---------
+    assert abs(aware["std_r_mean"] - WRAPPER_TRUE_DEPTH_KPC) < 0.010, (
+        f"cluster depth {aware['std_r_mean']:.4f} kpc vs injected "
+        f"{WRAPPER_TRUE_DEPTH_KPC} kpc"
+    )
+    # Without the bounds, std_r absorbs the 50 pc per-star error as if it were depth.
+    assert naive["std_r_mean"] > 3 * WRAPPER_TRUE_DEPTH_KPC
+    assert naive["std_r_mean"] > 3 * aware["std_r_mean"]
+
+    # --- both must still find the centres; the defect is in the widths -------
+    assert abs(aware["mu_parallax_mean"] - TRUE_PARALLAX) < 0.03
+    assert abs(aware["mu_r_mean"] - WRAPPER_MU_R_KPC) < 0.03
+
+
+@requires_bayes_extra
+def test_the_wrapper_default_carries_the_gaia_systematic_floor():
+    """Oracle: quadrature against a literal floor, through the wrapper's default.
+
+    The zero-point nuisance is exactly degenerate with ``mu_parallax`` for one
+    cluster, so enabling it must widen the reported uncertainty by the systematic
+    floor and must NOT move the mean. The floor is written as a literal here, not
+    read from ``ParallaxPriors``, so a model that hardcodes a different value
+    cannot agree with itself.
+    """
+    table = _wrapper_table(n=120)
+
+    withzp = _wrapper_fit(table)                     # default is zero_point=True
+    without = _wrapper_fit(table, zero_point=False)
+
+    PUBLISHED_FLOOR_MAS = 0.0103  # Maiz Apellaniz+2021, A&A 649, A13
+    expected = float(np.hypot(without["mu_parallax_std"], PUBLISHED_FLOOR_MAS))
+    assert withzp["mu_parallax_std"] == pytest.approx(expected, rel=0.15)
+    assert withzp["mu_parallax_std"] > without["mu_parallax_std"]
+    assert abs(withzp["mu_parallax_mean"] - without["mu_parallax_mean"]) < 3 * expected
+
+
+def test_the_wrapper_no_longer_pre_cuts_the_sample(monkeypatch):
+    """The default must fit every selected star, not a precision-selected subset.
+
+    ``sigma_varpi/varpi <= 0.1`` deletes the faint, low-precision end -- a
+    magnitude-dependent selection imposed on the inference sample. Luri et al.
+    (2018, A&A 616, A9) state that "parallaxes with relatively large uncertainties
+    still contain valuable information"; once the errors are in the likelihood
+    those stars are down-weighted rather than discarded.
+    """
+    captured = _capture_useful(monkeypatch)
+    analyzer = ClusterInferenceAnalyzer(_make_table(), probability_column="probability")
+
+    analyzer.distance_and_parallax_by_probability(probability_thresholds=(0.5,))
+
+    kept = set(np.asarray(captured["useful"]["source_id"]).tolist())
+    assert kept == {1, 2, 3, 4}, "the default still pre-cuts the sample"
+    # and the parallax model must see the identical sample
+    assert set(np.asarray(captured["useful_parallax"]["source_id"]).tolist()) == kept
+
+
+def test_a_missing_uncertainty_column_is_refused_not_silently_dropped():
+    """Degrading to the uncertainty-free path on a missing column would be silent."""
+    table = _make_table()
+    table.remove_column("parallax_error")
+    analyzer = ClusterInferenceAnalyzer(table, probability_column="probability")
+    with pytest.raises(ValueError, match="Missing uncertainty column"):
+        analyzer.distance_and_parallax_by_probability(probability_thresholds=(0.5,))
+
+
+def test_input_validation_does_not_require_the_bayes_extra(monkeypatch):
+    """A malformed table is malformed whether or not PyMC is installed.
+
+    Raising ``ImportError`` first hides the real defect from anyone without the
+    optional extra -- and made eight input-validation tests unrunnable in CI.
+    """
+    def no_pymc():
+        raise ImportError("PyMC is required for erotica.analysis.inference.")
+
+    monkeypatch.setattr(inference, "_require_pymc", no_pymc)
+
+    bad = QTable({
+        "parallax": np.linspace(0.8, 1.0, 10) * u.mas,
+        "parallax_error": np.concatenate([[0.0], np.full(9, 0.05)]) * u.mas,
+    })
+    with pytest.raises(ValueError, match="finite and positive"):
+        inference.fit_parallax_model(bad, parallax_error_column="parallax_error")
+
+    with pytest.raises(ValueError, match="prior_type"):
+        inference.fit_parallax_model(
+            QTable({"parallax": np.linspace(0.8, 1.0, 10) * u.mas}), prior_type="lognormal"
+        )
+
+    dist = QTable({
+        "r_med_geo": np.linspace(1.0, 1.2, 10) * u.kpc,
+        "r_lo_geo": np.linspace(1.1, 1.3, 10) * u.kpc,   # lo above hi
+        "r_hi_geo": np.linspace(1.0, 1.2, 10) * u.kpc,
+    })
+    with pytest.raises(ValueError, match="must exceed"):
+        inference.distance_model(
+            dist, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo"
+        )

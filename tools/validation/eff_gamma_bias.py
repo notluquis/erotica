@@ -7,10 +7,32 @@ The planned A5 sweep fits EFF to every cluster in Hunt & Reffert (2024) and asks
 `gamma` piles up near 2, the value at which EFF and an untruncated King coincide. That question is
 only answerable if the estimator is unbiased, or if its bias is known.
 
-**It is not unbiased.** On NGC 6383's geometry the smooth control recovers `gamma = 2.395` against an
-injected 2.32 -- `+0.075 +/- 0.012`, 6 sigma, with no substructure, no selection effect and no
-contamination. A first pass over three sample sizes gave `+0.061 / +0.031 / +0.011` at
-`N = 628 / 2512 / 10048`, i.e. roughly `N^-0.6`.
+**It is not unbiased.** On NGC 6383's geometry the smooth control recovers `gamma = 2.367` against an
+injected 2.32 -- `+0.047 +/- 0.018` at `N = 628`, with no substructure, no selection effect and no
+contamination. The bias falls with `N`: `+0.192 / +0.106 / +0.047 / +0.032 / +0.020 / +0.014` at
+`N = 150 / 300 / 628 / 1250 / 2500 / 5000`.
+
+.. warning::
+   **An earlier version of this docstring claimed `+0.075 +/- 0.012`, 6 sigma. That is from a
+   superseded run and no cell of this script's own committed JSON reproduces it.** It was caught by
+   a JOSS-paper audit noticing that the prose and the data disagreed — a paper about verification
+   discipline cannot cite a number its own script disputes. Quote the JSON, never this prose.
+
+.. danger::
+   **This script fits a FREE background, so what it measures is not purely finite-sample bias.**
+   ``_eff_model`` estimates a flat background ``b``; the generator injects none; the true ``b`` is
+   therefore exactly zero, on the boundary of a half-Cauchy prior. Measured independently in
+   ``ellipticity_bias.py`` on its circular null at ``N = 15000``: with ``b`` free the fit invents a
+   background of 0.0072 and biases ``gamma`` **upward** by ``+0.0116 +/- 0.0020`` (5.8 sigma); with
+   ``b`` pinned near zero the bias is ``-0.0038 +/- 0.0034``, consistent with zero.
+
+   So the surface measured here is **finite-sample bias PLUS background degeneracy**, and the second
+   term grows as ``N`` falls, because fewer stars constrain ``b`` less well. That is the same sign
+   and the same ``N``-dependence as the effect this script attributes to finite ``N`` — the two are
+   confounded and **have not been separated**. Re-running with ``EFFPriors(b_scale=1e-6)`` and
+   differencing is what settles the split. Until then, treat the numbers above as an **upper bound**
+   on the finite-sample term, not a measurement of it, and do not use them as a correction surface
+   for the A5 sweep.
 
 The census spans four decades in N. **A bias that shrinks with N would masquerade as physics**: poor
 clusters would appear systematically steeper than rich ones, and any statement about clustering near
@@ -162,10 +184,20 @@ def main():
     ap.add_argument("--field-ratios", type=float, nargs="+", default=None,
                     help="map bias against r_tot/a at fixed N instead of against N; this is the axis "
                          "that actually controls recoverability")
+    ap.add_argument("--pin-background", action="store_true",
+                    help="pin the flat background near zero (b_scale=1e-6). The generator injects "
+                         "NO background, so the truth is b=0 and a free b invents one, biasing "
+                         "gamma upward. Run both ways and difference to split finite-sample bias "
+                         "from background degeneracy -- see the danger note in the module docstring")
     args = ap.parse_args()
 
-    priors = EFFPriors(gamma_sigma=5.0) if args.flat_prior else EFFPriors()
-    cfg = SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=5, progressbar=False)
+    b_scale = 1e-6 if args.pin_background else 1.0
+    priors = (EFFPriors(gamma_sigma=5.0, b_scale=b_scale) if args.flat_prior
+              else EFFPriors(b_scale=b_scale))
+    # numpyro, not the default PyTensor NUTS: measured 2.71x faster on this exact likelihood with
+    # |d gamma| = 0.00006 between them. Same algorithm (HMC-NUTS), different substrate.
+    cfg = SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=5, progressbar=False,
+                         nuts_sampler="numpyro")
 
     rows = []
     for gamma_true in GAMMA_GRID:
@@ -209,10 +241,16 @@ def main():
         suffix += "_lowN"
     if args.field_ratios:
         suffix += "_ratios"
+    if args.pin_background:
+        suffix += "_pinnedbg"
     out = Path(__file__).with_name(f"eff_gamma_bias{suffix}.json")
+    # `background_free` is recorded because the two runs are NOT interchangeable: a free background
+    # adds a spurious, N-dependent term on top of the finite-sample bias. A file that does not say
+    # which it is cannot be differenced against the other.
     out.write_text(json.dumps(dict(
         field_radius=FIELD_RADIUS, a_true=A_TRUE, n_grid=list(args.n_values or N_GRID),
         gamma_grid=list(GAMMA_GRID), flat_prior=args.flat_prior,
+        background_free=not args.pin_background,
         cells=rows, power_law_fits=fits,
     ), indent=1))
     print(f"\nwrote {out}")

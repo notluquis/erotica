@@ -1,0 +1,446 @@
+{
+ "published": {
+  "n_members_40": 254,
+  "n_candidates_40": 321,
+  "mean_parallax_mas": 0.908,
+  "parallax_dispersion_mas": 0.046,
+  "parallax_sem_mas": 0.004,
+  "distance_kpc": 1.11,
+  "distance_err_kpc": 0.06,
+  "R_c_arcmin": 1.96,
+  "R_c_err_arcmin": [
+   0.19,
+   0.16
+  ],
+  "R_t_arcmin": 54.0,
+  "R_t_err_arcmin": [
+   7.0,
+   11.0
+  ]
+ },
+ "draws": 2000,
+ "seed": 20260802,
+ "stage_a": {
+  "field": "40 arcmin",
+  "reproduces_published_counts": {
+   "branch": 701,
+   "preclip_p05": 412,
+   "postclip_p05": 321,
+   "p06": 254
+  },
+  "median_e_plx_by_gmag_quartile": [
+   0.0295196995139122,
+   0.08241045475006104,
+   0.13261346518993378,
+   0.2980934977531433
+  ],
+  "maxiters_sensitivity_raw_basis": {
+   "1": 396,
+   "2": 385,
+   "3": 377,
+   "5": 369,
+   "10": 358,
+   "None": 358
+  },
+  "rows": {
+   "published (histogram mode + std, raw parallax)": {
+    "n_after_clip_p05": 321,
+    "n_members_p06": 254,
+    "overall": 0.779126213592233,
+    "by_gmag_quartile": [
+     0.941747572815534,
+     0.7864077669902912,
+     0.6601941747572816,
+     0.7281553398058253
+    ],
+    "bright_to_faint_gradient": 0.21359223300970875
+   },
+   "package raw clip (biweight, raw parallax)": {
+    "n_after_clip_p05": 369,
+    "n_members_p06": 288,
+    "overall": 0.8956310679611651,
+    "by_gmag_quartile": [
+     0.9611650485436893,
+     0.9320388349514563,
+     0.8737864077669902,
+     0.8155339805825242
+    ],
+    "bright_to_faint_gradient": 0.1456310679611651
+   },
+   "package normalised clip (biweight, z = (plx - plx0)/err)": {
+    "n_after_clip_p05": 403,
+    "n_members_p06": 313,
+    "overall": 0.9781553398058253,
+    "by_gmag_quartile": [
+     0.9320388349514563,
+     0.9805825242718447,
+     1.0,
+     1.0
+    ],
+    "bright_to_faint_gradient": -0.06796116504854366
+   }
+  }
+ },
+ "stage_a2": {
+  "published (histogram mode + std, raw parallax)": {
+   "n_total": 254,
+   "edges": [
+    8.799633979797363,
+    15.436887264251709,
+    16.989322662353516,
+    17.929809093475342,
+    20.661800384521484
+   ],
+   "comparisons": [
+    {
+     "against": "8.80-15.43",
+     "n": 64,
+     "D": 0.15625,
+     "p": 0.41803800878931696,
+     "p_holm": 0.41803800878931696
+    },
+    {
+     "against": "15.45-16.98",
+     "n": 63,
+     "D": 0.23040674603174602,
+     "p": 0.05199742486117546,
+     "p_holm": 0.10399484972235092
+    },
+    {
+     "against": "17.00-17.91",
+     "n": 63,
+     "D": 0.27827380952380953,
+     "p": 0.009708161288526865,
+     "p_holm": 0.029124483865580596
+    }
+   ],
+   "n_significant_after_holm": 1
+  },
+  "package raw clip (biweight, raw parallax)": {
+   "n_total": 288,
+   "edges": [
+    8.799633979797363,
+    15.572970151901245,
+    17.130122184753418,
+    18.051825046539307,
+    20.661800384521484
+   ],
+   "comparisons": [
+    {
+     "against": "8.80-15.50",
+     "n": 72,
+     "D": 0.19444444444444445,
+     "p": 0.13165856547196522,
+     "p_holm": 0.13165856547196522
+    },
+    {
+     "against": "15.60-17.12",
+     "n": 72,
+     "D": 0.2777777777777778,
+     "p": 0.007474950947491271,
+     "p_holm": 0.014949901894982543
+    },
+    {
+     "against": "17.14-18.04",
+     "n": 72,
+     "D": 0.2916666666666667,
+     "p": 0.0041795425348557765,
+     "p_holm": 0.01253862760456733
+    }
+   ],
+   "n_significant_after_holm": 2
+  },
+  "package normalised clip (biweight, z = (plx - plx0)/err)": {
+   "n_total": 313,
+   "edges": [
+    8.799633979797363,
+    15.865330696105957,
+    17.250385284423828,
+    18.149017333984375,
+    20.673542022705078
+   ],
+   "comparisons": [
+    {
+     "against": "8.80-15.87",
+     "n": 79,
+     "D": 0.22168127231418372,
+     "p": 0.036187845431218064,
+     "p_holm": 0.036187845431218064
+    },
+    {
+     "against": "15.87-17.25",
+     "n": 78,
+     "D": 0.2948717948717949,
+     "p": 0.002143115337267509,
+     "p_holm": 0.004286230674535018
+    },
+    {
+     "against": "17.27-18.15",
+     "n": 78,
+     "D": 0.32051282051282054,
+     "p": 0.0006058492817041365,
+     "p_holm": 0.0018175478451124094
+    }
+   ],
+   "n_significant_after_holm": 3
+  }
+ },
+ "stage_b": [
+  {
+   "sample": "published clip",
+   "rung": "B0  old defaults (published configuration)",
+   "n_selected": 254,
+   "n_fitted": 130,
+   "mu_parallax_mas": 0.9082670225028694,
+   "mu_parallax_sd_mas": 0.004006253667490565,
+   "sigma_parallax_mas": 0.046386658279313056,
+   "mu_r_kpc": 1.116614086079507,
+   "mu_r_sd_kpc": 0.005179768471780451,
+   "std_r_kpc": 0.05981524066626571,
+   "seconds": 41.6
+  },
+  {
+   "sample": "published clip",
+   "rung": "B1  + per-star errors and Bailer-Jones bounds",
+   "n_selected": 254,
+   "n_fitted": 130,
+   "mu_parallax_mas": 0.904595573945617,
+   "mu_parallax_sd_mas": 0.0039526920514571795,
+   "sigma_parallax_mas": 0.027138100442214885,
+   "mu_r_kpc": 1.1101856620400887,
+   "mu_r_sd_kpc": 0.005031691328033649,
+   "std_r_kpc": 0.03297800374791296,
+   "seconds": 21.2
+  },
+  {
+   "sample": "published clip",
+   "rung": "B2  + zero-point nuisance",
+   "n_selected": 254,
+   "n_fitted": 130,
+   "mu_parallax_mas": 0.9045134477094252,
+   "mu_parallax_sd_mas": 0.010853585908536285,
+   "sigma_parallax_mas": 0.027075318872178875,
+   "mu_r_kpc": 1.1101856620400887,
+   "mu_r_sd_kpc": 0.005031691328033649,
+   "std_r_kpc": 0.03297800374791296,
+   "seconds": 23.8
+  },
+  {
+   "sample": "published clip",
+   "rung": "B3  - the fractional-error pre-cut  [NEW DEFAULT]",
+   "n_selected": 254,
+   "n_fitted": 254,
+   "mu_parallax_mas": 0.9038274670724215,
+   "mu_parallax_sd_mas": 0.01066050940749271,
+   "sigma_parallax_mas": 0.025220301442680993,
+   "mu_r_kpc": 1.1148729677479512,
+   "mu_r_sd_kpc": 0.005111995447289522,
+   "std_r_kpc": 0.0325410285756303,
+   "seconds": 18.7
+  },
+  {
+   "sample": "normalised clip",
+   "rung": "B3  - the fractional-error pre-cut  [NEW DEFAULT]",
+   "n_selected": 313,
+   "n_fitted": 313,
+   "mu_parallax_mas": 0.9124189923724878,
+   "mu_parallax_sd_mas": 0.010656652776250324,
+   "sigma_parallax_mas": 0.020062740991508902,
+   "mu_r_kpc": 1.1032853953860609,
+   "mu_r_sd_kpc": 0.00420689116768997,
+   "std_r_kpc": 0.022170156164038682,
+   "seconds": 61.5
+  }
+ ],
+ "stage_a_70": {
+  "field": "70 arcmin",
+  "reproduces_published_counts": {
+   "branch": 798,
+   "preclip_p05": 771,
+   "postclip_p05": 650,
+   "p06": 628
+  },
+  "median_e_plx_by_gmag_quartile": [
+   0.0295196995139122,
+   0.08963347226381302,
+   0.16016028821468353,
+   0.44489678740501404
+  ],
+  "maxiters_sensitivity_raw_basis": {
+   "1": 748,
+   "2": 737,
+   "3": 730,
+   "5": 723,
+   "10": 714,
+   "None": 706
+  },
+  "rows": {
+   "published (histogram mode + std, raw parallax)": {
+    "n_after_clip_p05": 650,
+    "n_members_p06": 628,
+    "overall": 0.8430609597924773,
+    "by_gmag_quartile": [
+     0.9637305699481865,
+     0.9010416666666666,
+     0.772020725388601,
+     0.7357512953367875
+    ],
+    "bright_to_faint_gradient": 0.227979274611399
+   },
+   "package raw clip (biweight, raw parallax)": {
+    "n_after_clip_p05": 723,
+    "n_members_p06": 697,
+    "overall": 0.9377431906614786,
+    "by_gmag_quartile": [
+     0.9844559585492227,
+     0.953125,
+     0.9015544041450777,
+     0.9119170984455959
+    ],
+    "bright_to_faint_gradient": 0.07253886010362687
+   },
+   "package normalised clip (biweight, z = (plx - plx0)/err)": {
+    "n_after_clip_p05": 755,
+    "n_members_p06": 729,
+    "overall": 0.9792477302204928,
+    "by_gmag_quartile": [
+     0.927461139896373,
+     0.9895833333333334,
+     1.0,
+     1.0
+    ],
+    "bright_to_faint_gradient": -0.07253886010362698
+   }
+  }
+ },
+ "stage_c": [
+  {
+   "sample": "40' published clip",
+   "field_arcmin": 40.0,
+   "fitter": "binned Gaussian, data-derived priors (RDP_bayesian)",
+   "n_stars": 253,
+   "seconds": 48.5,
+   "R_c": 2.141656539323775,
+   "R_c_sd": 0.2752093659179186,
+   "R_t": 34.94347057794809,
+   "R_t_sd": 14.16803763166473,
+   "b": 0.011628114532770724,
+   "b_sd": 0.0071198269672889435,
+   "r_hat_max": 1.0367071885219954,
+   "ess_bulk_min": 46.3740044624199,
+   "divergences": 5
+  },
+  {
+   "sample": "40' published clip",
+   "field_arcmin": 40.0,
+   "fitter": "unbinned point process (king_unbinned)  [NEW DEFAULT]",
+   "n_stars": 253,
+   "seconds": 21.4,
+   "R_c": 1.5426651256426167,
+   "R_c_sd": 0.2604865198402568,
+   "R_t": 105.16382170405485,
+   "R_t_sd": 1929.2539989521722,
+   "b": 0.011795251245954205,
+   "b_sd": 0.004004646856103146,
+   "r_hat_max": 1.0031346562035708,
+   "ess_bulk_min": 970.4749255595602,
+   "divergences": 0
+  },
+  {
+   "sample": "40' normalised clip",
+   "field_arcmin": 40.0,
+   "fitter": "binned Gaussian, data-derived priors (RDP_bayesian)",
+   "n_stars": 312,
+   "seconds": 68.3,
+   "R_c": 1.9181082686556978,
+   "R_c_sd": 0.25805591755576734,
+   "R_t": 40.45710589316852,
+   "R_t_sd": 12.948298044907377,
+   "b": 0.013786835074789325,
+   "b_sd": 0.007660241806893452,
+   "r_hat_max": 1.002480565461501,
+   "ess_bulk_min": 904.894058555514,
+   "divergences": 0
+  },
+  {
+   "sample": "40' normalised clip",
+   "field_arcmin": 40.0,
+   "fitter": "unbinned point process (king_unbinned)  [NEW DEFAULT]",
+   "n_stars": 312,
+   "seconds": 40.0,
+   "R_c": 1.6445654787434556,
+   "R_c_sd": 0.250098019768376,
+   "R_t": 98.39964000093491,
+   "R_t_sd": 29581.156096062234,
+   "b": 0.012424738078795475,
+   "b_sd": 0.004696773174120433,
+   "r_hat_max": 1.0036705402063375,
+   "ess_bulk_min": 800.0969967681733,
+   "divergences": 0
+  },
+  {
+   "sample": "70' published clip",
+   "field_arcmin": 70.0,
+   "fitter": "binned Gaussian, data-derived priors (RDP_bayesian)",
+   "n_stars": 627,
+   "seconds": 53.6,
+   "R_c": 1.366354138099392,
+   "R_c_sd": 0.03344918765938825,
+   "R_t": 82.82718014067922,
+   "R_t_sd": 18.24647182766762,
+   "b": 0.021585082583989147,
+   "b_sd": 0.008099008733001893,
+   "r_hat_max": 1.008771506217464,
+   "ess_bulk_min": 424.70971179105976,
+   "divergences": 18
+  },
+  {
+   "sample": "70' published clip",
+   "field_arcmin": 70.0,
+   "fitter": "unbinned point process (king_unbinned)  [NEW DEFAULT]",
+   "n_stars": 627,
+   "seconds": 50.5,
+   "R_c": 1.3215849849812629,
+   "R_c_sd": 0.20603478248251883,
+   "R_t": 83.54461166020675,
+   "R_t_sd": 697.7601898096113,
+   "b": 0.024271000682764676,
+   "b_sd": 0.0019790767582780764,
+   "r_hat_max": 1.001014560160096,
+   "ess_bulk_min": 1212.009921573856,
+   "divergences": 0
+  },
+  {
+   "sample": "70' normalised clip",
+   "field_arcmin": 70.0,
+   "fitter": "binned Gaussian, data-derived priors (RDP_bayesian)",
+   "n_stars": 728,
+   "seconds": 91.2,
+   "R_c": 1.288310894485944,
+   "R_c_sd": 0.07262296223867101,
+   "R_t": 78.64234526835733,
+   "R_t_sd": 20.240944195661132,
+   "b": 0.025628925024124463,
+   "b_sd": 0.011441738876103762,
+   "r_hat_max": 1.0009551892430442,
+   "ess_bulk_min": 2248.942601952308,
+   "divergences": 1
+  },
+  {
+   "sample": "70' normalised clip",
+   "field_arcmin": 70.0,
+   "fitter": "unbinned point process (king_unbinned)  [NEW DEFAULT]",
+   "n_stars": 728,
+   "seconds": 18.0,
+   "R_c": 1.343462300256168,
+   "R_c_sd": 0.19823366957781677,
+   "R_t": 94.975507893643,
+   "R_t_sd": 1143.9567563617486,
+   "b": 0.028273012783196647,
+   "b_sd": 0.002221456728354027,
+   "r_hat_max": 1.0022404812512677,
+   "ess_bulk_min": 1229.1399507491592,
+   "divergences": 0
+  }
+ ]
+}

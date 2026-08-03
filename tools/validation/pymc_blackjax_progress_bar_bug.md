@@ -110,6 +110,36 @@ without the extra**, and a user passing `progressbar=True` trades a `TypeError` 
 with a warning, or `blackjax[progress]` added to PyMC's JAX test dependencies — the former is
 better, since a progress bar should never be able to abort a sampling run.
 
+### Both defects verified by patching and running, not by reading
+
+The PR's fix was applied to the installed `pymc/sampling/jax.py` **with the duplicate block removed
+and an `ImportError` guard added**, then the issue's own reproduction was run:
+
+```
+progressbar=False   ->  OK   posterior shape (1, 50), mean 0.1311
+progressbar=True    ->  OK   warns "blackjax progress bar needs the 'progress' extra
+                             (pip install 'blackjax[progress]'); sampling without it"
+```
+
+So the PR's approach is right and its two defects are both real and both fixable in a few lines.
+The guard matters because without it `progressbar=True` trades a `TypeError` for an `ImportError`:
+a progress bar should never be able to abort a sampling run. Suggested shape:
+
+```python
+    elif progress_bar:
+        try:
+            with blackjax.progress_bar(label="NUTS"):
+                _, (samples, stats) = jax.lax.scan(_one_step, last_state, (jnp.arange(draws), keys))
+        except ImportError:
+            warnings.warn(
+                "blackjax progress bar needs the 'progress' extra "
+                "(pip install 'blackjax[progress]'); sampling without it.",
+                UserWarning, stacklevel=2)
+            _, (samples, stats) = jax.lax.scan(_one_step, last_state, (jnp.arange(draws), keys))
+```
+
+The installed PyMC was restored to its original state afterwards; this repo carries no patch.
+
 Open contributions, cheap and real:
 
 - **Report the two defects above on the PR.** Both are concrete, both are one-line-ish, and neither

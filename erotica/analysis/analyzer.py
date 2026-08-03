@@ -11,6 +11,7 @@ from astropy.table import QTable
 
 from erotica.core.clustering import Clustering
 
+from ._clipping import DEFAULT_MAXITERS as _CLIP_MAXITERS
 from ._clipping import sigma_clip_parallax as _sigma_clip_parallax
 from ._io import load_dataset
 from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probability_vs_gmag
@@ -167,7 +168,23 @@ class ClusterAnalyzer:
         mark_label: int = -1,
         return_mask: bool = False,
         preselector_mask=None,
+        method: str = "normalised",
+        parallax_error_column: str = "parallax_error",
+        maxiters: int | None = _CLIP_MAXITERS,
     ):
+        """Clip parallax outliers for one cluster.
+
+        Thin pass-through to
+        :func:`erotica.analysis._clipping.sigma_clip_parallax`; `method`,
+        `parallax_error_column` and `maxiters` are documented there, including
+        what each measured and what is still unmeasured.
+
+        The default `method` moved from the raw parallax to the normalised
+        residual on 2026-08-02. On the NGC 6383 pre-clip sample the raw clip
+        retains 94.2% of the brightest ``Gmag`` quartile against 72.8% of the
+        faintest -- a magnitude-dependent selection function, not only an outlier
+        test -- against 93.2% / 100.0% for the shipped normalised form.
+        """
         cid = cluster if cluster is not None else self.selected_cluster
         if cid is None:
             raise ValueError(
@@ -183,6 +200,9 @@ class ClusterAnalyzer:
             print_results=print_results,
             return_mask=return_mask,
             preselector_mask=preselector_mask,
+            method=method,
+            parallax_error_column=parallax_error_column,
+            maxiters=maxiters,
         )
         return result
 

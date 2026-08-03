@@ -346,7 +346,9 @@ def distance_model(
     used twice, twice over. `parallax_column` is retained for API compatibility
     and is no longer read.
     """
-    pm = _require_pymc()
+    # Validation runs BEFORE _require_pymc(): a malformed table is malformed whether
+    # or not the optional 'bayes' extra is installed, and raising ImportError there
+    # hides the real defect (and made eight input-validation tests unrunnable in CI).
     sampling = sampling or SamplingConfig()
     priors = priors or DistancePriors()
     distances = np.asarray(quantity_values(data[distance_column], u.kpc), dtype=float)
@@ -364,7 +366,10 @@ def distance_model(
         errors = (hi - lo) / 2.0
         if not np.all(np.isfinite(errors)) or np.any(errors <= 0):
             raise ValueError("Derived per-star distance errors must be finite and positive.")
+    if prior_type not in {"uniform", "normal"}:
+        raise ValueError("prior_type must be 'uniform' or 'normal'.")
 
+    pm = _require_pymc()
     with pm.Model() as model:
         if prior_type == "uniform":
             mu_r = pm.Uniform("mu_r", lower=priors.mu_lower, upper=priors.mu_upper)
@@ -373,8 +378,6 @@ def distance_model(
             mu_r = pm.TruncatedNormal(
                 "mu_r", lower=priors.mu_lower, upper=priors.mu_upper, mu=mid, sigma=1
             )
-        else:
-            raise ValueError("prior_type must be 'uniform' or 'normal'.")
         std_r = pm.HalfNormal("std_r", sigma=priors.sigma_scale)
         if errors is None:
             pm.Gamma("r", mu=mu_r, sigma=std_r, observed=distances)
@@ -446,6 +449,21 @@ def fit_parallax_model(
         uncertainty on the mean parallax by the systematic floor in quadrature
         rather than leaving it out. **Enable it for any published mean parallax.**
 
+        .. important::
+           **This is an uncertainty-widening device, not a bias correction, and
+           it must not be redesigned into one.** Cruz Reyes & Anderson (2023,
+           A&A 672, A85, `2023A&A...672A..85C`) determine open-cluster parallaxes
+           to ~7 uas from non-variable members and report that over
+           ``12.5 < G < 17`` mag -- the range that holds most of a Gaia cluster
+           member list -- the Lindegren et al. (2021) corrections "are accurate
+           and require no further offset corrections". So the expected residual
+           offset is consistent with zero and the prior is correctly centred
+           there; what is *not* zero is its **uncertainty**, and a zero-centred
+           Normal of width `zero_point_scale` is exactly the device that carries
+           that uncertainty into ``mu_parallax``. Giving the nuisance a non-zero
+           mean, or fitting it against a second cluster, would turn a widening
+           into a correction the cited measurement does not support.
+
     Notes
     -----
     Before 2026-07-27 the default path built ``Uniform(0.5x, 1.5x)`` around
@@ -453,7 +471,7 @@ def fit_parallax_model(
     on the spread -- both functions of the data being fit. That is the data used
     twice; see the decision log.
     """
-    pm = _require_pymc()
+    # Validation before _require_pymc() -- see the note in :func:`distance_model`.
     sampling = sampling or SamplingConfig()
     priors = priors or ParallaxPriors()
     parallax_values = quantity_values(data[parallax_column], u.mas)
@@ -472,16 +490,17 @@ def fit_parallax_model(
     else:
         prior_parallax = 0.5 * (priors.mu_lower + priors.mu_upper)
         lower, upper = priors.mu_lower, priors.mu_upper
+    if prior_type not in {"uniform", "normal"}:
+        raise ValueError("prior_type must be 'uniform' or 'normal'.")
 
+    pm = _require_pymc()
     with pm.Model() as model:
         if prior_type == "uniform":
             mu_parallax = pm.Uniform("mu_parallax", lower=lower, upper=upper)
-        elif prior_type == "normal":
+        else:
             mu_parallax = pm.TruncatedNormal(
                 "mu_parallax", lower=lower, upper=upper, sigma=1, mu=prior_parallax
             )
-        else:
-            raise ValueError("prior_type must be 'uniform' or 'normal'.")
         sigma_parallax = pm.HalfNormal("sigma_parallax", sigma=priors.sigma_scale)
         total = (
             sigma_parallax
@@ -554,7 +573,7 @@ def proper_motion_2d_gaussian(
     widths from ``nanstd`` of the data, and the per-star covariance was ignored
     entirely even though :mod:`erotica.core._error_aware` already builds it.
     """
-    pm = _require_pymc()
+    # Validation before _require_pymc() -- see the note in :func:`distance_model`.
     sampling = sampling or SamplingConfig()
     priors = priors or ProperMotionPriors()
     pm_ra_values = np.asarray(quantity_values(pm_ra, u.mas / u.yr), dtype=float)
@@ -586,6 +605,7 @@ def proper_motion_2d_gaussian(
         per_star[:, 1, 1] = e_dec**2
         per_star[:, 0, 1] = per_star[:, 1, 0] = off
 
+    pm = _require_pymc()
     with pm.Model() as model:
         mu_ra = pm.Normal("mu_RA", mu=0.0, sigma=priors.mu_scale)
         mu_dec = pm.Normal("mu_Dec", mu=0.0, sigma=priors.mu_scale)
@@ -660,7 +680,7 @@ def velocity_model(
     so in the low-dispersion regime the posterior was prior-dominated — and the
     per-star velocity uncertainties never entered the likelihood.
     """
-    pm = _require_pymc()
+    # Validation before _require_pymc() -- see the note in :func:`distance_model`.
     sampling = sampling or SamplingConfig()
     priors = priors or VelocityPriors()
     if hasattr(values, "colnames"):
@@ -678,6 +698,7 @@ def velocity_model(
         if not np.all(np.isfinite(per_star)) or np.any(per_star <= 0):
             raise ValueError("Per-star velocity errors must all be finite and positive.")
 
+    pm = _require_pymc()
     with pm.Model() as model:
         mu_v = pm.Normal("mu_v", mu=0.0, sigma=priors.mu_scale)
         std_v = pm.HalfNormal("std_v", sigma=priors.sigma_scale)
@@ -760,12 +781,70 @@ class ClusterInferenceAnalyzer:
         return_trace: bool = False,
         progressbar: bool | None = None,
         distance_prior=None,
-        fractional_parallax_error_max: float = 0.1,
+        fractional_parallax_error_max: float | None = None,
+        zero_point: bool = True,
         distance_column: str = "r_med_geo",
+        distance_lo_column: str | None = "r_lo_geo",
+        distance_hi_column: str | None = "r_hi_geo",
         parallax_column: str = "parallax",
-        parallax_error_column: str = "parallax_error",
+        parallax_error_column: str | None = "parallax_error",
     ) -> dict[str, list[Any]]:
-        """Fit distance and parallax models for each probability threshold."""
+        r"""Fit distance and parallax models for each probability threshold.
+
+        Parameters
+        ----------
+        parallax_error_column : str or None, default ``"parallax_error"``
+            Forwarded to :func:`fit_parallax_model`, so each star's
+            :math:`\sigma_{\varpi,i}` enters the likelihood as
+            :math:`\sqrt{\sigma_{\mathrm{int}}^2 + \sigma_{\varpi,i}^2}` and
+            ``sigma_parallax`` measures the cluster's **intrinsic** depth. Pass
+            ``None`` to reproduce the pre-2026-08-02 behaviour.
+        distance_lo_column, distance_hi_column : str or None
+            Defaults ``"r_lo_geo"`` / ``"r_hi_geo"``. Forwarded to
+            :func:`distance_model`, which then treats the catalogue distance as a
+            measurement of a latent true distance with
+            :math:`\sigma_i = (r_{\mathrm{hi}} - r_{\mathrm{lo}})/2` rather than
+            as exact. Pass ``None`` for both to reproduce the old behaviour.
+        zero_point : bool, default True
+            Forwarded to :func:`fit_parallax_model`. Adds the shared residual
+            Gaia zero-point nuisance, which widens the reported uncertainty on
+            the mean parallax by the systematic floor of Maiz Apellaniz et al.
+            (2021) rather than omitting it. See that function for why this is an
+            uncertainty-widening device and not a bias correction.
+        fractional_parallax_error_max : float or None, default None
+            When a float, keep only stars with ``parallax > 0`` **and**
+            ``parallax_error / parallax <=`` this value before fitting. The
+            default was ``0.1`` until 2026-08-02; it is now ``None``, i.e. **no
+            pre-cut at all**.
+
+        Notes
+        -----
+        **What changed on 2026-08-02, and why.**
+
+        Until then this method read ``parallax_error`` only in order to *discard*
+        stars -- ``parallax > 0`` and ``sigma_varpi/varpi <= 0.1`` -- and then
+        passed neither the errors, nor the Bailer-Jones bounds, nor ``zero_point``
+        on to the models it called. The error-aware branches of
+        :func:`fit_parallax_model` and :func:`distance_model` existed and were
+        simply never reached from here, so ``sigma_parallax`` and ``std_r``
+        reported measurement scatter as though it were cluster depth, and the mean
+        parallax was quoted without the Gaia systematic floor.
+
+        The two pre-cuts are removed rather than retained because they are the
+        practice Luri et al. (2018, A&A 616, A9, `2018A&A...616A...9L`) argue
+        against -- *"negative parallaxes, or parallaxes with relatively large
+        uncertainties still contain valuable information"* -- and because
+        truncating on :math:`\sigma_\varpi/\varpi` selects preferentially against
+        the faint, low-precision end, i.e. it imposes a magnitude-dependent
+        selection on the *inference* sample on top of any already imposed on the
+        member list. Once the errors are in the likelihood the imprecise stars
+        are down-weighted automatically, which is what the cut was crudely
+        approximating. Measured on the NGC 6383 member list, the old cut
+        discarded **351 of 628** stars at ``p >= 0.6``.
+
+        Both cuts remain reachable through `fractional_parallax_error_max` for
+        reproducing older results.
+        """
         thresholds = self._normalise_thresholds(probability_thresholds)
         sampling = self.sampling
         if progressbar is not None:
@@ -780,25 +859,57 @@ class ClusterInferenceAnalyzer:
             "mu_parallax_std": [],
             "sigma_parallax_std": [],
         }
+        # Fail loudly rather than degrading to the old, uncertainty-free path. A
+        # missing error column is a reason to say so, not a reason to quietly fit
+        # the model that treats every measurement as exact.
+        missing = [
+            name
+            for name in (parallax_error_column, distance_lo_column, distance_hi_column)
+            if name is not None and name not in getattr(self.data, "colnames", [name])
+        ]
+        if missing:
+            raise ValueError(
+                f"Missing uncertainty column(s) {missing!r}. These carry the per-star "
+                "errors into the likelihood; without them sigma_parallax and std_r "
+                "report measurement scatter as cluster depth. Supply the columns, or "
+                "pass parallax_error_column=None / distance_lo_column=None, "
+                "distance_hi_column=None to opt in to the pre-2026-08-02 behaviour "
+                "deliberately."
+            )
+        if fractional_parallax_error_max is not None and parallax_error_column is None:
+            raise ValueError(
+                "fractional_parallax_error_max needs parallax_error_column to compute "
+                "sigma_varpi/varpi. Name the column, or set the cut to None (the "
+                "default) so the errors enter the likelihood instead."
+            )
         traces = []
         for threshold in thresholds:
             subset = self.select(float(threshold))
-            parallax = quantity_values(subset[parallax_column], u.mas)
-            parallax_error = quantity_values(subset[parallax_error_column], u.mas)
-            # Only positive parallaxes are physical distance estimators. Requiring
-            # parallax > 0 (not just abs(error/parallax)) excludes negative parallaxes,
-            # which would otherwise pass the ratio cut, and guards against div-by-zero.
-            positive_parallax = parallax > 0
-            fractional_error = np.divide(
-                parallax_error,
-                parallax,
-                out=np.full_like(parallax, np.inf),
-                where=positive_parallax,
-            )
-            useful = subset[positive_parallax & (fractional_error <= fractional_parallax_error_max)]
+            if fractional_parallax_error_max is None:
+                # No pre-cut. The per-star errors go into the likelihood instead,
+                # which down-weights the imprecise stars rather than deleting them.
+                useful = subset
+            else:
+                parallax = quantity_values(subset[parallax_column], u.mas)
+                parallax_error = quantity_values(subset[parallax_error_column], u.mas)
+                # Only positive parallaxes are physical distance estimators. Requiring
+                # parallax > 0 (not just abs(error/parallax)) excludes negative parallaxes,
+                # which would otherwise pass the ratio cut, and guards against div-by-zero.
+                positive_parallax = parallax > 0
+                fractional_error = np.divide(
+                    parallax_error,
+                    parallax,
+                    out=np.full_like(parallax, np.inf),
+                    where=positive_parallax,
+                )
+                useful = subset[
+                    positive_parallax & (fractional_error <= fractional_parallax_error_max)
+                ]
             distance_result = distance_model(
                 useful,
                 distance_column=distance_column,
+                distance_lo_column=distance_lo_column,
+                distance_hi_column=distance_hi_column,
                 parallax_column=parallax_column,
                 return_trace=return_trace,
                 sampling=sampling,
@@ -806,7 +917,9 @@ class ClusterInferenceAnalyzer:
             parallax_result = fit_parallax_model(
                 useful,
                 parallax_column=parallax_column,
+                parallax_error_column=parallax_error_column,
                 prior_distance=distance_prior,
+                zero_point=zero_point,
                 return_trace=return_trace,
                 sampling=sampling,
             )
