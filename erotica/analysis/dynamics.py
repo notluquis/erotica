@@ -416,6 +416,12 @@ def crossing_time(radius, velocity_dispersion) -> u.Quantity:
 # Henon's Eq. (15): the velocity-distribution term for a Maxwellian, ln(2/3) - EulerGamma.
 _HENON_MAXWELLIAN_TERM = np.log(2.0 / 3.0) - 0.5772156649015329
 
+# The bare 0.4 inside Henon's Eq. (11) is the DOMINANT TERM of his Eq. (6) -- the virial
+# coefficient of <v^2> = 0.4 G M / R_h, via Spitzer & Hart (1971) Eq. 3, p_0 = R_h/(0.4 N).
+# It is not an independent constant: the two correction terms above are what Henon adds to it.
+# See COULOMB_CALIBRATIONS[0.4] for the full provenance.
+_SPITZER_DOMINANT_TERM = 0.4
+
 
 def coulomb_argument_from_mass_function(mass_function, m_min, m_max, *, n_grid=4000):
     r"""Compute the Coulomb-logarithm argument :math:`\gamma` from the mass function.
@@ -502,7 +508,7 @@ def coulomb_argument_from_mass_function(mass_function, m_min, m_max, *, n_grid=4
     ) / (np.trapezoid(weight * m, log_m) * np.trapezoid(weight * m**2, log_m))
 
     return dict(
-        gamma=float(0.4 * np.exp(_HENON_MAXWELLIAN_TERM + i3)),
+        gamma=float(_SPITZER_DOMINANT_TERM * np.exp(_HENON_MAXWELLIAN_TERM + i3)),
         i3_over_i1=float(i3),
         mean_mass=float(mean_mass),
         mass_ratio=float(m_max / m_min),
@@ -514,22 +520,62 @@ def coulomb_argument_from_mass_function(mass_function, m_min, m_max, *, n_grid=4
 # this programme's most repeated error (see methodology.md K.1.5).
 COULOMB_CALIBRATIONS = {
     0.4: dict(
-        source="analytic, equal mass",
-        reference="standard derivation; not an N-body fit",
+        source="analytic, equal mass -- DOMINANT TERM ONLY",
+        reference="Spitzer & Hart (1971) Eqs. 1-3, on the virial coefficient of Spitzer (1969)",
+        bibcode="1971ApJ...164..399S",
+        bibcode_origin="1969ApJ...158L.139S",   # Spitzer (1969), source of the 0.4 itself
         n_range=None,          # analytic, so no calibration range in N
         equal_mass=True,
         isolated=None,
+        superseded_by=0.15,
+        # This 0.4 is NOT a Coulomb-logarithm constant. It is the VIRIAL COEFFICIENT of
+        # <v^2> = 0.4 G M / R_h -- Spitzer & Hart (1971) Eq. 2, verbatim from the ADS scan:
+        # "the constant 0.4 provides a reasonably good approximation for most systems
+        # (Spitzer 1969)". It reaches ln(gamma N) only through their Eq. 3, p_0 = R_h/(0.4 N),
+        # where the factor 2 from m_A + m_B = 2m cancels the factor 2 from V^2 = 2 v_m^2 exactly.
+        # So gamma = 0.4 is a CHOICE OF CUTOFF (b_max = R_h) plus a structural coefficient, and
+        # a different velocity convention gives a different number: CMC uses the BT08 p.361
+        # coefficient 0.45 with w^2 = <v^2> and lands on 0.2, a factor 2 from the same algebra.
+        note="Dominant term only. Henon (1975) Eq. 11 shows ln(0.4 N) is the leading term of "
+             "ln(0.4 N) + ln(V^2/2<V_1^2>) + ln(2<m>/(m_1+m_2)); completing the same calculation "
+             "gives 0.15. Legitimate use: reproducing work that adopted it, e.g. Aarseth, Henon & "
+             "Wielen (1974) and anything benchmarked against it.",
+    ),
+    0.15: dict(
+        source="analytic, equal mass -- non-dominant terms included",
+        reference="Henon (1975) Eq. 19, IAU Symp. 69, 133",
+        bibcode="1975IAUS...69..133H",
+        n_range=None,
+        equal_mass=True,
+        isolated=None,
+        # Henon's abstract, verbatim from the ADS scan: "a constant usually taken to be of the
+        # order of 0.4. A reconsideration of the 'non-dominant terms' leads to a substantially
+        # lower value, of the order of 0.15 for equal masses and 0.075 for unequal masses with a
+        # typical distribution." Reproduced here as 0.1497 by
+        # coulomb_argument_from_mass_function in the equal-mass limit.
+        note="The corrected analytic equal-mass value, and the one Tep & Heggie (2026), "
+             "2026arXiv260714844T, adopt: with Lambda = 0.15 N, Chandrasekhar theory reproduces "
+             "the N-body core-collapse time to 1.026 +/- 0.023 at N = 1e4. Henon's Table I gives "
+             "0.108-0.169 across truncated power-law velocity distributions, so the velocity "
+             "dependence is weak; the mass-function dependence is not.",
     ),
     0.11: dict(
         source="N-body, equal mass",
-        reference="Giersz & Heggie (1994), 1994MNRAS.268..257G",
+        reference="Giersz & Heggie (1994) Paper I, 1994MNRAS.268..257G",
+        bibcode="1994MNRAS.268..257G",
         n_range=(250, 1000),
         equal_mass=True,
         isolated=True,
+        # Paper I is correct and verified from its abstract: "values for the coefficient gamma in
+        # the Coulomb logarithm ln(gamma N) ... These are gamma ~= 0.11". Do not "correct" this to
+        # 1994MNRAS.270..298G: Part Two, same authors and year, REDETERMINES gamma after core
+        # collapse and is what Tep & Heggie (2026) cite for it. Both are real; Paper I is the
+        # origin, and is the one Giersz & Heggie (1996) mean by "the value found in Paper I".
     ),
     0.02: dict(
         source="N-body, multi-mass (power-law MF)",
         reference="Giersz & Heggie (1996), 1996MNRAS.279.1037G",
+        bibcode="1996MNRAS.279.1037G",
         n_range=(250, 1000),   # verbatim from their abstract: "from 250 to 1000 stars each"
         equal_mass=False,
         isolated=True,         # verbatim: "the systems are isolated"
@@ -548,6 +594,13 @@ def coulomb_calibration_warnings(lambda_value, n_stars, *, tidally_limited=True,
     if entry is None:
         return [f"gamma={lambda_value} has no recorded calibration provenance in this module."]
     problems = []
+    if entry.get("superseded_by") is not None:
+        problems.append(
+            f"gamma={lambda_value} is the DOMINANT-TERM-ONLY value ({entry['reference']}); "
+            f"Henon (1975) completed the same calculation including the non-dominant terms and "
+            f"obtained {entry['superseded_by']}. Use {lambda_value} only to reproduce work that "
+            f"adopted it."
+        )
     if entry["n_range"] is not None:
         low, high = entry["n_range"]
         if not (low <= n_stars <= high):
@@ -619,13 +672,35 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
        **The default ``lambda_value = 0.11`` is the EQUAL-MASS calibration, and no real cluster has
        equal masses.** The three values in circulation are not interchangeable:
 
-       ==========  ==========================================  ===========================
-       :math:`\gamma`  what it is                                  source
-       ==========  ==========================================  ===========================
-       0.4         analytic, equal mass — *not* an N-body fit  standard textbook derivation
-       **0.11**    N-body calibration, **equal mass**          Giersz & Heggie (1994)
-       **0.02**    N-body calibration, **multi-mass**          Giersz & Heggie (1996)
-       ==========  ==========================================  ===========================
+       ==============  ==============================================  =========================
+       :math:`\gamma`  what it is                                      source
+       ==============  ==============================================  =========================
+       0.4             analytic, equal mass, **dominant term only**     Spitzer & Hart (1971)
+       0.15            analytic, equal mass, **terms completed**        Hénon (1975) Eq. 19
+       **0.11**        N-body calibration, **equal mass**               Giersz & Heggie (1994)
+       **0.02**        N-body calibration, **multi-mass**               Giersz & Heggie (1996)
+       ==============  ==============================================  =========================
+
+       .. important::
+          **0.4 and 0.15 are the same calculation, not two competing conventions.** The 0.4 is not
+          a Coulomb constant at all: it is the *virial coefficient* of
+          :math:`\langle v^2\rangle = 0.4\,GM/R_h`, which Spitzer & Hart (1971) Eq. 2 attribute to
+          Spitzer (1969) with the words *"the constant 0.4 provides a reasonably good approximation
+          for most systems"*. It reaches :math:`\ln(\gamma N)` through their Eq. 3,
+          :math:`p_0 = R_h/(0.4N)`, once :math:`b_{max}` is *chosen* to be :math:`R_h`.
+
+          Hénon (1975) then showed that :math:`\ln(0.4N)` is only the leading term of
+          :math:`\ln(0.4N) + \ln(V^2/2\langle V_1^2\rangle) + \ln(2\langle m\rangle/(m_1+m_2))`, and
+          that *"the classical approximation consists in omitting these non-dominant terms."*
+          Including them gives **0.15** for equal masses and ≈0.075 for a typical mass spectrum.
+          Tep & Heggie (2026), ``2026arXiv260714844T``, adopt 0.15 and show it reproduces the N-body
+          core-collapse time to **1.026 ± 0.023** at :math:`N = 10^4`.
+
+          So 0.4 is superseded rather than wrong-in-principle, and it stays in the registry because
+          reproducing Aarseth, Hénon & Wielen (1974) — or anything benchmarked against it — requires
+          it. The velocity convention alone moves it: CMC pairs the Binney & Tremaine (2008) p. 361
+          coefficient 0.45 with :math:`w^2 = \langle v^2\rangle` and reports 0.2, a factor 2 from
+          the same algebra.
 
        Giersz & Heggie (1996) describe the multi-mass value as *"a factor 7 smaller than the value
        found in Paper I for systems with equal masses"*, and Heggie & Hut (2003) p. 142 states the

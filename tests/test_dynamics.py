@@ -521,3 +521,85 @@ def test_gamma_falls_as_the_mass_range_widens_and_that_is_age_dependent():
         coulomb_argument_from_mass_function(kroupa, 0.08, 2.0)["mean_mass"]
         < coulomb_argument_from_mass_function(kroupa, 0.08, 100.0)["mean_mass"]
     )
+
+
+# ---------------------------------------------------------------------------------------------
+# Provenance guards. These exist because a value sat in COULOMB_CALIBRATIONS for weeks carrying
+# reference="standard derivation; not an N-body fit" -- prose, no citation -- while the traced
+# chain (Spitzer & Hart 1971 Eq. 3 -> Henon 1975 Eq. 11) was already written up in the research
+# hub and never reached the code. Documenting the rule did not enforce it; these do.
+# See methodology.md K.1.7b.
+# ---------------------------------------------------------------------------------------------
+
+
+def test_every_calibration_carries_a_real_bibcode():
+    """No entry may cite prose. A bibcode is 19 characters and starts with a 4-digit year.
+
+    **This checks the SHAPE of a citation, not its identity.** A well-formed bibcode pointing at
+    the wrong paper passes, and no test can catch that -- the verification is reading the source.
+    Every bibcode here was checked against its own abstract on SciX; ``0.11`` in particular is
+    Paper I (268, 257) and not the same-year Part Two (270, 298), which the entry explains because
+    it is exactly the thing a future reader would "correct".
+    """
+    import re
+
+    from erotica.analysis.dynamics import COULOMB_CALIBRATIONS
+
+    for gamma, entry in COULOMB_CALIBRATIONS.items():
+        fields = {k: v for k, v in entry.items() if k.startswith("bibcode")}
+        assert "bibcode" in fields, f"gamma={gamma} has no bibcode at all"
+        for name, bibcode in fields.items():
+            assert re.fullmatch(r"\d{4}[A-Za-z0-9.&]{15}", bibcode), (
+                f"gamma={gamma} field {name} is not a valid ADS bibcode, got {bibcode!r}. "
+                "A calibration without a citation is an arbitrary constant."
+            )
+
+
+def test_the_superseded_value_says_so_and_names_its_replacement():
+    """0.4 is the dominant term of the calculation whose completed form is 0.15."""
+    from erotica.analysis.dynamics import COULOMB_CALIBRATIONS, coulomb_calibration_warnings
+
+    assert COULOMB_CALIBRATIONS[0.4]["superseded_by"] == 0.15
+    reasons = coulomb_calibration_warnings(0.4, 1000, tidally_limited=False, equal_mass=True)
+    assert any("DOMINANT-TERM-ONLY" in r and "0.15" in r for r in reasons), reasons
+    # ...and the replacement is itself clean at the same call, or the guard is just noise.
+    assert coulomb_calibration_warnings(0.15, 1000, tidally_limited=False, equal_mass=True) == []
+
+
+def test_henons_closed_form_reproduces_the_registry_value_in_the_equal_mass_limit():
+    """The closed form and the registry must agree, or one of them is stale.
+
+    Henon (1975) Eq. 19 gives 0.15 for equal masses; Eq. 11 evaluated at a degenerate mass
+    spectrum must land on it. This is the only test tying COULOMB_CALIBRATIONS to a computation
+    rather than to a transcription.
+    """
+    from erotica.analysis.dynamics import (
+        COULOMB_CALIBRATIONS,
+        coulomb_argument_from_mass_function,
+    )
+
+    equal_mass = coulomb_argument_from_mass_function(lambda m: m**-2.0, 1.0, 1.0001)["gamma"]
+    assert abs(equal_mass - 0.15) < 0.001, equal_mass
+    assert 0.15 in COULOMB_CALIBRATIONS, "Henon's analytic equal-mass value is missing"
+
+
+def test_the_hub_knowledge_node_lists_the_same_values_as_the_code():
+    """The docstring says 'keep the two in step'; that instruction already failed once silently.
+
+    The kb node listed 0.15 while COULOMB_CALIBRATIONS did not. Skipped when the research hub is
+    not checked out -- the two repositories are independent and must not be merged.
+    """
+    import re
+    from pathlib import Path
+
+    node = Path.home() / "phd/kb/methods/coulomb-logarithm-argument.md"
+    if not node.is_file():
+        pytest.skip("research hub not present")
+
+    from erotica.analysis.dynamics import COULOMB_CALIBRATIONS
+
+    frontmatter = node.read_text().split("---")[1]
+    documented = {float(m) for m in re.findall(r"^\s*-\s*value:\s*([0-9.]+)", frontmatter, re.M)}
+    assert documented == set(COULOMB_CALIBRATIONS), (
+        f"kb node lists {sorted(documented)}, code has {sorted(COULOMB_CALIBRATIONS)}"
+    )

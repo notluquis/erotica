@@ -84,15 +84,50 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--realizations", type=int, default=6)
     ap.add_argument("--seed", type=int, default=515)
+    ap.add_argument("--sampler", default="numpyro", help="NUTS backend; see the note below")
     args = ap.parse_args()
 
-    cfg = SamplingConfig(draws=1000, tune=800, chains=2, random_seed=3, progressbar=False)
+    # numpyro, not the default PyMC NUTS. Measured on one cell of this exact grid
+    # (gamma = 2.5, q = 0.71, N = 60000) by scratchpad/bench_samplers.py:
+    #
+    #   pymc      243.5 s   gamma = 2.498320   a = 1.405783
+    #   numpyro    89.8 s   gamma = 2.498259   a = 1.405335    -> 2.71x, |d gamma| = 0.00006
+    #   blackjax   FAILED   TypeError: kernel() got an unexpected keyword argument 'progress_bar'
+    #
+    # The agreement is what licenses the switch: |d gamma| is ~70x below this sweep's own SEM
+    # (~0.004), so the speedup does not move the answer. A faster sampler that shifted the
+    # measurement would be worthless. blackjax 1.6.2 is incompatible with the installed PyMC.
+    cfg = SamplingConfig(draws=1000, tune=800, chains=2, random_seed=3, progressbar=False,
+                         nuts_sampler=args.sampler)
+    out = Path(__file__).with_name("ellipticity_bias.json")
+
+    # The full grid is 4 gammas x 4 axis ratios x --realizations fits: over an hour even on
+    # numpyro. Writing only at the end means a run that dies loses everything, which this one
+    # already did once. So each cell is checkpointed and a restart resumes.
+    def checkpoint(rows):
+        out.write_text(json.dumps(dict(a_true=A_TRUE, n_stars=N_STARS, field_radius=FIELD_RADIUS,
+                                       axis_ratios=list(AXIS_RATIOS), gammas=list(GAMMAS),
+                                       realizations=args.realizations, sampler=args.sampler,
+                                       complete=False, cells=rows), indent=1))
+
     rows = []
+    if out.is_file():
+        cached = json.loads(out.read_text())
+        # The sampler is part of the resume key: silently mixing backends across cells of one
+        # grid would put a between-sampler difference into a between-geometry measurement.
+        if (cached.get("realizations") == args.realizations and cached.get("n_stars") == N_STARS
+                and cached.get("sampler") == args.sampler):
+            rows = cached["cells"]
+            print(f"resuming: {len(rows)} of {len(GAMMAS) * len(AXIS_RATIOS)} cells already done\n")
+    done = {(r["gamma_true"], r["axis_ratio"]) for r in rows}
+
     print(f"elliptical EFF sampled, circular EFF fitted.  a = {A_TRUE}', N = {N_STARS}, "
           f"{args.realizations} realizations\n")
     print(f"{'gamma':>6s} {'q=b/a':>7s} {'delta gamma':>16s} {'a_fit/a':>9s} {'a_fit/(a*sqrt(q))':>18s}")
     for gamma in GAMMAS:
         for q in AXIS_RATIOS:
+            if (float(gamma), float(q)) in done:
+                continue
             gammas, scales = [], []
             for i in range(args.realizations):
                 rng = np.random.default_rng(args.seed + 100 * int(gamma * 10) + 10 * int(q * 100) + i)
@@ -111,6 +146,7 @@ def main():
                 a_fit_over_geometric_mean=float(sc.mean() / (A_TRUE * np.sqrt(q))),
             )
             rows.append(row)
+            checkpoint(rows)
             print(f"{gamma:6.1f} {q:7.2f} {row['delta_gamma']:+9.4f}+/-{row['delta_gamma_sem']:.4f}"
                   f" {row['a_fit_over_a']:9.3f} {row['a_fit_over_geometric_mean']:18.3f}", flush=True)
 
@@ -128,9 +164,9 @@ def main():
     print("  -> if that is 1, the circular fit recovers the GEOMETRIC MEAN scale radius, so a")
     print("     published circular r_c is not biased, it is a different quantity (low by sqrt(q)).")
 
-    out = Path(__file__).with_name("ellipticity_bias.json")
     out.write_text(json.dumps(dict(a_true=A_TRUE, n_stars=N_STARS, field_radius=FIELD_RADIUS,
                                    axis_ratios=list(AXIS_RATIOS), gammas=list(GAMMAS),
+                                   realizations=args.realizations, complete=True,
                                    cells=rows), indent=1))
     print(f"\nwrote {out}")
 
