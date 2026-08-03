@@ -192,3 +192,40 @@ def test_cluster_mass_propagates_into_the_jacobi_radius():
     doubled = tidal_radius_prior(2 * mass, r_gc, distance=d)["angular_size"]
     assert float(doubled / base) == pytest.approx(2 ** (1 / 3), rel=1e-6)
     assert base.to_value(u.arcmin) > 0
+
+
+def test_cmd_nearest_point_assignment_is_not_scale_invariant():
+    """Pins a documented defect rather than asserting correctness.
+
+    Nearest-neighbour matching in a colour-magnitude diagram uses a Euclidean distance between two
+    quantities with different units, so the result depends on their relative scaling -- on the plot's
+    aspect ratio, in effect. This test asserts that the dependence is **large for individual stars
+    and small for the population**, which is exactly the statement the docstring makes and the reason
+    the function may be used for a mass function but not for per-star masses.
+
+    If a future version adds error weighting or a principled metric, this test should start failing,
+    and that is the intended signal.
+    """
+    from scipy.spatial import KDTree
+
+    rng = np.random.default_rng(0)
+    t = np.linspace(0, 1, 400)
+    iso_color = np.concatenate([0.2 + 1.6 * t, 1.8 - 0.9 * t[:150]])
+    iso_mag = np.concatenate([2.0 + 8.0 * t, 10.0 - 0.3 * t[:150]])
+    iso_mass = np.concatenate([3.0 - 2.6 * t, 0.4 - 0.1 * t[:150]])
+    stars_c = rng.uniform(0.3, 1.7, 300)
+    stars_m = rng.uniform(2.5, 9.5, 300)
+
+    def assign(scale):
+        tree = KDTree(np.column_stack([iso_color * scale, iso_mag]))
+        _, idx = tree.query(np.column_stack([stars_c * scale, stars_m]))
+        return iso_mass[idx]
+
+    baseline = assign(1.0)
+    doubled = assign(2.0)
+
+    changed = np.mean(~np.isclose(doubled, baseline))
+    assert changed > 0.5, f"only {changed:.1%} of per-star masses moved; docstring claims ~97%"
+
+    median_shift = abs(np.median(doubled) / np.median(baseline) - 1)
+    assert median_shift < 0.05, f"population median moved {median_shift:.1%}; it should be robust"

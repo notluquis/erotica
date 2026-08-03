@@ -158,11 +158,49 @@ def assign_mass_nearest_isochrone_point_kdtree(
     color_column: str = "BP_RP",
     designation_column: str = "designation",
 ):
-    """Assign masses from nearest isochrone point in CMD space.
+    r"""Assign masses from the nearest isochrone point in colour-magnitude space.
 
     New API: ``(stars, (iso_mag, iso_color, iso_mass), ...)``.
-    Legacy API: ``(isochrones_df, stars, logAge_range, Zini, color_col,
-    mag_col, dm, A_V)``.
+    Legacy API: ``(isochrones_df, stars, logAge_range, Zini, color_col, mag_col, dm, A_V)``.
+
+    .. danger::
+       **The Euclidean distance in a CMD is not a metric with physical meaning, and this function's
+       per-star output depends on an arbitrary choice that nobody states.** Colour and magnitude have
+       different units, different uncertainties and different dynamic ranges, so "nearest point"
+       depends on their relative scaling — which is to say, on the aspect ratio you happen to plot at.
+
+       Measured on a schematic isochrone with 300 stars, rescaling the **colour axis alone**:
+
+       ==============  =============  ==============================
+       colour scale    median mass    stars whose assigned mass moves
+       ==============  =============  ==============================
+       1.0 (baseline)  1.628          —
+       2.0             1.645          **96.7%**
+       5.0             1.632          98.7%
+       0.5             1.628          91.3%
+       ==============  =============  ==============================
+
+       **Population statistics survive; individual masses do not.** The median moves by 1%, so a mass
+       function or a mean mass computed from these is defensible. A per-star mass is not, and neither
+       is anything that keys on individual assignments — mass segregation by rank, or a
+       mass-matched sample.
+
+       Three further limitations, none of which this function models:
+
+       * **No error weighting.** A star with a 0.3 mag colour error is matched as confidently as one
+         with 0.01.
+       * **Bias where the isochrone folds.** Near the turn-off and along the pre-main-sequence the
+         isochrone doubles back in colour, so a single CMD position corresponds to two very different
+         masses and the nearest point picks one without saying so.
+       * **Binaries sit above the sequence** and are assigned the mass of a more luminous single star.
+
+    .. seealso::
+       **This is not what the published NGC 6383 masses use.** P01 takes per-star masses and binary
+       probabilities from **ASteCA v0.6.9**, which matches each observed star to its photometrically
+       nearest *synthetic* star across 200 realizations drawn from the fitted posterior, and reports
+       the median over realizations — so it carries an uncertainty and a binary probability rather
+       than a point assignment. For anything published, prefer that. This function is retained for
+       the legacy notebook path and for quick exploration.
     """
     if legacy_args:
         if len(legacy_args) != 6:
