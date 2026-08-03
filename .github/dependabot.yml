@@ -1,0 +1,96 @@
+# Dependabot for EROTICA.
+#
+# THE TWO IDEAS THAT SHAPE THIS FILE
+# ----------------------------------
+# 1. **Security updates and version updates are different problems**, so they get different
+#    rules. `applies-to` lets one ecosystem carry both: security fixes arrive with NO cooldown
+#    and their own PR, while routine bumps are batched, delayed, and reviewed together. Without
+#    that split you either delay security patches or you drown in routine noise.
+#
+# 2. **`cooldown` is the important one, and it is new.** A release published today may be
+#    yanked tomorrow; adopting version N.0.0 on its first day means being the one who finds the
+#    regression. Waiting a few days lets other people find it instead. The delay is longest for
+#    majors, because that is where breakage lives, and ZERO for security updates, where the
+#    calculus inverts.
+#
+# WHY pip IS DELIBERATELY QUIET
+# -----------------------------
+# The real dependency resolution for this package happens through conda-forge
+# (`environment.yml`), which Dependabot cannot see. The floors in `pyproject.toml` were set from
+# a measured 389-package solve, not from convenience, so a PyPI-side bump is a prompt to re-solve
+# the conda environment, not a change to merge on sight. One batched monthly PR is a review
+# prompt; twenty weekly ones get ignored, which is worse than not running it at all.
+#
+# WHY github-actions MATTERS MORE THAN IT LOOKS
+# ---------------------------------------------
+# `publish.yml` holds `id-token: write` and trades a GitHub OIDC identity for a PyPI upload
+# token. A stale `pypa/gh-action-pypi-publish` is a supply-chain exposure on the most privileged
+# thing in this repository, not a housekeeping item.
+
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------------------
+  # GitHub Actions
+  # ---------------------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+    groups:
+      actions-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      actions:
+        applies-to: version-updates
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+      include: scope
+    labels: [infrastructure]
+    open-pull-requests-limit: 3
+
+  # ---------------------------------------------------------------------------------------
+  # Python
+  # ---------------------------------------------------------------------------------------
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      # Longer than for actions: a numerical stack regression is harder to notice than a
+      # broken CI step, because the run still passes and only the numbers move.
+      default-days: 7
+      semver-major-days: 21
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      python-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      # Split so a major bump lands in its own PR. pymc, pytensor, numpy and astropy majors
+      # have each broken something in this package's history; they deserve their own review,
+      # not a line in a batch of twelve.
+      python-major:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [major]
+      python-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: deps
+      include: scope
+    labels: [infrastructure]
+    open-pull-requests-limit: 3
+    ignore:
+      # asteca, gaiaunlimited and hr-selection-function are optional extras pinned to what the
+      # published analysis used. Bumping them silently changes a comparison baseline, which is
+      # the one thing a benchmark must not do on its own.
+      - dependency-name: asteca
+      - dependency-name: gaiaunlimited
+      - dependency-name: hr-selection-function

@@ -1,6 +1,55 @@
+# Pre-commit hooks.
+#
+# WHY THIS FILE GREW
+# ------------------
+# It used to run `nbstripout` and nothing else, while `black`, `isort`, `flake8` and `mypy` were
+# declared in the `dev` extra and executed by no hook and no CI job — configured tooling that
+# never ran (issue #3). Declared-but-unrun tooling is worse than none: it reads as a guarantee
+# and provides nothing.
+#
+# WHY ruff INSTEAD OF black + isort + flake8
+# ------------------------------------------
+# Ruff replaces all three with one tool that is orders of magnitude faster, and speed is what
+# decides whether a hook survives contact with a real commit. The `exclude` matters here
+# specifically: this repository carries a 3.2 GB `data/` tree, and a hook that walks it is a hook
+# that gets disabled — which is exactly how issue #3 happened.
+#
+# `--fix` runs BEFORE the formatter, per Ruff's own guidance: lint fixes can produce code that
+# then needs reformatting.
+#
+# mypy is deliberately NOT a hook. Its config in pyproject.toml is strict (`check_untyped_defs`,
+# `warn_unreachable`, `strict_equality`) and the package has never been run against it, so
+# enabling it here would block every commit on a backlog nobody has triaged. It belongs in a
+# dedicated pass with its own findings, not as a gate switched on by surprise.
+
+exclude: '^(data/|docs/_build/|legacy/|backups/)'
+
 repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
   - repo: https://github.com/kynan/nbstripout
     rev: 0.9.1
     hooks:
       - id: nbstripout
         exclude: \.virtual_documents/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Cheap and load-bearing: a malformed pyproject.toml or CITATION.cff breaks the build and
+      # the Zenodo deposit respectively, and both are edited by hand.
+      - id: check-toml
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      # 500 kB. The sdist was 342 MB once because data files leaked into MANIFEST.in. This
+      # catches the next one at commit time instead of at upload time, when PyPI rejects it.
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict

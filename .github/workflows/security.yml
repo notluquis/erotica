@@ -1,0 +1,52 @@
+# Static analysis of the CI configuration itself.
+#
+# WHY THIS EXISTS AND WHY IT IS NOT DECORATION
+# --------------------------------------------
+# `publish.yml` holds `id-token: write` and exchanges a GitHub OIDC identity for a PyPI upload
+# token. That is the most privileged thing in this repository: a workflow-injection or an
+# over-broad trigger there does not leak a secret, it lets someone publish under this project's
+# name. Nothing in `pytest` or `sphinx` looks at that.
+#
+# zizmor is the GitHub Actions audit tool from the same people who maintain PyPI's own tooling.
+# It catches the failure modes that are invisible in review: template injection through
+# `${{ github.event.* }}`, `pull_request_target` used with a checkout of untrusted code,
+# credential persistence, and excessive `permissions`.
+#
+# It runs on a schedule as well as on push, because a workflow that was safe when written can
+# become unsafe when an action it calls changes what it does.
+
+name: Security
+
+on:
+  push:
+    paths: [".github/workflows/**", ".github/dependabot.yml"]
+  pull_request:
+    paths: [".github/workflows/**"]
+  schedule:
+    - cron: "0 6 1 * *"     # monthly, so a newly-published advisory is noticed
+  workflow_dispatch:
+
+permissions: {}             # default to nothing; each job asks for what it needs
+
+jobs:
+  zizmor:
+    name: Audit workflows (zizmor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # to upload SARIF into the Security tab
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # zizmor flags this exact thing; do not model the bad habit
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade zizmor
+      - name: Audit
+        run: zizmor --format sarif . > zizmor.sarif
+        continue-on-error: true        # report findings, do not block the release path on them
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: zizmor.sarif
+          category: zizmor
