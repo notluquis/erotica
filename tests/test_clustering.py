@@ -780,3 +780,84 @@ class TestCoincidentRowGuard:
         assert info["max_multiplicity"] == 12
         assert info["degenerate"] is True
         assert info["n_distinct"] == 1
+
+
+class TestSoftMembershipOption:
+    """``probability_method="soft"`` replaces probabilities_ with the soft column.
+
+    Rationale in the method docstring: probabilities_ is exactly 1.0 for ~84% of an EOM-merged
+    cluster, so it cannot rank those points. These tests pin the plumbing, not the advantage --
+    the advantage is measured in tools/validation/hdbscan_config_sweep.py.
+    """
+
+    def test_rejects_an_unknown_method(self, good_data):
+        from erotica.core.clustering import Clustering
+
+        with pytest.raises(ValueError, match="probability_method"):
+            Clustering(good_data).search_pseudoprobability(
+                columns=["pmra", "pmdec"],
+                min_cluster_size_samples=range(10, 15),
+                probability_method="bogus",
+            )
+
+    def test_soft_produces_a_different_probability_and_records_it(self, good_data, bad_data):
+        from erotica.core.clustering import Clustering
+
+        common = dict(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 40),
+            min_samples=5,
+            probability_threshold=0.5,
+        )
+        hard = Clustering(good_data.copy(), bad_data)
+        hard.search_pseudoprobability(**common, probability_method="hdbscan")
+        soft = Clustering(good_data.copy(), bad_data)
+        soft.search_pseudoprobability(**common, probability_method="soft")
+
+        assert "probability_soft" in soft.data.colnames, "soft column not recorded"
+        assert "probability_soft" not in hard.data.colnames, "hdbscan path must not fabricate it"
+
+        p_hard = np.asarray(hard.data["probability"], dtype=float)
+        p_soft = np.asarray(soft.data["probability"], dtype=float)
+        assert not np.allclose(p_hard, p_soft), (
+            "soft and hdbscan produced identical probabilities — the option is not wired through"
+        )
+        assert np.all((p_soft >= 0) & (p_soft <= 1)), "probability left [0, 1]"
+
+    def test_the_saturation_this_replaces_is_real(self, good_data, bad_data):
+        """Positive control: probabilities_ really is degenerate under EOM on this frame.
+
+        If a future hdbscan stops saturating, the soft option loses its stated justification and
+        this fails first, rather than the justification quietly becoming false.
+        """
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(good_data.copy(), bad_data)
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 40),
+            min_samples=5,
+            probability_threshold=0.5,
+        )
+        p = np.asarray(clust.data["probability_hdbscan"], dtype=float)
+        in_cluster = np.asarray(clust.data["cluster_hdbscan"], dtype=int) != -1
+        frac_saturated = float((p[in_cluster] == 1.0).mean())
+        assert frac_saturated > 0.05, (
+            f"only {frac_saturated:.3f} of clustered points saturate at exactly 1.0; the "
+            "clamp that motivates probability_method='soft' is no longer present"
+        )
+
+    def test_falls_back_rather_than_raising_when_soft_is_unavailable(self, good_data):
+        """An unavailable soft vector must cost a warning, not the run."""
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(good_data.copy())
+        clust.clusterer = object()  # no prediction data, no condensed tree
+        with pytest.warns(RuntimeWarning, match="falling back to probabilities_"):
+            out = clust._soft_membership_column(selected_label=0, n_rows=10)
+        assert out is None
+
+    def test_a_negative_label_yields_no_column(self, good_data):
+        from erotica.core.clustering import Clustering
+
+        assert Clustering(good_data.copy())._soft_membership_column(-1, 10) is None
