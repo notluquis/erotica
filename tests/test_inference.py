@@ -19,12 +19,12 @@ from astropy.table import QTable
 
 import erotica.analysis.inference as inference
 from erotica.analysis.inference import (
-    ParallaxPriors,
-    SamplingConfig,
-    fit_parallax_model,
     ClusterInferenceAnalyzer,
     DistanceFitResult,
     ParallaxFitResult,
+    ParallaxPriors,
+    SamplingConfig,
+    fit_parallax_model,
 )
 
 
@@ -65,9 +65,7 @@ def _capture_useful(monkeypatch) -> dict[str, QTable]:
 
     def fake_distance_model(useful, *args, **kwargs):
         captured["useful"] = useful
-        return DistanceFitResult(
-            mu_r_mean=0.0, std_r_mean=0.0, mu_r_std=0.0, std_r_std=0.0
-        )
+        return DistanceFitResult(mu_r_mean=0.0, std_r_mean=0.0, mu_r_std=0.0, std_r_std=0.0)
 
     def fake_fit_parallax_model(useful, *args, **kwargs):
         captured["useful_parallax"] = useful
@@ -133,7 +131,7 @@ requires_bayes_extra = pytest.mark.skipif(
 )
 
 TRUE_PARALLAX = 0.90  # mas  -> ~1.11 kpc, the NGC 6383 regime
-TRUE_SPREAD = 0.05    # mas
+TRUE_SPREAD = 0.05  # mas
 
 
 def _synthetic_parallaxes(n=400, seed=20260727):
@@ -293,10 +291,12 @@ def test_an_independent_distance_still_gives_an_informative_prior():
 
 
 def test_bad_parallax_errors_are_rejected():
-    table = QTable({
-        "parallax": np.linspace(0.8, 1.0, 10) * u.mas,
-        "parallax_error": np.concatenate([[0.0], np.full(9, 0.05)]) * u.mas,
-    })
+    table = QTable(
+        {
+            "parallax": np.linspace(0.8, 1.0, 10) * u.mas,
+            "parallax_error": np.concatenate([[0.0], np.full(9, 0.05)]) * u.mas,
+        }
+    )
     with pytest.raises(ValueError, match="finite and positive"):
         fit_parallax_model(table, parallax_error_column="parallax_error")
 
@@ -337,15 +337,33 @@ def _pm_table(n=400, seed=9, corr=0.4):
     e_ra = np.repeat(PM_ERROR_SCALE, n // 4) * rng.uniform(0.8, 1.2, n)
     e_dec = np.repeat(PM_ERROR_SCALE, n // 4) * rng.uniform(0.8, 1.2, n)
     rho = np.full(n, corr)
-    truth = rng.normal(
-        [TRUE_PM["mu_ra"], TRUE_PM["mu_dec"]], TRUE_PM["sigma_int"], size=(n, 2)
-    )
+    truth = rng.normal([TRUE_PM["mu_ra"], TRUE_PM["mu_dec"]], TRUE_PM["sigma_int"], size=(n, 2))
     obs = np.empty_like(truth)
     for i in range(n):
-        c = np.array([[e_ra[i] ** 2, rho[i] * e_ra[i] * e_dec[i]],
-                      [rho[i] * e_ra[i] * e_dec[i], e_dec[i] ** 2]])
+        c = np.array(
+            [
+                [e_ra[i] ** 2, rho[i] * e_ra[i] * e_dec[i]],
+                [rho[i] * e_ra[i] * e_dec[i], e_dec[i] ** 2],
+            ]
+        )
         obs[i] = rng.multivariate_normal(truth[i], c)
     return obs[:, 0], obs[:, 1], e_ra, e_dec, rho
+
+
+def _assert_no_divergences(res, label: str) -> None:
+    """Gate on the divergence COUNT, which is what the RuntimeWarning filter gave up.
+
+    ``pytest.ini`` escalates RuntimeWarning to an error, and NUTS signals a divergent
+    trajectory by overflowing its kinetic-energy dot product to +inf. Escalating that
+    ABORTS sampling at the first divergence, so the run dies before anyone can see whether
+    it was one benign transition or a broken geometry. The warning is now scoped out for
+    ``pymc.step_methods.hmc`` and the gate lives here instead: a real problem still fails,
+    and fails with a number rather than a warning.
+    """
+    trace = getattr(res, "trace", None)
+    assert trace is not None, f"{label}: return_trace=True did not return a trace"
+    n_div = int(trace.sample_stats["diverging"].sum())
+    assert n_div == 0, f"{label}: {n_div} divergent transitions"
 
 
 @requires_bayes_extra
@@ -356,16 +374,25 @@ def test_per_star_covariance_separates_dispersion_from_measurement_noise():
     # cores=1: the batched (n, 2, 2) covariance kills PyMC's multiprocess workers
     # with EOFError on this machine. Sequential sampling is correct and slower,
     # which is the right trade for a test.
-    cfg = SamplingConfig(draws=800, tune=800, chains=2, random_seed=4, progressbar=False,
-                         extra_kwargs={"cores": 1})
+    cfg = SamplingConfig(
+        draws=800, tune=800, chains=2, random_seed=4, progressbar=False, extra_kwargs={"cores": 1}
+    )
 
-    naive = proper_motion_2d_gaussian(ra, dec, sampling=cfg)
+    naive = proper_motion_2d_gaussian(ra, dec, sampling=cfg, return_trace=True)
     aware = proper_motion_2d_gaussian(
-        ra, dec, pm_ra_error=e_ra, pm_dec_error=e_dec, pm_ra_dec_corr=rho, sampling=cfg
+        ra,
+        dec,
+        pm_ra_error=e_ra,
+        pm_dec_error=e_dec,
+        pm_ra_dec_corr=rho,
+        sampling=cfg,
+        return_trace=True,
     )
 
     assert aware.metadata["error_aware"] is True
     assert naive.metadata["error_aware"] is False
+    _assert_no_divergences(naive, "proper_motion naive")
+    _assert_no_divergences(aware, "proper_motion covariance-aware")
 
     # the covariance-aware fit recovers the injected intrinsic dispersion.
     # ABSOLUTE tolerance -- see the parallax test. The old `< 4 * std` form let a
@@ -417,12 +444,13 @@ def test_pm_error_validation():
     with pytest.raises(ValueError, match="both"):
         proper_motion_2d_gaussian(ra, dec, pm_ra_error=np.full(20, 0.1))
     with pytest.raises(ValueError, match="positive"):
-        proper_motion_2d_gaussian(
-            ra, dec, pm_ra_error=np.zeros(20), pm_dec_error=np.full(20, 0.1)
-        )
+        proper_motion_2d_gaussian(ra, dec, pm_ra_error=np.zeros(20), pm_dec_error=np.full(20, 0.1))
     with pytest.raises(ValueError, match="strictly inside"):
         proper_motion_2d_gaussian(
-            ra, dec, pm_ra_error=np.full(20, 0.1), pm_dec_error=np.full(20, 0.1),
+            ra,
+            dec,
+            pm_ra_error=np.full(20, 0.1),
+            pm_dec_error=np.full(20, 0.1),
             pm_ra_dec_corr=np.full(20, 1.0),
         )
 
@@ -440,16 +468,18 @@ TRUE_DIST = {"mu": 1.11, "depth": 0.020}  # kpc; 20 pc of real depth
 
 def _distance_table(n=200, seed=13):
     rng = np.random.default_rng(seed)
-    frac = rng.uniform(0.04, 0.14, n)              # Bailer-Jones fractional errors
+    frac = rng.uniform(0.04, 0.14, n)  # Bailer-Jones fractional errors
     sigma = frac * TRUE_DIST["mu"]
     true_r = rng.normal(TRUE_DIST["mu"], TRUE_DIST["depth"], n)
     obs = true_r + rng.normal(0.0, sigma)
-    return QTable({
-        "r_med_geo": obs * u.kpc,
-        "r_lo_geo": (obs - sigma) * u.kpc,          # 16th percentile
-        "r_hi_geo": (obs + sigma) * u.kpc,          # 84th percentile
-        "parallax": (1.0 / obs) * u.mas,
-    }), sigma
+    return QTable(
+        {
+            "r_med_geo": obs * u.kpc,
+            "r_lo_geo": (obs - sigma) * u.kpc,  # 16th percentile
+            "r_hi_geo": (obs + sigma) * u.kpc,  # 84th percentile
+            "parallax": (1.0 / obs) * u.mas,
+        }
+    ), sigma
 
 
 @requires_bayes_extra
@@ -457,17 +487,24 @@ def test_bailer_jones_bounds_separate_depth_from_catalogue_error():
     from erotica.analysis.inference import distance_model
 
     table, sigma = _distance_table()
-    cfg = SamplingConfig(draws=800, tune=800, chains=2, random_seed=8, progressbar=False,
-                         extra_kwargs={"cores": 1})
+    cfg = SamplingConfig(
+        draws=800, tune=800, chains=2, random_seed=8, progressbar=False, extra_kwargs={"cores": 1}
+    )
 
-    naive = distance_model(table, sampling=cfg)
+    naive = distance_model(table, sampling=cfg, return_trace=True)
     aware = distance_model(
-        table, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo", sampling=cfg
+        table,
+        distance_lo_column="r_lo_geo",
+        distance_hi_column="r_hi_geo",
+        sampling=cfg,
+        return_trace=True,
     )
 
     assert naive.metadata["error_aware"] is False
     assert aware.metadata["error_aware"] is True
     assert naive.metadata["prior"] == aware.metadata["prior"] == "scale-free"
+    _assert_no_divergences(naive, "distance naive")
+    _assert_no_divergences(aware, "distance error-aware")
 
     # both find the cluster distance
     for res in (naive, aware):
@@ -493,14 +530,16 @@ def test_distance_priors_do_not_depend_on_the_data():
 
     rng = np.random.default_rng(2)
     cfg = SamplingConfig(draws=400, tune=400, chains=1, random_seed=0, progressbar=False)
-    near = QTable({"r_med_geo": rng.normal(0.4, 0.02, 150) * u.kpc,
-                   "parallax": np.full(150, 2.5) * u.mas})
-    far = QTable({"r_med_geo": rng.normal(4.0, 0.20, 150) * u.kpc,
-                  "parallax": np.full(150, 0.25) * u.mas})
+    near = QTable(
+        {"r_med_geo": rng.normal(0.4, 0.02, 150) * u.kpc, "parallax": np.full(150, 2.5) * u.mas}
+    )
+    far = QTable(
+        {"r_med_geo": rng.normal(4.0, 0.20, 150) * u.kpc, "parallax": np.full(150, 0.25) * u.mas}
+    )
     a = distance_model(near, sampling=cfg)
     b = distance_model(far, sampling=cfg)
     p = DistancePriors()
-    assert p.mu_lower < 0.4 and p.mu_upper > 4.0     # one fixed support spans both
+    assert p.mu_lower < 0.4 and p.mu_upper > 4.0  # one fixed support spans both
     assert abs(a.mu_r_mean - 0.4) < 0.05
     assert abs(b.mu_r_mean - 4.0) < 0.30
 
@@ -508,12 +547,13 @@ def test_distance_priors_do_not_depend_on_the_data():
 def test_distance_bound_validation():
     from erotica.analysis.inference import distance_model
 
-    t = QTable({"r_med_geo": np.linspace(1.0, 1.2, 20) * u.kpc,
-                "parallax": np.full(20, 0.9) * u.mas})
+    t = QTable(
+        {"r_med_geo": np.linspace(1.0, 1.2, 20) * u.kpc, "parallax": np.full(20, 0.9) * u.mas}
+    )
     with pytest.raises(ValueError, match="both"):
         distance_model(t, distance_lo_column="r_med_geo")
     t["lo"] = np.linspace(1.0, 1.2, 20) * u.kpc
-    t["hi"] = np.linspace(0.9, 1.1, 20) * u.kpc      # hi < lo everywhere
+    t["hi"] = np.linspace(0.9, 1.1, 20) * u.kpc  # hi < lo everywhere
     with pytest.raises(ValueError, match="must exceed"):
         distance_model(t, distance_lo_column="lo", distance_hi_column="hi")
 
@@ -527,7 +567,7 @@ TRUE_V = {"mu": 3.5, "sigma_int": 0.4}  # km/s; a realistic OC internal dispersi
 
 def _velocity_sample(n=300, seed=17):
     rng = np.random.default_rng(seed)
-    errors = rng.uniform(0.8, 3.0, n)             # typical Gaia-era RV errors, km/s
+    errors = rng.uniform(0.8, 3.0, n)  # typical Gaia-era RV errors, km/s
     truth = rng.normal(TRUE_V["mu"], TRUE_V["sigma_int"], n)
     return truth + rng.normal(0.0, errors), errors
 
@@ -545,7 +585,7 @@ def test_velocity_errors_separate_dispersion_from_measurement_noise():
     assert naive.metadata["error_aware"] is False
     assert aware.metadata["error_aware"] is True
 
-    assert abs(aware.std_v_mean - TRUE_V["sigma_int"]) < 0.25   # absolute, not N*std
+    assert abs(aware.std_v_mean - TRUE_V["sigma_int"]) < 0.25  # absolute, not N*std
     assert aware.std_v_std < 0.35
     assert naive.std_v_mean > 2 * aware.std_v_mean
     for res in (naive, aware):
@@ -571,8 +611,8 @@ def test_velocity_dispersion_prior_is_not_eighty_times_too_wide():
             pm.sample_prior_predictive(draws=8000, random_seed=0).prior["std_v"].values
         ).ravel()
 
-    assert (draws < 2.0).mean() > 0.6          # most mass where open clusters live
-    assert (draws > 5.0).mean() > 0.005        # but a hot cluster is still reachable
+    assert (draws < 2.0).mean() > 0.6  # most mass where open clusters live
+    assert (draws > 5.0).mean() > 0.005  # but a hot cluster is still reachable
     # the old Uniform(0, 40) put only ~5% of its mass below 2 km/s
     assert (np.random.default_rng(0).uniform(0, 40, 8000) < 2.0).mean() < 0.10
 
@@ -613,7 +653,7 @@ def test_zero_point_nuisance_widens_the_mean_parallax_by_the_systematic_floor():
     # The floor is asserted as a LITERAL, not read from the dataclass the model
     # also reads. The old form compared the model against its own constant, so
     # hardcoding a different floor inside the model passed.
-    PUBLISHED_FLOOR_MAS = 0.0103   # Maiz Apellaniz+2021, A&A 649, A13
+    PUBLISHED_FLOOR_MAS = 0.0103  # Maiz Apellaniz+2021, A&A 649, A13
     assert ParallaxPriors().zero_point_scale == pytest.approx(PUBLISHED_FLOOR_MAS)
     expected = np.hypot(plain.mu_parallax_std, PUBLISHED_FLOOR_MAS)
     assert withzp.mu_parallax_std == pytest.approx(expected, rel=0.12)
@@ -639,8 +679,8 @@ def test_zero_point_nuisance_widens_the_mean_parallax_by_the_systematic_floor():
 # accidentally land on the injected value.
 # ---------------------------------------------------------------------------
 
-WRAPPER_TRUE_DEPTH_KPC = 0.005     # 5 pc of line-of-sight depth
-WRAPPER_DISTANCE_ERR_KPC = 0.050   # 50 pc per-star Bailer-Jones error, 10x larger
+WRAPPER_TRUE_DEPTH_KPC = 0.005  # 5 pc of line-of-sight depth
+WRAPPER_DISTANCE_ERR_KPC = 0.050  # 50 pc per-star Bailer-Jones error, 10x larger
 WRAPPER_MU_R_KPC = 1.11
 
 
@@ -677,7 +717,11 @@ def _wrapper_fit(table, **kwargs):
     analyzer = ClusterInferenceAnalyzer(
         table,
         sampling=SamplingConfig(
-            draws=600, tune=600, chains=2, random_seed=21, progressbar=False,
+            draws=600,
+            tune=600,
+            chains=2,
+            random_seed=21,
+            progressbar=False,
             extra_kwargs={"cores": 1},
         ),
     )
@@ -706,8 +750,7 @@ def test_the_wrapper_default_puts_per_star_errors_into_both_likelihoods():
 
     # --- parallax: intrinsic depth, not measurement scatter ------------------
     assert abs(aware["sigma_parallax_mean"] - TRUE_INTRINSIC) < 0.004, (
-        f"intrinsic parallax spread {aware['sigma_parallax_mean']:.5f} "
-        f"vs injected {TRUE_INTRINSIC}"
+        f"intrinsic parallax spread {aware['sigma_parallax_mean']:.5f} vs injected {TRUE_INTRINSIC}"
     )
     # The posterior must also be INFORMATIVE, not merely centred. A recovery test
     # in a non-identifiable regime cannot fail for the reason it was written --
@@ -723,8 +766,7 @@ def test_the_wrapper_default_puts_per_star_errors_into_both_likelihoods():
 
     # --- distance: the Bailer-Jones bounds must reach distance_model ---------
     assert abs(aware["std_r_mean"] - WRAPPER_TRUE_DEPTH_KPC) < 0.010, (
-        f"cluster depth {aware['std_r_mean']:.4f} kpc vs injected "
-        f"{WRAPPER_TRUE_DEPTH_KPC} kpc"
+        f"cluster depth {aware['std_r_mean']:.4f} kpc vs injected {WRAPPER_TRUE_DEPTH_KPC} kpc"
     )
     # Without the bounds, std_r absorbs the 50 pc per-star error as if it were depth.
     assert naive["std_r_mean"] > 3 * WRAPPER_TRUE_DEPTH_KPC
@@ -747,7 +789,7 @@ def test_the_wrapper_default_carries_the_gaia_systematic_floor():
     """
     table = _wrapper_table(n=120)
 
-    withzp = _wrapper_fit(table)                     # default is zero_point=True
+    withzp = _wrapper_fit(table)  # default is zero_point=True
     without = _wrapper_fit(table, zero_point=False)
 
     PUBLISHED_FLOOR_MAS = 0.0103  # Maiz Apellaniz+2021, A&A 649, A13
@@ -792,15 +834,18 @@ def test_input_validation_does_not_require_the_bayes_extra(monkeypatch):
     Raising ``ImportError`` first hides the real defect from anyone without the
     optional extra -- and made eight input-validation tests unrunnable in CI.
     """
+
     def no_pymc():
         raise ImportError("PyMC is required for erotica.analysis.inference.")
 
     monkeypatch.setattr(inference, "_require_pymc", no_pymc)
 
-    bad = QTable({
-        "parallax": np.linspace(0.8, 1.0, 10) * u.mas,
-        "parallax_error": np.concatenate([[0.0], np.full(9, 0.05)]) * u.mas,
-    })
+    bad = QTable(
+        {
+            "parallax": np.linspace(0.8, 1.0, 10) * u.mas,
+            "parallax_error": np.concatenate([[0.0], np.full(9, 0.05)]) * u.mas,
+        }
+    )
     with pytest.raises(ValueError, match="finite and positive"):
         inference.fit_parallax_model(bad, parallax_error_column="parallax_error")
 
@@ -809,12 +854,12 @@ def test_input_validation_does_not_require_the_bayes_extra(monkeypatch):
             QTable({"parallax": np.linspace(0.8, 1.0, 10) * u.mas}), prior_type="lognormal"
         )
 
-    dist = QTable({
-        "r_med_geo": np.linspace(1.0, 1.2, 10) * u.kpc,
-        "r_lo_geo": np.linspace(1.1, 1.3, 10) * u.kpc,   # lo above hi
-        "r_hi_geo": np.linspace(1.0, 1.2, 10) * u.kpc,
-    })
+    dist = QTable(
+        {
+            "r_med_geo": np.linspace(1.0, 1.2, 10) * u.kpc,
+            "r_lo_geo": np.linspace(1.1, 1.3, 10) * u.kpc,  # lo above hi
+            "r_hi_geo": np.linspace(1.0, 1.2, 10) * u.kpc,
+        }
+    )
     with pytest.raises(ValueError, match="must exceed"):
-        inference.distance_model(
-            dist, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo"
-        )
+        inference.distance_model(dist, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo")
