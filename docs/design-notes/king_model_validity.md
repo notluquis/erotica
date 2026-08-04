@@ -137,11 +137,36 @@ That is the expected state for a 4 Myr cluster (Pang et al. 2022: filamentary/fr
 than for a better-constrained King fit.
 ```
 
-**43% of the p > 0.6 "members" lie beyond the Jacobi radius** — 272 of 627 within 70′. They are
-either genuinely unbound halo/tail stars or membership contamination; either way a bound-cluster
-King profile cannot describe them, and they are what drags `R_t` past `r_J`. P01 already declines to
-classify the wide-field additions as confirmed halo members or contaminants; this quantifies how
-much of the fitted sample is at stake.
+**43% of the p > 0.6 "members" lie beyond the Jacobi radius** — 272 of 627 within 70′. A
+bound-cluster King profile cannot describe them, and they are what drags `R_t` past `r_J`. P01
+already declines to classify the wide-field additions as confirmed halo members or contaminants;
+this quantifies how much of the fitted sample is at stake.
+
+```{important}
+**MEASURED 2026-08-04, and the "either unbound halo or contamination" dichotomy above is wrong —
+it is mostly a third thing.** See `tools/validation/b1_beyond_jacobi.py` and its sidecar.
+
+* **Contamination is excluded.** The target–decoy false-discovery proportion beyond `r_J` is
+  **0.038** (median over realisations), flat-to-falling with radius across 4′ annuli, far below the
+  0.20 at which Pang+2022 §4.2 report an artificial halo appearing.
+* **The 43% figure was never evidence in either direction.** On field-only frames with no cluster
+  injected, decoy selections land **70.8%** beyond `r_J` against a 70.7% area fraction — so 43.5%
+  is *below* pure-field expectation. Do not quote it as a finding.
+* **The pipeline does not manufacture halos.** A truncated synthetic cluster (truth max radius
+  37.11′, matched PM centroid, dispersion, parallax and photometry) recovers 289 members with
+  contamination 0.000 and **zero** beyond `r_J`.
+* **What it actually is:** 179 of the 271 members beyond `r_J` (**66.1%**) fall inside catalogued
+  comoving clusters — **Antalova 2** and **Theia 1645** — against a 33.3% outer-catalogue null
+  (binomial p = 4.6×10⁻²⁸). On the untouched photometric axis they are indistinguishable from the
+  inner cluster sequence (KS p = 0.18) and far from field (p = 1.8×10⁻³³): real young stars of the
+  same complex, admitted by a proper-motion-only membership. The residual 92 are neither.
+
+Proper-motion coherence of the outer population is **circular** — those stars were selected for it
+— and is deliberately not used as evidence.
+
+So `R_t` is still dragged past `r_J`, and the mechanism is now known: the sample mixes NGC 6383
+with its comoving neighbours. That is a membership-scope problem, not a profile-model problem.
+```
 
 
 ## Model comparison: King vs EFF vs Plummer
