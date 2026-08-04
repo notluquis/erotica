@@ -861,3 +861,79 @@ class TestSoftMembershipOption:
         from erotica.core.clustering import Clustering
 
         assert Clustering(good_data.copy())._soft_membership_column(-1, 10) is None
+
+
+class TestEffectiveHyperparameters:
+    """``match_reference_implementation`` shifts both knobs, so the reported value is not the used one.
+
+    hdbscan_.py:743-746 applies ``min_samples -= 1`` and ``min_cluster_size += 1`` when the flag is
+    set. This package sets it by default, so every published ``min_cluster_size`` from a sweep is
+    the REQUESTED number while the fit ran at one higher. The legacy NGC 6383 notebook named a
+    variable ``effective_mcs`` and stored the requested value in it, which is exactly the confusion
+    these keys exist to end.
+    """
+
+    def test_effective_differs_from_requested_when_the_flag_is_on(self, good_data):
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(good_data.copy())
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 25),
+            min_samples=12,
+            probability_threshold=0.5,
+        )
+        sel = clust.pseudoprobability_selected_
+        assert sel["effective_min_cluster_size"] == sel["requested_min_cluster_size"] + 1
+        assert sel["effective_min_samples"] == sel["requested_min_samples"] - 1
+        assert sel["match_reference_implementation"] is True
+
+    def test_no_shift_when_the_flag_is_off(self, good_data):
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(good_data.copy())
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 25),
+            min_samples=12,
+            probability_threshold=0.5,
+            match_reference_implementation=False,
+        )
+        sel = clust.pseudoprobability_selected_
+        assert sel["effective_min_cluster_size"] == sel["requested_min_cluster_size"]
+        assert sel["effective_min_samples"] == sel["requested_min_samples"]
+
+    def test_the_flag_actually_changes_the_labelling(self):
+        """Positive control. If the flag became inert, the reported delta would be a fiction and
+        the whole justification for keeping it (measured +0.02 ROC held-out) would be stale.
+
+        Uses a CONTAMINATED frame, not `good_data`. Two clean well-separated blobs are found
+        identically whichever way the flag goes -- the first version of this test used them and
+        passed vacuously. The +/-1 shift only bites where it can land on either side of a
+        cluster-selection boundary, which needs a field for the boundary to be near.
+        """
+        import hdbscan
+
+        tbl = _make_contaminated_qtable(n_cluster=60, n_field=600, seed=5)
+        X = np.column_stack([np.asarray(tbl["pmra"], float), np.asarray(tbl["pmdec"], float)])
+        # min_cluster_size=10, not 20: at 20 and above BOTH settings find nothing on this frame,
+        # so "identical" is trivially true and the test passes while measuring nothing. Measured
+        # sweep on this exact fixture -- mcs 10: 150 vs 131 clustered, 15: 140 vs 127,
+        # 20 and above: 0 vs 0. The second version of this test used 20 and passed vacuously.
+        common = dict(
+            min_cluster_size=10,
+            min_samples=10,
+            algorithm="best",
+            cluster_selection_method="eom",
+            allow_single_cluster=False,
+            metric="euclidean",
+        )
+        a = hdbscan.HDBSCAN(**common, match_reference_implementation=True).fit(X).labels_
+        b = hdbscan.HDBSCAN(**common, match_reference_implementation=False).fit(X).labels_
+        assert (a != -1).sum() > 0 and (b != -1).sum() > 0, (
+            "neither setting found a cluster, so this frame cannot discriminate between them"
+        )
+        assert not np.array_equal(a, b), (
+            "match_reference_implementation no longer changes the labelling; the measured "
+            "justification for keeping it on is stale and must be re-run"
+        )

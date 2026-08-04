@@ -148,6 +148,7 @@ class Clustering:
         select_cluster: bool = True,
         probability_method: str = "hdbscan",
         approx_min_span_tree: bool = False,
+        match_reference_implementation: bool = True,
         hdbscan_kwargs: dict | None = None,
     ) -> None:
         """Sweep min_cluster_size, build pseudoprobability, select best cluster.
@@ -195,6 +196,59 @@ class Clustering:
                Cost: ``prediction_data=True`` on the final fit only. Measured 4.9 s for n=12000
                with 3 clusters -- ``all_points_membership_vectors`` does linear scans per
                (point, cluster) pair, so it is superlinear in cluster count.
+        match_reference_implementation
+            Match the original Java HDBSCAN* reference implementation. Default ``True``, which
+            is what this package has always used — but it was hardcoded and unexplained until
+            2026-08-04, and it is the flag that actually moves the numbers.
+
+            .. important::
+               **It does FOUR things, not the three the hdbscan source lists**
+               (``hdbscan_.py:743-746``)::
+
+                   min_samples        -= 1
+                   min_cluster_size   += 1
+                   approx_min_span_tree = False
+                   + an extra -1 assignment in do_labelling (_hdbscan_tree.pyx:508-512)
+
+               The fourth was found because ``mri=True`` is **not** reproducible by applying the
+               three documented shifts by hand.
+
+               ⚠ **The +/-1 shifts mean the effective hyperparameters are not the ones passed.**
+               ``min_cluster_size=N`` runs at ``N+1`` and ``min_samples=M`` at ``M-1``. Anything
+               quoting a swept ``min_cluster_size`` from a run with this flag is off by one, and
+               the legacy NGC 6383 notebook names a variable ``effective_mcs`` while storing the
+               *requested* value — so the published "optimal min cluster size" labels are the
+               requested numbers, not the effective ones. ``pseudoprobability_selected_`` now
+               carries ``effective_min_cluster_size`` and ``effective_min_samples`` so a caller
+               can report what actually ran.
+
+               **On real data it is not cosmetic.** Largest-cluster membership on the NGC 6383
+               catalogues, ``mri=True`` versus ``False``::
+
+                   radius  mcs   mriT    mriF   Jaccard
+                     40'    50   6241    8926    0.6992
+                     50'    50  24236   15439    0.6370
+                     60'    50  28041   40138    0.6986
+                     70'   150  29329   47134    0.6222
+                     (the other four configurations)  0.99+
+
+               Four of eight configurations disagree on ~35% of the membership, and one differs
+               by 60% in count. The pattern is erratic in both radius and ``mcs``, which is the
+               signature of the +/-1 landing on either side of a cluster-selection boundary.
+
+               **Kept True because it is measurably better, held-out.** Paired against injected
+               truth, identical frames, 8 seeds held out of 16::
+
+                   metric   block      delta (False - True)   wins False
+                   ROC      HELD-OUT      -0.0208 +- 0.0053      9/32
+                   AP       HELD-OUT      -0.0202 +- 0.0062     11/32
+                   purity   HELD-OUT      +0.0116 +- 0.0333     15/32
+                   recall   HELD-OUT      -0.0001 +- 0.0625      2/32
+
+               Turning it off costs ~4 standard errors of ROC and ~3 of average precision, and
+               the effect is LARGER held-out than in training. Purity and recall are unchanged.
+               So the flag earns its place on discrimination, and that is now measured rather
+               than inherited.
         approx_min_span_tree
             Whether to let hdbscan build an **approximate** minimum spanning tree. Default
             ``False``, i.e. exact — which is *not* hdbscan's own default.
@@ -276,7 +330,7 @@ class Clustering:
             "cluster_selection_method": "eom",
             "allow_single_cluster": False,
             "metric": "euclidean",
-            "match_reference_implementation": True,
+            "match_reference_implementation": bool(match_reference_implementation),
             # EXACT minimum spanning tree by default, not hdbscan's approximate one. This is a
             # named parameter rather than a buried default BECAUSE IT CHANGES RESULTS -- see the
             # `approx_min_span_tree` entry in this method's docstring.
@@ -401,9 +455,23 @@ class Clustering:
         self.best_score_ = selected["lambda_value"]
         self.pseudoprobability_results_ = results
         self.pseudoprobability_sweep_track_ = sweep_track
+        # Record the EFFECTIVE hyperparameters, not just the requested ones.
+        # match_reference_implementation silently shifts both (hdbscan_.py:743-746), so
+        # `min_cluster_size=N` runs at N+1 and `min_samples=M` at M-1. Reporting the requested
+        # value is how a published "optimal min_cluster_size" ends up off by one -- the legacy
+        # NGC 6383 notebook even named a variable `effective_mcs` while storing the requested
+        # number. Both are kept so a caller can quote whichever it means, and say which.
+        _req_mcs = int(selected["min_cluster_size"])
+        _req_ms = int(min_samples) if min_samples is not None else _req_mcs
+        _shift = 1 if match_reference_implementation else 0
         self.pseudoprobability_selected_ = {
             **selected,
             "probability_times": final_probability_times.copy(),
+            "requested_min_cluster_size": _req_mcs,
+            "requested_min_samples": _req_ms,
+            "effective_min_cluster_size": _req_mcs + _shift,
+            "effective_min_samples": _req_ms - _shift,
+            "match_reference_implementation": bool(match_reference_implementation),
         }
         self._annotate_pseudoprobability_results(
             probability_times=final_probability_times,
