@@ -143,10 +143,16 @@ convergence diagnostics stay attached to the numbers they describe. When a trace
 sidecar records the git commit and dirty flag, the random seeds, tracked dependency versions,
 and a \textsc{blake2b} checksum of every input file.
 
-\TODO{Note the trace-identity design: the archive index is allocated against what is on disk and
-resolved by comparing posterior draws, not taken from the clock. A timestamp fails both
-properties an identity needs --- it is not unique under sub-second writes, and it is not
-content-derived, so one trace stored twice yields two indistinguishable archives.}
+The archive index that names a trace is an \emph{allocated identifier} rather than a clock
+reading. This is a small design point with a general moral. A timestamp fails both properties an
+identity needs: it is not unique, so two fits stored within one second overwrite each other while
+both summary rows survive --- a loop silently loses traces and the summary table still claims they
+exist --- and it is not content-derived, so storing one trace twice yields two indistinguishable
+archives. The index is therefore seeded from the clock, so the archive stays sortable, then
+resolved against what is already on disk by comparing the posterior \emph{draws}. Comparing files
+would not work, because NetCDF embeds creation metadata and two writes of one trace are never
+byte-identical; comparing summaries would be weaker still, since distinct posteriors can share a
+mean and a standard deviation.
 
 %-------------------------------------------------------------------------------
 \section{Validation against injected truth}
@@ -155,11 +161,32 @@ content-derived, so one trace stored twice yields two indistinguishable archives
 \subsection{Recoverability, and three negative results}
 \label{sec:recoverability}
 
-\TODO{The EFF slope estimator is biased high at sample sizes typical of the \emph{Gaia} census
-and the bias shrinks with $N$; a free background term fabricates a background where the injected
-truth is exactly zero and biases the slope upward by $5.8\sigma$; fitting a circular profile to
-an elliptical cluster biases the slope \emph{downward}, toward the value at which EFF and an
-untruncated King profile coincide. Sidecars: eff\_gamma\_bias*.json, ellipticity\_bias.json.}
+Three systematics of the EFF index $\gamma$ are measured against injected truth. All three are
+negative results, and stating them is the point: each would be read as physics by a survey-scale
+comparison that did not correct for it.
+
+\paragraph{Finite-sample bias.} With the background pinned, $\gamma$ is recovered high at the
+sample sizes typical of the \emph{Gaia} cluster census, and the bias shrinks monotonically with
+$N$: at $\gamma_{\rm true} = 2$ it measures $+0.142 \pm 0.105$ at $N=20$, $+0.047 \pm 0.054$ at
+$N=60$, $+0.023 \pm 0.019$ at $N=628$ and $-0.005 \pm 0.006$ at $N=5000$
+%<- tools/validation/eff_gamma_bias.py, eff_gamma_bias_pinnedbg.json
+. A survey-scale comparison of slopes would therefore read a selection-independent artefact as
+physics, with sparse clusters appearing systematically steeper than rich ones.
+
+\paragraph{A free background fabricates one.} Allowing the background amplitude to float biases
+$\gamma$ \emph{upward} even where the injected background is exactly zero. The size of the
+artefact depends on the profile being measured, so no single offset corrects it; the term must be
+pinned, and the null cell in which this surfaced was present only as a formality.
+
+\paragraph{Circular fits to elliptical clusters bias $\gamma$ toward 2.} Fitting a circular
+profile to an elliptical cluster pulls the recovered index \emph{down}, and it does so toward the
+value at which EFF and an untruncated King profile coincide --- so an apparent pile-up at
+$\gamma \approx 2$ can be an artefact of assumed geometry. The effect is strongly
+$\gamma$-dependent: $-0.364$ at $\gamma_{\rm true} = 4$, $q = 0.3$, falling to $-0.092$ at
+$\gamma = 3$ and $\leq 0.03$ at $\gamma = 2$
+%<- tools/validation/ellipticity_bias.py, ellipticity_bias.json
+. That last number matters for \S\ref{sec:a5}: the systematic can steepen the recovered tail of a
+$\gamma \approx 2$ population, but it cannot manufacture one.
 
 \subsection{The EFF index across the \emph{Gaia} census}
 \label{sec:a5}
