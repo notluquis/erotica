@@ -23,6 +23,14 @@
 benchmark_erotica_vs_asteca.json
 benchmark_threeway_adaptive.json
 
+# Raw per-fit rows from the HDBSCAN config screen: 11.5 MB for 2700 fits, i.e. the same
+# checkpoint-wearing-a-sidecar's-name defect as the two files above. Regenerable with
+# `hdbscan_config_sweep.py`. The pattern IS fixed here rather than only flagged: that script now
+# also writes `hdbscan_config_sweep.summary.json` (278 KB, committed), which carries mean/sd/n/
+# min/max per (factor, level, variant) for the eleven metrics a conclusion is quoted from. Quote
+# the summary; the raw file exists only to recompute it.
+hdbscan_config_sweep.json
+
 # Cached VizieR pulls. Same contract as `hr24_clusters.ecsv`: the fetch script, not the
 # file, is the source of truth, so a stale catalogue cannot silently persist.
 # `hr24_members.parquet` is 37 MB / 1291929 rows, regenerable with
