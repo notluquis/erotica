@@ -263,11 +263,68 @@ its raw calibration error.
 \section{Application: NGC 6383}
 \label{sec:ngc6383}
 
-\TODO{Depends on A1 and B1, both running. A1: selection-corrected radial density profile at a
-resolution that actually resolves $R_c=1.38'$ --- note that an all-sky map at $27.5'$ pixels
-cannot answer this by construction, and a flat efficiency from it means invisible, not absent.
-B1: whether the 43\% of members beyond the Jacobi radius is a real unbound population or an
-artefact of contamination above the $\sim$20\% threshold at which an artificial halo appears.}
+\subsection{Does the selection function change the core radius? Two corrections that cancel}
+\label{sec:a1}
+
+Folding the survey selection function into the likelihood normalisation suppresses the core by
+$2.37\%$ within $R_c$ --- measured with an adaptive \texttt{patch} map, not the all-sky product,
+which at order 10 under-reads the real $0.32$ mag central depression \emph{six-fold}
+%<- tools/validation/a1_patch_selection_function.py, a1_patch_selection_function.json
+. Acting alone it would shift $R_c$ by $-0.033'$. But the published parallax clip acts on the same
+stars in the opposite direction, \emph{over}-retaining the core by $9.97\%$
+%<- tools/validation/a1_pipeline_selection.py, a1_pipeline_selection.json
+, and the two selections act in series, so their efficiencies multiply. Composed correctly,
+$\Delta R_c = +0.0016'$, or $0.008\sigma$
+%<- tools/validation/a1_selection_corrected_rdp.py, a1_selection_corrected_rdp.json
+. The published value is unchanged, and reporting either correction on its own would have
+announced a revision that the other half of the physics undoes.
+
+\paragraph{A bound, not a resolving null.} No selection map obtainable for this cluster resolves
+$R_c = 1.38'$: the adaptive scheme reaches $3.36'$ inside $R_c$ at its default subdivision
+threshold, and the more aggressive setting that does reach $1.73'$ places only nine pixels inside
+$R_c$ --- where the core magnitude limit's \emph{scatter} doubles while its mean barely moves, the
+signature of small-sample noise rather than structure. We therefore report a bound over
+$1.73$--$3.4'$ rather than a null. This distinction is not pedantry: a map coarser than the
+structure it is asked about returns "flat", and flat means \emph{invisible}, not \emph{absent}.
+
+The methodological point generalises. $R_c$ responds to the \emph{shape} of the efficiency within
+a few core radii, not to its aperture-averaged value: the survey curve varies there and moves
+$R_c$ $1.6\times$ more than an aperture argument predicts, while the pipeline curve is flat below
+its innermost bin and moves it $4\times$ less.
+
+\subsection{The population beyond the Jacobi radius belongs to the neighbours}
+\label{sec:b1}
+
+$43\%$ of high-probability members lie outside the Jacobi radius, a figure that invites reading as
+an unbound corona. Three measurements say otherwise, and the first retires the figure itself.
+
+On realisations with no cluster injected, the membership selects $70.8\%$ of its stars beyond
+$r_J$ against a $70.7\%$ area fraction
+%<- tools/validation/b1_beyond_jacobi.py, b1_beyond_jacobi.json
+--- so $43\%$ is \emph{below} what pure field produces. It is an area statistic, not a halo
+statistic. Second, contamination is excluded on its own terms: a target--decoy false-discovery
+proportion, transplanted from proteomics, measures $0.038$ beyond $r_J$, flat to falling with
+radius, against the $\sim$$0.20$ at which \citet{pang2022} report an artificial halo appearing. A
+manufactured halo produces a \emph{rising} profile; this is the opposite shape. Third, the
+pipeline does not manufacture halos at all: a truncated synthetic cluster matched in proper-motion
+centroid, dispersion, parallax and photometry recovers its members with contamination $0.000$ and
+\emph{none} beyond $r_J$.
+
+What the outer population is becomes visible only on an axis the membership never used. Of the
+271 members beyond $r_J$, \textbf{179 ($66.1\%$) fall inside catalogued comoving clusters} ---
+Antalova 2 and Theia 1645, both within $0.011$ mas in parallax and $0.55$ mas\,yr$^{-1}$ in proper
+motion --- against a $33.3\%$ expectation from catalogue coverage ($p = 4.6\times10^{-28}$). On the
+untouched photometric axis they are indistinguishable from the inner cluster sequence
+($p = 0.18$) and far from field ($p = 1.8\times10^{-33}$): real young stars of the same complex,
+admitted by a proper-motion-only membership. Their proper-motion coherence is \emph{not} offered as
+evidence, since it is the property they were selected for.
+
+The consequence for structural fitting is that $R_t$ is dragged past $r_J$ by a
+\textbf{membership-scope} problem rather than a profile-model one, and no choice of $\Sigma(r)$
+repairs it. It also sharpens the question a cluster-membership method has to answer: not "is this
+star field contamination?", which a decoy null can settle, but "does this star belong to \emph{this}
+cluster or to its comoving sibling?", which no contamination metric can flag, because such stars
+are genuine cluster members of a different cluster.
 
 %-------------------------------------------------------------------------------
 \section{Conclusions}

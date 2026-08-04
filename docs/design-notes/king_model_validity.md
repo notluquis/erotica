@@ -257,25 +257,46 @@ diagnostic only (`ngc6383_selection_function_hpx7.npz`) and must not be used as 
 `mode='multi'` is **precomputed and archive-free**, and reaches healpix order 10 (**3.44′**), which
 does resolve radial structure across the field. Running it on NGC 6383 gives a **real but negligible**
 gradient. **The number first recorded here, 0.258%, was a resolution artefact and is superseded:**
-order 10 (3.44′) resolves the field but not the core. Running `mode='patch'` (order 6–12, 0.86′) on
-the identical sample gives **1.156%** — a **4.5× under-read**. NGC 6383's `M_10` profile has a
-genuine centred depression of **0.36 mag** (20.474 at centre → 20.838 at 70′) that order 10 largely
-misses, reading 20.724 at the centre.
+order 10 (3.44′) resolves the field but not the core. NGC 6383's `M_10` profile has a genuine
+centred depression that order 10 largely misses.
 
-Against the note's own synthetic benchmark — computed exactly, not estimated: the repo's
-`_crowding_completeness` gives a **50.44%** core suppression under this aperture — a 1.2% gradient
-moves nothing. Fitting with the order-12 `S̄(r)` shifts `R_c` by **−0.01σ**. **For this cluster the
-Gaia DR3 selection-function correction to the radial profile is not needed** — but the *number* to
-quote is 1.156%, not 0.258%. `mode='patch'` (order 12, 0.86′) would still resolve inside
-the core and remains worth running when the ESA archive is up, but the expected payoff is now small.
+```{important}
+**RUN 2026-08-04, and the 1.156% this section used to quote was never measured.** That figure was
+asserted here while the same section said patch mode was *"Still to do"*, and no patch-mode output
+existed on disk — yet `tools/validation/completeness_bias_scaling.py` hardcoded it as
+`NGC6383_MEASURED_SUPPRESSION`, so every prediction derived from it was **2× low**. Both are now
+corrected. Measured: `tools/validation/a1_patch_selection_function.py` + sidecar.
 
-This does not weaken the corollary above — it strengthens it. Gaia's completeness is flat *and* ~1
-for this sample, so the selection acting on it really is the pipeline's own.
+| map | resolution inside `R_c` | core suppression |
+|---|---|---|
+| `multi` (order 10) | 3.88′ | +0.387 % |
+| **`patch`, `min_points=20`** | 3.36′ | **+2.371 %** ← the defensible number |
+| `patch`, `min_points=5` | 1.73′ | +4.562 % — **artefact**, see below |
+
+Two corrections to what this section assumed:
+
+* **`mode='patch'` does not reach order 12 here at the default `min_points=20`** — 343 pixels at
+  order 11, 1188 at order 10, 342 at order 9. "Order-12 patch mode" named a configuration that does
+  not occur in this field. Order 12 needs `min_points=5`, and only **9** order-12 pixels fall
+  inside `R_c`.
+* **The `min_points=5` excess is an artefact.** Core `M_10` mean barely moves (20.5136 → 20.4371)
+  while its sd **doubles** (0.314 → 0.758) and the field is unchanged — small-sample median noise
+  through the `m10_to_completeness` sigmoid. Subdivision is density-driven, so core and field end
+  up measured at *different* resolutions.
+
+**No `S̄(r)` obtainable for this cluster resolves `R_c` = 1.38′.** This is a bound at 1.73–3.4′,
+not a resolving null, and must not be quoted as one. The real depression is 0.32 mag (20.51 core
+vs 20.83 field), which the order-10 all-sky map under-reads **six-fold**.
+
+**The conclusion nevertheless holds, for a better reason.** Composed with the published parallax
+clip — which over-retains the core by −9.97%, opposite in sign — the survey's +2.37% cancels:
+Δ`R_c` = **+0.0016′ = 0.008σ**. See `a1_selection_corrected_rdp.json`. Reporting either arm alone
+would have been a correction to a published paper that the other half of the physics undoes.
+
+⚠ **The corollary flips.** "The selection acting on this sample is the pipeline's own" was true of
+the **published** clip (4.2× the survey's value, opposite sign) and is **no longer true of the
+shipped one**, which measures −0.36%, p = 0.76 — indistinguishable from the null.
 ```
-
-**Still to do:** `mode='patch'` (order 12, ~0.86′) needs a live ESA Gaia archive query; the archive
-was in a maintenance window on 2026-07-27 (HTTP 500, then a failed SSL handshake). The script is
-written and its output is aligned to the 256-node quadrature grid the weighted normalisation uses.
 
 
 ## The selection that actually acts on this sample is the pipeline's, not the survey's
