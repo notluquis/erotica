@@ -1,0 +1,4638 @@
+{
+  "generated_utc": "2026-08-04T16:39:00Z",
+  "wall_clock_s": 375.67445325000153,
+  "environment": {
+    "python": "3.13.14",
+    "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "executable": "/Users/notluquis/miniforge3/envs/erotica-bench/bin/python",
+    "packages": {
+      "numpy": "2.5.1",
+      "scikit-learn": "1.9.0",
+      "hdbscan": "0.8.44",
+      "erotica": "0.1.0"
+    }
+  },
+  "config": {
+    "out": "/Users/notluquis/erotica/tools/validation/soft_column_alignment.json",
+    "mcs_lo": 10,
+    "mcs_hi": 100,
+    "n_grid": "30,61,150",
+    "cont_grid": "0.5,0.8,0.95",
+    "dim_grid": "1.6,3.0",
+    "realisations": "0,3"
+  },
+  "summary": {
+    "verdict": "BUG CONFIRMED, LATENT (2/46 cells have a non-identity mapping; every one was intercepted by the bounds guard, so no wrong column was read)",
+    "n_cells": 72,
+    "n_cells_with_cluster": 46,
+    "n_cells_ge3_clusters": 2,
+    "ascending": "46/46",
+    "present_labels_contiguous": "44/46",
+    "mapping_is_identity": "44/46",
+    "naive_reads_wrong_column": "0/46",
+    "guard_intercepted": "2/46",
+    "exemplar_oracle_ok": "46/46",
+    "auc_assignment_identity": "14/46",
+    "n_columns_equals_n_clusters": "46/46",
+    "rows_distinct": "72/72",
+    "selected_column_is_argmax_ap": "38/46",
+    "ap_selected_column": {
+      "mean": 0.43688237798220997,
+      "sem": 0.04197982065308144,
+      "n": 44
+    },
+    "ap_tgt": {
+      "mean": 0.8332521438556957,
+      "sem": 0.04296236273616928,
+      "n": 46
+    },
+    "mean_soft_sel_in_target": {
+      "mean": 0.3965521211369225,
+      "sem": 0.012206094463744908,
+      "n": 44
+    },
+    "mean_soft_sel_out_target": {
+      "mean": 0.2090925970767642,
+      "sem": 0.015134363635483561,
+      "n": 44
+    },
+    "row_sum_mean": {
+      "mean": 0.5398484179405962,
+      "sem": 0.026031939732955787,
+      "n": 44
+    },
+    "purity_selected": {
+      "mean": 0.8588175947783894,
+      "sem": 0.04490501618105711,
+      "n": 46
+    }
+  },
+  "cells": [
+    {
+      "selection": "max_persistence",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 2.6396077090030303,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 5000,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 2.647241375001613,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 5000,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 2.6384554160031257,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 5003,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 3.6756642079999438,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 5003,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.6322515829961048,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 5010,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.1561468750005588,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 5010,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.1913927080022404,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 5013,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 60,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.19916979099798482,
+      "n_members": 30,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 5013,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 3.03161491699575,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 12,
+        "1": 14
+      },
+      "select_clusters_raw": [
+        151,
+        152
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        150,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "0": 12
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "1": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 0.5733333333333334,
+      "ap_by_column": [
+        1.0,
+        1.0
+      ],
+      "ap_selected_column": 1.0,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          1.0,
+          0.9101890756302521
+        ],
+        [
+          0.9196859903381643,
+          0.9810924369747899
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.5011406335972521,
+      "mean_soft_sel_out_target": 0.15057335142606718,
+      "row_sum_mean": 0.3689171775777762,
+      "frac_nonmembers_over_half": 0.007352941176470588,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 8000,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 2.192512291003368,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 12,
+        "1": 14
+      },
+      "select_clusters_raw": [
+        151,
+        152
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        150,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "0": 12
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "1": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 0.5733333333333334,
+      "ap_by_column": [
+        1.0,
+        1.0
+      ],
+      "ap_selected_column": 1.0,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          1.0,
+          0.9101890756302521
+        ],
+        [
+          0.9196859903381643,
+          0.9810924369747899
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.5011406335972521,
+      "mean_soft_sel_out_target": 0.15057335142606718,
+      "row_sum_mean": 0.3689171775777762,
+      "frac_nonmembers_over_half": 0.007352941176470588,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 8000,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 3.73371312499512,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 31,
+        "1": 40
+      },
+      "select_clusters_raw": [
+        151,
+        152
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        150,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "1": 12
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.5249560618701885,
+        0.3099499720592665
+      ],
+      "ap_selected_column": 0.5249560618701885,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8354567633505016,
+          0.8488636363636364
+        ],
+        [
+          0.7449173217674167,
+          0.9320454545454546
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.40133585778088204,
+      "mean_soft_sel_out_target": 0.18121890842810448,
+      "row_sum_mean": 0.5199572671829634,
+      "frac_nonmembers_over_half": 0.058823529411764705,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 8003,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 4.738014500006102,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 31,
+        "1": 40
+      },
+      "select_clusters_raw": [
+        151,
+        152
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        150,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "1": 12
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.5249560618701885,
+        0.3099499720592665
+      ],
+      "ap_selected_column": 0.5249560618701885,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8354567633505016,
+          0.8488636363636364
+        ],
+        [
+          0.7449173217674167,
+          0.9320454545454546
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.40133585778088204,
+      "mean_soft_sel_out_target": 0.18121890842810448,
+      "row_sum_mean": 0.5199572671829634,
+      "frac_nonmembers_over_half": 0.058823529411764705,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 8003,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 6.317376375009189,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 8010,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 6.916249000001699,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 8010,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.5095464159967378,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 8013,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 150,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 5.652684250002494,
+      "n_members": 30,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 8013,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 16.251086125004804,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 16,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 30,
+        "1": 171
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 17,
+          "n_matched": 17,
+          "labels": {
+            "0": 17
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 17,
+          "n_matched": 17,
+          "labels": {
+            "1": 17
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 1.0,
+      "ap_by_column": [
+        0.48506084980526326,
+        0.10794359177977386
+      ],
+      "ap_selected_column": 0.48506084980526326,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9334502923976608,
+          0.9437696806117859
+        ],
+        [
+          0.7901754385964913,
+          0.977630556577925
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.468778822307826,
+      "mean_soft_sel_out_target": 0.15454670886232683,
+      "row_sum_mean": 0.41988711815119434,
+      "frac_nonmembers_over_half": 0.02456140350877193,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 9500,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 11.111350750012207,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 29,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 94,
+        "1": 31
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 30,
+          "n_matched": 30,
+          "labels": {
+            "0": 30
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 30,
+          "n_matched": 30,
+          "labels": {
+            "1": 30
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.0,
+      "ap_tgt": 0.05,
+      "ap_by_column": [
+        0.12473586628689715,
+        0.24096231470951665
+      ],
+      "ap_selected_column": 0.12473586628689715,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8237322344630392,
+          0.7158569079879812
+        ],
+        [
+          0.7066899335631991,
+          0.8087193151539203
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.6024752756398821,
+      "mean_soft_sel_out_target": 0.45261734175418195,
+      "row_sum_mean": 0.7753334302682354,
+      "frac_nonmembers_over_half": 0.37351778656126483,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 9500,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 8.863789041992277,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 31,
+        "1": 245
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 13,
+          "n_matched": 13,
+          "labels": {
+            "1": 13
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.25356045536752275,
+        0.07699251406460544
+      ],
+      "ap_selected_column": 0.25356045536752275,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8024831339645104,
+          0.9526760563380282
+        ],
+        [
+          0.6902885651114008,
+          0.9750043115837884
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3661347561670105,
+      "mean_soft_sel_out_target": 0.18749565691732445,
+      "row_sum_mean": 0.4865412499304557,
+      "frac_nonmembers_over_half": 0.01757469244288225,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 9503,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 10.140631292000762,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 30,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 31,
+        "1": 75
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 31,
+          "n_matched": 31,
+          "labels": {
+            "0": 31
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 31,
+          "n_matched": 31,
+          "labels": {
+            "1": 31
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.0,
+      "ap_tgt": 0.05,
+      "ap_by_column": [
+        0.10755452173565745,
+        0.1856505311924798
+      ],
+      "ap_selected_column": 0.1856505311924798,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.720675775270707,
+          0.7054984126984126
+        ],
+        [
+          0.7690912183230342,
+          0.7970539682539682
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.6060003025555419,
+      "mean_soft_sel_out_target": 0.4756308711389817,
+      "row_sum_mean": 0.8018683853938021,
+      "frac_nonmembers_over_half": 0.4533333333333333,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 9503,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 9.097559874993749,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 198,
+        "1": 30
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "1": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 1.0,
+      "ap_by_column": [
+        0.10544114278141625,
+        0.34213126678961603
+      ],
+      "ap_selected_column": 0.34213126678961603,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8642896627971255,
+          0.6844444444444444
+        ],
+        [
+          0.7817855168601437,
+          0.7633918128654972
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.4119821027966353,
+      "mean_soft_sel_out_target": 0.2857030729942385,
+      "row_sum_mean": 0.6629702803708131,
+      "frac_nonmembers_over_half": 0.010526315789473684,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 9510,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 14.717842792000738,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 30,
+      "n_clusters": 1,
+      "labels_present": [
+        1
+      ],
+      "cluster_sizes": {
+        "1": 134
+      },
+      "select_clusters_raw": [
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": false,
+      "label_of_column": [
+        1
+      ],
+      "mapping_is_identity": false,
+      "soft_shape": [
+        600,
+        1
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": false,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": true,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 1,
+          "n_exemplars": 31,
+          "n_matched": 31,
+          "labels": {
+            "1": 31
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.0,
+      "ap_tgt": 0.05,
+      "ap_by_column": [
+        0.18181818181818182
+      ],
+      "ap_selected_column": null,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          1.0
+        ]
+      ],
+      "auc_assignment": [
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 9510,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 12.363385708013084,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 31,
+        "1": 70
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 23,
+          "n_matched": 23,
+          "labels": {
+            "1": 23
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.3431138653420485,
+        0.2183544704444439
+      ],
+      "ap_selected_column": 0.3431138653420485,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9173989455184535,
+          0.9660107816711592
+        ],
+        [
+          0.8938715346674981,
+          0.9851212938005391
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.37843586378941535,
+      "mean_soft_sel_out_target": 0.17454194134988937,
+      "row_sum_mean": 0.45220388417939156,
+      "frac_nonmembers_over_half": 0.01757469244288225,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 9513,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 600,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 7.946886042002006,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 31,
+        "1": 70
+      },
+      "select_clusters_raw": [
+        601,
+        602
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        600,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 23,
+          "n_matched": 23,
+          "labels": {
+            "1": 23
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.3431138653420485,
+        0.2183544704444439
+      ],
+      "ap_selected_column": 0.3431138653420485,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9173989455184535,
+          0.9660107816711592
+        ],
+        [
+          0.8938715346674981,
+          0.9851212938005391
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.37843586378941535,
+      "mean_soft_sel_out_target": 0.17454194134988937,
+      "row_sum_mean": 0.45220388417939156,
+      "frac_nonmembers_over_half": 0.01757469244288225,
+      "n_members": 30,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 9513,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.6069922909955494,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 6000,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.6849542499985546,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 6000,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.829565417006961,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 6003,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 2.0391603330062935,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 6003,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.9223888749984326,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 6010,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.6481301669991808,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 6010,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 1.5310877500014612,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 6013,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 122,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 2.0166456660081167,
+      "n_members": 61,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 6013,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 3.666206958005205,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 14,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 62,
+        "1": 19
+      },
+      "select_clusters_raw": [
+        306,
+        307
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "0": 15
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 16,
+          "n_matched": 16,
+          "labels": {
+            "1": 16
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9838709677419355,
+      "ap_tgt": 0.9838709677419355,
+      "ap_by_column": [
+        0.8412311491076536,
+        0.5854695137786464
+      ],
+      "ap_selected_column": 0.8412311491076536,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9618345944510819,
+          0.8761501656238498
+        ],
+        [
+          0.9292446568432232,
+          0.9793890320206109
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.37520337076874405,
+      "mean_soft_sel_out_target": 0.07584996174140188,
+      "row_sum_mean": 0.3189498698929317,
+      "frac_nonmembers_over_half": 0.00411522633744856,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 9000,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 3.7631612500117626,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 12,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 62,
+        "1": 19
+      },
+      "select_clusters_raw": [
+        306,
+        307
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 13,
+          "n_matched": 13,
+          "labels": {
+            "0": 13
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "1": 15
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9838709677419355,
+      "ap_tgt": 0.9838709677419355,
+      "ap_by_column": [
+        0.8242565013780884,
+        0.5931000684148007
+      ],
+      "ap_selected_column": 0.8242565013780884,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.958117615823709,
+          0.8884799411115201
+        ],
+        [
+          0.9291119076065313,
+          0.9795730585204269
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.37475018671648247,
+      "mean_soft_sel_out_target": 0.07436345729501037,
+      "row_sum_mean": 0.3092727065646094,
+      "frac_nonmembers_over_half": 0.00823045267489712,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 9000,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 4.379334875004133,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 13,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 38,
+        "1": 65
+      },
+      "select_clusters_raw": [
+        306,
+        307
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 19,
+          "n_matched": 19,
+          "labels": {
+            "0": 19
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 14,
+          "n_matched": 14,
+          "labels": {
+            "1": 14
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9384615384615385,
+      "ap_tgt": 0.9384615384615385,
+      "ap_by_column": [
+        0.14227375448874732,
+        0.2725779101220813
+      ],
+      "ap_selected_column": 0.2725779101220813,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8582692686773112,
+          0.238974358974359
+        ],
+        [
+          0.7623694066627242,
+          0.39211538461538464
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.28712389147214906,
+      "mean_soft_sel_out_target": 0.31900384906407725,
+      "row_sum_mean": 0.7491511440658255,
+      "frac_nonmembers_over_half": 0.04583333333333333,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 9003,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 3.0934247910045087,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 15,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 65,
+        "1": 27
+      },
+      "select_clusters_raw": [
+        306,
+        307
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 16,
+          "n_matched": 16,
+          "labels": {
+            "0": 16
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 16,
+          "n_matched": 16,
+          "labels": {
+            "1": 16
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9384615384615385,
+      "ap_tgt": 0.9384615384615385,
+      "ap_by_column": [
+        0.6759457121278758,
+        0.5116660206782704
+      ],
+      "ap_selected_column": 0.6759457121278758,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9050641025641025,
+          0.9348521183053556
+        ],
+        [
+          0.8914743589743589,
+          0.982414068745004
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.2919251660667124,
+      "mean_soft_sel_out_target": 0.09644634023353107,
+      "row_sum_mean": 0.32051512786230846,
+      "frac_nonmembers_over_half": 0.004166666666666667,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 9003,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 4.5648213749955175,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 63,
+        "1": 85
+      },
+      "select_clusters_raw": [
+        306,
+        307
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "1": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9523809523809523,
+      "ap_tgt": 0.940046838407494,
+      "ap_by_column": [
+        0.5354315294235409,
+        0.288589901621908
+      ],
+      "ap_selected_column": 0.5354315294235409,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8364817001180638,
+          0.8437967914438503
+        ],
+        [
+          0.7190738554374918,
+          0.9310695187165776
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.4210271920887082,
+      "mean_soft_sel_out_target": 0.18585192554218635,
+      "row_sum_mean": 0.5126736777916503,
+      "frac_nonmembers_over_half": 0.06198347107438017,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 9010,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 2.9405442499992205,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 16,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 63,
+        "1": 34
+      },
+      "select_clusters_raw": [
+        306,
+        307
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 18,
+          "n_matched": 18,
+          "labels": {
+            "0": 18
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 17,
+          "n_matched": 17,
+          "labels": {
+            "1": 17
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9523809523809523,
+      "ap_tgt": 0.940046838407494,
+      "ap_by_column": [
+        0.7215962711861007,
+        0.45646223535164665
+      ],
+      "ap_selected_column": 0.7215962711861007,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9246359700905155,
+          0.8737790319079661
+        ],
+        [
+          0.8609471336744063,
+          0.9608204905578468
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.4142499739964152,
+      "mean_soft_sel_out_target": 0.12488481728841962,
+      "row_sum_mean": 0.4125484511286561,
+      "frac_nonmembers_over_half": 0.028925619834710745,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 9010,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 2.3294689999893308,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 3,
+      "labels_present": [
+        0,
+        1,
+        2
+      ],
+      "cluster_sizes": {
+        "0": 15,
+        "1": 68,
+        "2": 13
+      },
+      "select_clusters_raw": [
+        307,
+        308,
+        309
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1,
+        2
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        3
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "0": 15
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "1": 12
+          }
+        },
+        {
+          "column": 2,
+          "expected_label": 2,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "2": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.8970588235294118,
+      "ap_tgt": 0.8970588235294118,
+      "ap_by_column": [
+        0.16251891347550318,
+        0.46091504400659244,
+        0.17703703783857627
+      ],
+      "ap_selected_column": 0.46091504400659244,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.7197701149425287,
+          0.32756267063787536,
+          0.6775553213909379
+        ],
+        [
+          0.6742528735632184,
+          0.6342144452717797,
+          0.5326659641728135
+        ],
+        [
+          0.8126436781609195,
+          0.3615661454455199,
+          0.8029504741833509
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.31635940340306495,
+      "mean_soft_sel_out_target": 0.24425040486072427,
+      "row_sum_mean": 0.7995610492152568,
+      "frac_nonmembers_over_half": 0.016877637130801686,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 9013,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 305,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 2.349136874996475,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 3,
+      "labels_present": [
+        0,
+        1,
+        2
+      ],
+      "cluster_sizes": {
+        "0": 15,
+        "1": 68,
+        "2": 13
+      },
+      "select_clusters_raw": [
+        307,
+        308,
+        309
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1,
+        2
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        305,
+        3
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "0": 15
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "1": 12
+          }
+        },
+        {
+          "column": 2,
+          "expected_label": 2,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "2": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.8970588235294118,
+      "ap_tgt": 0.8970588235294118,
+      "ap_by_column": [
+        0.16251891347550318,
+        0.46091504400659244,
+        0.17703703783857627
+      ],
+      "ap_selected_column": 0.46091504400659244,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.7197701149425287,
+          0.32756267063787536,
+          0.6775553213909379
+        ],
+        [
+          0.6742528735632184,
+          0.6342144452717797,
+          0.5326659641728135
+        ],
+        [
+          0.8126436781609195,
+          0.3615661454455199,
+          0.8029504741833509
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.31635940340306495,
+      "mean_soft_sel_out_target": 0.24425040486072427,
+      "row_sum_mean": 0.7995610492152568,
+      "frac_nonmembers_over_half": 0.016877637130801686,
+      "n_members": 61,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 9013,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 14.738059791008709,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 13,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 222,
+        "1": 62
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 32,
+          "n_matched": 32,
+          "labels": {
+            "0": 32
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 14,
+          "n_matched": 14,
+          "labels": {
+            "1": 14
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.9526969857218403,
+      "ap_by_column": [
+        0.03940808270035373,
+        0.11331729423375626
+      ],
+      "ap_selected_column": 0.11331729423375626,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8249652458069292,
+          0.3836703994651513
+        ],
+        [
+          0.7055868493744246,
+          0.5897543038609392
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3345165326715173,
+      "mean_soft_sel_out_target": 0.2858527640215944,
+      "row_sum_mean": 0.7725721986437671,
+      "frac_nonmembers_over_half": 0.04404145077720207,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 10500,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 22.215305417004856,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 29,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 64,
+        "1": 110
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 30,
+          "n_matched": 30,
+          "labels": {
+            "0": 30
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 32,
+          "n_matched": 32,
+          "labels": {
+            "1": 32
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.953125,
+      "ap_tgt": 0.953125,
+      "ap_by_column": [
+        0.37582413026716666,
+        0.24174350577011433
+      ],
+      "ap_selected_column": 0.37582413026716666,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9315257352941176,
+          0.970982800982801
+        ],
+        [
+          0.9156033737024221,
+          0.9856101556101556
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.35347291388279817,
+      "mean_soft_sel_out_target": 0.10121890664675003,
+      "row_sum_mean": 0.30578771025482226,
+      "frac_nonmembers_over_half": 0.01124567474048443,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 10500,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 6.772416250008973,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 60,
+        "1": 532
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 19,
+          "n_matched": 19,
+          "labels": {
+            "0": 19
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 26,
+          "n_matched": 26,
+          "labels": {
+            "1": 26
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 0.9844262295081967,
+      "ap_by_column": [
+        0.23799873363707444,
+        0.058635876498397334
+      ],
+      "ap_selected_column": 0.23799873363707444,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8195258620689655,
+          0.9462728405315616
+        ],
+        [
+          0.6198132183908046,
+          0.9842165369819899
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.39059158362857294,
+      "mean_soft_sel_out_target": 0.19331037855886393,
+      "row_sum_mean": 0.5275502386598206,
+      "frac_nonmembers_over_half": 0.027586206896551724,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 10503,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 9.79993037499662,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 58,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 59,
+        "1": 73
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 59,
+          "n_matched": 59,
+          "labels": {
+            "0": 59
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 59,
+          "n_matched": 59,
+          "labels": {
+            "1": 59
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.0,
+      "ap_tgt": 0.05,
+      "ap_by_column": [
+        0.16528117489821936,
+        0.13306114010032358
+      ],
+      "ap_selected_column": 0.13306114010032358,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.7664491452429962,
+          0.730422424191757
+        ],
+        [
+          0.7510328617936028,
+          0.792370806511328
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.6139012981911195,
+      "mean_soft_sel_out_target": 0.47944686056832164,
+      "row_sum_mean": 0.792863415064046,
+      "frac_nonmembers_over_half": 0.44986922406277247,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 10503,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 10.155843792002997,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 60,
+        "1": 453
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 47,
+          "n_matched": 47,
+          "labels": {
+            "1": 47
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.95,
+      "ap_tgt": 0.890983606557377,
+      "ap_by_column": [
+        0.18432052970473492,
+        0.0633714423484542
+      ],
+      "ap_selected_column": 0.18432052970473492,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8242959770114943,
+          0.9497224069005414
+        ],
+        [
+          0.6587356321839081,
+          0.9865707682522139
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3588267897973937,
+      "mean_soft_sel_out_target": 0.17989975592679447,
+      "row_sum_mean": 0.5343299781719443,
+      "frac_nonmembers_over_half": 0.021551724137931036,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 10510,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 9.22490587500215,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 58,
+      "n_clusters": 1,
+      "labels_present": [
+        1
+      ],
+      "cluster_sizes": {
+        "1": 141
+      },
+      "select_clusters_raw": [
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": false,
+      "label_of_column": [
+        1
+      ],
+      "mapping_is_identity": false,
+      "soft_shape": [
+        1220,
+        1
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": false,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": true,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 1,
+          "n_exemplars": 59,
+          "n_matched": 59,
+          "labels": {
+            "1": 59
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.0,
+      "ap_tgt": 0.05,
+      "ap_by_column": [
+        0.27273567440048074
+      ],
+      "ap_selected_column": null,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          1.0
+        ]
+      ],
+      "auc_assignment": [
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 10510,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 3.2445954159920802,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 278,
+        "1": 64
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 35,
+          "n_matched": 35,
+          "labels": {
+            "0": 35
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "1": 11
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9375,
+      "ap_tgt": 0.9229508196721311,
+      "ap_by_column": [
+        0.03851304817208119,
+        0.10707439694184068
+      ],
+      "ap_selected_column": 0.10707439694184068,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8171424643724511,
+          0.3652681660899654
+        ],
+        [
+          0.7006942216927095,
+          0.6280276816608996
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.37093401209658805,
+      "mean_soft_sel_out_target": 0.31809515669366173,
+      "row_sum_mean": 0.815423170779794,
+      "frac_nonmembers_over_half": 0.06314878892733564,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 10513,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 1220,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 3.4113250840018736,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 12,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 65,
+        "1": 294
+      },
+      "select_clusters_raw": [
+        1221,
+        1222
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        1220,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 14,
+          "n_matched": 14,
+          "labels": {
+            "0": 14
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 26,
+          "n_matched": 26,
+          "labels": {
+            "1": 26
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9230769230769231,
+      "ap_tgt": 0.9087641866330392,
+      "ap_by_column": [
+        0.23550668276430373,
+        0.1014269257989436
+      ],
+      "ap_selected_column": 0.23550668276430373,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8641891441891442,
+          0.9636796403226517
+        ],
+        [
+          0.7786080586080586,
+          0.988491941052879
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.376752790821189,
+      "mean_soft_sel_out_target": 0.16484235483864754,
+      "row_sum_mean": 0.43883990210578205,
+      "frac_nonmembers_over_half": 0.027705627705627706,
+      "n_members": 61,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 10513,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.5083200829976704,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 7000,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.5148318330029724,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 7000,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "runtime_s": 0.5025769170024432,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 10,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 12,
+        "1": 132
+      },
+      "select_clusters_raw": [
+        301,
+        302
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        300,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 11,
+          "n_matched": 11,
+          "labels": {
+            "0": 11
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 23,
+          "n_matched": 23,
+          "labels": {
+            "1": 23
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 0.94,
+      "ap_by_column": [
+        1.0000000000000002,
+        1.0000000000000002
+      ],
+      "ap_selected_column": 1.0000000000000002,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          1.0,
+          0.9216720779220781
+        ],
+        [
+          0.6163194444444444,
+          0.987238455988456
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.5477695497691066,
+      "mean_soft_sel_out_target": 0.14775877819110086,
+      "row_sum_mean": 0.5770263737977834,
+      "frac_nonmembers_over_half": 0.017857142857142856,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 7003,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "runtime_s": 0.49425820900069084,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 16,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 38,
+        "1": 51
+      },
+      "select_clusters_raw": [
+        301,
+        302
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        300,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 17,
+          "n_matched": 17,
+          "labels": {
+            "0": 17
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 17,
+          "n_matched": 17,
+          "labels": {
+            "1": 17
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 1.0,
+      "ap_tgt": 0.6699999999999999,
+      "ap_by_column": [
+        1.0000000000000002,
+        1.0000000000000002
+      ],
+      "ap_selected_column": 1.0000000000000002,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9442547207713942,
+          0.8783368769194424
+        ],
+        [
+          0.8846926476496586,
+          0.9281045751633987
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.4751782720423974,
+      "mean_soft_sel_out_target": 0.17319955265242326,
+      "row_sum_mean": 0.44884598797128056,
+      "frac_nonmembers_over_half": 0.012048192771084338,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 1.6,
+      "seed": 7003,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.39573720800399315,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 7010,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.4018191250070231,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 7010,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.4292384169966681,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 7013,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 300,
+      "base_rate": 0.5,
+      "rows_distinct": true,
+      "error": "RuntimeError: Pseudo-probability search did not find candidate clusters.",
+      "runtime_s": 0.5630526250024559,
+      "n_members": 150,
+      "contamination": 0.5,
+      "fractal_dimension": 3.0,
+      "seed": 7013,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 1.130403083996498,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 14,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 37,
+        "1": 149
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "0": 15
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 30,
+          "n_matched": 30,
+          "labels": {
+            "1": 30
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9932885906040269,
+      "ap_tgt": 0.9827114093959732,
+      "ap_by_column": [
+        0.25828957006189707,
+        0.457312191049636
+      ],
+      "ap_selected_column": 0.457312191049636,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.799552708388613,
+          0.5750036292979264
+        ],
+        [
+          0.7105871650051173,
+          0.7109515460809167
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.42879811232873505,
+      "mean_soft_sel_out_target": 0.3290470751482887,
+      "row_sum_mean": 0.7747276076091151,
+      "frac_nonmembers_over_half": 0.0632279534109817,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 10000,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 1.0814451670012204,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 17,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 149,
+        "1": 19
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 36,
+          "n_matched": 36,
+          "labels": {
+            "0": 36
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 18,
+          "n_matched": 18,
+          "labels": {
+            "1": 18
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9932885906040269,
+      "ap_tgt": 0.9827114093959732,
+      "ap_by_column": [
+        0.8947954798923897,
+        0.824112854693019
+      ],
+      "ap_selected_column": 0.8947954798923897,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9829367162112363,
+          0.8891928864569084
+        ],
+        [
+          0.97798970396096,
+          0.9350565195478436
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.4583333053171486,
+      "mean_soft_sel_out_target": 0.11088289172655755,
+      "row_sum_mean": 0.38899958716572475,
+      "frac_nonmembers_over_half": 0.008319467554076539,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 10000,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 1.0901823340100236,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 26,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 27,
+        "1": 155
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 27,
+          "n_matched": 27,
+          "labels": {
+            "0": 27
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 27,
+          "n_matched": 27,
+          "labels": {
+            "1": 27
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.14692355052852066,
+        0.2803915275882319
+      ],
+      "ap_selected_column": 0.2803915275882319,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.7729624506941243,
+          0.3016427216047709
+        ],
+        [
+          0.7251165411608012,
+          0.5150338845215505
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.32954727520310423,
+      "mean_soft_sel_out_target": 0.3134640674672907,
+      "row_sum_mean": 0.7731285354752568,
+      "frac_nonmembers_over_half": 0.06890756302521009,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 10003,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 1.4187176669947803,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 26,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 27,
+        "1": 155
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 27,
+          "n_matched": 27,
+          "labels": {
+            "0": 27
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 27,
+          "n_matched": 27,
+          "labels": {
+            "1": 27
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.14692355052852066,
+        0.2803915275882319
+      ],
+      "ap_selected_column": 0.2803915275882319,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.7729624506941243,
+          0.3016427216047709
+        ],
+        [
+          0.7251165411608012,
+          0.5150338845215505
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.32954727520310423,
+      "mean_soft_sel_out_target": 0.3134640674672907,
+      "row_sum_mean": 0.7731285354752568,
+      "frac_nonmembers_over_half": 0.06890756302521009,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 1.6,
+      "seed": 10003,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 2.2007759579864796,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 15,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 153,
+        "1": 43
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 16,
+          "n_matched": 16,
+          "labels": {
+            "0": 16
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 16,
+          "n_matched": 16,
+          "labels": {
+            "1": 16
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9803921568627451,
+      "ap_tgt": 0.9803921568627451,
+      "ap_by_column": [
+        0.787924229186637,
+        0.6015475628579184
+      ],
+      "ap_selected_column": 0.787924229186637,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9528470237899739,
+          0.9043781454557416
+        ],
+        [
+          0.9338413198892064,
+          0.9747376731028584
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        1
+      ],
+      "auc_assignment_is_identity": true,
+      "mean_soft_sel_in_target": 0.3895081950937757,
+      "mean_soft_sel_out_target": 0.0972174254134214,
+      "row_sum_mean": 0.34740294501817454,
+      "frac_nonmembers_over_half": 0.010050251256281407,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 10010,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 3.117182125002728,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 14,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 15,
+        "1": 168
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "0": 15
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 15,
+          "n_matched": 15,
+          "labels": {
+            "1": 15
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.8928571428571429,
+      "ap_tgt": 0.8928571428571429,
+      "ap_by_column": [
+        0.16028064865613767,
+        0.4052746090013429
+      ],
+      "ap_selected_column": 0.4052746090013429,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8653968253968254,
+          0.3437653411880216
+        ],
+        [
+          0.7315192743764172,
+          0.5910243822614957
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3651266205859025,
+      "mean_soft_sel_out_target": 0.3219327767881942,
+      "row_sum_mean": 0.7590051953202146,
+      "frac_nonmembers_over_half": 0.048109965635738834,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 10010,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 1.355994958008523,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 12,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 156,
+        "1": 105
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 13,
+          "n_matched": 13,
+          "labels": {
+            "0": 13
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 13,
+          "n_matched": 13,
+          "labels": {
+            "1": 13
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9615384615384616,
+      "ap_tgt": 0.9615384615384616,
+      "ap_by_column": [
+        0.5963979462578257,
+        0.42945428864918267
+      ],
+      "ap_selected_column": 0.5963979462578257,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8944897694897694,
+          0.8980287929125139
+        ],
+        [
+          0.8565570232236899,
+          0.9491620524178663
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3904255937327685,
+      "mean_soft_sel_out_target": 0.13526291899852078,
+      "row_sum_mean": 0.3937442264701818,
+      "frac_nonmembers_over_half": 0.05723905723905724,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 10013,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 750,
+      "base_rate": 0.2,
+      "rows_distinct": true,
+      "runtime_s": 1.1584318749955855,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 11,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 156,
+        "1": 114
+      },
+      "select_clusters_raw": [
+        751,
+        752
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        750,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 12,
+          "n_matched": 12,
+          "labels": {
+            "0": 12
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 13,
+          "n_matched": 13,
+          "labels": {
+            "1": 13
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9615384615384616,
+      "ap_tgt": 0.9615384615384616,
+      "ap_by_column": [
+        0.5393825736239539,
+        0.40753690798985326
+      ],
+      "ap_selected_column": 0.5393825736239539,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8798778382111715,
+          0.9026398543528633
+        ],
+        [
+          0.8436933436933437,
+          0.9498510427010923
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.36268810603513785,
+      "mean_soft_sel_out_target": 0.1333350671139791,
+      "row_sum_mean": 0.3908175883012542,
+      "frac_nonmembers_over_half": 0.05218855218855219,
+      "n_members": 150,
+      "contamination": 0.8,
+      "fractal_dimension": 3.0,
+      "seed": 10013,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 8.772838707998744,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 43,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 153,
+        "1": 318
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 44,
+          "n_matched": 44,
+          "labels": {
+            "0": 44
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 44,
+          "n_matched": 44,
+          "labels": {
+            "1": 44
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9803921568627451,
+      "ap_tgt": 0.9803921568627451,
+      "ap_by_column": [
+        0.31879710604650846,
+        0.19083272215497482
+      ],
+      "ap_selected_column": 0.31879710604650846,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9237243193729898,
+          0.9704564321190888
+        ],
+        [
+          0.8845545477294067,
+          0.9855653107837482
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3744095091079396,
+      "mean_soft_sel_out_target": 0.14888041446357972,
+      "row_sum_mean": 0.38946129747882946,
+      "frac_nonmembers_over_half": 0.014401123990165085,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 11500,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 11.583936124996399,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 49,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 155,
+        "1": 266
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 50,
+          "n_matched": 50,
+          "labels": {
+            "0": 50
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 50,
+          "n_matched": 50,
+          "labels": {
+            "1": 50
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.967741935483871,
+      "ap_tgt": 0.967741935483871,
+      "ap_by_column": [
+        0.3418389754892771,
+        0.21443428563836647
+      ],
+      "ap_selected_column": 0.3418389754892771,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.9266375644877828,
+          0.9702727007716805
+        ],
+        [
+          0.8951210386076308,
+          0.9870181122154325
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3674655968288699,
+      "mean_soft_sel_out_target": 0.15311621793971641,
+      "row_sum_mean": 0.40093198717019596,
+      "frac_nonmembers_over_half": 0.01335676625659051,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 11500,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 10.525288167002145,
+      "error": null,
+      "selected_cluster": 1,
+      "best_mcs": 61,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 534,
+        "1": 150
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 1,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 62,
+          "n_matched": 62,
+          "labels": {
+            "0": 62
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 62,
+          "n_matched": 62,
+          "labels": {
+            "1": 62
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9933333333333333,
+      "ap_tgt": 0.9870444444444443,
+      "ap_by_column": [
+        0.04430698102068537,
+        0.13899725844373123
+      ],
+      "ap_selected_column": 0.13899725844373123,
+      "argmax_ap_column": 1,
+      "auc_column_vs_label": [
+        [
+          0.8527471743046251,
+          0.38992514619883034
+        ],
+        [
+          0.6897339396314218,
+          0.5510105263157895
+        ]
+      ],
+      "auc_assignment": [
+        0,
+        0
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.32199519699217183,
+      "mean_soft_sel_out_target": 0.280282067468145,
+      "row_sum_mean": 0.7472368604241504,
+      "frac_nonmembers_over_half": 0.029473684210526315,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 11503,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 10.74524720798945,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 28,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 152,
+        "1": 1020
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 29,
+          "n_matched": 29,
+          "labels": {
+            "0": 29
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 39,
+          "n_matched": 39,
+          "labels": {
+            "1": 39
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9868421052631579,
+      "ap_tgt": 0.9868421052631579,
+      "ap_by_column": [
+        0.17885235419387724,
+        0.07165113172111041
+      ],
+      "ap_selected_column": 0.17885235419387724,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.7655071887936132,
+          0.9700678352148939
+        ],
+        [
+          0.6826027498521585,
+          0.988852743117449
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.2788673770619353,
+      "mean_soft_sel_out_target": 0.1490406717231432,
+      "row_sum_mean": 0.41134439761706426,
+      "frac_nonmembers_over_half": 0.017907303370786515,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 1.6,
+      "seed": 11503,
+      "held_out": true
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 10.923190000001341,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 12,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 163,
+        "1": 1346
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 14,
+          "n_matched": 14,
+          "labels": {
+            "0": 14
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 37,
+          "n_matched": 37,
+          "labels": {
+            "1": 37
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9202453987730062,
+      "ap_tgt": 0.9202453987730062,
+      "ap_by_column": [
+        0.11961986150310078,
+        0.06253819035282233
+      ],
+      "ap_selected_column": 0.11961986150310078,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.7302127236279574,
+          0.9539672386811386
+        ],
+        [
+          0.6316207174692008,
+          0.9766125974943
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3402353866131774,
+      "mean_soft_sel_out_target": 0.21118340339182454,
+      "row_sum_mean": 0.546443918037559,
+      "frac_nonmembers_over_half": 0.04406062742333451,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 11510,
+      "held_out": false
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 11.216960124991601,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 33,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 164,
+        "1": 876
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 34,
+          "n_matched": 34,
+          "labels": {
+            "0": 34
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 34,
+          "n_matched": 34,
+          "labels": {
+            "1": 34
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9146341463414634,
+      "ap_tgt": 0.9146341463414634,
+      "ap_by_column": [
+        0.19390355218059416,
+        0.10413690417586734
+      ],
+      "ap_selected_column": 0.19390355218059416,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8283996697512814,
+          0.9570735409196055
+        ],
+        [
+          0.7696880697650418,
+          0.9764869205169878
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.357765750103874,
+      "mean_soft_sel_out_target": 0.18529011798480197,
+      "row_sum_mean": 0.48233518711947726,
+      "frac_nonmembers_over_half": 0.028208744710860368,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 11510,
+      "held_out": false
+    },
+    {
+      "selection": "max_persistence",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 14.620820459007518,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 12,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 155,
+        "1": 1073
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 13,
+          "n_matched": 13,
+          "labels": {
+            "0": 13
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 40,
+          "n_matched": 40,
+          "labels": {
+            "1": 40
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9612903225806452,
+      "ap_tgt": 0.9552150537634408,
+      "ap_by_column": [
+        0.13619836378793926,
+        0.06858321373088191
+      ],
+      "ap_selected_column": 0.13619836378793926,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.7977640455808152,
+          0.9604753367436115
+        ],
+        [
+          0.6727456205000283,
+          0.987746599918459
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.3490671607688716,
+      "mean_soft_sel_out_target": 0.181202590348711,
+      "row_sum_mean": 0.48578310751013076,
+      "frac_nonmembers_over_half": 0.04007029876977153,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 11513,
+      "held_out": true
+    },
+    {
+      "selection": "max_members",
+      "n_sources": 3000,
+      "base_rate": 0.05,
+      "rows_distinct": true,
+      "runtime_s": 17.80795716699504,
+      "error": null,
+      "selected_cluster": 0,
+      "best_mcs": 44,
+      "n_clusters": 2,
+      "labels_present": [
+        0,
+        1
+      ],
+      "cluster_sizes": {
+        "0": 157,
+        "1": 459
+      },
+      "select_clusters_raw": [
+        3001,
+        3002
+      ],
+      "ascending": true,
+      "present_labels_contiguous": true,
+      "label_of_column": [
+        0,
+        1
+      ],
+      "mapping_is_identity": true,
+      "soft_shape": [
+        3000,
+        2
+      ],
+      "n_columns_equals_n_clusters": true,
+      "correct_column_for_selected": 0,
+      "naive_index_in_range": true,
+      "naive_reads_wrong_column": false,
+      "guard_intercepted": false,
+      "exemplar_labels": [
+        {
+          "column": 0,
+          "expected_label": 0,
+          "n_exemplars": 45,
+          "n_matched": 45,
+          "labels": {
+            "0": 45
+          }
+        },
+        {
+          "column": 1,
+          "expected_label": 1,
+          "n_exemplars": 45,
+          "n_matched": 45,
+          "labels": {
+            "1": 45
+          }
+        }
+      ],
+      "exemplar_oracle_ok": true,
+      "purity_selected": 0.9490445859872612,
+      "ap_tgt": 0.9430509554140126,
+      "ap_by_column": [
+        0.2454961825099826,
+        0.16517622117004585
+      ],
+      "ap_selected_column": 0.2454961825099826,
+      "argmax_ap_column": 0,
+      "auc_column_vs_label": [
+        [
+          0.8967337364540462,
+          0.9652650775645427
+        ],
+        [
+          0.8679716187484737,
+          0.9803098466200071
+        ]
+      ],
+      "auc_assignment": [
+        1,
+        1
+      ],
+      "auc_assignment_is_identity": false,
+      "mean_soft_sel_in_target": 0.36837456843005645,
+      "mean_soft_sel_out_target": 0.15928477487475137,
+      "row_sum_mean": 0.4246102400133488,
+      "frac_nonmembers_over_half": 0.026028842771720014,
+      "n_members": 150,
+      "contamination": 0.95,
+      "fractal_dimension": 3.0,
+      "seed": 11513,
+      "held_out": true
+    }
+  ]
+}

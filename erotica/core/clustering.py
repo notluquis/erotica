@@ -147,6 +147,7 @@ class Clustering:
         selection: str = "max_persistence",
         select_cluster: bool = True,
         probability_method: str = "hdbscan",
+        recovery_frequency: str = "any",
         approx_min_span_tree: bool = False,
         match_reference_implementation: bool = True,
         hdbscan_kwargs: dict | None = None,
@@ -214,6 +215,17 @@ class Clustering:
                Cost: ``prediction_data=True`` on the final fit only. Measured 4.9 s for n=12000
                with 3 clusters -- ``all_points_membership_vectors`` does linear scans per
                (point, cluster) pair, so it is superlinear in cluster count.
+        recovery_frequency
+            What the sweep term counts. ``"any"`` (default) is the shipped
+            ``probability_times``: the fraction of swept ``min_cluster_size`` values in which
+            the source landed in **any** cluster. ``"target"`` counts only the steps in which
+            it landed in the step's **target** cluster, identified without ground truth by
+            maximum Jaccard overlap with the finally selected member set. See
+            :meth:`_target_recovery_frequency`.
+
+            ``probability_times`` is written on both paths and always means "any"; the
+            target-aware vector is written as ``probability_times_target``, so a caller can
+            recover either product from a single run.
         match_reference_implementation
             Match the original Java HDBSCAN* reference implementation. Default ``True``, which
             is what this package has always used — but it was hardcoded and unexplained until
@@ -382,6 +394,8 @@ class Clustering:
         }
         if probability_method not in ("hdbscan", "soft"):
             raise ValueError("probability_method must be 'hdbscan' or 'soft'.")
+        if recovery_frequency not in ("any", "target"):
+            raise ValueError("recovery_frequency must be 'any' or 'target'.")
         self._probability_method = probability_method
 
         # MST not needed during sweep — skip to save ~20% per iteration
@@ -491,11 +505,17 @@ class Clustering:
             "effective_min_samples": _req_ms - _shift,
             "match_reference_implementation": bool(match_reference_implementation),
         }
+        # `labels_matrix` is passed by reference and NOT stored on the instance. It is
+        # (n_sources x n_sweep_steps) int32 -- 92 MB for the 70' NGC 6383 catalogue at 290
+        # steps -- and the only thing downstream needs from it is one length-n vector, which
+        # `_annotate_pseudoprobability_results` computes while the matrix is still in scope.
         self._annotate_pseudoprobability_results(
             probability_times=final_probability_times,
             desired_len=selected["desired_len"],
             probability_threshold=probability_threshold,
             select_cluster=select_cluster,
+            sweep_labels=labels_matrix,
+            recovery_frequency=recovery_frequency,
         )
 
     # ------------------------------------------------------------------
@@ -696,6 +716,8 @@ class Clustering:
         desired_len: int,
         probability_threshold: float,
         select_cluster: bool,
+        sweep_labels: np.ndarray | None = None,
+        recovery_frequency: str = "any",
     ) -> None:
         if self.clusterer is None:
             raise RuntimeError("No clustering model available.")
@@ -725,10 +747,37 @@ class Clustering:
             # of the SELECTED cluster. Off by default -- see the method's docstring for why the
             # measured advantage is not yet sufficient grounds to move a default.
             if getattr(self, "_probability_method", "hdbscan") == "soft":
+                self._soft_column_info = None
                 soft = self._soft_membership_column(selected_label, len(labels))
+                if self._soft_column_info is not None:
+                    self.pseudoprobability_selected_ = {
+                        **self.pseudoprobability_selected_,
+                        "soft_column": self._soft_column_info,
+                    }
                 if soft is not None:
                     self.data["probability_soft"] = soft
                     self.data["probability"] = soft * probability_times
+
+            # Target-aware sweep term. Computed here rather than in the sweep loop because it
+            # needs `selected_label`, and here rather than on the instance because it needs
+            # the sweep label matrix, which must not outlive this call.
+            if sweep_labels is not None and recovery_frequency == "target":
+                f_target, info = self._target_recovery_frequency(
+                    sweep_labels, labels == selected_label
+                )
+                self.data["probability_times_target"] = f_target
+                score = np.asarray(
+                    self.data["probability_soft"]
+                    if "probability_soft" in self.data.colnames
+                    and getattr(self, "_probability_method", "hdbscan") == "soft"
+                    else self.data["probability_hdbscan"],
+                    dtype=float,
+                )
+                self.data["probability"] = score * f_target
+                self.pseudoprobability_selected_ = {
+                    **self.pseudoprobability_selected_,
+                    "target_recovery": info,
+                }
 
             retained = np.asarray(self.data["probability"], dtype=float) > probability_threshold
             self.data["cluster"] = np.where((labels == selected_label) & retained, labels, -1)
@@ -761,10 +810,32 @@ class Clustering:
         * **Rows do not sum to 1.** They sum to ``in_cluster_probs[i]`` (``prediction.py:760-762``),
           measured mean 0.63. The residual is the implicit "belongs to no cluster" mass. So a
           column is a score in [0, 1], not a normalised posterior, and must not be renormalised.
-        * **Column j corresponds to ``labels_ == j`` in practice but not by construction.**
-          ``_select_clusters`` (``plots.py:235-245``) reverse-engineers ids from ``labels_`` via
-          ``groups[label].min()``; nothing enforces ascending order. Verified ascending in 200/200
-          random datasets upstream, but the bound check below is not optional.
+        * **Column j is NOT ``labels_ == j``, and this method therefore resolves the mapping
+          rather than assuming it.** ``all_points_membership_vectors`` builds its columns from
+          ``sorted(condensed_tree_._select_clusters())`` (``prediction.py:658``), and
+          ``_select_clusters`` (``plots.py:235-245``) returns one entry per label **present in**
+          ``labels_``, in ascending label order, as ``groups[label].min()``. So
+
+              column c  <->  present_labels[argsort(raw)[c]]
+
+          and reading ``soft[:, selected_label]`` is right only when that is the identity, which
+          needs *both* an ascending ``raw`` *and* a gap-free label range. The second condition
+          fails whenever ``do_labelling`` reassigns every point of a selected cluster to noise --
+          ordinary here, because ``match_reference_implementation=True`` adds an extra ``-1``
+          assignment (``_hdbscan_tree.pyx:508-512``) beyond its three documented effects. The
+          missing label is skipped and **every higher label's column shifts down by one**.
+
+          Measured on 46 synthetic cells that produced a cluster (``soft_column_alignment.py``):
+          ``raw`` ascending 46/46, label range gap-free 44/46, so the mapping was the identity in
+          44 and shifted in 2. In both shifted cells the old code's bounds check happened to fire
+          and the run fell back to ``probabilities_``; the 108-cell benchmark logs the same event
+          5 / 1 / 1 times across its three selectors as "soft membership unavailable".
+
+          **The bounds check was never sufficient**: it is a check on the index, not on identity.
+          With three or more present labels and a gap below the top -- present ``[0, 2, 3]``,
+          selected ``2`` -- the naive index is in range and silently returns label ``3``'s column.
+          That case was not observed in 46 cells, and it is reachable, which is why the mapping is
+          now computed instead of assumed.
         * It is **not** interchangeable with ``membership_vector``, which uses a different formula
           (``max_l/(max_l - h)`` and ``dist**0.5 * outlier**2.0`` versus ``exp(-max_l/h)`` and
           ``dist * outlier``); measured max abs difference 0.13 on identical points.
@@ -788,7 +859,14 @@ class Clustering:
                 stacklevel=3,
             )
             return None
-        if soft.shape[0] != n_rows or selected_label >= soft.shape[1]:
+        column = self._soft_column_for_label(selected_label)
+        self._soft_column_info = {
+            "selected_cluster": int(selected_label),
+            "column": None if column is None else int(column),
+            "n_columns": int(soft.shape[1]),
+            "remapped": bool(column is not None and column != selected_label),
+        }
+        if soft.shape[0] != n_rows or column is None or column >= soft.shape[1]:
             warnings.warn(
                 f"soft membership shape {soft.shape} does not admit label {selected_label} "
                 f"over {n_rows} rows; falling back to probabilities_.",
@@ -796,7 +874,105 @@ class Clustering:
                 stacklevel=3,
             )
             return None
-        return np.clip(soft[:, selected_label], 0.0, 1.0)
+        return np.clip(soft[:, column], 0.0, 1.0)
+
+    def _soft_column_for_label(self, selected_label: int) -> int | None:
+        """Column of ``all_points_membership_vectors`` that holds ``selected_label``.
+
+        ``None`` when the mapping cannot be resolved, which is a reason to fall back to
+        ``probabilities_`` rather than to guess. See :meth:`_soft_membership_column` for why
+        the identity mapping is not safe to assume.
+        """
+        try:
+            labels = np.asarray(self.clusterer.labels_, dtype=int)
+            present = sorted({int(v) for v in np.unique(labels) if v >= 0})
+            raw = [int(v) for v in self.clusterer.condensed_tree_._select_clusters()]
+        except Exception:  # a private hdbscan API; a version change must not lose the run
+            return None
+        if len(raw) != len(present) or selected_label not in present:
+            return None
+        label_of_column = [present[int(j)] for j in np.argsort(np.asarray(raw))]
+        return int(label_of_column.index(selected_label))
+
+    @staticmethod
+    def _target_recovery_frequency(
+        sweep_labels: np.ndarray, member_mask: np.ndarray
+    ) -> tuple[np.ndarray, dict]:
+        """Fraction of sweep steps in which each source landed in the step's TARGET cluster.
+
+        The shipped ``probability_times`` counts steps in which a source was clustered into
+        **anything**, so a field star that sits firmly inside a field cluster at every step
+        scores 1.0. Nothing in that quantity refers to the cluster the pipeline finally
+        returns, which is why it cannot respond to a better choice of cluster. This counts the
+        same steps against the target instead.
+
+        The target at step *i* is chosen **without ground truth**, as the cluster of that step
+        whose member set has the largest Jaccard overlap with the finally selected member set
+        ``M``. Jaccard rather than raw overlap because raw overlap is maximised by whichever
+        cluster is largest, which at high contamination is the field; Jaccard divides by the
+        union and so penalises a cluster that swallows ``M`` inside something much bigger.
+
+        **The tie-break is "no match", not "closest match".** A step whose clusters share no
+        source at all with ``M`` contributes zero to every source rather than contributing its
+        argmax, which would otherwise be an arbitrary cluster. There is no Jaccard floor above
+        that: any floor is a tuned quantity, and requiring a non-empty intersection is the
+        only threshold the definition forces.
+
+        The denominator is the **total** number of sweep steps, identical to the one
+        ``probability_times`` uses. That is what makes the two directly comparable and makes
+        ``f_target <= f_any`` hold pointwise: the steps counted here are a subset of the steps
+        counted there. It also means no comparison between them can be confounded by a
+        different sweep grid.
+
+        Returns ``(frequency, diagnostics)``. The diagnostics carry the number of steps that
+        matched at all and the mean Jaccard and size ratio of the matched clusters -- the
+        quantities that reveal the failure mode of the rule, which is a step where the only
+        cluster is one giant structure that happens to contain ``M``.
+        """
+        sweep = np.asarray(sweep_labels, dtype=np.int64)
+        if sweep.ndim != 2:
+            raise ValueError("sweep_labels must be (n_sources, n_steps).")
+        mask = np.asarray(member_mask, dtype=bool)
+        n_rows, n_steps = sweep.shape
+        if mask.size != n_rows:
+            raise ValueError("member_mask length does not match sweep_labels rows.")
+        freq = np.zeros(n_rows, dtype=float)
+        n_target = int(mask.sum())
+        info = {
+            "n_steps": int(n_steps),
+            "n_steps_matched": 0,
+            "n_target_members": n_target,
+            "mean_matched_jaccard": None,
+            "mean_matched_size_ratio": None,
+        }
+        if n_steps == 0 or n_target == 0:
+            return freq, info
+
+        jaccards: list[float] = []
+        ratios: list[float] = []
+        for i in range(n_steps):
+            col = sweep[:, i]
+            clustered = col >= 0
+            if not clustered.any():
+                continue
+            n_labels = int(col[clustered].max()) + 1
+            sizes = np.bincount(col[clustered], minlength=n_labels).astype(float)
+            hit = clustered & mask
+            inter = np.bincount(col[hit], minlength=n_labels).astype(float) if hit.any() else None
+            if inter is None or not inter.any():
+                continue  # no cluster at this step overlaps the target at all
+            union = sizes + n_target - inter
+            jac = np.where(union > 0, inter / union, 0.0)
+            best = int(np.argmax(jac))
+            freq += col == best
+            jaccards.append(float(jac[best]))
+            ratios.append(float(sizes[best] / n_target))
+
+        info["n_steps_matched"] = len(jaccards)
+        if jaccards:
+            info["mean_matched_jaccard"] = float(np.mean(jaccards))
+            info["mean_matched_size_ratio"] = float(np.mean(ratios))
+        return freq / float(n_steps), info
 
     @staticmethod
     def _warn_on_coincident_rows(X, columns, samples, min_samples, selection) -> dict:
