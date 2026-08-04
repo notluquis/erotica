@@ -237,10 +237,39 @@ median is a mixture rather than any cluster's $\gamma$.
 \section{Comparison against the reference implementations}
 \label{sec:benchmark}
 
-\TODO{Design: feature parity (same five columns), \asteca\ never handed the injected truth,
-z-scoring, out-of-sample recalibration. Table of ROC-AUC and average precision per method, with
-base rates stated --- 0.50 / 0.20 / 0.05 at contamination 0.50 / 0.80 / 0.95 --- since average
-precision is the decision metric and ROC understates a binary score.}
+Four design choices are not free, and each was made against a way the comparison could have
+flattered us.
+
+\emph{Feature parity.} \erotica's default configuration --- the one used for NGC 6383 --- consumes
+proper motions only, while \asteca's \texttt{fastMP} consumes sky position, proper motion and
+parallax, and \textsc{pyUPMASK} is configured here on the same five. Scoring two dimensions
+against five and reporting the difference as a win would be meaningless, so the headline
+\erotica\ row uses all five columns and the lower-dimensional configurations are reported as
+clearly labelled secondary rows.
+
+\emph{Standardisation.} \textsc{hdbscan} is called with a Euclidean metric and no internal
+scaling, so parallax in mas and proper motion in mas\,yr$^{-1}$ enter the distance with whichever
+has the larger numeric spread dominating. Every column is z-scored before clustering.
+
+\emph{\asteca\ is never handed the injected truth.} Its centre and member count come from its own
+\texttt{get\_center} and \texttt{get\_nmembers} routines, not from the generator. A loss against a
+baseline given privileged information would be uninterpretable. Photometry is withheld from it
+deliberately: \texttt{fastMP} ignores it, and \asteca's magnitude cut would drop rows and break
+the co-indexing the paired comparison requires.
+
+\emph{Recalibration is out of sample.} Isotonic maps are fitted on a disjoint set of seeds and
+evaluated on held-out ones. Fitting and scoring on the same rows returns a calibration error near
+zero and is not a measurement.
+
+\paragraph{Which metric decides.} Base rates are $0.50$, $0.20$ and $0.05$ at contamination
+$0.50$, $0.80$ and $0.95$, so average precision --- whose chance level is the base rate --- is the
+decision metric and ROC-AUC is reported alongside it. The distinction is not cosmetic here: a
+binary indicator has a single operating point, so ROC systematically understates it, and an
+earlier iteration of this work was misled in exactly that way before the metric was fixed.
+
+\TODO{Final table with the target-aware score. Measurement re-running; the previous run's
+calibration bar was invalidated by a binning defect (see \S\ref{sec:calibration}) and no adoption
+decision rests on it.}
 
 \paragraph{Per-star error propagation.}
 \asteca's \texttt{fastMP} consumes per-star astrometric uncertainties and resamples; the
