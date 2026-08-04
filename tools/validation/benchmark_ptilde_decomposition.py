@@ -116,7 +116,13 @@ def decompose_cell(real, *, config: str, mcs_range: range) -> dict:
     """Run one EROTICA config and return the per-star factors, not just the product."""
     from erotica import Clustering
 
-    quantities, selection, probability_method = B.EROTICA_CONFIGS[config]
+    # Slice, do not unpack: `EROTICA_CONFIGS` entries grew a fourth field (error-aware) on
+    # 2026-08-04 AFTER this script's 108-cell run, and the bare three-name unpack that used
+    # to be here raises `ValueError: too many values to unpack` on every config. That made
+    # the script -- the one holding the published p-tilde decomposition -- unrunnable at
+    # HEAD while its sidecar still read as reproducible. The error-aware field is
+    # deliberately ignored: this experiment decomposes the SHIPPED `f_i`.
+    quantities, selection, probability_method = B.EROTICA_CONFIGS[config][:3]
     cols = {f"{q}_z": B._zscore(getattr(real, q)) for q in quantities}
     n = real.truth.size
     t0 = time.perf_counter()
