@@ -146,9 +146,10 @@ analyzer.run_analysis()
 - **v0.2.0**: PyPI distribution and additional algorithms
 - **v1.0.0**: Production-ready release
 
-## 👥 Contributors
-- Lucas Pulgar-Escobar (Universidad de Concepción, Chile)
-- Nicolás Henríquez Salgado (Universidad de Concepción, Chile)
+## 👥 Author
+- Lucas Pulgar-Escobar (Universidad de Concepción, Chile) — sole author, per `CITATION.cff` and
+  `paper/paper.md`. This was a two-name "Contributors" list until 2026-08-04, which contradicted
+  both; supporters of the companion science paper are acknowledged in the README instead.
 
 ## 📞 Support
 - [GitHub Issues](https://github.com/notluquis/erotica/issues)

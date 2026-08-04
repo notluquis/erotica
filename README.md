@@ -321,12 +321,27 @@ is cited at the point of use in the API documentation.
 
 EROTICA is licensed under the [GNU Affero General Public License v3.0](LICENSE). This ensures that any modifications or derivative works remain open source.
 
-## 👥 Team
+## 👥 Author
 
-- **Lucas Pulgar-Escobar** - Universidad de Concepción, Chile ([lescobar2019@udec.cl](mailto:lescobar2019@udec.cl))
-- **Nicolás Henríquez Salgado** - Universidad de Concepción, Chile
+**Lucas Pulgar-Escobar** — Universidad de Concepción, Chile
+([lescobar2019@udec.cl](mailto:lescobar2019@udec.cl), ORCID
+[0009-0008-4359-2444](https://orcid.org/0009-0008-4359-2444))
+
+Sole author, matching [`CITATION.cff`](CITATION.cff) and [`paper/paper.md`](paper/paper.md). This
+section read "Team" and listed two people until 2026-08-04, contradicting both — the kind of
+discrepancy a JOSS editor queries. Every commit in the v0.1.0 release is from a single contributor,
+and JOSS holds that financial and organizational contributions are not sufficient for co-authorship;
+those who supported the work are acknowledged below instead.
 
 ## 🙏 Acknowledgments
+
+I thank **Nicolás Henríquez Salgado** (Universidad de Concepción) for his contribution to the
+companion NGC 6383 science paper, and **P. Cerulo** for guidance on machine-learning methods and for
+discussions of Bayesian modelling with PyMC during the work that led to this package.
+
+I gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI project
+32230014, and financial support from the Dirección de Postgrado, Universidad de Concepción, through
+its MSc scholarship programme.
 
 EROTICA builds upon excellent open-source libraries:
 - [HDBSCAN](https://github.com/scikit-learn-contrib/hdbscan) for density-based clustering
