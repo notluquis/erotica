@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 import numpy as np
 from astropy.table import QTable
@@ -35,7 +35,25 @@ class Clustering:
         search_method: str = DEFAULT_SEARCH_METHOD,
         sqlite_path: str = "optuna_study.db",
         study_name: str | None = None,
+        legacy_cluster_selection: bool = False,
     ):
+        """Construct a clustering run.
+
+        Parameters
+        ----------
+        legacy_cluster_selection
+            **Exists solely to reproduce results published before 2026-08-03**, and there
+            is no other reason to set it. When ``True``, ``search_pseudoprobability``
+            picks the reported cluster with :meth:`_cluster_label_for_size`, the defective
+            size-matching selector of issue #7: it compares a count of *condensed-tree
+            rows* against *flat-cluster point counts* and, when they fail to coincide,
+            falls back to the largest non-noise cluster — which on a contaminated field is
+            the field. The default ``False`` uses :meth:`_cluster_label_from_tree`, which
+            resolves the tree node to the label its leaves actually carry.
+
+            This is a keyword rather than a monkey-patched attribute because reproducing
+            an old result must not require reaching inside the object.
+        """
         if search_method not in SUPPORTED_SEARCH_METHODS:
             raise ValueError("search_method must be 'grid' or 'optuna'.")
         self.search_method = search_method
@@ -43,6 +61,7 @@ class Clustering:
         self.bad_data = bad_data
         self.storage_url = f"sqlite:///{sqlite_path}" if sqlite_path else None
         self.study_name = study_name
+        self.legacy_cluster_selection = bool(legacy_cluster_selection)
 
         self.clusterer = None
         self.cv_results_ = None
@@ -172,7 +191,9 @@ class Clustering:
 
             lambda_value = float(tree["lambda_val"].max())
             desired_len = self._desired_tree_branch_size(tree)
-            sweep_track.append({"min_cluster_size": int(min_cluster_size), "desired_len": int(desired_len)})
+            sweep_track.append(
+                {"min_cluster_size": int(min_cluster_size), "desired_len": int(desired_len)}
+            )
             if min_cluster_members is not None and desired_len < min_cluster_members:
                 continue
             if max_cluster_members is not None and desired_len > max_cluster_members:
@@ -206,11 +227,18 @@ class Clustering:
         ).fit(X)
 
         self.clusterer = final_estimator.model_
-        self.best_params_ = {"min_cluster_size": selected["min_cluster_size"], "min_samples": min_samples, **final_kwargs}
+        self.best_params_ = {
+            "min_cluster_size": selected["min_cluster_size"],
+            "min_samples": min_samples,
+            **final_kwargs,
+        }
         self.best_score_ = selected["lambda_value"]
         self.pseudoprobability_results_ = results
         self.pseudoprobability_sweep_track_ = sweep_track
-        self.pseudoprobability_selected_ = {**selected, "probability_times": final_probability_times.copy()}
+        self.pseudoprobability_selected_ = {
+            **selected,
+            "probability_times": final_probability_times.copy(),
+        }
         self._annotate_pseudoprobability_results(
             probability_times=final_probability_times,
             desired_len=selected["desired_len"],
@@ -357,16 +385,21 @@ class Clustering:
         import matplotlib.pyplot as plt
 
         mcs_vals = [r["min_cluster_size"] for r in self.pseudoprobability_sweep_track_]
-        sizes    = [r["desired_len"]       for r in self.pseudoprobability_sweep_track_]
+        sizes = [r["desired_len"] for r in self.pseudoprobability_sweep_track_]
         best_mcs = self.pseudoprobability_selected_["min_cluster_size"]
         max_size = max(sizes)
 
         fig, ax = plt.subplots(figsize=figsize)
         ax.plot(mcs_vals, sizes, color="steelblue")
-        ax.axvline(best_mcs, color="steelblue", linestyle="--",
-                   label=f"Optimal Min Cluster Size: {best_mcs}")
-        ax.axhline(max_size, color="olivedrab", linestyle="--",
-                   label=f"Max Cluster Size: {max_size}")
+        ax.axvline(
+            best_mcs,
+            color="steelblue",
+            linestyle="--",
+            label=f"Optimal Min Cluster Size: {best_mcs}",
+        )
+        ax.axhline(
+            max_size, color="olivedrab", linestyle="--", label=f"Max Cluster Size: {max_size}"
+        )
         ax.set_xlabel("Min Cluster Size")
         ax.set_ylabel("Cluster Size")
         ax.legend()
@@ -418,11 +451,23 @@ class Clustering:
         self.data["cluster_hdbscan"] = labels
         self.data["probability_hdbscan"] = self.clusterer.probabilities_
         self.data["probability_times"] = probability_times
-        self.data["probability"] = np.asarray(self.clusterer.probabilities_, dtype=float) * probability_times
+        self.data["probability"] = (
+            np.asarray(self.clusterer.probabilities_, dtype=float) * probability_times
+        )
         self.data["outlier_score"] = self.clusterer.outlier_scores_
 
         if select_cluster:
-            selected_label = self._cluster_label_for_size(labels, desired_len)
+            # Resolve the label from the condensed tree, not by matching a row count against a
+            # cluster size. The size-matching path succeeded 23 times out of 83 and fell back to
+            # "largest cluster" -- the field -- on the rest. See issue #7 and
+            # _cluster_label_for_size's danger note. `Clustering(..., legacy_cluster_selection=True)`
+            # restores the old behaviour for reproducing results published before 2026-08-03.
+            if self.legacy_cluster_selection:
+                selected_label = self._cluster_label_for_size(labels, desired_len)
+            else:
+                selected_label = self._cluster_label_from_tree(
+                    self.clusterer.condensed_tree_.to_pandas(), labels, len(labels)
+                )
             retained = np.asarray(self.data["probability"], dtype=float) > probability_threshold
             self.data["cluster"] = np.where((labels == selected_label) & retained, labels, -1)
             self.pseudoprobability_selected_ = {
@@ -439,7 +484,9 @@ class Clustering:
     def _build_pseudoprobability(labels_storage: list[list[int]]) -> np.ndarray:
         return np.array(
             [
-                np.count_nonzero(np.asarray(labels, dtype=int) != -1) / len(labels) if labels else 0.0
+                np.count_nonzero(np.asarray(labels, dtype=int) != -1) / len(labels)
+                if labels
+                else 0.0
                 for labels in labels_storage
             ],
             dtype=float,
@@ -461,6 +508,23 @@ class Clustering:
 
     @staticmethod
     def _cluster_label_for_size(labels: np.ndarray, desired_len: int) -> int:
+        """Match a flat cluster by size. **Kept only to reproduce pre-2026-08-03 results.**
+
+        .. danger::
+           **This is the defect measured in issue #7, and it selects the field.** ``desired_len``
+           comes from :meth:`_desired_tree_branch_size`, which counts **rows of the condensed
+           tree** whose parent is a given node — its immediate children, sub-clusters or falling
+           points. That is not the number of points in the flat cluster. The two coincide only by
+           accident: **23 matches out of 83** across the benchmark.
+
+           On the other 60 the fallback below returns the **largest non-noise cluster**, which at
+           contamination 0.8–0.95 *is the field*. Measured consequence: HDBSCAN isolates the
+           cluster at ≥0.8 purity in 96% of cells, and this selector then returns purity
+           0.394 ± 0.052, dragging AUC to 0.70–0.80 against pyUPMASK's 0.998.
+
+           Use :meth:`_cluster_label_from_tree`. This is retained only because ``select_cluster``
+           results produced before 2026-08-03 used it.
+        """
         clusters, counts = np.unique(labels, return_counts=True)
         matching = clusters[counts == desired_len]
         if matching.size:
@@ -469,6 +533,48 @@ class Clustering:
         if non_noise.size == 0:
             return -1
         return int(non_noise[np.argmax(counts[clusters != -1])])
+
+    @staticmethod
+    def _cluster_label_from_tree(tree, labels: np.ndarray, n_samples: int) -> int:
+        """Label of the flat cluster that the densest branch of the condensed tree resolves to.
+
+        The right question is *"which cluster does this tree node become?"*, and it is answered by
+        descending the node to its leaves and reading their label — not by hoping a row count
+        equals a cluster size (see :meth:`_cluster_label_for_size`).
+
+        The starting node is the parent of the maximum-``lambda_val`` row: the branch whose points
+        persist to the highest density. Descend it to leaf children (``child < n_samples`` are data
+        points, anything larger is another tree node), then take the modal non-noise label.
+
+        **The fallback is noise, deliberately.** If the branch resolves to no labelled points the
+        answer is "no cluster selected", not "the largest cluster" — on a contaminated field the
+        largest cluster *is* the contamination, which is precisely how the previous implementation
+        failed.
+        """
+        if tree is None or len(tree) == 0:
+            return -1
+        labels = np.asarray(labels, dtype=int)
+        parent = int(tree.at[tree["lambda_val"].idxmax(), "parent"])
+
+        parents = tree["parent"].to_numpy(dtype=int)
+        children = tree["child"].to_numpy(dtype=int)
+        frontier, seen, leaves = [parent], set(), []
+        while frontier:
+            node = frontier.pop()
+            if node in seen:  # condensed trees are acyclic; a malformed one would otherwise hang
+                continue
+            seen.add(node)
+            for child in children[parents == node]:
+                (leaves if child < n_samples else frontier).append(int(child))
+
+        if not leaves:
+            return -1
+        member_labels = labels[np.asarray(leaves, dtype=int)]
+        member_labels = member_labels[member_labels != -1]
+        if member_labels.size == 0:
+            return -1
+        values, counts = np.unique(member_labels, return_counts=True)
+        return int(values[np.argmax(counts)])
 
     def _annotate_results(self) -> None:
         if self.clusterer is None:

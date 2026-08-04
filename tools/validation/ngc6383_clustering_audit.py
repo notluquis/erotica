@@ -33,22 +33,20 @@ os.environ.setdefault("MPLCONFIGDIR", tempfile.mkdtemp(prefix="cosmic-mpl-"))
 import dill
 import numpy as np
 
+# Imported, never re-implemented. This file used to carry its own byte-for-byte copy of
+# `_cluster_label_for_size`, which meant the fix for issue #7 could not reach it and the
+# audit would have kept reporting the pre-fix answer as if it were current.
+#
+# The audit's PRIMARY selector stays the legacy one on purpose: these `.dill` files are
+# artifacts of runs published before 2026-08-03, and `algorithm_selected_final_label` is a
+# statement about what those runs actually did. `tree_selected_final_label` is reported
+# beside it so the effect of the fix on the archived runs is visible rather than inferred.
+from erotica.core.clustering import Clustering
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 NGC_ROOT = PROJECT_ROOT / "data" / "test" / "NGC6383"
-DEFAULT_INPUT_DIR = (
-    NGC_ROOT
-    / "comments_paper"
-    / "radius_robustness"
-    / "generated"
-    / "dill"
-)
-DEFAULT_OUTPUT_DIR = (
-    NGC_ROOT
-    / "comments_paper"
-    / "clustering_audit"
-    / "generated"
-)
+DEFAULT_INPUT_DIR = NGC_ROOT / "comments_paper" / "radius_robustness" / "generated" / "dill"
+DEFAULT_OUTPUT_DIR = NGC_ROOT / "comments_paper" / "clustering_audit" / "generated"
 DEFAULT_REFERENCE_PM = (2.54, -1.71)
 
 
@@ -107,7 +105,9 @@ def _stats(table, mask: np.ndarray, column: str) -> dict[str, float | None]:
 
 
 def _write_json(path: Path, payload: Any) -> None:
-    path.write_text(json.dumps(_jsonable(payload), indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(_jsonable(payload), indent=2, allow_nan=False) + "\n", encoding="utf-8"
+    )
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]], fieldnames: list[str] | None = None) -> None:
@@ -135,14 +135,20 @@ def _candidate_rows(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "lambda_value": item.get("lambda_value"),
                 "relative_validity": item.get("relative_validity"),
                 "n_persistence_values": int(len(persistence)),
-                "max_cluster_persistence": float(np.nanmax(persistence)) if len(persistence) else None,
-                "mean_cluster_persistence": float(np.nanmean(persistence)) if len(persistence) else None,
+                "max_cluster_persistence": float(np.nanmax(persistence))
+                if len(persistence)
+                else None,
+                "mean_cluster_persistence": float(np.nanmean(persistence))
+                if len(persistence)
+                else None,
             }
         )
     return rows
 
 
-def _sweep_rows(sweep_track: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _sweep_rows(
+    sweep_track: list[dict[str, Any]], candidates: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     by_mcs = {int(item["min_cluster_size"]): item for item in candidates}
     rows = []
     for item in sweep_track:
@@ -154,13 +160,17 @@ def _sweep_rows(sweep_track: list[dict[str, Any]], candidates: list[dict[str, An
                 "desired_len": int(item["desired_len"]),
                 "is_candidate": candidate is not None,
                 "lambda_value": None if candidate is None else candidate.get("lambda_value"),
-                "relative_validity": None if candidate is None else candidate.get("relative_validity"),
+                "relative_validity": None
+                if candidate is None
+                else candidate.get("relative_validity"),
             }
         )
     return rows
 
 
-def _ngc_like_label(table, labels: np.ndarray, reference_pm: tuple[float, float]) -> tuple[int, float]:
+def _ngc_like_label(
+    table, labels: np.ndarray, reference_pm: tuple[float, float]
+) -> tuple[int, float]:
     probability = _as_float_array(table["probability"])
     best_label = -1
     best_distance = np.inf
@@ -176,16 +186,20 @@ def _ngc_like_label(table, labels: np.ndarray, reference_pm: tuple[float, float]
             best_label = label
             best_distance = distance
     if best_label == -1:
-        raise RuntimeError("No non-noise label with probability >= 0.5 was available for NGC-like selection.")
+        raise RuntimeError(
+            "No non-noise label with probability >= 0.5 was available for NGC-like selection."
+        )
     return best_label, best_distance
 
 
-def _final_label_rows(clust, reference_pm: tuple[float, float]) -> list[dict[str, Any]]:
+def _final_label_rows(
+    clust,
+    reference_pm: tuple[float, float],
+    algorithm_selected_label: int,
+    tree_selected_label: int,
+) -> list[dict[str, Any]]:
     table = clust.data
     labels = np.asarray(table["cluster_hdbscan"], dtype=int)
-    selected = clust.pseudoprobability_selected_ or {}
-    selected_len = int(selected.get("desired_len", -1))
-    algorithm_selected_label = _cluster_label_for_size(labels, selected_len)
     ngc_like_label, _ = _ngc_like_label(table, labels, reference_pm)
     rows = []
 
@@ -206,6 +220,7 @@ def _final_label_rows(clust, reference_pm: tuple[float, float]) -> list[dict[str
             "label": int(label),
             "is_noise": bool(label == -1),
             "is_algorithm_selected_branch": bool(label == algorithm_selected_label),
+            "is_tree_selected_branch": bool(label == tree_selected_label),
             "is_ngc_like_branch": bool(label == ngc_like_label),
             "pm_distance_to_reference": pm_distance,
             "n_sources": int(np.count_nonzero(mask)),
@@ -228,18 +243,6 @@ def _final_label_rows(clust, reference_pm: tuple[float, float]) -> list[dict[str
     return rows
 
 
-def _cluster_label_for_size(labels: np.ndarray, desired_len: int) -> int:
-    clusters, counts = np.unique(labels, return_counts=True)
-    matching = clusters[counts == desired_len]
-    if matching.size:
-        return int(matching[0])
-    non_noise_mask = clusters != -1
-    non_noise = clusters[non_noise_mask]
-    if non_noise.size == 0:
-        return -1
-    return int(non_noise[np.argmax(counts[non_noise_mask])])
-
-
 def _persistence_rows(clust) -> list[dict[str, Any]]:
     labels = np.asarray(clust.clusterer.labels_, dtype=int)
     cluster_labels = sorted(int(label) for label in np.unique(labels) if label != -1)
@@ -256,7 +259,9 @@ def _persistence_rows(clust) -> list[dict[str, Any]]:
     return rows
 
 
-def audit_radius(dill_path: Path, output_dir: Path, reference_pm: tuple[float, float]) -> dict[str, Any]:
+def audit_radius(
+    dill_path: Path, output_dir: Path, reference_pm: tuple[float, float]
+) -> dict[str, Any]:
     radius = int(dill_path.name.split("_")[1])
     radius_dir = output_dir / str(radius)
     radius_dir.mkdir(parents=True, exist_ok=True)
@@ -267,18 +272,30 @@ def audit_radius(dill_path: Path, output_dir: Path, reference_pm: tuple[float, f
     table = clust.data
     selected = clust.pseudoprobability_selected_ or {}
     final_labels = np.asarray(table["cluster_hdbscan"], dtype=int)
-    algorithm_selected_label = _cluster_label_for_size(final_labels, int(selected.get("desired_len", -1)))
+    condensed_tree = clust.clusterer.condensed_tree_.to_pandas()
+    # legacy = what the published run did; tree = what the issue-#7 fix would have done.
+    algorithm_selected_label = Clustering._cluster_label_for_size(
+        final_labels, int(selected.get("desired_len", -1))
+    )
+    tree_selected_label = Clustering._cluster_label_from_tree(
+        condensed_tree, final_labels, len(final_labels)
+    )
     ngc_like_label, ngc_pm_distance = _ngc_like_label(table, final_labels, reference_pm)
     probability = _as_float_array(table["probability"])
     probability_times = _as_float_array(table["probability_times"])
 
     candidates = _candidate_rows(clust.pseudoprobability_results_ or [])
-    sweep = _sweep_rows(clust.pseudoprobability_sweep_track_ or [], clust.pseudoprobability_results_ or [])
-    label_rows = _final_label_rows(clust, reference_pm)
+    sweep = _sweep_rows(
+        clust.pseudoprobability_sweep_track_ or [], clust.pseudoprobability_results_ or []
+    )
+    label_rows = _final_label_rows(
+        clust, reference_pm, algorithm_selected_label, tree_selected_label
+    )
     persistence = _persistence_rows(clust)
     source_table = table.copy(copy_data=True)
     source_table["audit_radius_arcmin"] = radius
     source_table["is_algorithm_selected_branch"] = final_labels == algorithm_selected_label
+    source_table["is_tree_selected_branch"] = final_labels == tree_selected_label
     source_table["is_ngc_like_branch"] = final_labels == ngc_like_label
     source_table["probability_ge_0p5"] = probability >= 0.5
     source_table["probability_ge_0p6"] = probability >= 0.6
@@ -289,9 +306,11 @@ def audit_radius(dill_path: Path, output_dir: Path, reference_pm: tuple[float, f
     _write_csv(radius_dir / "min_cluster_size_sweep_track.csv", sweep)
     _write_csv(radius_dir / "final_label_summary.csv", label_rows)
     _write_csv(radius_dir / "final_cluster_persistence.csv", persistence)
-    source_table.write(radius_dir / "final_sources_with_labels.ecsv", format="ascii.ecsv", overwrite=True)
+    source_table.write(
+        radius_dir / "final_sources_with_labels.ecsv", format="ascii.ecsv", overwrite=True
+    )
 
-    tree = clust.clusterer.condensed_tree_.to_pandas()
+    tree = condensed_tree
     tree.to_csv(radius_dir / "final_condensed_tree.csv", index=False)
 
     best_params = dict(clust.best_params_ or {})
@@ -307,6 +326,7 @@ def audit_radius(dill_path: Path, output_dir: Path, reference_pm: tuple[float, f
             "min_cluster_size": selected.get("min_cluster_size"),
             "desired_len": selected.get("desired_len"),
             "algorithm_selected_final_label": algorithm_selected_label,
+            "tree_selected_final_label": tree_selected_label,
             "ngc_like_final_label": ngc_like_label,
             "ngc_like_pm_distance_to_reference": ngc_pm_distance,
             "reference_pm": list(reference_pm),
@@ -317,6 +337,14 @@ def audit_radius(dill_path: Path, output_dir: Path, reference_pm: tuple[float, f
                 "Inspect final_label_summary.csv before interpreting membership."
                 if algorithm_selected_label != ngc_like_label
                 else "The HDBSCAN sweep-selected branch matches the NGC-like branch."
+            ),
+            "selector_fix_note": (
+                "Issue #7: the legacy size-matching selector and the condensed-tree "
+                "selector disagree on this run. `algorithm_selected_final_label` is what "
+                "the published run reported; `tree_selected_final_label` is what the "
+                "fixed selector returns."
+                if algorithm_selected_label != tree_selected_label
+                else "Issue #7: both selectors return the same label on this run."
             ),
         },
         "stored_state_limits": {
@@ -366,7 +394,10 @@ def main() -> None:
     combined_path = args.output_dir / "clustering_audit_summary.json"
     _write_json(combined_path, summaries)
     print(f"Wrote {combined_path}")
-    print("radius candidates sweep_rows final_labels condensed_tree_rows algorithm_label ngc_label selected_mcs")
+    print(
+        "radius candidates sweep_rows final_labels condensed_tree_rows "
+        "legacy_label tree_label ngc_label selected_mcs"
+    )
     for item in summaries:
         print(
             item["radius_arcmin"],
@@ -375,6 +406,7 @@ def main() -> None:
             item["counts"]["n_final_labels_including_noise"],
             item["counts"]["n_condensed_tree_rows"],
             item["selected"]["algorithm_selected_final_label"],
+            item["selected"]["tree_selected_final_label"],
             item["selected"]["ngc_like_final_label"],
             item["selected"]["min_cluster_size"],
         )

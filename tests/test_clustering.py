@@ -4,27 +4,56 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from astropy.table import QTable
 from astropy import units as u
-
+from astropy.table import QTable
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_qtable(n: int = 300, seed: int = 42) -> QTable:
     """Two well-separated clusters in pmra/pmdec + required columns."""
     rng = np.random.default_rng(seed)
     half = n // 2
-    pmra  = np.concatenate([rng.normal(0.0, 0.3, half), rng.normal(5.0, 0.3, half)])
+    pmra = np.concatenate([rng.normal(0.0, 0.3, half), rng.normal(5.0, 0.3, half)])
     pmdec = np.concatenate([rng.normal(0.0, 0.3, half), rng.normal(5.0, 0.3, half)])
-    return QTable({
-        "pmra":  pmra  * u.mas / u.yr,
-        "pmdec": pmdec * u.mas / u.yr,
-        "ra":    rng.uniform(263, 264, n) * u.deg,
-        "dec":   rng.uniform(-32, -31, n) * u.deg,
-        "cluster": np.zeros(n, dtype=int),
-    })
+    return QTable(
+        {
+            "pmra": pmra * u.mas / u.yr,
+            "pmdec": pmdec * u.mas / u.yr,
+            "ra": rng.uniform(263, 264, n) * u.deg,
+            "dec": rng.uniform(-32, -31, n) * u.deg,
+            "cluster": np.zeros(n, dtype=int),
+        }
+    )
+
+
+def _make_contaminated_qtable(n_cluster: int = 40, n_field: int = 400, seed: int = 1) -> QTable:
+    """A compact cluster buried in a field ~10x larger — the regime of issue #7.
+
+    Truth is carried in ``is_member`` and deliberately NOT in ``cluster``:
+    ``_annotate_pseudoprobability_results`` overwrites ``data["cluster"]``, so a truth
+    column by that name would be silently replaced by the algorithm's own answer and any
+    purity assertion built on it would compare the algorithm against itself.
+
+    The field is broad enough that HDBSCAN carves more than one structure out of it, and
+    at least one of those field structures is LARGER than the injected cluster. That is
+    the condition under which :meth:`Clustering._cluster_label_for_size`'s
+    "largest non-noise cluster" fallback returns the field.
+    """
+    rng = np.random.default_rng(seed)
+    pmra = np.concatenate([rng.normal(-1.2, 0.25, n_cluster), rng.normal(-3.0, 4.0, n_field)])
+    pmdec = np.concatenate([rng.normal(-0.5, 0.25, n_cluster), rng.normal(-3.0, 4.0, n_field)])
+    truth = np.concatenate([np.ones(n_cluster, bool), np.zeros(n_field, bool)])
+    order = rng.permutation(truth.size)  # row order must carry no membership information
+    return QTable(
+        {
+            "pmra": pmra[order] * u.mas / u.yr,
+            "pmdec": pmdec[order] * u.mas / u.yr,
+            "is_member": truth[order],
+        }
+    )
 
 
 @pytest.fixture
@@ -40,6 +69,7 @@ def bad_data():
 @pytest.fixture
 def fitted_clust(good_data, bad_data):
     from erotica.core.clustering import Clustering
+
     clust = Clustering(good_data, bad_data)
     clust.search_pseudoprobability(
         columns=["pmra", "pmdec"],
@@ -54,21 +84,25 @@ def fitted_clust(good_data, bad_data):
 # HDBSCANEstimator
 # ---------------------------------------------------------------------------
 
+
 class TestHDBSCANEstimator:
     def test_fit_returns_self(self, good_data):
         from erotica.core._estimator import HDBSCANEstimator
+
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10)
         assert est.fit(X) is est
 
     def test_labels_length(self, good_data):
         from erotica.core._estimator import HDBSCANEstimator
+
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10).fit(X)
         assert len(est.model_.labels_) == len(good_data)
 
     def test_predict_after_fit(self, good_data):
         from erotica.core._estimator import HDBSCANEstimator
+
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10).fit(X)
         preds = est.predict(X)
@@ -76,12 +110,14 @@ class TestHDBSCANEstimator:
 
     def test_predict_before_fit_raises(self):
         from erotica.core._estimator import HDBSCANEstimator
+
         est = HDBSCANEstimator(min_cluster_size=10)
         with pytest.raises(RuntimeError):
             est.predict(np.zeros((10, 2)))
 
     def test_score_returns_float(self, good_data):
         from erotica.core._estimator import HDBSCANEstimator
+
         X = good_data["pmra", "pmdec"].to_pandas().values
         est = HDBSCANEstimator(min_cluster_size=10).fit(X)
         assert isinstance(est.score(X), float)
@@ -91,9 +127,11 @@ class TestHDBSCANEstimator:
 # Clustering.__init__
 # ---------------------------------------------------------------------------
 
+
 class TestClusteringInit:
     def test_default_attributes(self, good_data):
         from erotica.core.clustering import Clustering
+
         clust = Clustering(good_data)
         assert clust.clusterer is None
         assert clust.best_params_ is None
@@ -102,9 +140,17 @@ class TestClusteringInit:
         assert clust.pseudoprobability_results_ is None
         assert clust.pseudoprobability_selected_ is None
         assert clust.pseudoprobability_sweep_track_ is None
+        assert clust.legacy_cluster_selection is False
+
+    def test_legacy_cluster_selection_is_a_real_keyword(self, good_data):
+        """Reproducing a pre-2026-08-03 result must not require monkey-patching."""
+        from erotica.core.clustering import Clustering
+
+        assert Clustering(good_data, legacy_cluster_selection=True).legacy_cluster_selection is True
 
     def test_invalid_search_method_raises(self, good_data):
         from erotica.core.clustering import Clustering
+
         with pytest.raises(ValueError):
             Clustering(good_data, search_method="nonexistent")
 
@@ -113,9 +159,11 @@ class TestClusteringInit:
 # search_pseudoprobability
 # ---------------------------------------------------------------------------
 
+
 class TestSearchPseudoprobability:
     def test_runs_without_error(self, good_data, bad_data):
         from erotica.core.clustering import Clustering
+
         clust = Clustering(good_data, bad_data)
         clust.search_pseudoprobability(
             columns=["pmra", "pmdec"],
@@ -166,6 +214,7 @@ class TestSearchPseudoprobability:
 
     def test_select_cluster_false_keeps_all_labels(self, good_data, bad_data):
         from erotica.core.clustering import Clustering
+
         clust = Clustering(good_data, bad_data)
         clust.search_pseudoprobability(
             columns=["pmra", "pmdec"],
@@ -180,6 +229,7 @@ class TestSearchPseudoprobability:
 
     def test_empty_range_raises(self, good_data, bad_data):
         from erotica.core.clustering import Clustering
+
         clust = Clustering(good_data, bad_data)
         with pytest.raises(RuntimeError):
             clust.search_pseudoprobability(
@@ -189,6 +239,7 @@ class TestSearchPseudoprobability:
 
     def test_min_max_cluster_members_filter(self, good_data, bad_data):
         from erotica.core.clustering import Clustering
+
         clust = Clustering(good_data, bad_data)
         clust.search_pseudoprobability(
             columns=["pmra", "pmdec"],
@@ -204,6 +255,7 @@ class TestSearchPseudoprobability:
 # get_best_params / save_results
 # ---------------------------------------------------------------------------
 
+
 class TestPublicHelpers:
     def test_get_best_params(self, fitted_clust):
         params = fitted_clust.get_best_params()
@@ -213,10 +265,12 @@ class TestPublicHelpers:
         out = str(tmp_path / "results.ecsv")
         fitted_clust.save_results(out, format="ascii.ecsv")
         import os
+
         assert os.path.exists(out)
 
     def test_save_results_before_fit_raises(self, good_data):
         from erotica.core.clustering import Clustering
+
         clust = Clustering(good_data)
         with pytest.raises(ValueError):
             clust.save_results("/tmp/nope.ecsv")
@@ -233,15 +287,19 @@ class TestPublicHelpers:
 # plot_mcs_sweep
 # ---------------------------------------------------------------------------
 
+
 class TestPlotMcsSweep:
     def test_runs(self, fitted_clust):
         import matplotlib
+
         matplotlib.use("Agg")
         fitted_clust.plot_mcs_sweep()
 
     def test_before_fit_raises(self, good_data):
-        from erotica.core.clustering import Clustering
         import matplotlib
+
+        from erotica.core.clustering import Clustering
+
         matplotlib.use("Agg")
         clust = Clustering(good_data)
         with pytest.raises(RuntimeError):
@@ -249,10 +307,12 @@ class TestPlotMcsSweep:
 
     def test_save_path(self, fitted_clust, tmp_path):
         import matplotlib
+
         matplotlib.use("Agg")
         out = str(tmp_path / "mcs_sweep.pdf")
         fitted_clust.plot_mcs_sweep(save_path=out)
         import os
+
         assert os.path.exists(out)
 
 
@@ -260,15 +320,19 @@ class TestPlotMcsSweep:
 # plot_condensed_tree
 # ---------------------------------------------------------------------------
 
+
 class TestPlotCondensedTree:
     def test_runs(self, fitted_clust):
         import matplotlib
+
         matplotlib.use("Agg")
         fitted_clust.plot_condensed_tree()
 
     def test_before_fit_raises(self, good_data):
-        from erotica.core.clustering import Clustering
         import matplotlib
+
+        from erotica.core.clustering import Clustering
+
         matplotlib.use("Agg")
         clust = Clustering(good_data)
         with pytest.raises(RuntimeError):
@@ -276,10 +340,12 @@ class TestPlotCondensedTree:
 
     def test_save_path(self, fitted_clust, tmp_path):
         import matplotlib
+
         matplotlib.use("Agg")
         out = str(tmp_path / "condensed_tree.pdf")
         fitted_clust.plot_condensed_tree(save_path=out)
         import os
+
         assert os.path.exists(out)
 
 
@@ -287,9 +353,11 @@ class TestPlotCondensedTree:
 # _build_pseudoprobability / _select_pseudoprobability_result
 # ---------------------------------------------------------------------------
 
+
 class TestStaticHelpers:
     def test_build_pseudoprobability_all_cluster(self):
         from erotica.core.clustering import Clustering
+
         # 3 sources, 2 iterations, always in cluster
         storage = [[0, 0], [1, 1], [0, 1]]
         pt = Clustering._build_pseudoprobability(storage)
@@ -297,12 +365,14 @@ class TestStaticHelpers:
 
     def test_build_pseudoprobability_all_noise(self):
         from erotica.core.clustering import Clustering
+
         storage = [[-1, -1], [-1, -1]]
         pt = Clustering._build_pseudoprobability(storage)
         np.testing.assert_array_equal(pt, [0.0, 0.0])
 
     def test_build_pseudoprobability_mixed(self):
         from erotica.core.clustering import Clustering
+
         storage = [[0, -1], [-1, -1]]  # first source: 1/2 in cluster
         pt = Clustering._build_pseudoprobability(storage)
         assert pt[0] == pytest.approx(0.5)
@@ -310,6 +380,7 @@ class TestStaticHelpers:
 
     def test_select_max_members(self):
         from erotica.core.clustering import Clustering
+
         results = [
             {"min_cluster_size": 10, "desired_len": 100, "lambda_value": 5.0},
             {"min_cluster_size": 20, "desired_len": 200, "lambda_value": 3.0},
@@ -319,6 +390,7 @@ class TestStaticHelpers:
 
     def test_select_max_lambda(self):
         from erotica.core.clustering import Clustering
+
         results = [
             {"min_cluster_size": 10, "desired_len": 100, "lambda_value": 9.0},
             {"min_cluster_size": 20, "desired_len": 200, "lambda_value": 3.0},
@@ -328,35 +400,149 @@ class TestStaticHelpers:
 
     def test_select_invalid_raises(self):
         from erotica.core.clustering import Clustering
+
         with pytest.raises(ValueError):
             Clustering._select_pseudoprobability_result([{}], "invalid")
 
     def test_cluster_label_for_size_exact_match(self):
         from erotica.core.clustering import Clustering
+
         labels = np.array([0, 0, 0, 1, 1, -1])
         assert Clustering._cluster_label_for_size(labels, 3) == 0
 
     def test_cluster_label_for_size_no_match_returns_largest(self):
         from erotica.core.clustering import Clustering
+
         labels = np.array([0, 0, 0, 1, 1, -1])
         # desired_len=99 doesn't exist → return largest cluster (0, size 3)
         assert Clustering._cluster_label_for_size(labels, 99) == 0
 
     def test_cluster_label_for_size_all_noise(self):
         from erotica.core.clustering import Clustering
+
         labels = np.array([-1, -1, -1])
         assert Clustering._cluster_label_for_size(labels, 1) == -1
+
+
+# ---------------------------------------------------------------------------
+# Branch selection on a contaminated frame — issue #7
+# ---------------------------------------------------------------------------
+
+
+def _select_on_contaminated_frame(legacy: bool) -> dict:
+    """Drive a contaminated frame through ``search_pseudoprobability`` and score the pick.
+
+    It has to go through ``search_pseudoprobability``: a bare HDBSCAN fit never reaches the
+    selector, and it is the ``selection='max_members'`` default — argmax of the same
+    condensed-tree row count across the sweep — that drives ``desired_len`` away from any
+    real cluster size and so pushes the size match into its failure case.
+    """
+    from erotica.core.clustering import Clustering
+
+    clust = Clustering(_make_contaminated_qtable(), legacy_cluster_selection=legacy)
+    clust.search_pseudoprobability(
+        columns=["pmra", "pmdec"],
+        min_cluster_size_samples=range(10, 40),
+        min_samples=5,
+        probability_threshold=0.5,
+    )
+    truth = np.asarray(clust.data["is_member"], dtype=bool)
+    selected = np.asarray(clust.data["cluster"], dtype=int) != -1
+    return {
+        "n_selected": int(selected.sum()),
+        "purity": float(truth[selected].mean()) if selected.any() else 0.0,
+        "recall": float(truth[selected].sum() / truth.sum()),
+        "label": int(clust.pseudoprobability_selected_["selected_cluster"]),
+        "desired_len": int(clust.pseudoprobability_selected_["desired_len"]),
+        "label_sizes": dict(
+            zip(
+                *[
+                    a.tolist()
+                    for a in np.unique(
+                        np.asarray(clust.data["cluster_hdbscan"], dtype=int), return_counts=True
+                    )
+                ],
+                strict=True,
+            )
+        ),
+        "probability": np.asarray(clust.data["probability"], dtype=float),
+    }
+
+
+@pytest.fixture(scope="module")
+def legacy_pick():
+    return _select_on_contaminated_frame(legacy=True)
+
+
+@pytest.fixture(scope="module")
+def tree_pick():
+    return _select_on_contaminated_frame(legacy=False)
+
+
+class TestContaminatedBranchSelection:
+    """Issue #7: the size-matching selector reports the field as the cluster.
+
+    ``_desired_tree_branch_size`` counts ROWS of the condensed tree; ``_cluster_label_for_size``
+    matches that integer against flat-cluster POINT counts. On this frame the two miss by one
+    (102 tree rows vs a 101-point cluster) and the fallback hands back the largest non-noise
+    cluster, which is field.
+    """
+
+    def test_frame_actually_exercises_the_defect(self, legacy_pick):
+        """Guard the guard: a frame where the size match happens to succeed proves nothing."""
+        sizes = legacy_pick["label_sizes"]
+        assert legacy_pick["desired_len"] not in sizes.values(), (
+            f"desired_len={legacy_pick['desired_len']} coincides with a real cluster size "
+            f"{sizes} — this frame no longer reaches the fallback, so the test below is vacuous"
+        )
+        assert sum(1 for k in sizes if k != -1) >= 2, (
+            f"only one non-noise cluster in {sizes}; 'largest non-noise cluster' is then "
+            "trivially the cluster and the defect cannot show"
+        )
+
+    def test_legacy_selector_returns_the_field(self, legacy_pick):
+        assert legacy_pick["n_selected"] > 0, "nothing selected at all — not the failure mode"
+        assert legacy_pick["purity"] < 0.10, (
+            f"expected the legacy selector to return the field; got purity "
+            f"{legacy_pick['purity']:.3f} over {legacy_pick['n_selected']} sources"
+        )
+
+    def test_tree_selector_returns_the_cluster(self, tree_pick):
+        assert tree_pick["purity"] > 0.90, (
+            f"tree selector purity {tree_pick['purity']:.3f} over {tree_pick['n_selected']} sources"
+        )
+        assert tree_pick["recall"] > 0.50, f"recall {tree_pick['recall']:.3f}"
+
+    def test_tree_selector_beats_legacy_on_the_same_frame(self, legacy_pick, tree_pick):
+        assert tree_pick["label"] != legacy_pick["label"], (
+            "both selectors picked the same label, so this frame does not discriminate"
+        )
+        assert tree_pick["purity"] - legacy_pick["purity"] > 0.50, (
+            f"legacy {legacy_pick['purity']:.3f} vs tree {tree_pick['purity']:.3f}"
+        )
+
+    def test_selector_cannot_change_the_pseudoprobability(self, legacy_pick, tree_pick):
+        """The fix repairs the member list and NOTHING about p-tilde.
+
+        ``data['probability'] = p_HDBSCAN * f_i`` is written before the branch that chooses
+        a label, so calibration (ECE/Brier) and any probability-ranked score (AUC, top-K)
+        are identical under both selectors. Recorded so nobody credits the selector fix with
+        a calibration improvement it cannot produce.
+        """
+        np.testing.assert_array_equal(legacy_pick["probability"], tree_pick["probability"])
 
 
 # ---------------------------------------------------------------------------
 # Idempotency / reproducibility
 # ---------------------------------------------------------------------------
 
+
 class TestIdempotency:
     """Repeating a search with the same input must reproduce the same result."""
 
     def test_pseudoprobability_is_idempotent(self, good_data):
         from erotica.core.clustering import Clustering
+
         out = []
         for _ in range(2):
             clu = Clustering(good_data.copy())
@@ -369,6 +555,7 @@ class TestIdempotency:
     def test_pseudoprobability_is_row_order_invariant(self, good_data):
         """Shuffling the input rows must not change WHICH sources are members."""
         from erotica.core.clustering import Clustering
+
         member_sets = []
         for shuffle in (False, True):
             data = good_data.copy()
@@ -381,13 +568,14 @@ class TestIdempotency:
             labels = np.asarray(clu.clusterer.labels_)
             pmra = np.round(np.asarray(clu.data["pmra"])[labels != -1], 6)
             pmdec = np.round(np.asarray(clu.data["pmdec"])[labels != -1], 6)
-            member_sets.append(set(zip(pmra, pmdec)))
+            member_sets.append(set(zip(pmra, pmdec, strict=True)))
         assert member_sets[0] == member_sets[1]
 
     def test_optuna_search_uses_a_default_space_and_is_seeded(self, good_data):
         """Optuna with no explicit search space must work (not suggest an empty dict)
         and must reproduce, because the sampler is seeded by default."""
         from erotica.core.clustering import Clustering
+
         best = []
         for i in range(2):
             clu = Clustering(good_data.copy(), search_method="optuna", study_name=f"idem-test-{i}")
