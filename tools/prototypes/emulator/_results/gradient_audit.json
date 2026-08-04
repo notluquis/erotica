@@ -1,0 +1,62 @@
+{
+  "hess": {
+    "shape": [
+      200,
+      200,
+      17,
+      12
+    ],
+    "met_identical_adjacent": "189/199",
+    "met_zero_grad_frac": 0.949748743718593,
+    "met_unique_slices": "11/200",
+    "loga_identical_adjacent": "93/199",
+    "loga_zero_grad_frac": 0.46733668341708545,
+    "loga_unique_slices": "107/200",
+    "met_logp_zero_grad_frac": 0.9525,
+    "loga_logp_zero_grad_frac": 0.4725
+  },
+  "emulator_order1": {
+    "order_age": 1,
+    "order_feh": 1,
+    "n_draw": 2000,
+    "n_star": 254,
+    "nonfinite_frac": 0.0,
+    "log_age_zero_grad_frac": 0.0,
+    "log_age_grad_median_abs": 725.5646678696369,
+    "feh_zero_grad_frac": 0.0,
+    "feh_grad_median_abs": 721.3208965354099,
+    "dm_zero_grad_frac": 0.0,
+    "dm_grad_median_abs": 430.9502681669708,
+    "Av_zero_grad_frac": 0.0,
+    "Av_grad_median_abs": 204.28499990578763,
+    "any_zero_frac": 0.0,
+    "local_minima_per_dex": 2.5000000000000004,
+    "argmax_log_age": 6.600000999999987,
+    "truth_log_age": 6.6,
+    "grad_jump_at_node_median": 134.5052181291344,
+    "grad_scale_median": 2551.0987832932215,
+    "grad_jump_rel": 0.06067790311003489
+  },
+  "emulator_order3": {
+    "order_age": 3,
+    "order_feh": 3,
+    "n_draw": 2000,
+    "n_star": 254,
+    "nonfinite_frac": 0.0,
+    "log_age_zero_grad_frac": 0.0,
+    "log_age_grad_median_abs": 709.6100342191921,
+    "feh_zero_grad_frac": 0.0,
+    "feh_grad_median_abs": 727.5287973924019,
+    "dm_zero_grad_frac": 0.0,
+    "dm_grad_median_abs": 421.2197378582514,
+    "Av_zero_grad_frac": 0.0,
+    "Av_grad_median_abs": 207.1831953813326,
+    "any_zero_frac": 0.0,
+    "local_minima_per_dex": 3.125000000000001,
+    "argmax_log_age": 6.600000999999987,
+    "truth_log_age": 6.6,
+    "grad_jump_at_node_median": 14.950405248937614,
+    "grad_scale_median": 2552.0651840960504,
+    "grad_jump_rel": 0.0070946147198180974
+  }
+}
