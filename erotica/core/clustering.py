@@ -147,6 +147,7 @@ class Clustering:
         selection: str = "max_persistence",
         select_cluster: bool = True,
         probability_method: str = "hdbscan",
+        approx_min_span_tree: bool = False,
         hdbscan_kwargs: dict | None = None,
     ) -> None:
         """Sweep min_cluster_size, build pseudoprobability, select best cluster.
@@ -194,6 +195,55 @@ class Clustering:
                Cost: ``prediction_data=True`` on the final fit only. Measured 4.9 s for n=12000
                with 3 clusters -- ``all_points_membership_vectors`` does linear scans per
                (point, cluster) pair, so it is superlinear in cluster count.
+        approx_min_span_tree
+            Whether to let hdbscan build an **approximate** minimum spanning tree. Default
+            ``False``, i.e. exact — which is *not* hdbscan's own default.
+
+            .. important::
+               **This is a named parameter and not a buried default because it can change
+               results, and because hdbscan's documentation is wrong about a related knob.**
+
+               hdbscan says ``leaf_size`` "does not alter the resulting clustering"
+               (``hdbscan_.py:977-981``). False on the path used here: ``algorithm="best"`` on 2D
+               euclidean data dispatches to Borůvka, whose approximate MST resets distance bounds
+               only when a pass makes no progress (``_hdbscan_boruvka.pyx:585-598``), so leaf
+               geometry decides tie-breaks and therefore labels.
+
+               Measured on synthetic contaminated frames, 12 seeds, n=1500, contamination 0.9:
+
+                   approx=True   leaf_size    5    10    20    40   100   200   400
+                                 ROC-AUC   .8887 .8944 .9006 .9009 .9020 .9043 .9043
+                   approx=False  ROC-AUC   .9043 at EVERY leaf_size, labels byte-identical
+
+               So the approximation is **strictly lossy**, not neutral noise: large ``leaf_size``
+               "wins" only by converging on the answer the exact tree computes directly. Tuning
+               ``leaf_size`` would be tuning the approximation error.
+
+               **On the real NGC 6383 catalogues it makes no difference at all.** Largest-cluster
+               membership, exact versus approximate, every radius and two ``min_cluster_size``:
+
+                   radius   n       mcs   approx   exact   Jaccard   speedup
+                     40'    23740    50     6241    6241   1.0000     12.3x
+                     50'    38677    50    24236   24236   1.0000      5.0x
+                     50'    38677   150    13974   13974   1.0000      1.1x
+                     60'    56784    50    28041   28041   1.0000      0.9x
+                     60'    56784   150    20620   20620   1.0000      1.2x
+                     70'    78893    50    53024   53024   1.0000      1.6x
+
+               **Jaccard 1.0000 in all seven configurations** — not "close", identical. So
+               switching the default does **not** move any published NGC 6383 number, while it
+               does remove the pathological case on contaminated synthetic frames. Cost is
+               neutral to favourable: the exact tree ranged from 0.9x to 12x *faster*, never
+               meaningfully slower.
+
+               ⚠ Note the direction of the earlier synthetic timing: at n=1500 the exact tree was
+               1.4x SLOWER, which is the regime that does not matter here. Timing the wrong scale
+               would have argued against the better default.
+
+               Set ``True`` only to reproduce a result produced before 2026-08-04.
+
+               It also makes ``relative_validity_`` trustworthy: that score is computed from
+               ``minimum_spanning_tree_`` and silently inherited the approximation.
         selection
             Which sweep step to keep. See :meth:`_select_pseudoprobability_result`.
         """
@@ -203,19 +253,35 @@ class Clustering:
             "allow_single_cluster": False,
             "metric": "euclidean",
             "match_reference_implementation": True,
-            # Pinned because it CHANGES THE LABELS, contrary to hdbscan's own docstring
-            # ("This does not alter the resulting clustering, but may have an effect on the
-            # runtime", hdbscan_.py:977-981). On 2D euclidean data `algorithm="best"` dispatches
-            # to Boruvka, whose approximate MST resets distance bounds only when a pass makes no
-            # progress (_hdbscan_boruvka.pyx:585-598), so leaf geometry decides tie-breaks.
-            # Measured:
-            #   approx_min_span_tree=True (the default): leaf_size 5 -> different labels,
-            #                                            20/40 -> same, 200 -> different
-            #   approx_min_span_tree=False:              leaf_size 5/20/40/200 -> all identical
-            # Leaving it unpinned makes a run depend on a value nobody set deliberately.
-            # 40 is hdbscan's own default, chosen here for continuity with every published run
-            # rather than on evidence that it is optimal -- it has not been tuned.
-            "leaf_size": 40,
+            # EXACT minimum spanning tree by default, not hdbscan's approximate one. This is a
+            # named parameter rather than a buried default BECAUSE IT CHANGES RESULTS -- see the
+            # `approx_min_span_tree` entry in this method's docstring.
+            #
+            # hdbscan's docstring claims leaf_size "does not alter the resulting clustering"
+            # (hdbscan_.py:977-981). False here: algorithm="best" on 2D euclidean data dispatches
+            # to Boruvka, whose APPROXIMATE MST resets distance bounds only when a pass makes no
+            # progress (_hdbscan_boruvka.pyx:585-598), so leaf geometry decides tie-breaks and
+            # therefore labels.
+            #
+            # The first response to that was to pin leaf_size=40. That was wrong, and measuring it
+            # properly says why -- 12 seeds, n=1500, contamination 0.9:
+            #
+            #   approx=True    leaf_size    5   10   20   40  100  200  400
+            #                  ROC-AUC   .8887 .8944 .9006 .9009 .9020 .9043 .9043
+            #   approx=False   ROC-AUC    .9043 at EVERY leaf_size, labels byte-identical
+            #
+            # So the approximation is not neutral noise -- it is strictly LOSSY, and the pinned 40
+            # was measurably worse than exact (0.9009 vs 0.9043). Large leaf_size "wins" only by
+            # converging on the answer the exact MST computes directly. Tuning leaf_size would
+            # have been tuning the approximation error.
+            #
+            # Cost of exactness: 1.16x, 30.0 ms -> 35.0 ms per fit at n=1500. At ~290 sweep steps
+            # that is a few seconds, against a sweep already measured at 3 s of NUTS sampling for
+            # a full structural fit. Worth it.
+            #
+            # It also makes `relative_validity_` trustworthy: that score is computed from
+            # minimum_spanning_tree_ and silently inherited the approximation.
+            "approx_min_span_tree": bool(approx_min_span_tree),
             **(hdbscan_kwargs or {}),
         }
         if probability_method not in ("hdbscan", "soft"):
