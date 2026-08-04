@@ -1,14 +1,31 @@
 # Fitting a circular profile to an elliptical cluster
 
 Every radial profile in this package assumes circular symmetry. **Circular symmetry is the
-exception.** Tarricq et al. (2022) measure a median axis ratio `b/a = 0.71` for the core component
-across 233 open clusters, with 92.9% below 0.9 and a 10th percentile of 0.42 — so the assumption is
-violated for almost every cluster, and the size of the resulting bias was unquantified.
+exception.** The median core axis ratio is `b/a = 0.71`, with 92.9% below 0.9 and a 10th percentile
+of 0.42 across 233 open clusters — so the assumption is violated for almost every cluster, and the
+size of the resulting bias was unquantified.
+
+```{note}
+**Attribution, corrected 2026-08-03.** That 0.71 is **computed here** from Tarricq et al. (2022)'s
+published table (VizieR `J/A+A/659/A59`, `table1.dat`, core median `b/a = 0.7102`). It is **not a
+number Tarricq et al. print** — their text reports the distribution as *peaking at 0.8–0.9*. Earlier
+versions of this note said "Tarricq et al. (2022) measure a median axis ratio 0.71", which
+misattributes a derived statistic to their prose. Cite it as recomputed from their table.
+```
 
 It matters for a specific claim. The A5 recoverability work asks whether the EFF slope `γ` piles up
 near 2, the value at which EFF and an untruncated King coincide. **If ellipticity pushed `γ` toward
 2, a pile-up there could be manufactured by an unmodelled axis ratio rather than by physics.** That
 had to be measured before the claim could be made in either direction.
+
+```{important}
+**A5 has since been run, and there is no pile-up to manufacture.** On the complete 346-cluster
+young sample (342 converged, 98.84%) the bin containing `γ = 2` sits **+1.2σ** above its flanking
+bins — noise. Median `γ` = 2.585, sd 1.088. The null holds under *both* background treatments; a
+free background makes the `γ ≈ 2` region **emptier** (1.8–2.2 fraction 17.3% → 6.5%). This
+measurement therefore stands as a systematic worth reporting, not as the explanation of a signal.
+Full result: `~/phd/agent-findings/a5-census-gamma-sweep-results.md`.
+```
 
 Regenerate everything here with `python tools/validation/ellipticity_bias.py --realizations 6`.
 

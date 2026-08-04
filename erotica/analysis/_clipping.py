@@ -5,7 +5,7 @@ The default clip basis changed on 2026-08-02 -- see :func:`sigma_clip_parallax`.
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 from astropy import units as u
@@ -97,6 +97,7 @@ def _excess_variance(residual: np.ndarray, variance: np.ndarray) -> float:
        window, while the maximum-likelihood value (0.044 mas) is set by the
        bright stars that actually constrain it.
     """
+
     def score(s2: float) -> float:
         total = s2 + variance
         return float(np.sum((residual**2 - total) / total**2))
@@ -175,9 +176,7 @@ def _normalised_residual(parallax, errors, selection, *, sigma, maxiters, cenfun
         weight = 1.0 / (intrinsic2 + variance_all[keep])
         centre = float(np.sum(weight * parallax[keep]) / np.sum(weight))
         # Refit on the FULL selection about the updated centre -- never on `keep`.
-        intrinsic2 = _excess_variance(
-            parallax[selection] - centre, variance_all[selection]
-        )
+        intrinsic2 = _excess_variance(parallax[selection] - centre, variance_all[selection])
         z_all = (parallax - centre) / np.sqrt(intrinsic2 + variance_all)
         proposed = selection & (np.abs(z_all) <= sigma)
         if np.array_equal(proposed, keep):
@@ -229,6 +228,42 @@ def sigma_clip_parallax(
 
         ``"raw"`` clips the parallax column itself, which is what this function
         did before 2026-08-02.
+
+        .. warning::
+           **``method="raw"`` does NOT reproduce the published NGC 6383 sample, and this
+           docstring claimed it did until 2026-08-03.** Measured: ``"raw"`` returns **288**
+           members, not 254. A sweep of 24 configurations spans **275–313** and **no setting
+           of this function reaches 254**.
+
+           The published 254 comes from a *different code path* —
+           ``tools/validation/ngc6383_radius_robustness.py``, which calls
+           ``astropy.stats.sigma_clip`` on the raw parallax with
+           ``cenfunc=histogram_mode, stdfunc="std"``, ``sigma=2`` and ``maxiters`` left at
+           astropy's implicit 5. This function never calls astropy, so the estimators differ
+           even when the basis matches. Splitting the two effects: estimators alone move
+           254 → **288** (+34); the basis change then moves 288 → **313** (+25).
+
+           **To reproduce the published sample, use that script, not this argument.**
+
+           Note also that 313 is **not a superset** of 254 — the intersection is **252**. The
+           normalised clip *rejects* two bright, well-measured published members
+           (G = 12.78, 13.04) while adding 61 faint ones. It is a different selection, not a
+           refinement, and a published analysis is defined by the selection it used.
+           Full measurement: ``~/phd/agent-findings/p01-254-vs-313.md``.
+
+           The default changed because the raw clip is strongly
+           magnitude-dependent: measured retention gradient across magnitude
+           quartiles **+0.214** for ``"raw"`` against **−0.068** for
+           ``"normalised"``. That matters for *new* analyses, where a
+           magnitude-dependent selection propagates into any luminosity- or
+           mass-dependent result. It does not retroactively invalidate a sample
+           whose selection is documented and reproducible.
+
+           Note also that the textbook form :math:`|\varpi-\varpi_0|/\sigma_\varpi`
+           — without the excess-variance term — measures **−0.184** on this
+           catalogue, *worse* than the raw clip. The synthetic oracle that
+           suggested it carried neither excess scatter nor the survey's ADQL
+           parallax window. Hence the fitted :math:`\sigma_{\mathrm{exc}}`.
     parallax_error_column : str, default ``"parallax_error"``
         Column holding :math:`\sigma_{\varpi,i}` in mas. Read only when
         ``method="normalised"``.

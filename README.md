@@ -1,6 +1,6 @@
 # EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/erotica)
 [![CI](https://github.com/notluquis/erotica/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/erotica/actions/workflows/ci.yml)
@@ -24,7 +24,7 @@ pip install -e ".[dev,docs]"
 
 ### Requirements
 
-- Python 3.11 or higher
+- Python 3.13 or higher
 - See `pyproject.toml` for complete dependency list
 
 ## 🚀 Quick Start
@@ -134,7 +134,9 @@ Stated up front because the alternative is a referee stating it:
   `R_t` is unconstrained regardless of how well the sampler converged. Any `R_t` must name its prior.
 - **The EFF slope is not recoverable at typical Gaia-census geometry.** The controlling variable is
   the footprint-to-scale ratio, not the sample size.
-- **Circular symmetry is assumed and is the exception** — the published median axis ratio is 0.71.
+- **Circular symmetry is assumed and is the exception** — median core axis ratio **0.71**, computed
+  here from Tarricq et al. (2022)'s published table, not quoted from their text (they report the
+  distribution as peaking at 0.8–0.9).
 - **On a membership-selected sample the background term is not contamination.** It absorbs the
   corona, and for one cluster it accounts for 56% of the sample against a 6.1% measured
   false-discovery rate.
@@ -148,7 +150,7 @@ Written once because three reviewers ask for it: pyOpenSci's review template ask
 similar packages, JOSS requires a **State of the field** section, and Astropy's affiliated criteria
 ask that a package avoid duplicating existing functionality.
 
-**Supported Python: 3.11+.**
+**Supported Python: 3.13+** (CI runs 3.13 and 3.14).
 
 | package | what it does that EROTICA does not | overlap |
 |---|---|---|
@@ -176,13 +178,12 @@ been falsified seven times, so they are checked before they are written.
 
 Full documentation: **[erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/)**
 
-> **The URL is stale and the slug cannot be changed in place.** The Read the Docs *project* was
-> renamed to `erotica` in the 2026-07-21 rename, but its **slug is still `cosmic-clusters`**, so
-> `erotica.readthedocs.io` returns 404 while `erotica.readthedocs.io` serves the current
-> docs. Verified 2026-08-02 against the RTD API: `project__slug=cosmic-clusters` returns
-> `{"name": "erotica", "slug": "cosmic-clusters"}`, and `project__slug=erotica` returns nothing.
-> Fixing it means creating a new RTD project and redirecting; until then **do not "correct" these
-> links.**
+> **Resolved 2026-08-03.** This block used to warn that the Read the Docs slug was still
+> `cosmic-clusters` and that `erotica.readthedocs.io` would 404. That is no longer true, and the
+> paragraph had also been corrupted by the rename pass — it printed the *same* URL on both sides of
+> "while", so it read as a contradiction and then instructed future editors not to fix it.
+> Measured directly: `erotica.readthedocs.io/en/latest/` → **HTTP 200**,
+> `cosmic-clusters.readthedocs.io/en/latest/` → **HTTP 404**. The link above is correct; use it.
 
 ### Getting started
 - [Installation](https://erotica.readthedocs.io/en/latest/install.html)
@@ -226,17 +227,20 @@ python tools/testing/run_comprehensive_tests.py
 
 ### Code Quality
 
-```bash
-# Format code
-black erotica/ tests/
-isort erotica/ tests/
+**`ruff` replaced `black` + `isort` + `flake8`.** It is what `.pre-commit-config.yaml` actually runs,
+so it is what gates a commit; the three tools this section used to name are no longer installed by
+the `dev` extra.
 
-# Check code quality
-flake8 erotica/ tests/
+```bash
+# Lint and autofix, then format — the same two hooks pre-commit runs
+ruff check --fix erotica/ tests/
+ruff format erotica/ tests/
+
+# Types (deliberately NOT a pre-commit hook — too slow for the commit loop)
 mypy erotica/ --ignore-missing-imports
 
-# Run all quality checks
-python tools/testing/run_comprehensive_tests.py
+# Or just install the hooks and let them run on every commit
+pre-commit install
 ```
 
 ## 📊 Status
@@ -258,7 +262,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make your changes and add tests
-4. Run the test suite: `python tools/testing/run_comprehensive_tests.py`
+4. Run the test suite: `pytest -q` (what CI runs, and what `CONTRIBUTING.md` says)
 5. Commit your changes: `git commit -m 'Add amazing feature'`
 6. Push to the branch: `git push origin feature/amazing-feature`
 7. Open a Pull Request

@@ -1,5 +1,6 @@
-# CITATION.cff — DRAFT. Confirm author list/order/ORCIDs and mint the Zenodo DOI
-# before release.
+# CITATION.cff — released. Author list, order and ORCID confirmed; Zenodo concept DOI
+# minted (10.5281/zenodo.21769959) and recorded below. The "DRAFT" header that used to sit
+# here outlived every condition it named.
 #
 # Licence: AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and this
 # file — verified 2026-08-02. (The earlier note here claiming LICENSE held GPL-3.0

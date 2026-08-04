@@ -1176,6 +1176,44 @@ it is the usual case rather than the exception.
 
 ---
 
+## 2026-08-03 — a tensor-product interpolator is exempt from the no-quadrature rule
+
+`erotica/analysis/CLAUDE.md` states the rule that governs every radial profile added to the
+point-process machinery:
+
+> the point-process machinery takes any `Σ(r)` that has a **closed-form radial integral** — that
+> integral is evaluated at every leapfrog step, so **quadrature inside the PyTensor graph is not
+> viable**.
+
+The differentiable stellar-track emulator has no closed-form integral in that sense, and the rule as
+written would forbid it. **The exemption is argued here rather than assumed, because building on an
+unrecorded exemption is how a rule quietly stops meaning anything.**
+
+**The rule targets *adaptive* work in the graph, and a tensor-product interpolant has none.**
+Quadrature is forbidden because its cost and its node placement depend on the parameter values, so
+every leapfrog step pays an unpredictable price and the gradient depends on where the quadrature
+happened to put its nodes. A tensor-product interpolant is the opposite: evaluation is a **fixed**
+number of multiply–adds — **8 taps for trilinear, 32 for the tricubic (4×4×2)** — decided at
+grid-build time and **independent of the parameter values**. It is a finite closed-form expression
+in the grid values, so it is exactly differentiable, has no training loss, cannot introduce
+structure absent from the underlying tracks, and its error is bounded by the stencil.
+
+**What the exemption does not cover.** It licenses *fixed-stencil interpolation only*. Any future
+component whose evaluation cost or node placement varies with the sampled parameters falls back
+under the prohibition, whatever it is called.
+
+**Measured consequence, which is why this matters.** The incumbent binned-Hess path has **46.7%
+exactly-zero gradient** in log age and **95.0%** in metallicity; the emulator has **0.0%** on all
+four physical parameters over 2000 prior draws, with 0.0% non-finite. Local minima per dex in log
+age fall from **45–55** to **2.5 (C0) / 3.1 (C1)**. The interpolant is also PyTensor-native:
+`pt.grad` returns finite nonzero gradients and the model compiles under both
+`nuts_sampler="numpyro"` and the default PyTensor NUTS — so the isochrone module does **not** have to
+leave PyMC, which was the premise the original design note assumed and the spike refuted.
+
+Full derivation, scripts and numbers: `~/phd/agent-findings/differentiable-emulator-design.md`.
+
+---
+
 ## Known-and-accepted, with the reason
 
 | Thing | Why it is still like that |

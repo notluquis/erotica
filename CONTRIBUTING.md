@@ -19,7 +19,7 @@ why — a literature value, another tool, a previous run.
 
 Use [GitHub Discussions](https://github.com/notluquis/erotica/discussions) for usage
 questions and methodology questions ("should I cluster in 5D for my cluster?"). The
-[membership guide](https://cosmic-clusters.readthedocs.io/en/latest/guides/membership.html)
+[membership guide](https://erotica.readthedocs.io/en/latest/guides/membership.html)
 covers the main trade-offs.
 
 ## Development setup
