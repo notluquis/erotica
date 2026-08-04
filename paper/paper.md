@@ -3,7 +3,9 @@
                 version; the v0.1.0 version DOI is 10.5281/zenodo.21769960)
   author        sole author, ORCID 0009-0008-4359-2444 verified against the ORCID public API
   licence       AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and CITATION.cff
-  tests + CI    488 tests, GitHub Actions on Python 3.13 and 3.14
+  tests + CI    482 tests at v0.1.0 under `pip install -e .[dev,bayes]` (478 without `bayes`),
+                GitHub Actions on Python 3.13 and 3.14. Measured 2026-08-04 in a clean venv from
+                `git archive v0.1.0`; this line said 488, which matches no install.
 Read the state-of-the-field section against ~/phd/software-landscape.md before submitting:
 several novelty claims in this programme have been falsified, and the surviving claim here is
 deliberately narrow. -->
@@ -160,13 +162,18 @@ than assumed. The yield is largely negative results, which is the point:
   value at which EFF and an untruncated King profile coincide — so an apparent pile-up there
   can be an artefact of the assumed geometry.
 
-The test suite (488 tests) runs in continuous integration on Python 3.13 and 3.14, with a
-separate job that installs the `bayes` extra, and is audited by mutation rather than by
-coverage: 39
-deliberate bugs were re-applied to the shipping source one at a time, and 18 survived. That
-falsified this project's own repeated claim that every test carried an oracle independent of
-the code under test. Each repair is verified by re-applying the mutation it was written to
-catch.
+The test suite runs in continuous integration on Python 3.13 and 3.14, with a separate job that
+installs the `bayes` extra: **482 tests at the v0.1.0 release** under `pip install -e
+.[dev,bayes]`, and 478 without the extra. The count is quoted against the tag rather than
+against the current source because it is not a fixed property of the project — it moves with
+every commit, and it depends on which optional dependencies are installed, since tests whose
+imports are unavailable are never collected.
+
+The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied to
+the shipping source one at a time, and 18 survived. That falsified this project's own repeated
+claim that every test carried an oracle independent of the code under test. Each repair is
+verified by re-applying the mutation it was written to catch — including, in one case, an
+oracle this project's own testing guide had advertised for months without it existing.
 
 # AI usage disclosure
 
