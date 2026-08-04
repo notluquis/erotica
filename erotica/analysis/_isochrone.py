@@ -440,6 +440,69 @@ class IsochroneFitter:
         M_met: int = 200,
         M_loga: int = 200,
     ) -> None:
+        r"""Configure the forward model. Reads no isochrones -- :meth:`setup` does that.
+
+        Parameters
+        ----------
+        isochs_path : str or Path
+            Location of the theoretical isochrone files. Stored only; the read
+            happens in :meth:`setup`.
+        magnitude : str, default "Gaia_G_EDR3"
+            Name of the magnitude column in the isochrone files.
+        magnitude_effl : float, default 6390.7
+            Effective wavelength of that band **in Ångström**. Feeds the CCM89 /
+            O'Donnell-94 law that turns :math:`A_V` into the band's extinction
+            coefficient :math:`A_\lambda/A_V`, so an error here biases the
+            fitted extinction rather than merely shifting a plot. The default is
+            Gaia :math:`G` (EDR3).
+        color : tuple of str, default ("Gaia_BP_EDR3", "Gaia_RP_EDR3")
+            The two bands whose difference forms the colour, blue first.
+        color_effl : tuple of float, default (5182.6, 7825.1)
+            Their effective wavelengths **in Ångström**, same role and same
+            ordering as `color`.
+        model : str, default "MIST"
+            Isochrone family label. Stored as ``self.model_name``.
+        Rv : float, default 3.1
+            Total-to-selective extinction ratio :math:`R_V = A_V/E(B-V)`,
+            dimensionless. 3.1 is the diffuse-ISM average; sightlines through
+            dense cloud material run higher. It is **fixed, not fitted**.
+        alpha, beta : float, default 0.09 and 0.94
+            Binary-fraction parameters in
+            :math:`b_p = \alpha + \beta / (1 + 1.4/m)`, with :math:`m` in
+            :math:`M_\odot` and the result clipped to :math:`[0, 1]`. The
+            defaults are the Offner et al. (2022) relation, matching ASteCA, so
+            the binary fraction **rises with mass** instead of being one number
+            for the whole cluster.
+        loga_range : tuple of float, default (6.0, 7.0)
+            Prior bounds on :math:`\log_{10}(\mathrm{age}/\mathrm{yr})`, i.e. 1
+            to 10 Myr. This is a young-cluster window and it is narrow: an older
+            cluster piles up against the upper edge rather than fitting, so
+            check the posterior against these bounds before believing an age.
+        Av_range : tuple of float, default (0.0, 3.0)
+            Prior bounds on :math:`A_V`, in **magnitudes**.
+        dm_mu : float, default 10.2
+            Prior mean of the distance modulus, in **magnitudes** (10.2 is about
+            1.1 kpc). This is **not only a prior**: it is also the fixed
+            reference used when building the Hess-diagram binning and the
+            magnitude-dependent error model, so a badly wrong value degrades the
+            precomputed grid itself, not just the sampler's starting point.
+        dm_sigma : float, default 0.3
+            Prior standard deviation of the distance modulus, in magnitudes.
+        dm_range : tuple of float, default (9.5, 10.7)
+            Hard truncation bounds on the distance modulus, in magnitudes.
+        M_met, M_loga : int, default 200
+            Grid resolution in metallicity and in :math:`\log_{10}` age. The
+            precomputed Hess grid has shape
+            ``(M_met, M_loga, Nb_mag, Nb_col)``, so setup cost and memory scale
+            with their **product** -- the defaults already mean 40 000 synthetic
+            populations. Both can be overridden at :meth:`setup` time.
+
+        Notes
+        -----
+        Nothing is validated or read here; every argument is simply stored.
+        Failures from an unreadable `isochs_path`, an unknown band name, or a
+        wavelength outside the CCM89 domain surface from :meth:`setup`.
+        """
         self.isochs_path = Path(isochs_path)
         self.magnitude = magnitude
         self.magnitude_effl = magnitude_effl

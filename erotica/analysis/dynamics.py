@@ -205,8 +205,12 @@ def posterior_summary(samples, *, credible_mass: float = 0.68):
     tail = 0.5 * (1.0 - float(credible_mass))
     lo, med, hi = np.percentile(finite, [100 * tail, 50.0, 100 * (1.0 - tail)])
     out = {
-        "median": med, "lower": lo, "upper": hi,
-        "minus": med - lo, "plus": hi - med, "n": int(finite.size),
+        "median": med,
+        "lower": lo,
+        "upper": hi,
+        "minus": med - lo,
+        "plus": hi - med,
+        "n": int(finite.size),
     }
     if unit is not None:
         out = {k: (v * unit if k != "n" else v) for k, v in out.items()}
@@ -241,9 +245,14 @@ def calculate_hill_radius(
     dist_err = ensure_units(0 * u.kpc if distance_err is None else distance_err, u.kpc)
     if galactocentric_distance is None:
         if center is not None:
-            galactocentric_distance, galactocentric_distance_err = calculate_galactocentric_distance(
-                center[0], center[1], distance=dist, distance_err=dist_err,
-                solar_radius=solar_radius,
+            galactocentric_distance, galactocentric_distance_err = (
+                calculate_galactocentric_distance(
+                    center[0],
+                    center[1],
+                    distance=dist,
+                    distance_err=dist_err,
+                    solar_radius=solar_radius,
+                )
             )
         else:
             galactocentric_distance = calculate_galactocentric_distance(
@@ -263,33 +272,37 @@ def calculate_hill_radius(
         # tidal_radius_prior's copy was actually reachable; calculate_hill_radius
         # always supplies a non-None error before reaching it, so its guard here is
         # defensive rather than a fix.
-        computed = calculate_galactic_mass(
-            galactocentric_distance, galactocentric_distance_err
-        )
+        computed = calculate_galactic_mass(galactocentric_distance, galactocentric_distance_err)
         if isinstance(computed, tuple):
             galactic_mass, galactic_mass_err = computed
         else:
             galactic_mass, galactic_mass_err = computed, None
     else:
         galactic_mass = ensure_units(galactic_mass, u.Msun)
-        galactic_mass_err = ensure_units(0 * u.Msun if galactic_mass_err is None else galactic_mass_err, u.Msun)
+        galactic_mass_err = ensure_units(
+            0 * u.Msun if galactic_mass_err is None else galactic_mass_err, u.Msun
+        )
     if cluster_mass is None:
         if mass_column and data is not None and mass_column in data.colnames:
             cluster_mass = np.nansum(data[mass_column]).to(u.Msun)
         else:
-            cluster_mass = estimate_cluster_mass(data[magnitude_column] if hasattr(data, "colnames") else data, dist)
+            cluster_mass = estimate_cluster_mass(
+                data[magnitude_column] if hasattr(data, "colnames") else data, dist
+            )
         cluster_mass_err = 0 * u.Msun
     cluster_mass = ensure_units(cluster_mass, u.Msun)
-    cluster_mass_err = ensure_units(0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun)
+    cluster_mass_err = ensure_units(
+        0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun
+    )
 
     radius = (galactocentric_distance * (cluster_mass / (3 * galactic_mass)) ** (1 / 3)).to(u.pc)
     d_radius_d_galdist = (cluster_mass / (3 * galactic_mass)) ** (1 / 3)
     d_radius_d_cluster_mass = galactocentric_distance / (
         3 ** (4 / 3) * galactic_mass ** (1 / 3) * cluster_mass ** (2 / 3)
     )
-    d_radius_d_galactic_mass = -(
-        galactocentric_distance * cluster_mass ** (1 / 3)
-    ) / (3 ** (4 / 3) * galactic_mass ** (4 / 3))
+    d_radius_d_galactic_mass = -(galactocentric_distance * cluster_mass ** (1 / 3)) / (
+        3 ** (4 / 3) * galactic_mass ** (4 / 3)
+    )
     radius_err = np.sqrt(
         (d_radius_d_galdist * galactocentric_distance_err) ** 2
         + (d_radius_d_cluster_mass * cluster_mass_err) ** 2
@@ -339,15 +352,16 @@ def grav_bound_radius(
         radius = (G * cluster_mass / dispersion**2).to(u.pc)
         return radius if distance is None else angular_size(radius, distance).to(u.arcmin)
 
-    cluster_mass_err = ensure_units(0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun)
+    cluster_mass_err = ensure_units(
+        0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun
+    )
     a_b_squared = (A - B) ** 2
     a_b_squared_err = 2 * np.abs(A - B) * np.sqrt(A_err**2 + B_err**2)
     radius = ((G * cluster_mass / (2 * a_b_squared)) ** (1 / 3)).to(u.pc)
     d_radius_dm = (1 / 3) * (radius / cluster_mass)
     d_radius_da_b_squared = (-1 / 3) * (radius / a_b_squared)
     radius_err = np.sqrt(
-        (d_radius_dm * cluster_mass_err) ** 2
-        + (d_radius_da_b_squared * a_b_squared_err) ** 2
+        (d_radius_dm * cluster_mass_err) ** 2 + (d_radius_da_b_squared * a_b_squared_err) ** 2
     ).to(u.pc)
     results = {"linear_radius": radius, "linear_radius_err": radius_err}
     if distance is not None:
@@ -380,9 +394,7 @@ def tidal_radius_prior(
         # tidal_radius_prior's copy was actually reachable; calculate_hill_radius
         # always supplies a non-None error before reaching it, so its guard here is
         # defensive rather than a fix.
-        computed = calculate_galactic_mass(
-            galactocentric_distance, galactocentric_distance_err
-        )
+        computed = calculate_galactic_mass(galactocentric_distance, galactocentric_distance_err)
         if isinstance(computed, tuple):
             galactic_mass, galactic_mass_err = computed
         else:
@@ -488,8 +500,9 @@ def coulomb_argument_from_mass_function(mass_function, m_min, m_max, *, n_grid=4
 
     Examples
     --------
-    >>> kroupa = lambda m: np.where(np.asarray(m) < 0.5, np.asarray(m)**-1.3,
-    ...                             0.5**1.0 * np.asarray(m)**-2.3)
+    >>> kroupa = lambda m: np.where(
+    ...     np.asarray(m) < 0.5, np.asarray(m) ** -1.3, 0.5**1.0 * np.asarray(m) ** -2.3
+    ... )
     >>> round(coulomb_argument_from_mass_function(kroupa, 0.08, 8.0)["gamma"], 4)
     0.0325
     """
@@ -523,8 +536,8 @@ COULOMB_CALIBRATIONS = {
         source="analytic, equal mass -- DOMINANT TERM ONLY",
         reference="Spitzer & Hart (1971) Eqs. 1-3, on the virial coefficient of Spitzer (1969)",
         bibcode="1971ApJ...164..399S",
-        bibcode_origin="1969ApJ...158L.139S",   # Spitzer (1969), source of the 0.4 itself
-        n_range=None,          # analytic, so no calibration range in N
+        bibcode_origin="1969ApJ...158L.139S",  # Spitzer (1969), source of the 0.4 itself
+        n_range=None,  # analytic, so no calibration range in N
         equal_mass=True,
         isolated=None,
         superseded_by=0.15,
@@ -537,9 +550,9 @@ COULOMB_CALIBRATIONS = {
         # a different velocity convention gives a different number: CMC uses the BT08 p.361
         # coefficient 0.45 with w^2 = <v^2> and lands on 0.2, a factor 2 from the same algebra.
         note="Dominant term only. Henon (1975) Eq. 11 shows ln(0.4 N) is the leading term of "
-             "ln(0.4 N) + ln(V^2/2<V_1^2>) + ln(2<m>/(m_1+m_2)); completing the same calculation "
-             "gives 0.15. Legitimate use: reproducing work that adopted it, e.g. Aarseth, Henon & "
-             "Wielen (1974) and anything benchmarked against it.",
+        "ln(0.4 N) + ln(V^2/2<V_1^2>) + ln(2<m>/(m_1+m_2)); completing the same calculation "
+        "gives 0.15. Legitimate use: reproducing work that adopted it, e.g. Aarseth, Henon & "
+        "Wielen (1974) and anything benchmarked against it.",
     ),
     0.15: dict(
         source="analytic, equal mass -- non-dominant terms included",
@@ -554,10 +567,10 @@ COULOMB_CALIBRATIONS = {
         # typical distribution." Reproduced here as 0.1497 by
         # coulomb_argument_from_mass_function in the equal-mass limit.
         note="The corrected analytic equal-mass value, and the one Tep & Heggie (2026), "
-             "2026arXiv260714844T, adopt: with Lambda = 0.15 N, Chandrasekhar theory reproduces "
-             "the N-body core-collapse time to 1.026 +/- 0.023 at N = 1e4. Henon's Table I gives "
-             "0.108-0.169 across truncated power-law velocity distributions, so the velocity "
-             "dependence is weak; the mass-function dependence is not.",
+        "2026arXiv260714844T, adopt: with Lambda = 0.15 N, Chandrasekhar theory reproduces "
+        "the N-body core-collapse time to 1.026 +/- 0.023 at N = 1e4. Henon's Table I gives "
+        "0.108-0.169 across truncated power-law velocity distributions, so the velocity "
+        "dependence is weak; the mass-function dependence is not.",
     ),
     0.11: dict(
         source="N-body, equal mass",
@@ -576,9 +589,9 @@ COULOMB_CALIBRATIONS = {
         source="N-body, multi-mass (power-law MF)",
         reference="Giersz & Heggie (1996), 1996MNRAS.279.1037G",
         bibcode="1996MNRAS.279.1037G",
-        n_range=(250, 1000),   # verbatim from their abstract: "from 250 to 1000 stars each"
+        n_range=(250, 1000),  # verbatim from their abstract: "from 250 to 1000 stars each"
         equal_mass=False,
-        isolated=True,         # verbatim: "the systems are isolated"
+        isolated=True,  # verbatim: "the systems are isolated"
     ),
 }
 
@@ -796,7 +809,52 @@ def mass_segregation_timescale(reference_mass, stellar_mass, relaxation_time):
 class ClusterDynamicsAnalyzer:
     """Stateful facade for cluster dynamical and Galactic-radius estimates."""
 
-    def __init__(self, data=None, *, distance=None, center=None, mass_column: str | None = "mass") -> None:
+    def __init__(
+        self, data=None, *, distance=None, center=None, mass_column: str | None = "mass"
+    ) -> None:
+        r"""Bind the table, distance and centre reused by every estimate.
+
+        Parameters
+        ----------
+        data : QTable, optional
+            Cluster source table. Only needed by the methods that sum a mass
+            column or fall back to the luminosity estimator;
+            :meth:`galactocentric_distance` works without it. Held by reference.
+        distance : Quantity or float, optional
+            Heliocentric distance to the cluster. Passed through
+            :func:`~erotica.analysis.units.ensure_units` with a default of
+            **kpc**, so a plain number is read as kpc. Every method accepts a
+            per-call override, applied as ``distance or self.distance`` -- note
+            that this is a truthiness test, so a distance of exactly zero would
+            fall back to the stored value rather than being used.
+        center : sequence of Quantity, optional
+            ``(ra, dec)`` of the cluster centre. The entries must **carry
+            angular units**: they reach :class:`~astropy.coordinates.SkyCoord`
+            as ``ra=``/``dec=``, and bare floats raise ``UnitTypeError``
+            ("Longitude instances require units equivalent to 'rad'"). This is
+            unlike :class:`~erotica.analysis.structure.ClusterStructureAnalyzer`
+            and the radial-profile helpers, which do take bare degrees.
+        mass_column : str or None, default "mass"
+            Column holding per-star masses. :meth:`cluster_mass` sums it with
+            ``.to(u.Msun)``, so the column **must carry a mass unit**; a bare
+            float column raises. When the column is absent, or when this is
+            ``None``, the method silently falls back to the legacy
+            mass-luminosity scaling from `magnitude_column` instead -- so the
+            returned mass can come from either of two very different estimators
+            with nothing in the return value to say which. The luminosity path
+            is a diagnostic, not a substitute for isochrone masses.
+
+        Notes
+        -----
+        Masses are returned in :math:`M_\odot` and radii in pc or kpc as the
+        underlying function dictates; all are Astropy Quantities.
+
+        :meth:`galactocentric_distance` returns a ``(radius, radius_err)``
+        pair, because binding a `center` selects the equatorial call form of
+        :func:`calculate_galactocentric_distance`. The Galactic-coordinate form
+        of that function returns a bare radius instead, so results from the two
+        are not interchangeable.
+        """
         self.data = data
         self.distance = distance
         self.center = center
@@ -829,10 +887,14 @@ class ClusterDynamicsAnalyzer:
             **kwargs,
         )
 
-    def tidal_radius(self, *, cluster_mass=None, galactocentric_distance=None, distance=None, **kwargs):
+    def tidal_radius(
+        self, *, cluster_mass=None, galactocentric_distance=None, distance=None, **kwargs
+    ):
         """Calculate the tidal-radius prior with analyzer defaults."""
         if galactocentric_distance is None:
-            galactocentric_distance, _ = self.galactocentric_distance(distance=distance or self.distance)
+            galactocentric_distance, _ = self.galactocentric_distance(
+                distance=distance or self.distance
+            )
         if cluster_mass is None:
             cluster_mass = self.cluster_mass(distance=distance or self.distance)
         return tidal_radius_prior(
@@ -843,7 +905,9 @@ class ClusterDynamicsAnalyzer:
             **kwargs,
         )
 
-    def gravitational_bound_radius(self, *, cluster_mass=None, cluster_mass_err=None, distance=None, **kwargs):
+    def gravitational_bound_radius(
+        self, *, cluster_mass=None, cluster_mass_err=None, distance=None, **kwargs
+    ):
         """Calculate the Oort-constant gravitationally bound radius."""
         if cluster_mass is None:
             cluster_mass = self.cluster_mass(distance=distance or self.distance)

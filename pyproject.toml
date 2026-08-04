@@ -165,6 +165,13 @@ ignore = [
 "tests/*" = ["E402", "F811"]
 # Validation scripts are executable narratives; long module docstrings are the point.
 "tools/validation/*" = ["E402"]
+# E741 forbids `l` as a name because it looks like `1`. In this module `l` is GALACTIC
+# LONGITUDE -- the standard IAU symbol, paired with `b` for latitude, used in every paper and
+# every catalogue column this code reads. Renaming it to `gal_l` would make the code disagree
+# with the literature it implements, which is a worse defect than the ambiguity the rule guards
+# against. Scoped to this one file rather than disabled globally, so `l` as a loop variable is
+# still caught everywhere else.
+"erotica/analysis/dynamics.py" = ["E741"]
 
 [tool.ruff.format]
 docstring-code-format = true

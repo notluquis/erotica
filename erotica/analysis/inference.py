@@ -485,7 +485,11 @@ def fit_parallax_model(
             raise ValueError("Per-star parallax errors must all be finite and positive.")
 
     if prior_distance is not None:
-        prior_parallax = prior_distance.to(u.mas, equivalencies=u.parallax()).value if hasattr(prior_distance, "to") else 1 / float(prior_distance)
+        prior_parallax = (
+            prior_distance.to(u.mas, equivalencies=u.parallax()).value
+            if hasattr(prior_distance, "to")
+            else 1 / float(prior_distance)
+        )
         lower, upper = 0.5 * prior_parallax, 1.5 * prior_parallax
     else:
         prior_parallax = 0.5 * (priors.mu_lower + priors.mu_upper)
@@ -619,12 +623,13 @@ def proper_motion_2d_gaussian(
         corr_z = pm.Normal("corr_z", mu=0.0, sigma=1.0)
         corr = pm.Deterministic("corr", pm.math.tanh(corr_z))
         cov = pm.math.stack(
-            [[sigma_ra**2, corr * sigma_ra * sigma_dec], [corr * sigma_ra * sigma_dec, sigma_dec**2]]
+            [
+                [sigma_ra**2, corr * sigma_ra * sigma_dec],
+                [corr * sigma_ra * sigma_dec, sigma_dec**2],
+            ]
         )
         total = cov if per_star is None else cov + per_star  # broadcasts to (n, 2, 2)
-        pm.MvNormal(
-            "obs", mu=pm.math.stack([mu_ra, mu_dec]), cov=total, observed=observed
-        )
+        pm.MvNormal("obs", mu=pm.math.stack([mu_ra, mu_dec]), cov=total, observed=observed)
     trace = _sample(pm, model, sampling)
     metadata = {
         "backend": sampling.nuts_sampler,
@@ -759,6 +764,38 @@ class ClusterInferenceAnalyzer:
         probability_column: str = "probability",
         sampling: SamplingConfig | None = None,
     ) -> None:
+        """Bind a source table, its probability column and the sampler settings.
+
+        Parameters
+        ----------
+        data : QTable
+            Cluster source table, held by reference and never copied. Which
+            columns are needed is decided per method -- ``parallax``,
+            ``parallax_error`` and the Bailer-Jones distance columns
+            (``r_med_geo``, ``r_lo_geo``, ``r_hi_geo``) for
+            :meth:`distance_and_parallax_by_probability` -- and none is checked
+            here.
+        probability_column : str, default "probability"
+            Membership-probability column used by :meth:`select`. Consulted only
+            when a threshold is actually applied; ``None`` bypasses it entirely,
+            so a wrong name goes unnoticed until a threshold is passed.
+        sampling : SamplingConfig, optional
+            Default sampler settings for the fits launched from this object.
+            Defaults to a bare ``SamplingConfig()``, whose fields are fixed
+            constants and are **not** derived from `data`.
+
+        Notes
+        -----
+        Threshold arguments on the methods pass through
+        :meth:`_normalise_thresholds`, which divides any value **greater than 1
+        by 100**. So ``70`` and ``0.7`` mean the same thing, and a threshold
+        above 1 cannot be expressed -- which is intended, a membership
+        probability above 1 having no meaning.
+
+        Constructing this object runs no sampling and needs no PyMC: the import
+        happens inside the fitting functions, so an install without the
+        ``bayes`` extra can build the object and fails only on a fit.
+        """
         self.data = data
         self.probability_column = probability_column
         self.sampling = sampling or SamplingConfig()
@@ -1008,7 +1045,12 @@ class ClusterInferenceAnalyzer:
                 return_trace=return_trace,
                 sampling=sampling,
             )
-            rows.append({"probability": float(threshold), "model_results": _dataclass_result_to_dict(result)})
+            rows.append(
+                {
+                    "probability": float(threshold),
+                    "model_results": _dataclass_result_to_dict(result),
+                }
+            )
         return rows
 
     def radial_velocity_by_probability(
@@ -1057,7 +1099,9 @@ def FitProperMotion2DGaussian(pm_RA, pm_Dec, return_trace=False, progressbar=Fal
     return payload
 
 
-def parallax_determination(data, prob_thresholds=(50, 60, 70, 80), return_trace=False, progressbar=False, **kwargs):
+def parallax_determination(
+    data, prob_thresholds=(50, 60, 70, 80), return_trace=False, progressbar=False, **kwargs
+):
     """Legacy-compatible non-plotting parallax/distance threshold summary."""
     kwargs.pop("savefig", None)
     kwargs.pop("paper_single", None)

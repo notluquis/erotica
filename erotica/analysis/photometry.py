@@ -10,7 +10,6 @@ from scipy.spatial import KDTree
 
 from .units import quantity_values
 
-
 MIST_COLUMN_SETS = {
     "DR3": [
         "Zini",
@@ -140,9 +139,38 @@ def add_photometric_errors(table: QTable) -> list[str]:
     def interp(vals, low, high, low_err, high_err):
         return np.interp(vals, [low, high], [low_err, high_err])
 
-    e_g = np.where(g < 13, 0.3, np.where(g < 17, interp(g, 13, 17, 0.3, 1), np.where(g <= 20, interp(g, 17, 20, 1, 6), 6))) / 1000
-    e_bp = np.where(g < 13, 0.9, np.where(g < 17, interp(g, 13, 17, 0.9, 12), np.where(g <= 20, interp(g, 17, 20, 12, 108), 108))) / 1000
-    e_rp = np.where(g < 13, 0.6, np.where(g < 17, interp(g, 13, 17, 0.6, 6), np.where(g <= 20, interp(g, 17, 20, 6, 52), 52))) / 1000
+    e_g = (
+        np.where(
+            g < 13,
+            0.3,
+            np.where(
+                g < 17, interp(g, 13, 17, 0.3, 1), np.where(g <= 20, interp(g, 17, 20, 1, 6), 6)
+            ),
+        )
+        / 1000
+    )
+    e_bp = (
+        np.where(
+            g < 13,
+            0.9,
+            np.where(
+                g < 17,
+                interp(g, 13, 17, 0.9, 12),
+                np.where(g <= 20, interp(g, 17, 20, 12, 108), 108),
+            ),
+        )
+        / 1000
+    )
+    e_rp = (
+        np.where(
+            g < 13,
+            0.6,
+            np.where(
+                g < 17, interp(g, 13, 17, 0.6, 6), np.where(g <= 20, interp(g, 17, 20, 6, 52), 52)
+            ),
+        )
+        / 1000
+    )
     table["e_Gmag"] = e_g * u.mag
     table["e_G_BPmag"] = e_bp * u.mag
     table["e_G_RPmag"] = e_rp * u.mag
@@ -244,7 +272,7 @@ def assign_masses(isochrones, mag_column, color_column, source_id, *, k: int = 5
     for iso in isochrones:
         if len(iso) < 4:
             continue
-        for mag, color, mass in zip(iso[0], iso[1], iso[3]):
+        for mag, color, mass in zip(iso[0], iso[1], iso[3], strict=False):
             if np.isfinite(mag) and np.isfinite(color) and np.isfinite(mass):
                 points.append([color, mag])
                 masses.append(mass)
@@ -273,10 +301,65 @@ class PhotometricMassEstimator:
     """Mass-assignment facade for sampled isochrones and CMD source tables."""
 
     def __init__(self, isochrones, *, k: int = 5) -> None:
+        r"""Bind the isochrone set and the neighbour count.
+
+        Parameters
+        ----------
+        isochrones : sequence of array-like, or tuple of array-like
+            **The accepted form differs between the two methods, and nothing
+            checks which one was given.**
+
+            For :meth:`assign_from_samples`, a sequence of sampled isochrones,
+            each indexable with at least four entries read positionally as
+            ``iso[0]`` = magnitude, ``iso[1]`` = colour, ``iso[3]`` = mass in
+            :math:`M_\odot` (``iso[2]`` is not used). Entries shorter than four
+            are skipped silently, and non-finite points are dropped.
+
+            For :meth:`assign_nearest`, a single
+            ``(iso_mag, iso_color, iso_mass)`` triple.
+
+            Passing one form and calling the other method fails inside the
+            delegate, not here.
+        k : int, default 5
+            Number of nearest isochrone points averaged per star by
+            :meth:`assign_from_samples`; overridable per call. Clamped to
+            ``[1, n_points]``, so an over-large `k` silently becomes "average
+            the whole isochrone" rather than raising. It sets what ``mass_std``
+            in the output measures: the scatter of the `k` neighbours in the
+            CMD, which is a **local sampling spread of the isochrone, not a
+            propagated photometric uncertainty**. With ``k=1`` it is 0 by
+            construction. Unused by :meth:`assign_nearest`, which always takes
+            the single closest point.
+
+        Warnings
+        --------
+        Both methods rank isochrone points by **Euclidean distance in the
+        colour-magnitude plane**, which is not a physically meaningful metric:
+        colour and magnitude carry different units and dynamic ranges, so
+        "nearest" depends on their relative scaling. Measured on a schematic
+        isochrone, rescaling the colour axis alone moves the assigned mass of
+        90-99% of stars while shifting the median by about 1%. Population
+        statistics survive this; **individual masses do not**. See the danger
+        note on :func:`assign_mass_nearest_isochrone_point_kdtree` for the
+        measurements and the further limitations.
+
+        Notes
+        -----
+        The two methods return **different schemas**, so they are not
+        interchangeable downstream. :meth:`assign_from_samples` returns
+        ``source_id``, ``mass`` and ``mass_std``; :meth:`assign_nearest`
+        returns only the designation column (named by its
+        `designation_column` argument, ``"designation"`` by default) and
+        ``mass`` -- there is **no** ``mass_std``, because a single nearest point
+        has no spread to report. Masses are Astropy Quantities in
+        :math:`M_\odot` in both cases, and neither method mutates its input.
+        """
         self.isochrones = isochrones
         self.k = k
 
-    def assign_from_samples(self, mag_column, color_column, source_id, *, k: int | None = None) -> QTable:
+    def assign_from_samples(
+        self, mag_column, color_column, source_id, *, k: int | None = None
+    ) -> QTable:
         """Assign masses from sampled legacy isochrone arrays."""
         return assign_masses(
             self.isochrones,

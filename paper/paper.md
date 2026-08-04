@@ -119,10 +119,10 @@ The two fitting modules make different likelihood choices, for a measured reason
 structural fit treats sky positions as an inhomogeneous Poisson point process with intensity
 $\lambda(r) = 2\pi r\,\Sigma(r)$, giving $\log L = \sum_i \log \lambda(r_i) - \Lambda$ — the
 continuous form of the Cash statistic [@cash1979] — with $\Lambda$ integrated over the actual
-footprint. It is unbinned because binning was tested and failed: under the equal-count annuli
-the earlier implementation used, the count per bin is fixed by construction, and the Poisson
-dispersion index measures 0.045 against the 1.0 a Poisson likelihood asserts — a roughly
-25-fold mis-specification. The isochrone module samples a *binned* Hess-diagram likelihood
+footprint. It is unbinned because binning was tested and failed: under the *approximately*
+equal-count annuli the earlier implementation used, the count per bin is nearly fixed by
+construction, and the Poisson dispersion index measures 0.045 against the 1.0 a Poisson
+likelihood asserts — a roughly 25-fold mis-specification. The isochrone module samples a *binned* Hess-diagram likelihood
 [@dolphin2002]; the asymmetry is deliberate, since the colour–magnitude and sky planes pose
 different problems, but it is an asymmetry rather than a unified formulation.
 

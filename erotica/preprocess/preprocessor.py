@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Sequence
+from collections.abc import Sequence
 
 from astropy.table import QTable
 from zero_point import zpt
@@ -38,6 +38,37 @@ class DataPreprocessor:
         zero_point_module=zpt,
         logger: logging.Logger | None = None,
     ):
+        """Bind a table and pre-load the parallax zero-point tables.
+
+        Parameters
+        ----------
+        data : QTable
+            Catalogue to preprocess. Held by reference, and most steps mutate it
+            **in place** -- :meth:`fill_missing_values`, :meth:`rename_columns`,
+            :meth:`apply_zero_point_correction`, :meth:`correct_proper_motion`
+            and :meth:`add_photometric_errors` all modify the caller's table.
+            The exception is :meth:`drop_invalid_sources`, which rebinds
+            ``self.data`` to a filtered copy and leaves the caller's original
+            at its full length. Pass a copy if the input must survive intact.
+        zero_point_module : module, default :mod:`zero_point.zpt`
+            Supplies the Gaia parallax zero-point correction. Its
+            ``load_tables()`` is called here so the interpolation tables are in
+            memory before the first correction, but a failure is **swallowed**
+            and deferred to :meth:`apply_zero_point_correction` -- so a broken
+            install surfaces when the correction is attempted, not when the
+            object is built. Injectable so tests can substitute a stub.
+        logger : logging.Logger, optional
+            Destination for the per-step counts every method emits. When
+            omitted, the shared ``"DataPreprocessor"`` logger is used at
+            ``INFO``, with a stream handler attached only if it has none.
+
+        Notes
+        -----
+        ``total_count`` is the row count **at construction time** and is not
+        updated by :meth:`drop_invalid_sources`, which is what makes it usable
+        afterwards as the denominator for "fraction of the original sample
+        retained".
+        """
         self.data = data
         self.total_count = len(data)
         self._logger = logger

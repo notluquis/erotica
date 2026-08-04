@@ -6,6 +6,56 @@ def compare_datasets(*datasets):
     """
     Compare one, two, or four QTable datasets to identify overlaps,
     missing entries, and value discrepancies by `source_id`.
+
+    Parameters
+    ----------
+    *datasets : QTable
+        Exactly one, two, or four tables; any other count raises. Each must have
+        a ``source_id`` column, which is the only key used to match rows.
+
+        With **two**, they are compared directly as ``(data1, data2)``. With
+        **four**, they are read positionally as
+        ``(good_data, bad_data, good_data_test, bad_data_test)``: the first two
+        are checked for mutual overlap (they are meant to be disjoint fidelity
+        splits, so any overlap is reported as an error), then each is compared
+        against its ``_test`` counterpart. With **one**, nothing is compared.
+
+    Returns
+    -------
+    None
+        This function **reports rather than returns**: every result is written
+        to stdout with :func:`print`, and there is no return value to assert on.
+        Counts of overlapping and missing ``source_id`` values, and every
+        differing cell, are printed as they are found. Capture stdout if the
+        output is needed programmatically.
+
+    Raises
+    ------
+    ValueError
+        If the number of datasets is not 1, 2, or 4.
+
+    Notes
+    -----
+    Comparison is **row-by-row inside a Python loop** with a boolean mask per
+    ``source_id``, wrapped in :mod:`tqdm`, so cost grows as the product of table
+    length and overlap size. It is an interactive diagnostic, not something to
+    put in a pipeline over full Gaia catalogues.
+
+    Only columns present in *both* tables are compared; a column in one and not
+    the other is skipped silently rather than reported as a difference. Numeric
+    columns are compared with :func:`numpy.allclose` at its default tolerances
+    and with ``equal_nan=True``, so two NaNs count as equal and differences
+    below ``rtol=1e-5`` are not reported. Non-numeric columns are compared for
+    exact inequality.
+
+    Units are honoured, because :func:`numpy.allclose` converts Astropy
+    Quantities: the same physical value stored as arcmin in one table and
+    degrees in the other compares **equal**, and the same *number* under
+    different units compares **different**. Columns whose units are not
+    convertible at all (mass against angle, say) raise
+    :class:`~astropy.units.UnitConversionError` out of this function rather than
+    being reported as a discrepancy, so a schema mismatch aborts the comparison
+    instead of appearing in the output.
     """
     if len(datasets) not in {1, 2, 4}:
         raise ValueError(f"Only 1, 2, or 4 datasets supported, got {len(datasets)}.")

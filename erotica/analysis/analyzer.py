@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import pandas as pd
 from astropy.table import QTable
@@ -14,8 +14,8 @@ from erotica.core.clustering import Clustering
 from ._clipping import DEFAULT_MAXITERS as _CLIP_MAXITERS
 from ._clipping import sigma_clip_parallax as _sigma_clip_parallax
 from ._io import load_dataset
-from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probability_vs_gmag
 from ._isochrone import IsochroneFitter
+from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probability_vs_gmag
 from ._sagitta import pms_characterization as _pms_characterization
 from .figures import plot_cumulative as _plot_cumulative
 from .figures import plot_distance_pathway_overlap as _plot_distance_pathway_overlap
@@ -39,6 +39,69 @@ class ClusterAnalyzer:
         verbose: int = logging.INFO,
         debug_mode: bool = False,
     ) -> None:
+        """Load the dataset and set up output paths.
+
+        Unlike the other facades in this package, this constructor **does
+        work**: it resolves `file_obj`, reads the catalogue, and may restore a
+        previously pickled clustering run.
+
+        Parameters
+        ----------
+        file_obj : str or DataFrame or Table
+            The input catalogue, dispatched on type. A ``str`` is treated as a
+            path; a :class:`pandas.DataFrame` or an Astropy ``Table``/``QTable``
+            is adopted in memory. Anything else raises ``TypeError``.
+
+            A path ending in ``.dill`` is unpickled rather than read: a payload
+            that is a :class:`~erotica.core.Clustering` restores ``self.data``
+            **and** ``self.clustering``, while a dict payload (keyed ``data``,
+            ``table`` or ``qtable``) restores only the table. Any other path is
+            read through :class:`~erotica.io.DataLoader`.
+        dataloader_kwargs : dict, optional
+            Forwarded to :meth:`~erotica.io.DataLoader.load_data` -- the column
+            selection knobs (``systems``, ``include_distances``, ``fidelity``
+            and so on). Ignored by the in-memory and ``.dill`` paths, which have
+            nothing to load.
+        dill_cache : bool, default True
+            **Write-only caching, and the asymmetry matters.** After reading a
+            non-``.dill`` path this writes a dict payload to the same name with
+            a ``.dill`` suffix -- but nothing reads it back on a later run with
+            the original path, which is re-read from source every time. To use
+            the cache you must pass the ``.dill`` path itself as `file_obj`.
+            Because the auto-written payload is a *dict*, it never carries a
+            clustering run; only a hand-saved ``Clustering`` pickle restores
+            one. Setting this to ``False`` skips the write and leaves
+            ``dill_path`` as ``None``.
+        search_method : str, default "optuna"
+            Stored for the :class:`~erotica.core.Clustering` instances this
+            object builds on demand, notably in :meth:`clusters_summary` when no
+            clustering was restored. It starts no search by itself.
+        output_dir : str, optional
+            Where derived files are written. Defaults to the input file's own
+            directory for a path input, and is created if missing.
+        verbose : int, default ``logging.INFO``
+            Logging level handed to the loader.
+        debug_mode : bool, default False
+            Force ``DEBUG`` logging and Astropy's debug records; see
+            :class:`~erotica.io.DataLoader`.
+
+        Raises
+        ------
+        TypeError
+            If `file_obj` is none of the accepted types, or if a ``.dill``
+            payload unpickles to an unsupported type.
+        KeyError
+            If a dict ``.dill`` payload has no recognised table key.
+
+        Notes
+        -----
+        ``selected_cluster`` starts as ``None``; several plotting methods
+        require it and raise ``ValueError`` asking for ``select_cluster()``
+        rather than guessing a cluster.
+
+        ``self.clustering`` is ``None`` for every input form except a ``.dill``
+        holding a pickled ``Clustering``.
+        """
         self.selected_cluster: int | None = None
         self.search_method = search_method
 
@@ -236,7 +299,9 @@ class ClusterAnalyzer:
     # ------------------------------------------------------------------
     # Migrated paper-analysis conveniences
     # ------------------------------------------------------------------
-    def center_determination(self, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs):
+    def center_determination(
+        self, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs
+    ):
         """Estimate the center for the selected cluster using the migrated KDE helper."""
         cid = cluster if cluster is not None else self.selected_cluster
         table = self.data if cid is None else self.data[self.data["cluster"] == cid]
@@ -244,7 +309,9 @@ class ClusterAnalyzer:
             table = table[table["probability"] >= prob_threshold]
         return _center_determination(table, **kwargs)
 
-    def half_mass_radius(self, center, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs):
+    def half_mass_radius(
+        self, center, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs
+    ):
         """Calculate half-mass radius for the selected cluster."""
         cid = cluster if cluster is not None else self.selected_cluster
         table = self.data if cid is None else self.data[self.data["cluster"] == cid]
@@ -252,7 +319,9 @@ class ClusterAnalyzer:
             table = table[table["probability"] >= prob_threshold]
         return _half_mass_radius(table, center, **kwargs)
 
-    def half_light_radius(self, center, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs):
+    def half_light_radius(
+        self, center, *, cluster: int | None = None, prob_threshold: float | None = None, **kwargs
+    ):
         """Calculate half-light radius for the selected cluster."""
         cid = cluster if cluster is not None else self.selected_cluster
         table = self.data if cid is None else self.data[self.data["cluster"] == cid]
@@ -260,7 +329,13 @@ class ClusterAnalyzer:
             table = table[table["probability"] >= prob_threshold]
         return _calculate_half_light_radius(table, center, **kwargs)
 
-    def add_pm_amplitude(self, *, pmra_column: str = "pmra", pmdec_column: str = "pmdec", output_column: str = "projected_velocity"):
+    def add_pm_amplitude(
+        self,
+        *,
+        pmra_column: str = "pmra",
+        pmdec_column: str = "pmdec",
+        output_column: str = "projected_velocity",
+    ):
         """Annotate ``self.data`` with total proper-motion amplitude."""
         self.data[output_column] = _pm_amplitude(self.data[pmra_column], self.data[pmdec_column])
         return self.data[output_column]
@@ -270,7 +345,9 @@ class ClusterAnalyzer:
         savefig = kwargs.pop("savefig", self.output_dir / filename)
         return _plot_cumulative(self.data, centers, savefig=savefig, **kwargs)
 
-    def plot_distance_pathway_overlap(self, *, filename: str = "distance_pathway_overlap.pdf", **kwargs):
+    def plot_distance_pathway_overlap(
+        self, *, filename: str = "distance_pathway_overlap.pdf", **kwargs
+    ):
         """Plot distance-pathway comparison into ``output_dir`` by default."""
         savefig = kwargs.pop("savefig", self.output_dir / filename)
         return _plot_distance_pathway_overlap(savefig=savefig, **kwargs)
@@ -295,7 +372,7 @@ class ClusterAnalyzer:
         pms_column: str | None = None,
         pms_max: float = 0.5,
         ms_weight: float = 1.0,
-    ) -> "IsochroneFitter":
+    ) -> IsochroneFitter:
         """Create and prepare an IsochroneFitter without computing the grid.
 
         Returns the fitter so you can call ``set_priors()``, ``build_grid()``,
@@ -322,13 +399,10 @@ class ClusterAnalyzer:
         >>> fitter.build_grid(M_met=200, M_loga=200, grid_cache="./data/40/hgrid.npz")
         >>> idata = fitter.fit(draws=2000, tune=1000, chains=4)
         """
-        from pathlib import Path as _Path
 
         cid = cluster if cluster is not None else self.selected_cluster
         if cid is None:
-            raise ValueError(
-                "No cluster specified; call select_cluster() first or pass `cluster`."
-            )
+            raise ValueError("No cluster specified; call select_cluster() first or pass `cluster`.")
         cluster_data = self.data[self.data["cluster"] == cid]
 
         fitter = IsochroneFitter(
@@ -402,9 +476,7 @@ class ClusterAnalyzer:
 
         cid = cluster if cluster is not None else self.selected_cluster
         if cid is None:
-            raise ValueError(
-                "No cluster specified; call select_cluster() first or pass `cluster`."
-            )
+            raise ValueError("No cluster specified; call select_cluster() first or pass `cluster`.")
         cluster_data = self.data[self.data["cluster"] == cid]
 
         fitter = IsochroneFitter(

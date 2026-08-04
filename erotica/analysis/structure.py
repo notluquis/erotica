@@ -209,8 +209,12 @@ def center_determination(
     if grid_ra is None or grid_dec is None:
         pad_ra = np.ptp(coords[:, 0]) / 8
         pad_dec = np.ptp(coords[:, 1]) / 8
-        ra_grid = np.linspace(np.nanmin(coords[:, 0]) - pad_ra, np.nanmax(coords[:, 0]) + pad_ra, 200)
-        dec_grid = np.linspace(np.nanmin(coords[:, 1]) - pad_dec, np.nanmax(coords[:, 1]) + pad_dec, 200)
+        ra_grid = np.linspace(
+            np.nanmin(coords[:, 0]) - pad_ra, np.nanmax(coords[:, 0]) + pad_ra, 200
+        )
+        dec_grid = np.linspace(
+            np.nanmin(coords[:, 1]) - pad_dec, np.nanmax(coords[:, 1]) + pad_dec, 200
+        )
         xx, yy = np.meshgrid(ra_grid, dec_grid)
     else:
         xx, yy = grid_ra, grid_dec
@@ -224,8 +228,16 @@ def center_determination(
         density_peak=float(density[peak]),
     )
     if return_density or return_grids or return_bestparams:
-        ra_error = np.nanmean(quantity_values(data[ra_error_column], u.deg)) if ra_error_column in data.colnames else 0.0
-        dec_error = np.nanmean(quantity_values(data[dec_error_column], u.deg)) if dec_error_column in data.colnames else 0.0
+        ra_error = (
+            np.nanmean(quantity_values(data[ra_error_column], u.deg))
+            if ra_error_column in data.colnames
+            else 0.0
+        )
+        dec_error = (
+            np.nanmean(quantity_values(data[dec_error_column], u.deg))
+            if dec_error_column in data.colnames
+            else 0.0
+        )
         bw = result.bandwidth * u.deg
         payload = {
             "center_coords": (result.ra, result.dec),
@@ -255,7 +267,9 @@ def density_annulus_calculator_width(
     return_radius_gen: bool = False,
 ):
     """Calculate annulus densities using fixed radial bin width."""
-    center_coord = center if isinstance(center, SkyCoord) else SkyCoord(center[0], center[1], unit="deg")
+    center_coord = (
+        center if isinstance(center, SkyCoord) else SkyCoord(center[0], center[1], unit="deg")
+    )
     distances = angular_separation(
         _coord_column(data, ra_column, u.deg),
         _coord_column(data, dec_column, u.deg),
@@ -277,7 +291,7 @@ def density_annulus_calculator_width(
     density_errors = []
     radii = []
     counts = []
-    for inner, outer in zip(edges[:-1], edges[1:]):
+    for inner, outer in zip(edges[:-1], edges[1:], strict=True):
         mask = (distances >= inner * u.arcmin) & (distances < outer * u.arcmin)
         count = int(np.count_nonzero(mask))
         area = np.pi * (outer**2 - inner**2)
@@ -301,9 +315,13 @@ def density_annulus_calculator_width(
     return result
 
 
-def density_annulus_calculator_equip(data, center, *, ra_column="ra", dec_column="dec", return_radius_gen=False):
+def density_annulus_calculator_equip(
+    data, center, *, ra_column="ra", dec_column="dec", return_radius_gen=False
+):
     """Calculate annulus densities with approximately equal-count radial bins."""
-    center_coord = center if isinstance(center, SkyCoord) else SkyCoord(center[0], center[1], unit="deg")
+    center_coord = (
+        center if isinstance(center, SkyCoord) else SkyCoord(center[0], center[1], unit="deg")
+    )
     distances = angular_separation(
         _coord_column(data, ra_column, u.deg),
         _coord_column(data, dec_column, u.deg),
@@ -324,7 +342,7 @@ def density_annulus_calculator_equip(data, center, *, ra_column="ra", dec_column
     density_errors = []
     radii = []
     counts = []
-    for inner, outer in zip(edges[:-1], edges[1:]):
+    for inner, outer in zip(edges[:-1], edges[1:], strict=True):
         if outer <= inner:
             continue
         mask = (distances.value >= inner) & (distances.value < outer)
@@ -348,14 +366,79 @@ def density_annulus_calculator_equip(data, center, *, ra_column="ra", dec_column
     return result
 
 
-def radial_density_profile(data, center, *, method="equip", width=None, **kwargs) -> RadialDensityProfile:
-    """Return a typed radial-density profile for a cluster source table."""
+def radial_density_profile(
+    data, center, *, method="equip", width=None, **kwargs
+) -> RadialDensityProfile:
+    """Return a typed radial-density profile for a cluster source table.
+
+    Thin typed wrapper over :func:`density_annulus_calculator_equip` and
+    :func:`density_annulus_calculator_width`, which return loosely-keyed dicts.
+
+    Parameters
+    ----------
+    data : QTable
+        Source table carrying the sky-position columns named by `ra_column` and
+        `dec_column` (default ``"ra"``/``"dec"``, forwarded via ``**kwargs``).
+    center : SkyCoord or sequence of float
+        Cluster centre. A bare ``(ra, dec)`` pair is interpreted as **degrees**;
+        pass a :class:`~astropy.coordinates.SkyCoord` to be explicit.
+    method : {"equip", "width"}, default "equip"
+        ``"equip"`` uses approximately equal-count annuli whose edges are
+        interpolated from the sorted radii, with
+        ``n_bins = max(1, int(2 * n ** 0.4))`` -- so the bin count grows with
+        sample size and is not a free choice. ``"width"`` uses fixed-width
+        annuli that widen outwards (half `width` in the inner third of the
+        field, `width` in the middle third, twice `width` beyond).
+        ``"fixed_width"``, ``"kde_width"`` and the misspelled ``"kde_wdith"``
+        are accepted aliases of ``"width"``, kept for older call sites; the
+        returned ``method`` field is normalised to ``"width"`` for all of them.
+    width : Quantity or float, optional
+        Base annulus width for ``method="width"``, taken as arcmin when a plain
+        float. Required for that method and ignored by ``"equip"``.
+    **kwargs
+        Forwarded to the annulus calculator -- in practice `ra_column` and
+        `dec_column`.
+
+    Returns
+    -------
+    RadialDensityProfile
+        ``radius`` -- annulus midpoints (arcmin Quantity);
+        ``density`` -- surface density in **stars per square arcmin**, a plain
+        ``ndarray`` with no unit attached;
+        ``density_error`` -- the Poisson root-N error on the same scale,
+        ``sqrt(count) / area``;
+        ``counts`` -- integer star count per annulus;
+        ``distances`` -- every star's angular separation from `center` (arcmin
+        Quantity, one entry per row of `data`, **not** per annulus);
+        ``method`` -- the normalised method name actually used.
+
+    Raises
+    ------
+    ValueError
+        If `method` is unrecognised, if ``method="width"`` and `width` is
+        ``None``, or (from the ``"equip"`` calculator) if `data` has fewer than
+        two rows.
+
+    Notes
+    -----
+    The two methods differ in how they treat empty annuli, which shows up as a
+    difference in array length: ``"width"`` **drops** annuli containing no
+    stars, while ``"equip"`` keeps them and records a density of zero. Do not
+    assume ``len(counts)`` equals the nominal bin count.
+
+    These binned profiles are for plotting and for the legacy binned fits. The
+    fits this package recommends -- :func:`king_unbinned` and
+    :func:`eff_unbinned` -- take the raw radii and never bin, precisely so that
+    the choice made here cannot reach a parameter estimate.
+    """
     if method == "equip":
         raw = density_annulus_calculator_equip(data, center, return_radius_gen=True, **kwargs)
     elif method in {"width", "fixed_width", "kde_width", "kde_wdith"}:
         if width is None:
             raise ValueError("width is required for fixed-width radial density profiles.")
-        raw = density_annulus_calculator_width(data, center, width, return_radius_gen=True, **kwargs)
+        raw = density_annulus_calculator_width(
+            data, center, width, return_radius_gen=True, **kwargs
+        )
         method = "width"
     else:
         raise ValueError("method must be 'equip' or 'width'.")
@@ -398,6 +481,52 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
        ``docs/design-notes/king_model_validity.md`` for the evidence and
        ``kb/methods/king-background-term.md`` in the research hub for the grounded node.
 
+    Parameters
+    ----------
+    radius : Quantity or array-like
+        Angular distance(s) from the cluster centre. A Quantity is **converted**
+        to arcmin; a plain array is **assumed** to already be arcmin. Passing
+        degrees as a plain array is silently wrong -- measured at a factor 480
+        at :math:`r = 20`, which is why the conversion here is explicit.
+    *args : float or Quantity, optional
+        Legacy positional forms, kept for older call sites. Two positionals are
+        read as ``(core_radius, tidal_radius)``; four as
+        ``(amplitude, background, core_radius, tidal_radius)`` -- note that the
+        four-argument order is ``k, b, R_c, R_t``, amplitude first, which is not
+        the keyword order below. Any other non-zero count raises. Prefer the
+        keywords.
+    core_radius : float or Quantity
+        :math:`r_c`, in arcmin when a plain float. Required (by keyword or
+        positionally); ``None`` raises ``TypeError``.
+    tidal_radius : float or Quantity
+        :math:`r_t`, in arcmin when a plain float. Required on the same terms.
+        Note the profile is **not** clipped to zero beyond :math:`r_t` here --
+        the bracket goes negative and the square makes it rise again, so this
+        function only describes the model inside :math:`r_t`. The normalisation
+        in :func:`king_expected_count` does the truncation.
+    background : float, default 0.0
+        The additive :math:`b`, in the same surface-density units as
+        `amplitude`. See the warning above: on a membership-selected sample this
+        is not field contamination.
+    amplitude : float, default 1.0
+        The scale :math:`k`. The default of 1.0 makes the return value the
+        dimensionless **shape**, which is what the plotting helpers want.
+
+    Returns
+    -------
+    ndarray
+        :math:`\Sigma(r)`, same shape as `radius`. Dimensionless with the
+        default `amplitude` and `background`; otherwise it carries whatever
+        units those two were given, since they are applied without conversion.
+
+    Raises
+    ------
+    TypeError
+        If the positional count is neither 0, 2 nor 4, or if `core_radius` or
+        `tidal_radius` is missing.
+
+    Notes
+    -----
     The model is **empirical**: King calls Eq. (14) *"merely a convenient fitting formula"*.
     The dynamical King model is King (1966, AJ 71, 64), a different object with a
     concentration parameter :math:`W_0`. There is no "King 1964".
@@ -411,7 +540,9 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
     elif len(args) == 2:
         core_radius, tidal_radius = args
     elif args:
-        raise TypeError("king_profile accepts either (radius, rc, rt) or legacy (radius, k, b, rc, rt).")
+        raise TypeError(
+            "king_profile accepts either (radius, rc, rt) or legacy (radius, k, b, rc, rt)."
+        )
     if core_radius is None or tidal_radius is None:
         raise TypeError("core_radius and tidal_radius are required.")
     rc = core_radius.to(u.arcmin).value if hasattr(core_radius, "to") else float(core_radius)
@@ -430,9 +561,7 @@ def _king_model(pm, r, field_radius, priors, tidal_prior, completeness):
     with pm.Model() as model:
         R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
         if tidal_prior is None:
-            R_t = pm.Deterministic(
-                "R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale)
-            )
+            R_t = pm.Deterministic("R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale))
         else:
             mu, sigma = tidal_prior
             R_t = pm.Deterministic(
@@ -461,9 +590,7 @@ def _eff_model(pm, r, field_radius, priors, gamma, completeness=None):
         k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
         b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
         if gamma is None:
-            g = pm.TruncatedNormal(
-                "gamma", mu=priors.gamma_mu, sigma=priors.gamma_sigma, lower=0.1
-            )
+            g = pm.TruncatedNormal("gamma", mu=priors.gamma_mu, sigma=priors.gamma_sigma, lower=0.1)
         else:
             g = pm.Deterministic("gamma", pm.math.constant(float(gamma)))
         surface = k * (1.0 + (r / a) ** 2) ** (-g / 2.0) + b
@@ -881,6 +1008,37 @@ def eff_surface_density(radius, *, k, b, a, gamma):
     Unlike King, this has **no tidal cutoff**: it declines as a power law
     :math:`r^{-\gamma}` forever. That is the honest model for a cluster whose
     truncation radius cannot be located in the data.
+
+    Parameters
+    ----------
+    radius : Quantity or array-like
+        Angular distance(s) from the centre. A Quantity is converted to arcmin;
+        a plain array is assumed to already be arcmin.
+    k : float
+        Central amplitude, in the caller's surface-density units.
+    b : float
+        Additive background, same units as `k`. The caveats in
+        :func:`king_profile` about what ``b`` is *not* apply here too.
+    a : float
+        Scale radius :math:`a`, **in arcmin, as a plain number**. Unlike
+        `radius` this argument is *not* unit-aware: passing a Quantity raises
+        :class:`~astropy.units.UnitConversionError` when the background is
+        added, because `radius` has already been stripped to a bare array. The
+        asymmetry is easy to trip over -- give `a` as a float.
+    gamma : float
+        Power-law slope :math:`\gamma`. The projected density falls as
+        :math:`r^{-\gamma}` at large radius. ``gamma=4`` is the Plummer profile.
+
+    Returns
+    -------
+    ndarray
+        :math:`\Sigma(r)`, same shape as `radius`, in the units of `k` and `b`.
+
+    Notes
+    -----
+    Unbounded total mass is the price of no cutoff: the enclosed count
+    integrates to a finite value over a finite field only, which is why
+    :func:`eff_expected_count` always takes a `field_radius`.
     """
     r = quantity_values(radius, u.arcmin)
     return k * (1.0 + (r / a) ** 2) ** (-gamma / 2.0) + b
@@ -899,6 +1057,36 @@ def eff_expected_count(k, b, a, gamma, field_radius, *, xp=np):
     :math:`x = e\log(1+z)`; that ratio tends to 1 as :math:`x \to 0` and is
     replaced by its series there. Both branches stay finite, so the gradient
     does not pick up a NaN from the unused one.
+
+    Parameters
+    ----------
+    k, b : float or tensor
+        EFF amplitude and additive background, in surface-density units.
+    a : float or tensor
+        Scale radius, in the **same units as** `field_radius`.
+    gamma : float or tensor
+        Power-law slope. The :math:`\gamma = 2` singularity is handled, so this
+        may be sampled across it.
+    field_radius : float or tensor
+        Radius of the circular selection footprint, same units as `a`.
+    xp : module, optional
+        Array namespace supplying ``log``, ``exp`` and ``abs``, and optionally
+        ``switch``. Defaults to NumPy, which takes the :func:`numpy.where`
+        branch; pass ``pymc.math`` (which does provide ``switch``) to build a
+        symbolic graph.
+
+    Returns
+    -------
+    float or tensor
+        The expected count :math:`\Lambda`.
+
+        This function is **unit-agnostic**: it performs no conversion. With
+        plain floats it returns a plain float, and `a` and `field_radius` must
+        already share a unit -- passing arcmin for one and degrees for the other
+        is silently wrong. With Astropy Quantities it propagates them and
+        returns an area-dimensioned Quantity (``arcmin2`` for arcmin inputs),
+        so the caller is responsible for `k` carrying the reciprocal units if a
+        dimensionless count is wanted.
 
     Notes
     -----
@@ -941,6 +1129,12 @@ def eff_unbinned(
 
     Parameters
     ----------
+    radii : array-like or Quantity
+        Angular distance of every star from the centre. Must be the **complete**
+        sample inside `field_radius`, as in :func:`king_unbinned`. Non-finite
+        and non-positive entries are dropped; at least ten must remain.
+    field_radius : float or Quantity
+        Radius of the circular selection footprint, in arcmin.
     completeness : callable or array-like, optional
         Radial detection probability, exactly as in :func:`king_unbinned`. Note
         that the selection acting on a sample is not only the survey's: the
@@ -948,7 +1142,49 @@ def eff_unbinned(
         NGC 6383 that one is ~35x larger than Gaia's (see the decision log).
     gamma : float, optional
         Fix the slope instead of fitting it. ``gamma=4`` is the **Plummer**
-        profile, so ``eff_unbinned(..., gamma=4.0)`` fits Plummer.
+        profile, so ``eff_unbinned(..., gamma=4.0)`` fits Plummer. When fixed,
+        ``gamma`` is still recorded as a PyMC ``Deterministic``, so it appears
+        in the trace and in the results below with zero spread -- a
+        ``gamma_std`` of 0.0 means "fixed", not "converged perfectly".
+    priors : EFFPriors, optional
+        Scale-free priors. The defaults are constants, not functions of `radii`.
+    sampling : SamplingConfig, optional
+        Sampler settings. Defaults to 2000 draws, 1000 tuning.
+    progressbar : bool, default False
+        Only used when `sampling` is not given, to build the default config.
+    return_trace : bool, default True
+        Keep the full posterior in the result. Defaults to True for the same
+        reason as :func:`king_unbinned`: collapsing to scalars on exit is what
+        stops uncertainty reaching the derived quantities.
+
+    Returns
+    -------
+    dict
+        ``field_radius`` -- the value actually used (arcmin Quantity);
+        ``n_stars`` -- radii surviving the finite/positive filter;
+        ``model`` -- ``"plummer"`` when ``gamma == 4.0`` was passed, else
+        ``"eff"``;
+        ``completeness_corrected`` -- whether an :math:`\bar{S}(r)` was applied;
+        ``gamma_fixed`` -- the `gamma` argument verbatim, ``None`` when fitted;
+        ``k_median``/``k_std`` and ``b_median``/``b_std`` -- amplitude and
+        background, plain floats in surface-density units;
+        ``a_median``/``a_std`` -- scale radius as an **arcmin Quantity**;
+        ``gamma_median``/``gamma_std`` -- slope, dimensionless;
+        ``eff_trace`` -- the full :class:`arviz.InferenceData`, present only
+        when `return_trace`.
+
+        The point estimates are posterior **medians** with **standard
+        deviations**, not means with credible intervals; for an asymmetric
+        posterior the two differ and the trace is the thing to quote from.
+
+    Raises
+    ------
+    ImportError
+        If PyMC is not installed (the ``bayes`` extra).
+    ValueError
+        If fewer than ten usable radii remain, or if any radius exceeds
+        `field_radius` -- the normalisation integral assumes the sample is
+        complete inside that disc, so a star outside it would bias the fit.
     """
     from .inference import SamplingConfig, _sample
 
@@ -1102,9 +1338,7 @@ def _king_corona_model(pm, r, field_radius, priors, tidal_prior, completeness):
     with pm.Model() as model:
         R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
         if tidal_prior is None:
-            R_t = pm.Deterministic(
-                "R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale)
-            )
+            R_t = pm.Deterministic("R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale))
         else:
             mu, sigma = tidal_prior
             R_t = pm.Deterministic(
@@ -1400,7 +1634,9 @@ def RDP_bayesian(
         sigma = pm.HalfNormal("sigma", sigma=max(float(np.nanstd(density_values)), 1e-6))
         b = pm.Uniform("b", lower=0, upper=max(2 * float(np.nanmin(density_values)), 1e-6))
         k = pm.Uniform("k", lower=b, upper=max(2 * float(np.nanmax(density_values)), 1e-6))
-        R_c = pm.Uniform("R_c", lower=1e-6, upper=max(0.8 * float(np.nanmax(d_center_values)), 1e-5))
+        R_c = pm.Uniform(
+            "R_c", lower=1e-6, upper=max(0.8 * float(np.nanmax(d_center_values)), 1e-5)
+        )
         R_t = pm.Uniform("R_t", lower=R_c, upper=max(upper_radius, 1e-4))
         r = np.asarray(radius_values, dtype=float)
         king = pm.Deterministic(
@@ -1466,36 +1702,50 @@ def RDP_bayesian_log_space(
     density_values = quantity_values(density_annulus)
     radius_values = quantity_values(radius_gen, u.arcmin)
     d_center_values = quantity_values(d_center, u.arcmin) if d_center is not None else radius_values
-    finite = np.isfinite(density_values) & (density_values > 0) & np.isfinite(radius_values) & (radius_values > 0)
+    finite = (
+        np.isfinite(density_values)
+        & (density_values > 0)
+        & np.isfinite(radius_values)
+        & (radius_values > 0)
+    )
     density_values = density_values[finite]
     radius_values = radius_values[finite]
     if len(density_values) < 3:
         raise ValueError("At least three positive density bins are required.")
     sampling = sampling or SamplingConfig(draws=2_000, tune=1_000, progressbar=progressbar)
     with pm.Model() as model:
-        log_sigma = pm.Normal("log_sigma", mu=np.log(max(np.nanstd(np.log(density_values)), 1e-3)), sigma=1)
+        log_sigma = pm.Normal(
+            "log_sigma", mu=np.log(max(np.nanstd(np.log(density_values)), 1e-3)), sigma=1
+        )
         sigma = pm.Deterministic("sigma", pm.math.exp(log_sigma))
-        log_b = pm.Uniform("log_b", lower=np.log(1e-8), upper=np.log(max(0.5 * np.nanmax(density_values), 1e-7)))
+        log_b = pm.Uniform(
+            "log_b", lower=np.log(1e-8), upper=np.log(max(0.5 * np.nanmax(density_values), 1e-7))
+        )
         b = pm.Deterministic("b", pm.math.exp(log_b))
-        log_k = pm.Uniform("log_k", lower=log_b, upper=np.log(max(2 * np.nanmax(density_values), 1e-6)))
+        log_k = pm.Uniform(
+            "log_k", lower=log_b, upper=np.log(max(2 * np.nanmax(density_values), 1e-6))
+        )
         k = pm.Deterministic("k", pm.math.exp(log_k))
-        log_R_c = pm.Uniform("log_R_c", lower=np.log(1e-4), upper=np.log(max(0.8 * np.nanmax(d_center_values), 1e-3)))
+        log_R_c = pm.Uniform(
+            "log_R_c", lower=np.log(1e-4), upper=np.log(max(0.8 * np.nanmax(d_center_values), 1e-3))
+        )
         R_c = pm.Deterministic("R_c", pm.math.exp(log_R_c))
-        log_R_t = pm.Uniform("log_R_t", lower=log_R_c, upper=np.log(max(2 * np.nanmax(d_center_values), 1e-3)))
+        log_R_t = pm.Uniform(
+            "log_R_t", lower=log_R_c, upper=np.log(max(2 * np.nanmax(d_center_values), 1e-3))
+        )
         R_t = pm.Deterministic("R_t", pm.math.exp(log_R_t))
         r = np.asarray(radius_values, dtype=float)
         king = pm.math.switch(
             r <= R_t,
             k
-            * (
-                (1 / pm.math.sqrt(1 + (r / R_c) ** 2))
-                - (1 / pm.math.sqrt(1 + (R_t / R_c) ** 2))
-            )
+            * ((1 / pm.math.sqrt(1 + (r / R_c) ** 2)) - (1 / pm.math.sqrt(1 + (R_t / R_c) ** 2)))
             ** 2
             + b,
             b,
         )
-        pm.Normal("obs_log_density", mu=pm.math.log(king), sigma=sigma, observed=np.log(density_values))
+        pm.Normal(
+            "obs_log_density", mu=pm.math.log(king), sigma=sigma, observed=np.log(density_values)
+        )
     trace = _sample(pm, model, sampling)
     results = _summarize_king_trace(trace)
     if return_trace:
@@ -1519,6 +1769,30 @@ class ClusterStructureAnalyzer:
         ra_column: str = "ra",
         dec_column: str = "dec",
     ) -> None:
+        """Bind a source table and its column names.
+
+        Parameters
+        ----------
+        data : QTable
+            Cluster source table. Held by reference and never copied, so later
+            edits to the caller's table are seen by every method here.
+        probability_column : str, default "probability"
+            Membership-probability column consulted by :meth:`select` and by
+            every method taking a `probability_threshold`. Nothing is validated
+            at construction: a wrong name raises only when a threshold is
+            actually applied, since ``probability_threshold=None`` never touches
+            the column.
+        ra_column, dec_column : str, default "ra", "dec"
+            Sky-position columns, read as **degrees** by
+            :func:`center_determination` and the radial-profile helpers.
+
+        Notes
+        -----
+        Constructing this object runs no numerics. Every method delegates to the
+        module-level function of the same name, adding only the probability
+        selection and the column names, so results are identical to calling
+        those functions directly.
+        """
         self.data = data
         self.probability_column = probability_column
         self.ra_column = ra_column

@@ -21,6 +21,30 @@ class DataLoader:
     """Load and filter EROTICA-compatible catalogues."""
 
     def __init__(self, file_path: str, verbose: int = logging.INFO, debug_mode: bool = False):
+        """Record where the catalogue lives and configure logging.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to the catalogue. **Not read or validated here** -- nothing
+            touches the filesystem until :meth:`load_data` is called, so an
+            unreadable path constructs fine and fails only later.
+        verbose : int, default ``logging.INFO``
+            Level for the module's ``"DataLoader"`` logger. Because the logger
+            is fetched by name, it is shared by every instance: constructing a
+            second loader with a different level **re-levels the first one too**.
+        debug_mode : bool, default False
+            Force ``logging.DEBUG`` regardless of `verbose`, and additionally
+            set the global ``"astropy"`` logger to ``DEBUG`` (attaching a stream
+            handler if it has none), so Astropy's own records appear alongside
+            this loader's. That is a process-wide side effect, not a local one.
+
+        Notes
+        -----
+        A ``StreamHandler`` is attached only when the named logger has none, so
+        an application that configured logging beforehand keeps its handlers and
+        does not get duplicated records.
+        """
         self.file_path = file_path
         self.data: QTable | None = None
         self.aliases = ALIASES

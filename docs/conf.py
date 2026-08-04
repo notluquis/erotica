@@ -19,8 +19,8 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
-    "numpydoc",          # NumPy-style docstrings — do NOT also enable napoleon
-    "myst_parser",       # Markdown narrative pages + the design notes
+    "numpydoc",  # NumPy-style docstrings — do NOT also enable napoleon
+    "myst_parser",  # Markdown narrative pages + the design notes
     "sphinx_copybutton",
     "sphinx_design",
 ]
@@ -32,18 +32,34 @@ source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 myst_enable_extensions = ["colon_fence", "deflist", "dollarmath", "amsmath"]
 
 # -- autodoc / autosummary ---------------------------------------------------
-autosummary_generate = True          # generate stub pages from docstrings
+autosummary_generate = True  # generate stub pages from docstrings
 autodoc_default_options = {"members": True, "show-inheritance": True}
-autodoc_typehints = "none"           # types come from numpy docstrings (no dup)
-autoclass_content = "class"
-autodoc_mock_imports = [             # heavy/optional deps so RTD builds without them
-    "hdbscan", "optuna", "pymc", "arviz", "blackjax", "numpyro", "jax",
-    "asteca", "gaiaunlimited", "fast_histogram", "dill", "adjusttext",
+autodoc_typehints = "none"  # types come from numpy docstrings (no dup)
+# "both", not "class": every class in this package documents its constructor arguments under
+# ``__init__``, which is the convention the codebase already follows. With "class" Sphinx reads
+# ONLY the class docstring, so all ten of those Parameters blocks rendered nowhere -- the
+# docstrings existed and the built page did not show them. JOSS's "API documentation" requirement
+# is about the built page, not about help(), so this was a submission blocker hiding as a
+# formatting preference. Found 2026-08-04 while completing the docstring pass.
+autoclass_content = "both"
+autodoc_mock_imports = [  # heavy/optional deps so RTD builds without them
+    "hdbscan",
+    "optuna",
+    "pymc",
+    "arviz",
+    "blackjax",
+    "numpyro",
+    "jax",
+    "asteca",
+    "gaiaunlimited",
+    "fast_histogram",
+    "dill",
+    "adjusttext",
     "gaiadr3_zeropoint",
 ]
 
 # -- numpydoc ----------------------------------------------------------------
-numpydoc_show_class_members = False   # class template lists members; avoid dup
+numpydoc_show_class_members = False  # class template lists members; avoid dup
 numpydoc_class_members_toctree = False
 
 # -- intersphinx -------------------------------------------------------------

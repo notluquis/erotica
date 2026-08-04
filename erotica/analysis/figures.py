@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, angular_separation
 from astropy.stats import knuth_bin_width
 from matplotlib.colors import ListedColormap, LogNorm
-from scipy.stats import gaussian_kde, ks_2samp, norm
+from scipy.stats import gaussian_kde, ks_2samp
 
 from erotica.core._style import apply_default_style
 
@@ -19,8 +19,6 @@ from .debugging import diagnose_distance_comparison, extract_distance_samples
 from .external.asteca import generate_isochrone_for_plot
 from .structure import (
     ClusterStructureAnalyzer,
-    RDP_bayesian,
-    RDP_bayesian_log_space,
     king_profile,
 )
 from .units import quantity_values
@@ -60,7 +58,9 @@ def distance_samples_from_dm_trace(asteca_trace, *, variable: str = "dm") -> np.
     return 10 ** ((dm + 5) / 5) / 1000
 
 
-def _distance_samples_from_asteca_trace(asteca_trace=None, asteca_trace_path="fit_parameters_trace_1777967244.nc"):
+def _distance_samples_from_asteca_trace(
+    asteca_trace=None, asteca_trace_path="fit_parameters_trace_1777967244.nc"
+):
     """Legacy-compatible ASteCA distance-modulus posterior extraction."""
     if asteca_trace is None:
         try:
@@ -96,9 +96,8 @@ def plot_distance_pathway_overlap(
 
     rng = np.random.default_rng(random_seed)
     n_delta = min(len(distance_a), len(distance_b), 100_000)
-    delta_samples = (
-        rng.choice(np.asarray(distance_b), size=n_delta, replace=False)
-        - rng.choice(np.asarray(distance_a), size=n_delta, replace=False)
+    delta_samples = rng.choice(np.asarray(distance_b), size=n_delta, replace=False) - rng.choice(
+        np.asarray(distance_a), size=n_delta, replace=False
     )
     grid_delta, density_delta = _density_grid(delta_samples)
 
@@ -144,7 +143,9 @@ def plot_distance_pathway_overlap(
         bbox=dict(facecolor="white", edgecolor="0.8", alpha=0.8),
     )
 
-    ax_delta.plot(grid_delta, density_delta, color="tab:gray", linewidth=2, label=r"$\Delta d$ posterior")
+    ax_delta.plot(
+        grid_delta, density_delta, color="tab:gray", linewidth=2, label=r"$\Delta d$ posterior"
+    )
     ax_delta.fill_between(grid_delta, density_delta, 0, color="tab:gray", alpha=0.18, linewidth=0)
     ax_delta.axvline(0, color="black", linestyle="-", linewidth=1.2, label=r"$\Delta d=0$")
     ax_delta.axvline(
@@ -205,14 +206,21 @@ def plot_cumulative(
     centers = [SkyCoord(ra=ra, dec=dec, frame="icrs", unit="deg") for ra, dec in centers]
     if len(centers) == 1 and len(prob_thresholds) > 1:
         centers = centers * len(prob_thresholds)
-    fig, axes = plt.subplots(1, len(prob_thresholds), figsize=(5 * len(prob_thresholds), 5), squeeze=False)
-    for threshold, center, ax in zip(prob_thresholds, centers, axes.ravel()):
+    fig, axes = plt.subplots(
+        1, len(prob_thresholds), figsize=(5 * len(prob_thresholds), 5), squeeze=False
+    )
+    for threshold, center, ax in zip(prob_thresholds, centers, axes.ravel(), strict=False):
         selected = data[data[probability_column] >= threshold]
-        distances = angular_separation(selected[ra_column], selected[dec_column], center.ra, center.dec).to(u.arcmin)
+        distances = angular_separation(
+            selected[ra_column], selected[dec_column], center.ra, center.dec
+        ).to(u.arcmin)
         radii = np.linspace(0, np.nanmax(distances.value), 400)
         cumulative = []
         for radius in radii:
-            flux_sum = np.sum(10 ** (np.asarray(selected[magnitude_column][distances <= radius * u.arcmin]) / -2.5))
+            flux_sum = np.sum(
+                10
+                ** (np.asarray(selected[magnitude_column][distances <= radius * u.arcmin]) / -2.5)
+            )
             cumulative.append(np.nan if flux_sum <= 0 else -2.5 * np.log10(flux_sum))
         ax.scatter(distances, selected[magnitude_column], s=10, color="tab:blue")
         twin = ax.twinx()
@@ -264,7 +272,9 @@ def plot_isochrone(
         col = col[mask]
     label_text = rf"$\log(age/yr)={logAge}$" if label else None
     if type == "plot":
-        return ax.plot(col, mag, lw=3, color=color, alpha=alpha, linestyle=linestyle, label=label_text)
+        return ax.plot(
+            col, mag, lw=3, color=color, alpha=alpha, linestyle=linestyle, label=label_text
+        )
     if type == "scatter":
         return ax.scatter(col, mag, color=color, alpha=alpha, marker=linestyle, label=label_text)
     raise ValueError("type must be 'plot' or 'scatter'.")
@@ -291,7 +301,15 @@ def plot_color_color(
     if first.empty or second.empty:
         raise ValueError(f"No isochrone found for logAge={logAge} and Zini={Zini}.")
     ext = A_V / R_V
-    return ax.plot(first[color_1_row] + ext, second[color_2_row] + ext, lw=3, c=color, alpha=alpha, linestyle=linestyle, label=rf"logAge={logAge}")
+    return ax.plot(
+        first[color_1_row] + ext,
+        second[color_2_row] + ext,
+        lw=3,
+        c=color,
+        alpha=alpha,
+        linestyle=linestyle,
+        label=rf"logAge={logAge}",
+    )
 
 
 def plot_isochrone_label(isochrones, logAge, Zini, color_row, mag_row, ax, **kwargs):
@@ -307,7 +325,7 @@ def plot_errors_bar(magnitudes, colors, magnitude_errors, color_errors, ax, loc=
     bins = np.arange(np.floor(np.nanmin(mag_values)), np.ceil(np.nanmax(mag_values)) + 2, 2)
     median_mag_errors = []
     median_color_errors = []
-    for lo, hi in zip(bins[:-1], bins[1:]):
+    for lo, hi in zip(bins[:-1], bins[1:], strict=True):
         mask = (mag_values >= lo) & (mag_values < hi)
         median_mag_errors.append(float(np.nanmedian(mag_err[mask])) if mask.any() else np.nan)
         median_color_errors.append(float(np.nanmedian(color_err[mask])) if mask.any() else np.nan)
@@ -345,7 +363,11 @@ def plot_iso_mass_curves_across_isochrones(
     if mass_values is None:
         raise ValueError("mass_values must be provided.")
     ext = A_V / R_V
-    ages = np.sort(isochrones[(isochrones["Zini"] == Zini) & (isochrones["logAge"].between(*logAge_range))]["logAge"].unique())
+    ages = np.sort(
+        isochrones[(isochrones["Zini"] == Zini) & (isochrones["logAge"].between(*logAge_range))][
+            "logAge"
+        ].unique()
+    )
     lines = []
     for mass in mass_values:
         cols = []
@@ -358,7 +380,17 @@ def plot_iso_mass_curves_across_isochrones(
                 cols.append(first["BP_RP"].iloc[0] + ext)
                 mags.append(first["Gmag"].iloc[0] + dm + A_V)
         if cols and mags:
-            lines.extend(ax.plot(cols, mags, label=fr"Mass = {mass} $M_\odot$", color=color, alpha=alpha, linestyle=linestyle, zorder=zorder))
+            lines.extend(
+                ax.plot(
+                    cols,
+                    mags,
+                    label=rf"Mass = {mass} $M_\odot$",
+                    color=color,
+                    alpha=alpha,
+                    linestyle=linestyle,
+                    zorder=zorder,
+                )
+            )
     return lines
 
 
@@ -402,7 +434,9 @@ def plot_hist2d(
         _, color_bins = knuth_bin_width(colors[np.isfinite(colors)], return_bins=True)
         _, mag_bins = knuth_bin_width(mags[np.isfinite(mags)], return_bins=True)
         bins = [color_bins, mag_bins]
-    mesh = ax.hist2d(colors, mags, bins=bins, cmap=cmap, norm=LogNorm(), zorder=-1, alpha=alpha, cmin=cmin)[3]
+    mesh = ax.hist2d(
+        colors, mags, bins=bins, cmap=cmap, norm=LogNorm(), zorder=-1, alpha=alpha, cmin=cmin
+    )[3]
     return all_isochrones if return_masses else mesh
 
 
@@ -412,7 +446,12 @@ def _normalise_probabilities(prob_number):
 
 
 def _centers_as_skycoord(centers, n):
-    coords = [center if isinstance(center, SkyCoord) else SkyCoord(ra=center[0], dec=center[1], frame="icrs", unit="deg") for center in centers]
+    coords = [
+        center
+        if isinstance(center, SkyCoord)
+        else SkyCoord(ra=center[0], dec=center[1], frame="icrs", unit="deg")
+        for center in centers
+    ]
     if len(coords) == 1 and n > 1:
         coords *= n
     return coords
@@ -422,7 +461,7 @@ def _ks_pairwise(distance_groups):
     results = {}
     keys = list(distance_groups)
     for i, left in enumerate(keys):
-        for right in keys[i + 1:]:
+        for right in keys[i + 1 :]:
             a = np.asarray(distance_groups[left], dtype=float)
             b = np.asarray(distance_groups[right], dtype=float)
             if len(a) and len(b):
@@ -450,18 +489,24 @@ def plot_cumulative_by_brightness(
     if brightness_ranges is None:
         quartiles = np.nanpercentile(quantity_values(data["Gmag"], u.mag), [0, 25, 50, 75, 100])
         brightness_ranges = [(quartiles[i], quartiles[i + 1]) for i in range(4)]
-    fig, axes = plt.subplots((len(thresholds) + 1) // 2, 2 if len(thresholds) > 1 else 1, figsize=(12, 8), squeeze=False)
+    fig, axes = plt.subplots(
+        (len(thresholds) + 1) // 2, 2 if len(thresholds) > 1 else 1, figsize=(12, 8), squeeze=False
+    )
     all_distances = {item: [] for item in brightness_ranges}
-    for threshold, center, ax in zip(thresholds, centers, axes.ravel()):
+    for threshold, center, ax in zip(thresholds, centers, axes.ravel(), strict=False):
         selected = data[data["probability"] >= threshold]
-        distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(u.arcmin)
+        distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(
+            u.arcmin
+        )
         radii = np.linspace(0, np.nanmax(distances.value), 400) * u.arcmin
         gmag = quantity_values(selected["Gmag"], u.mag)
         for mag_min, mag_max in brightness_ranges:
             mask = (gmag > mag_min) & (gmag <= mag_max)
             group_distances = distances[mask]
             all_distances[(mag_min, mag_max)].extend(group_distances.value)
-            cumulative = np.array([np.count_nonzero(group_distances <= radius) for radius in radii], dtype=float)
+            cumulative = np.array(
+                [np.count_nonzero(group_distances <= radius) for radius in radii], dtype=float
+            )
             if normalize and cumulative.max() > 0:
                 cumulative /= cumulative.max()
             ax.plot(radii.value, cumulative, label=rf"$G$: {mag_min:.2f}-{mag_max:.2f}")
@@ -501,11 +546,15 @@ def plot_cumulative_by_mass(
     if mass_ranges is None:
         quartiles = np.nanpercentile(masses_all, [0, 25, 50, 75, 100])
         mass_ranges = [(quartiles[i], quartiles[i + 1]) for i in range(4)]
-    fig, axes = plt.subplots((len(thresholds) + 1) // 2, 2 if len(thresholds) > 1 else 1, figsize=(12, 8), squeeze=False)
+    fig, axes = plt.subplots(
+        (len(thresholds) + 1) // 2, 2 if len(thresholds) > 1 else 1, figsize=(12, 8), squeeze=False
+    )
     ks_results = {}
-    for threshold, center, ax in zip(thresholds, centers, axes.ravel()):
+    for threshold, center, ax in zip(thresholds, centers, axes.ravel(), strict=False):
         selected = data[data["probability"] >= threshold]
-        distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(u.arcmin)
+        distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(
+            u.arcmin
+        )
         radii = np.linspace(0, np.nanmax(distances.value), 400) * u.arcmin
         masses = quantity_values(selected["mass"], u.Msun)
         groups = {}
@@ -513,14 +562,18 @@ def plot_cumulative_by_mass(
             mask = (masses >= mass_min) & (masses < mass_max)
             group_distances = distances[mask]
             groups[(mass_min, mass_max)] = group_distances.value
-            cumulative = np.array([np.count_nonzero(group_distances <= radius) for radius in radii], dtype=float)
+            cumulative = np.array(
+                [np.count_nonzero(group_distances <= radius) for radius in radii], dtype=float
+            )
             if normalize and cumulative.max() > 0:
                 cumulative /= cumulative.max()
             ax.plot(radii.value, cumulative, label=rf"$M$: {mass_min:.2f}-{mass_max:.2f}")
         if ks:
             ks_results[float(threshold)] = _ks_pairwise(groups)
         ax.set_xlabel("Radius [arcmin]")
-        ax.set_ylabel("Normalized cumulative distribution" if normalize else "Cumulative distribution")
+        ax.set_ylabel(
+            "Normalized cumulative distribution" if normalize else "Cumulative distribution"
+        )
         ax.legend()
     if savefig:
         Path(savefig).mkdir(parents=True, exist_ok=True)
@@ -532,27 +585,46 @@ def plot_cumulative_by_mass(
     return {"figure": fig, "ks_results": ks_results}
 
 
-def plot_cumulative_by_mass_and_type(data, centers, *, prob_number=(70,), savefig=None, normalize=False, ks=True, show=True, binary_column="P_binar", **_):
+def plot_cumulative_by_mass_and_type(
+    data,
+    centers,
+    *,
+    prob_number=(70,),
+    savefig=None,
+    normalize=False,
+    ks=True,
+    show=True,
+    binary_column="P_binar",
+    **_,
+):
     """Plot mass-binned cumulative distributions split by binary probability."""
     threshold = float(_normalise_probabilities(prob_number)[0])
     center = _centers_as_skycoord(centers, 1)[0]
     selected = data[data["probability"] >= threshold]
-    distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(u.arcmin)
+    distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(
+        u.arcmin
+    )
     masses = quantity_values(selected["mass"], u.Msun)
     quartiles = np.nanpercentile(masses, [0, 25, 50, 75, 100])
     mass_ranges = [(quartiles[i], quartiles[i + 1]) for i in range(4)]
-    binary_prob = quantity_values(selected[binary_column]) if binary_column in selected.colnames else np.zeros(len(selected))
+    binary_prob = (
+        quantity_values(selected[binary_column])
+        if binary_column in selected.colnames
+        else np.zeros(len(selected))
+    )
     datasets = [("Single Stars", binary_prob < 0.6), ("Binary Stars", binary_prob >= 0.6)]
     fig, axes = plt.subplots(1, 3, figsize=(18, 6), squeeze=False, sharex=True)
     radii = np.linspace(0, np.nanmax(distances.value), 400) * u.arcmin
     ks_results = {}
-    for ax, (title, type_mask) in zip(axes.ravel()[:2], datasets):
+    for ax, (title, type_mask) in zip(axes.ravel()[:2], datasets, strict=False):
         groups = {}
         for mass_min, mass_max in mass_ranges:
             mask = type_mask & (masses >= mass_min) & (masses < mass_max)
             group_distances = distances[mask]
             groups[(mass_min, mass_max)] = group_distances.value
-            cumulative = np.array([np.count_nonzero(group_distances <= radius) for radius in radii], dtype=float)
+            cumulative = np.array(
+                [np.count_nonzero(group_distances <= radius) for radius in radii], dtype=float
+            )
             if normalize and cumulative.max() > 0:
                 cumulative /= cumulative.max()
             ax.plot(radii.value, cumulative, label=rf"$M$: {mass_min:.2f}-{mass_max:.2f}")
@@ -561,8 +633,16 @@ def plot_cumulative_by_mass_and_type(data, centers, *, prob_number=(70,), savefi
         ax.set_title(title)
         ax.set_xlabel("Radius [arcmin]")
         ax.legend()
-    axes.ravel()[2].plot(radii.value, [np.count_nonzero(distances[binary_prob < 0.6] <= radius) for radius in radii], label="Single Stars")
-    axes.ravel()[2].plot(radii.value, [np.count_nonzero(distances[binary_prob >= 0.6] <= radius) for radius in radii], label="Binary Stars")
+    axes.ravel()[2].plot(
+        radii.value,
+        [np.count_nonzero(distances[binary_prob < 0.6] <= radius) for radius in radii],
+        label="Single Stars",
+    )
+    axes.ravel()[2].plot(
+        radii.value,
+        [np.count_nonzero(distances[binary_prob >= 0.6] <= radius) for radius in radii],
+        label="Binary Stars",
+    )
     axes.ravel()[2].set_title("Single vs Binary Stars")
     axes.ravel()[2].legend()
     if savefig:
@@ -575,7 +655,9 @@ def plot_cumulative_by_mass_and_type(data, centers, *, prob_number=(70,), savefi
     return {"figure": fig, "ks_results": ks_results}
 
 
-def graph_center_determination(data, *, prob_number=(50, 60, 70, 80), savefig=None, show=True, **kwargs):
+def graph_center_determination(
+    data, *, prob_number=(50, 60, 70, 80), savefig=None, show=True, **kwargs
+):
     """Legacy-compatible center-determination facade."""
     analyzer = ClusterStructureAnalyzer(data)
     thresholds = _normalise_probabilities(prob_number)
@@ -598,7 +680,18 @@ def graph_center_determination(data, *, prob_number=(50, 60, 70, 80), savefig=No
     return centers, best_params
 
 
-def graph_king(data, centers, *, prob_number=(0.5, 0.6, 0.7, 0.8), density_method="equip", log_space=False, return_results=True, king_method="binned", field_radius=None, **kwargs):
+def graph_king(
+    data,
+    centers,
+    *,
+    prob_number=(0.5, 0.6, 0.7, 0.8),
+    density_method="equip",
+    log_space=False,
+    return_results=True,
+    king_method="binned",
+    field_radius=None,
+    **kwargs,
+):
     """Legacy-compatible King-profile analysis facade.
 
     Parameters
@@ -619,15 +712,39 @@ def graph_king(data, centers, *, prob_number=(0.5, 0.6, 0.7, 0.8), density_metho
     """
     analyzer = ClusterStructureAnalyzer(data)
     thresholds = _normalise_probabilities(prob_number)
-    center_coords = _centers_as_skycoord([item[0] if isinstance(item, (list, tuple)) and len(item) and isinstance(item[0], (list, tuple)) else item for item in centers], len(thresholds))
+    center_coords = _centers_as_skycoord(
+        [
+            item[0]
+            if isinstance(item, (list, tuple)) and len(item) and isinstance(item[0], (list, tuple))
+            else item
+            for item in centers
+        ],
+        len(thresholds),
+    )
     all_results = {}
     traces = []
-    for threshold, center in zip(thresholds, center_coords):
-        profile = analyzer.radial_density_profile(center, probability_threshold=float(threshold), method=density_method, width=kwargs.get("width"))
+    for threshold, center in zip(thresholds, center_coords, strict=True):
+        profile = analyzer.radial_density_profile(
+            center,
+            probability_threshold=float(threshold),
+            method=density_method,
+            width=kwargs.get("width"),
+        )
         if king_method == "binned":
-            fit = analyzer.fit_king_profile(profile, method="binned", log_space=log_space, return_trace=kwargs.get("return_trace", False), progressbar=kwargs.get("progressbar_bayesian", False))
+            fit = analyzer.fit_king_profile(
+                profile,
+                method="binned",
+                log_space=log_space,
+                return_trace=kwargs.get("return_trace", False),
+                progressbar=kwargs.get("progressbar_bayesian", False),
+            )
         else:
-            fit = analyzer.fit_king_profile(profile, method=king_method, field_radius=field_radius, progressbar=kwargs.get("progressbar_bayesian", False))
+            fit = analyzer.fit_king_profile(
+                profile,
+                method=king_method,
+                field_radius=field_radius,
+                progressbar=kwargs.get("progressbar_bayesian", False),
+            )
         for key, value in fit.items():
             if key == "king_trace":
                 traces.append(value)
@@ -641,19 +758,32 @@ def graph_king(data, centers, *, prob_number=(0.5, 0.6, 0.7, 0.8), density_metho
     return payload or None
 
 
-def graph_real(data, image, *, dt=None, projection=None, savefig_dir=None, prob_number=(60, 70, 80, 90), show=True):
+def graph_real(
+    data,
+    image,
+    *,
+    dt=None,
+    projection=None,
+    savefig_dir=None,
+    prob_number=(60, 70, 80, 90),
+    show=True,
+):
     """Overlay probability-selected sources on an image/WCS projection."""
     thresholds = _normalise_probabilities(prob_number)
     subplot_kw = {"projection": projection} if projection is not None else {}
-    fig, axes = plt.subplots(1, len(thresholds), figsize=(6 * len(thresholds), 6), squeeze=False, subplot_kw=subplot_kw)
+    fig, axes = plt.subplots(
+        1, len(thresholds), figsize=(6 * len(thresholds), 6), squeeze=False, subplot_kw=subplot_kw
+    )
     dt = 0 if dt is None else dt
-    for threshold, ax in zip(thresholds, axes.ravel()):
+    for threshold, ax in zip(thresholds, axes.ravel(), strict=False):
         subset = data[data["probability"] >= threshold]
         ra = subset["ra"] - subset["pmra"] * dt
         dec = subset["dec"] - subset["pmdec"] * dt
         ax.imshow(image, cmap="cubehelix", aspect="equal")
         transform = ax.get_transform("world") if projection is not None else None
-        ax.scatter(ra, dec, color="lightcyan", transform=transform, alpha=0.6, s=20, facecolors="none")
+        ax.scatter(
+            ra, dec, color="lightcyan", transform=transform, alpha=0.6, s=20, facecolors="none"
+        )
         ax.set_title(f"{int(threshold * 100)}% probability members")
     if savefig_dir is not None:
         Path(savefig_dir).mkdir(parents=True, exist_ok=True)
@@ -669,6 +799,25 @@ class ClusterFigureBuilder:
     """Plotting facade around a cluster source table."""
 
     def __init__(self, data) -> None:
+        """Bind the source table every plotting method will draw from.
+
+        Parameters
+        ----------
+        data : QTable
+            Cluster source table, held by reference and passed unchanged as the
+            first argument of the corresponding module-level plotting function.
+            Which columns are required is decided by the method called, not
+            here: :meth:`cumulative` needs sky positions, while the
+            ``by_brightness`` and ``by_mass`` variants additionally need a
+            magnitude or a ``mass`` column. Nothing is validated at
+            construction, so a missing column raises from the plotting call.
+
+        Notes
+        -----
+        This class adds no behaviour beyond binding `data`. Every method
+        forwards ``**kwargs`` untouched, so the module-level functions'
+        signatures are the real API and their return values pass straight back.
+        """
         self.data = data
 
     def cumulative(self, centers, **kwargs):
