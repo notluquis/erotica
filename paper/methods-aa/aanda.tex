@@ -132,8 +132,31 @@ Poisson dispersion index measures $0.045$ against the $1.0$ a Poisson likelihood
 %<- tools/validation/king_binning_likelihood.py
 --- a roughly 25-fold mis-specification.
 
-\TODO{State the King, EFF and corona parameterisations, the priors, and the closed-form
-$\Lambda$ for each. Note that the corona model's evidence comparison uses SMC.}
+Three surface-density profiles are available. The King form is
+\begin{equation}
+  \Sigma_{\rm K}(r) = k\left[\left(1 + (r/R_c)^2\right)^{-1/2}
+                           - \left(1 + (R_t/R_c)^2\right)^{-1/2}\right]^2 + b ,
+  \qquad r \le R_t ,
+\end{equation}
+and $\Sigma_{\rm K} = b$ beyond $R_t$ --- the truncation is explicit in the likelihood, since the
+squared bracket would otherwise turn negative and climb back up. The EFF form is
+$\Sigma_{\rm E}(r) = k\left(1 + (r/a)^2\right)^{-\gamma/2} + b$, whose normalisation
+$\Lambda$ has a closed form in $z = (R_f/a)^2$ and $e = 1 - \gamma/2$ that is singular at
+$\gamma = 2$ --- exactly the value \S\ref{sec:a5} concerns --- where the integral becomes
+logarithmic; the limit is handled rather than approached numerically. A corona component adds a
+second, shallower outer term for testing whether an extended population is required.
+
+Because $\Lambda$ is available in closed form for each, the normalisation is exact rather than
+quadrature-approximated, which is what makes the unbinned likelihood cheap enough to run over a
+census. When a selection function is supplied, $\Lambda$ is instead integrated against
+$S(r)$ on a fixed quadrature grid.
+
+Priors are scale-free rather than informative: half-Student-$t$ with $\nu = 1$ on $R_c$, $k$ and
+$b$, and $R_t$ parameterised as $R_c + \Delta R$ with $\Delta R$ likewise half-Student-$t$, so
+$R_t > R_c$ holds by construction instead of by rejection. A Jacobi-radius prior on $\Delta R$ can
+be supplied where an independent mass estimate exists. Model comparison between King, EFF and the
+corona uses sequential Monte Carlo for the evidence, and the log-evidence scatter across SMC
+chains is reported and gated rather than assumed negligible.
 
 \subsection{Reproducibility}
 \label{sec:repro}
