@@ -299,14 +299,43 @@ ranking score.
 \section{Calibration}
 \label{sec:calibration}
 
-\TODO{The claim, scoped exactly. Scoring membership output is not new --- \textsc{pyUPMASK}
-grades itself with six metrics across 600 synthetic clusters, and Olivares et al. 2018 propagate
-observational uncertainties into per-star probabilities. What we could not find reported for
-\emph{stellar} clusters is the reliability check itself. Cite the photometric-redshift lineage
-(Schmidt et al. 2020; D'Isanto \& Polsterer 2018; Myles et al. 2021) as prior art, and Rozo et
-al. 2015 for percent-level validation of \emph{galaxy}-cluster membership, up front. Then:
-reliability diagrams, Hosmer--Lemeshow, Brier with the Murphy decomposition, ECE/MCE, and
-isotonic/Platt recalibration returning a fitted callable.}
+The claim here needs stating precisely, because most of the adjacent ground is already occupied.
+Scoring membership output is not new: \textsc{pyUPMASK} grades itself with six metrics for the
+accuracy of probabilistic classification across 600 synthetic clusters, and \citet{olivares2018}
+propagate observational uncertainties into per-star membership probabilities and publish a
+per-star probability dispersion. What we could not find reported for \emph{stellar} clusters is
+the reliability check itself --- whether a stated probability of $0.7$ corresponds to a
+$\sim$70\% true-member frequency. The check is routine for photometric-redshift distributions and,
+for \emph{galaxy} clusters, has been validated at the percent level. \TODO{cite Schmidt+2020,
+D'Isanto \& Polsterer 2018, Myles+2021, Rozo+2015 --- prior art to acknowledge up front, not
+protection.} The claim is therefore scoped to stellar clusters, and concerns what is
+\emph{reported} rather than what is possible: calibration is computable for any method that emits
+membership probabilities, and we compute it for the baselines too.
+
+We report reliability diagrams, the Hosmer--Lemeshow statistic, the Brier score with its Murphy
+decomposition, expected and maximum calibration error, and isotonic and Platt recalibration
+returning a fitted callable --- on \texttt{numpy}, \texttt{scipy} and \texttt{scikit-learn} alone,
+so they apply to any pipeline's output.
+
+\paragraph{Why resolution and not reliability is the criterion.} Under the Murphy decomposition,
+$\mathrm{Brier} = \mathrm{reliability} - \mathrm{resolution} + \mathrm{uncertainty}$. Reliability
+is repairable by any monotone recalibration; resolution is not, because no monotone map can create
+discrimination a score does not contain. A candidate score is therefore adopted on its resolution
+\emph{after} out-of-sample isotonic recalibration, not on its raw calibration error.
+
+\paragraph{A binning defect worth reporting, because it inverts the verdict.} Computing the
+decomposition requires binning the forecast, and scores with a large point mass --- which every
+sweep-based membership score has, since unrecovered stars share one value --- break naive quantile
+binning: an edge inside the mass produces bins that differ only by tie-breaking. Separating the
+mass at zero is \emph{not} sufficient, and this is the trap: after isotonic recalibration the mass
+is no longer at zero, because isotonic maps that whole group to its empirical rate, a small
+positive constant. Quantile edges then collapse, the decomposition falls back to a single bin, and
+resolution --- a between-bin variance --- is identically zero by construction. In our first run
+this reported exactly $0.0000$ for the strongest scores, including a binary indicator whose
+average precision was $0.78$ and whose resolution therefore cannot be zero. Read at face value it
+would have rejected the best candidate on the criterion chosen to decide adoption. Atoms must be
+identified by \emph{mass} rather than by value; for a piecewise-constant forecast, which isotonic
+output always is, each level becomes its own bin and the decomposition is exact.
 
 \paragraph{Why resolution and not reliability is the criterion.}
 Under the Murphy decomposition, $\mathrm{Brier} = \mathrm{reliability} - \mathrm{resolution} +
