@@ -191,23 +191,56 @@ def _score(y: np.ndarray, p: np.ndarray) -> tuple[float, float]:
 # Murphy decomposition
 # ---------------------------------------------------------------------------
 def _bin_index(p: np.ndarray, n_bins: int) -> np.ndarray:
-    """Bin assignment with an atom at exactly zero given its own bin.
+    """Bin assignment that gives EVERY heavy atom its own bin, not just the one at zero.
 
-    Quantile binning collapses on these scores: ``f_target``, the crude gate and every failed
-    cell put a large point mass at exactly 0, and a quantile edge inside that mass produces
-    bins that differ only by tie-breaking, which turns reliability and resolution into binning
-    artefacts. Zero is therefore separated first and the positive part is quantile-binned.
+    Quantile binning collapses on these scores: ``f_target``, the crude gate and every failed cell
+    put a large point mass at a single value, and a quantile edge inside that mass produces bins
+    differing only by tie-breaking, which turns reliability and resolution into binning artefacts.
+
+    .. warning::
+       **The first version separated the atom at exactly zero and quantile-binned the rest, and
+       that was wrong in the one place it mattered most.** After isotonic recalibration the atom
+       is no longer at zero — isotonic maps the whole zero group to that group's empirical rate, a
+       small POSITIVE constant. So ``p > 0`` was true for ~every row, ``np.unique(np.quantile(...))``
+       on a distribution where 91% of the mass shares one value returned fewer than two distinct
+       edges, and the fallback assigned a SINGLE bin. Resolution is a between-bin variance, so one
+       bin makes it identically ``0.0`` by construction.
+
+       Measured consequence: the isotonic resolution of the best-performing arms read exactly
+       0.0000 — and so did ``tgt``, a binary indicator with average precision 0.783, whose
+       resolution cannot be zero. That impossibility is what exposed it. Read naively, the table
+       would have REJECTED the winning score on the very bar chosen to decide adoption.
+
+       The docstring above already identified the hazard and then hardcoded the wrong constant.
+
+    Atoms are now found by mass rather than by value, so zero, an isotonic level and any tie-heavy
+    score are handled by one rule. If the forecast is piecewise constant with few levels — which
+    isotonic output always is — each level simply becomes its own bin, which is exact.
     """
     p = np.asarray(p, dtype=float)
-    idx = np.zeros(p.size, dtype=int)
-    pos = p > 0
-    if not pos.any():
+    idx = np.full(p.size, -1, dtype=int)
+    vals, counts = np.unique(p, return_counts=True)
+
+    # Few distinct values (isotonic output, or a binary score): one bin per value. Exact.
+    if vals.size <= n_bins:
+        return np.searchsorted(vals, p)
+
+    # Otherwise: any value carrying at least 1/n_bins of the mass is an atom and gets its own bin;
+    # the remainder is quantile-binned among the bins that are left.
+    atoms = vals[counts >= max(1, p.size // n_bins)]
+    nxt = 0
+    for a in atoms:
+        idx[p == a] = nxt
+        nxt += 1
+    rest = idx < 0
+    if not rest.any():
         return idx
-    edges = np.unique(np.quantile(p[pos], np.linspace(0.0, 1.0, n_bins)))
+    n_rest_bins = max(2, n_bins - int(atoms.size))
+    edges = np.unique(np.quantile(p[rest], np.linspace(0.0, 1.0, n_rest_bins)))
     if edges.size < 2:
-        idx[pos] = 1
+        idx[rest] = nxt
         return idx
-    idx[pos] = np.clip(np.digitize(p[pos], edges[1:-1], right=False) + 1, 1, edges.size)
+    idx[rest] = nxt + np.clip(np.digitize(p[rest], edges[1:-1], right=False), 0, edges.size - 1)
     return idx
 
 
