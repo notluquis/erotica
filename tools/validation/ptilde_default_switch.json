@@ -1,0 +1,43 @@
+{
+ "gate0_fork_fidelity": {
+  "step10": {
+   "oracle_source": "b1_beyond_jacobi.json :: stage0_fidelity.step10",
+   "oracle": {
+    "branch_label": 1,
+    "branch_n": 791,
+    "preclip_p05": 746,
+    "best_mcs": 110,
+    "n_members": 567,
+    "clip_low": 0.796869742599954,
+    "clip_high": 1.030922626468977
+   },
+   "measured": {
+    "branch_label": 1,
+    "branch_n": 791,
+    "preclip_p05": 746,
+    "best_mcs": 110,
+    "n_members": 567,
+    "clip_low": 0.796869742599954,
+    "clip_high": 1.030922626468977
+   },
+   "mismatches": [],
+   "gate_passed": true,
+   "seconds": 34.9,
+   "target_recovery_info": {
+    "n_steps": 29,
+    "n_steps_matched": 29,
+    "n_target_members": 791,
+    "mean_matched_jaccard": 0.8612909851449136,
+    "mean_matched_size_ratio": 0.9399276341601638
+   },
+   "n_members_target": 565
+  }
+ },
+ "_written": "2026-08-04T17:07:06",
+ "recommendation": {
+  "recommendation": "PENDING",
+  "reasons": [
+   "--stage sweep has not run"
+  ]
+ }
+}
