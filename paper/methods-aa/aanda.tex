@@ -1,0 +1,292 @@
+%% EROTICA — A&A methods paper (P02).  DRAFT, started 2026-08-04.
+%%
+%% PROVENANCE RULE FOR THIS MANUSCRIPT, and it is not optional:
+%% every number below carries a %<- comment naming the script and JSON sidecar that produced it.
+%% A number without one is not yet evidence.  This exists because this programme has repeatedly
+%% found hand-copied integers drifting from the builds that produced them — a test count that
+%% matched no install, commit counts stale on arrival, "docs 0 warnings" copied from a build weeks
+%% old, and a knowledge-graph size asserted in four files that could not be re-derived under any
+%% counting rule.
+%%
+%% \TODO{...} marks a claim whose measurement is running, not a claim to be written around.
+%% Compile: latexmk -pdf aanda.tex
+\documentclass{aa}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{txfonts}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
+\newcommand{\TODO}[1]{\textbf{[TODO: #1]}}
+\newcommand{\erotica}{\textsc{Erotica}}
+\newcommand{\asteca}{\textsc{ASteCA}}
+
+\begin{document}
+
+\title{\erotica: a calibrated Bayesian pipeline for Gaia-era open-cluster analysis}
+
+\subtitle{Method, validation on 407 clusters, and a measured comparison against the reference tools}
+
+\author{L. Pulgar-Escobar\inst{1}}
+
+\institute{Departamento de Astronom\'ia, Universidad de Concepci\'on, Casilla 160-C,
+  Concepci\'on, Chile\\ \email{lescobar2019@udec.cl}}
+
+\date{Received ---; accepted ---}
+
+\abstract
+% context
+{Membership determination and structural fitting for open clusters are performed by separate
+tools with separate data models, so an end-to-end analysis discards each stage's uncertainty
+before the next consumes it. Whether the per-star membership probabilities such pipelines emit
+are \emph{calibrated} --- whether a stated probability of 0.7 corresponds to a $\sim$70\%
+true-member frequency --- is, for stellar clusters, not reported.}
+% aims
+{We present \erotica, an integrated Bayesian pipeline that retains every intermediate posterior,
+and we measure it: against injected truth, against the reference implementations \asteca\ and
+\textsc{pyUPMASK}, and against the calibration standard that the adjacent photometric-redshift
+literature applies routinely.}
+% methods
+{Membership is a multi-resolution \textsc{hdbscan} sweep yielding a per-star pseudo-probability,
+refined by Bayesian proper-motion and parallax modelling with full per-star covariance. Structure
+is fitted as an unbinned inhomogeneous Poisson point process --- the continuous form of the Cash
+statistic --- for King, EFF and corona profiles, with the survey selection function foldable into
+the normalisation. Every fit returns an \textsc{ArviZ} \texttt{InferenceData} posterior.}
+% results
+{\TODO{headline numbers --- fill from the running measurements; see \S\ref{sec:benchmark} and
+\S\ref{sec:validation}}}
+% conclusions
+{\TODO{conclusions}}
+
+\keywords{open clusters and associations: general --
+  open clusters and associations: individual: NGC 6383 --
+  methods: statistical --
+  methods: data analysis --
+  astrometry}
+
+\maketitle
+
+%-------------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+
+\TODO{Draft. Frame: \emph{Gaia} DR3 turned open clusters into a large-sample statistical
+enterprise, but the open-source tooling is fragmented --- membership finders (\textsc{UPMASK},
+\textsc{pyUPMASK}, \textsc{hdbscan} pipelines) and parameter fitters (\asteca, \textsc{BASE-9})
+are separate tools with separate data models. Cite Krone-Martins \& Moitinho 2014; Pera et al.
+2021; Hunt \& Reffert 2021, 2023, 2024; Perren et al. 2015; von Hippel et al. 2006;
+Cantat-Gaudin et al.; Tarricq et al. 2022. Then the calibration gap, scoped narrowly --- see
+\S\ref{sec:calibration} for the exact claim and what it does \emph{not} say.}
+
+%-------------------------------------------------------------------------------
+\section{The pipeline}
+\label{sec:pipeline}
+
+\subsection{Membership}
+\label{sec:membership}
+
+\TODO{Describe the multi-resolution sweep and the construction of the per-star score.}
+
+\paragraph{A defect in the shipped score, and its mechanism.}
+The pseudo-probability is built as a product $\tilde{p} = s \times f_i$, where $s$ is a
+per-star clustering score and $f_i$ is the \emph{sweep-recovery frequency}: over a sweep of the
+\texttt{min\_cluster\_size} parameter, the fraction of resolutions at which the star is
+clustered at all. Neither factor references the cluster that the pipeline finally selects: $s$
+measures confidence that a star sits firmly inside \emph{its own} cluster --- a field star
+embedded in a field overdensity scores near unity --- while $f_i$ measures only that the star
+was clustered into \emph{something}. Their product can therefore be large for a star that was
+never a candidate member.
+
+We establish this as a mechanism rather than a correlation. Let $t_i$ be the truth-free binary
+indicator that star $i$ carries the selected cluster's label. Across a $3\times2$ factorial of
+cluster-selection rule and score type, measured on 108 synthetic realisations with half the seeds
+held out, a better selection rule improves the average precision of $t_i$ by $+0.094$ and that of
+$\tilde{p}$ by $\sim\!0.000$
+%<- tools/validation/benchmark_tgt_selector_robustness.py, tgt_selector_robustness.json
+--- $\tilde{p}$ is structurally unable to respond to a better choice of cluster. The advantage of
+$t_i$ over $\tilde{p}$ is $+0.125$ to $+0.266$ in average precision across the factorial, positive
+in every cell at $\geq3.4$ standard errors, and cell-by-cell the weakest selection rule gives the
+larger advantage in 13 of 27 informative cells, so the effect is not an artefact of a selection
+rule tuned on this generator.
+
+\TODO{The replacement score. Measurement running --- report what it is, what it recovers, and
+its calibration after out-of-sample isotonic recalibration. If nothing clears the adoption bar,
+report the mechanism alone; it stands without a fix.}
+
+\subsection{Structural fitting}
+\label{sec:structure}
+
+Sky positions are treated as an inhomogeneous Poisson point process with intensity
+$\lambda(r) = 2\pi r\,\Sigma(r)$, giving
+\begin{equation}
+  \ln L = \sum_i \ln \lambda(r_i) - \Lambda, \qquad
+  \Lambda = \int_{\mathcal{F}} \lambda(r)\,\mathrm{d}r ,
+\end{equation}
+the continuous form of the Cash statistic \citep{cash1979}, with $\Lambda$ integrated over the
+actual footprint $\mathcal{F}$ rather than assumed infinite.
+
+The fit is unbinned because binning was tested and failed. Under the approximately equal-count
+annuli of the earlier implementation the count per bin is nearly fixed by construction, and the
+Poisson dispersion index measures $0.045$ against the $1.0$ a Poisson likelihood asserts
+%<- tools/validation/king_binning_likelihood.py
+--- a roughly 25-fold mis-specification.
+
+\TODO{State the King, EFF and corona parameterisations, the priors, and the closed-form
+$\Lambda$ for each. Note that the corona model's evidence comparison uses SMC.}
+
+\subsection{Reproducibility}
+\label{sec:repro}
+
+Every fit returns an \textsc{ArviZ} \texttt{InferenceData} object rather than a summary row, so
+convergence diagnostics stay attached to the numbers they describe. When a trace is archived, a
+sidecar records the git commit and dirty flag, the random seeds, tracked dependency versions,
+and a \textsc{blake2b} checksum of every input file.
+
+\TODO{Note the trace-identity design: the archive index is allocated against what is on disk and
+resolved by comparing posterior draws, not taken from the clock. A timestamp fails both
+properties an identity needs --- it is not unique under sub-second writes, and it is not
+content-derived, so one trace stored twice yields two indistinguishable archives.}
+
+%-------------------------------------------------------------------------------
+\section{Validation against injected truth}
+\label{sec:validation}
+
+\subsection{Recoverability, and three negative results}
+\label{sec:recoverability}
+
+\TODO{The EFF slope estimator is biased high at sample sizes typical of the \emph{Gaia} census
+and the bias shrinks with $N$; a free background term fabricates a background where the injected
+truth is exactly zero and biases the slope upward by $5.8\sigma$; fitting a circular profile to
+an elliptical cluster biases the slope \emph{downward}, toward the value at which EFF and an
+untruncated King profile coincide. Sidecars: eff\_gamma\_bias*.json, ellipticity\_bias.json.}
+
+\subsection{The EFF index across the \emph{Gaia} census}
+\label{sec:a5}
+
+We fit the EFF profile to 407 clusters from the \citet{hunt2024} catalogue; 403 converged
+($\hat{R}<1.01$, ESS $>400$, zero divergences)
+%<- tools/validation/a5_census_gamma_sweep.py + a5_census_gamma_summarise.py
+. Among the subsample whose radial lever arm permits $\gamma$ to be measured, the index
+concentrates at $\gamma = 2.006$ ($n=109$), with intrinsic spread $\approx0.31$ and \emph{no
+cluster above} $\gamma=3$
+%<- tools/validation/a5_gate_collider_audit.py, a5_gate_collider_audit.json
+.
+
+\paragraph{The measurability criterion is not a collider, and we tested it.}
+The criterion selects on $r_{\rm tot}/a_{\rm fit}$, where $a_{\rm fit}$ comes from the same
+posterior as $\gamma$ --- so it could in principle manufacture the concentration it reports. The
+marginal correlation between the criterion and $\gamma$ is $-0.773$, but this is \emph{not}
+evidence of selection bias: $\gamma$ and $a$ are anticorrelated within each fit by construction
+(mean within-fit correlation $0.88$), so a marginal association is expected at zero bias.
+
+We settle it against ground truth on 192 injection realisations with $\gamma$ drawn independently
+of geometry. Regressing recovered $\gamma$ on true $\gamma$ inside the criterion gives slope
+$+1.134 \pm 0.063$ --- tracking; compression toward 2 would give $\approx0$. The criterion admits
+99.1\% of the injected $\gamma$ range, and of the 25 admitted realisations with $\gamma_{\rm
+true}>3$, all 25 recover $\gamma>3$: the criterion cannot convert a steep profile into a shallow
+one. Applied to a flat-truth population, the identical criterion yields 8.7\% of clusters in
+$1.8\le\gamma<2.2$ against the census's 35.8\%, a $4.1\times$ excess the criterion does not
+create.
+
+A residual bias is present and we report it rather than dismiss it: relative to selecting on the
+\emph{true} lever arm, the fitted criterion shifts $\gamma$ down by $0.309$ at $\gamma=2$, by
+$0.177$ at 3, and by $0.045$ at 4. A trend of $\gamma$ with $N$ survives every criterion
+($r=+0.252$ in $\log N$) and is \emph{not} explained by the estimator: injection recovery gives
+$r=-0.033$ between $\log N$ and bias, and the fitted bias \emph{shrinks} with $N$, so an
+estimator artefact would push the opposite way. We report it uninterpreted.
+
+Both systematics of \S\ref{sec:recoverability} act here and they oppose: a free background pushes
+$\gamma$ \emph{up} (median paired $+0.413$ on these clusters), while a circular fit to an
+elliptical cluster pushes it \emph{down} toward 2 --- but by $\leq0.026$ at $\gamma=2$, so it
+cannot manufacture a $\gamma\approx2$ population, only steepen the recovered tail of one.
+
+\paragraph{Scope.} This is a statement about the \emph{recoverable} subsample, 109 of 407, not
+about the census. Ungated, the median is 2.585 and there is no excess near 2; the two numbers are
+the same fits, nested, and the ungated distribution is dominated by the lever-arm bias, so its
+median is a mixture rather than any cluster's $\gamma$.
+
+%-------------------------------------------------------------------------------
+\section{Comparison against the reference implementations}
+\label{sec:benchmark}
+
+\TODO{Design: feature parity (same five columns), \asteca\ never handed the injected truth,
+z-scoring, out-of-sample recalibration. Table of ROC-AUC and average precision per method, with
+base rates stated --- 0.50 / 0.20 / 0.05 at contamination 0.50 / 0.80 / 0.95 --- since average
+precision is the decision metric and ROC understates a binary score.}
+
+\paragraph{Per-star error propagation.}
+\asteca's \texttt{fastMP} consumes per-star astrometric uncertainties and resamples; the
+comparison is only like-for-like if \erotica\ receives them too. Folding the full per-source
+covariance into the sweep improves held-out average precision by $+0.135 \pm 0.021$
+%<- tools/validation/benchmark_erroraware_analysis.py, benchmark_erroraware.json
+, measured against a control that matches the coarsened sweep grid. The control is essential and
+counter-intuitive: grid coarsening alone \emph{costs} $0.0385 \pm 0.0114$, so comparing against
+the uncoarsened configuration understates the effect rather than flattering it.
+
+\paragraph{A false-positive asymmetry.}
+On realisations with no cluster injected, \erotica's error-aware configurations select zero stars
+across three seeds, while \asteca's \texttt{fastMP} selects 25, 51 and 26 stars \emph{at
+probability 1.000}
+%<- tools/validation/benchmark_erroraware.json, negative_control block
+. Any comparison of ranking metrics has to be read alongside this: a method that cannot be wrong
+about empty sky is not straightforwardly behind one that is confidently wrong about it.
+
+\paragraph{What the absolute values do not mean.}
+34 of 108 realisations return no cluster for any five-dimensional configuration, concentrated at
+\emph{low} contamination --- 14 of 18 held-out cells at contamination 0.5. The sweep fails on the
+easiest fields. Paired differences are unaffected because failures cancel, but a single method's
+average precision is partly a measurement of that failure mode and we do not quote it as a
+ranking score.
+
+%-------------------------------------------------------------------------------
+\section{Calibration}
+\label{sec:calibration}
+
+\TODO{The claim, scoped exactly. Scoring membership output is not new --- \textsc{pyUPMASK}
+grades itself with six metrics across 600 synthetic clusters, and Olivares et al. 2018 propagate
+observational uncertainties into per-star probabilities. What we could not find reported for
+\emph{stellar} clusters is the reliability check itself. Cite the photometric-redshift lineage
+(Schmidt et al. 2020; D'Isanto \& Polsterer 2018; Myles et al. 2021) as prior art, and Rozo et
+al. 2015 for percent-level validation of \emph{galaxy}-cluster membership, up front. Then:
+reliability diagrams, Hosmer--Lemeshow, Brier with the Murphy decomposition, ECE/MCE, and
+isotonic/Platt recalibration returning a fitted callable.}
+
+\paragraph{Why resolution and not reliability is the criterion.}
+Under the Murphy decomposition, $\mathrm{Brier} = \mathrm{reliability} - \mathrm{resolution} +
+\mathrm{uncertainty}$. Reliability is repairable by any monotone recalibration; resolution is
+not, because no monotone map can create discrimination a score does not contain. A candidate
+score is therefore adopted on its resolution after out-of-sample isotonic recalibration, not on
+its raw calibration error.
+
+%-------------------------------------------------------------------------------
+\section{Application: NGC 6383}
+\label{sec:ngc6383}
+
+\TODO{Depends on A1 and B1, both running. A1: selection-corrected radial density profile at a
+resolution that actually resolves $R_c=1.38'$ --- note that an all-sky map at $27.5'$ pixels
+cannot answer this by construction, and a flat efficiency from it means invisible, not absent.
+B1: whether the 43\% of members beyond the Jacobi radius is a real unbound population or an
+artefact of contamination above the $\sim$20\% threshold at which an artificial halo appears.}
+
+%-------------------------------------------------------------------------------
+\section{Conclusions}
+\label{sec:conclusions}
+
+\TODO{Write last. Do not overclaim: the benchmark result is a mechanism plus a partial recovery,
+not a win, unless the running measurement changes that.}
+
+\begin{acknowledgements}
+  I gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI
+  project 32230014, and financial support from the Direcci\'on de Postgrado, Universidad de
+  Concepci\'on, through its MSc scholarship programme. I thank N. Henr\'iquez Salgado for his
+  contribution to the companion NGC 6383 study, and P. Cerulo for guidance on machine-learning
+  methods and for discussions of Bayesian modelling with \textsc{PyMC}.
+  \TODO{AI-usage disclosure --- A\&A requires one; adapt the JOSS paper's, which is pinned to a
+  release tag and re-derived by \texttt{tools/release/ai\_disclosure\_counts.py}.}
+\end{acknowledgements}
+
+\bibliographystyle{aa}
+\bibliography{methods}
+
+\end{document}

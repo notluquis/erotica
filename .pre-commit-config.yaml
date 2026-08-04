@@ -22,7 +22,14 @@
 # enabling it here would block every commit on a backlog nobody has triaged. It belongs in a
 # dedicated pass with its own findings, not as a gate switched on by surprise.
 
-exclude: '^(data/|docs/_build/|legacy/|backups/)'
+# VENDORED THIRD-PARTY FILES MUST NOT BE REFORMATTED. The A&A class files
+# (paper/methods-aa/{aa.cls,aa.bst,linenoaa.sty}) are the journal's own, and on 2026-08-04 the
+# whitespace hooks silently rewrote all three on the commit that added them. A journal template
+# that no longer matches what the journal ships is a submission problem, and — worse — it destroys
+# the byte-fidelity that lets anyone check WHICH version we are using, which the README documents
+# precisely because the official download is behind a Cloudflare 403 and could not be verified.
+# Trailing whitespace in someone else's LaTeX class is not ours to tidy.
+exclude: '^(data/|docs/_build/|legacy/|backups/|paper/methods-aa/(aa\.cls|aa\.bst|linenoaa\.sty)$)'
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit

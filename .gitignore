@@ -147,3 +147,14 @@ tools/validation/hr24_clusters.ecsv
 tools/validation/benchmark_*.json
 tools/validation/benchmark_*.cells.jsonl
 !tools/validation/benchmark_*_summary.json
+
+# LaTeX build products for the A&A methods paper (regenerate with `latexmk -pdf`)
+paper/methods-aa/*.aux
+paper/methods-aa/*.bbl
+paper/methods-aa/*.blg
+paper/methods-aa/*.fdb_latexmk
+paper/methods-aa/*.fls
+paper/methods-aa/*.log
+paper/methods-aa/*.out
+paper/methods-aa/*.pdf
+paper/methods-aa/*.synctex.gz
