@@ -5,6 +5,8 @@
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/erotica)
 [![CI](https://github.com/notluquis/erotica/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/erotica/actions/workflows/ci.yml)
 [![Docs](https://readthedocs.org/projects/erotica/badge/?version=latest)](https://erotica.readthedocs.io/en/latest/)
+[![PyPI](https://img.shields.io/pypi/v/erotica.svg)](https://pypi.org/project/erotica/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21769959.svg)](https://doi.org/10.5281/zenodo.21769959)
 
 EROTICA is a Python package for analyzing star clusters using machine learning and Bayesian
 inference. Built for Gaia data, it uses unsupervised clustering to identify open star clusters
@@ -14,7 +16,11 @@ and characterize their membership, ages, and structure.
 
 ## 📦 Installation
 
-### From Source (Current)
+```bash
+pip install erotica
+```
+
+### From source (for development)
 
 ```bash
 git clone https://github.com/notluquis/erotica.git
@@ -24,8 +30,10 @@ pip install -e ".[dev,docs]"
 
 ### Requirements
 
-- Python 3.13 or higher
-- See `pyproject.toml` for complete dependency list
+- Python 3.13 or higher (this is `requires-python`, not a recommendation — older versions cannot
+  install the package)
+- See `pyproject.toml` for the complete dependency list and the optional extras
+  (`bayes`, `selection`, `examples`, `docs`, `dev`)
 
 ## 🚀 Quick Start
 
@@ -245,13 +253,23 @@ pre-commit install
 
 ## 📊 Status
 
-**Current Version**: v0.0.1 (Alpha)
+**Current version**: **v0.1.0** — released 2026-08-03, tagged, published to
+[PyPI](https://pypi.org/project/erotica/) and archived on Zenodo
+([`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959)). This block claimed
+"v0.0.1 (Alpha) — active development for v0.1.0" until 2026-08-04, when `pyproject.toml`,
+`CITATION.cff` and `CHANGELOG.md` had all said 0.1.0 for a day.
 
-**Development Status**: Active development for v0.1.0 stable release
+**Development status**: v0.1.0 is the version the JOSS submission describes. The API is not yet
+frozen; see the roadmap below.
 
-**Test Coverage**: Core functionality covered, expanding test suite
+**Tests**: the full suite runs in CI on Python 3.13 and 3.14, plus a job that installs the `bayes`
+extra so the sampler paths actually execute, and a docs job that builds the site. Audited by
+mutation rather than by coverage. (No test count is quoted here on purpose — a count in prose is
+stale by the next commit. Run `pytest --collect-only -q` for the current figure; `paper/paper.md`
+quotes one pinned to the v0.1.0 tag, which is fixed and citable.)
 
-**Documentation**: API documented, tutorials in development
+**Documentation**: [erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/) — API
+reference, user guides and design notes.
 
 ## 🤝 Contributing
 
@@ -274,16 +292,24 @@ If EROTICA contributes to work you publish, please cite it. Machine-readable met
 
 ```bibtex
 @software{erotica,
-  author = {Pulgar, Lucas M.},
-  title  = {{EROTICA}: Estimation, Recovery \& Optimization, together with Inference,
-            for Cluster Analysis},
-  url    = {https://github.com/notluquis/erotica},
+  author  = {Pulgar-Escobar, Lucas},
+  title   = {{EROTICA}: Estimation, Recovery \& Optimization, together with Inference,
+             for Cluster Analysis},
+  version = {0.1.0},
+  year    = {2026},
+  doi     = {10.5281/zenodo.21769959},
+  url     = {https://github.com/notluquis/erotica},
   license = {AGPL-3.0-or-later}
 }
 ```
 
-> **Pre-release.** The author list, ORCIDs and a Zenodo DOI are not final — see the header of
-> `CITATION.cff`. A software paper is in preparation; this entry will be superseded by it.
+The DOI above is the **concept** DOI and always resolves to the latest version; use
+`10.5281/zenodo.21769960` to pin v0.1.0 exactly. The author field is spelled to match
+`CITATION.cff` — it read `Pulgar, Lucas M.` until 2026-08-04, so the two files disagreed on the
+family name and would have produced two different citations for one release.
+
+> A software paper is under review. Once it has a DOI, `CITATION.cff`'s `preferred-citation`
+> field will redirect GitHub's citation button to it and supersede this entry.
 
 **Please also cite the methods you actually used**, which are not ours: King (1962) or Elson, Fall &
 Freeman (1987) for the profile you fitted, Hunt & Reffert (2024) for census cross-matches,
@@ -318,10 +344,11 @@ EROTICA builds upon excellent open-source libraries:
 
 ## 🗺️ Roadmap
 
-- [x] **v0.0.1** - Initial alpha release with core functionality
-- [ ] **v0.1.0** - Stable API and comprehensive documentation
-- [ ] **v0.2.0** - PyPI distribution and additional clustering algorithms
-- [ ] **v1.0.0** - Production-ready release with full validation suite
+- [x] **v0.0.1** — Initial alpha release with core functionality
+- [x] **v0.1.0** — Comprehensive documentation, Zenodo archive, **and PyPI distribution**
+      (which this list had parked under v0.2.0; `pip install erotica` works today)
+- [ ] **v0.2.0** — Additional clustering algorithms; a frozen, deprecation-policed API
+- [ ] **v1.0.0** — Production-ready release with full validation suite
 
 ---
 

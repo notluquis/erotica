@@ -37,8 +37,16 @@ pytest -q
 2. Make the change **and add a test that fails without it**. For anything touching the
    science — membership, isochrones, structure, dynamics — the test should assert on
    behaviour, not just that the code runs.
-3. Keep the style consistent: `black erotica/ tests/` and `isort erotica/ tests/`
-   (line length 100, configured in `pyproject.toml`).
+3. Keep the style consistent with **`ruff`**, which replaced `black` + `isort` + `flake8` and is
+   what `.pre-commit-config.yaml` actually runs (line length 100, configured in `pyproject.toml`):
+
+   ```bash
+   ruff check --fix erotica/ tests/
+   ruff format erotica/ tests/
+   ```
+
+   `black` and `isort` are **not** installed by the `dev` extra. This step named them until
+   2026-08-04, so following it produced "command not found".
 4. Run the suite: `pytest -q`.
 5. Open a pull request against `dev` describing what changed and, for science changes,
    what you validated it against.

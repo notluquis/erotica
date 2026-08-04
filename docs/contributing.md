@@ -14,8 +14,11 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
-Branch off `dev`, add a test that fails without your change, run `black`/`isort`
-(line length 100) and the test suite, then open a pull request against `dev`.
+Branch off `dev`, add a test that fails without your change, run `ruff check --fix` and
+`ruff format` (line length 100) and the test suite, then open a pull request against `dev`.
+
+`ruff` replaced `black` + `isort` + `flake8` and is what the pre-commit hooks run; the older three
+are not installed by the `dev` extra.
 
 ## Scientific conventions
 

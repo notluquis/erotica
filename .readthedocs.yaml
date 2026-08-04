@@ -16,7 +16,44 @@ build:
 
 sphinx:
   configuration: docs/conf.py
-  # fail_on_warning: true   # enable once numpydoc docstring warnings are clean
+  fail_on_warning: true
+  #
+  # ON as of 2026-08-04, and the history is worth keeping because the blocker was two characters.
+  # This line read `# fail_on_warning: true` with the note "enable once numpydoc docstring
+  # warnings are clean", which was a guess: there were no numpydoc warnings. Measured (sphinx
+  # 9.1.0), the build emitted exactly TWO messages, both from docutils, both from a single
+  # docstring — `Clustering.search_pseudoprobability` in erotica/core/clustering.py:
+  #
+  #   clustering.py:176  the intro line ends in `:` instead of `::`, so the ASCII results table
+  #                      under it parses as a blockquote rather than a literal block, and
+  #                      `probabilities_` inside it is then read as an RST named reference ->
+  #                      ERROR: Unknown target name: "probabilities".
+  #   clustering.py:284  the same single-colon defect; the table under it parses as a definition
+  #                      list -> WARNING: Definition list ends without a blank line.
+  #
+  # Both were a one-character fix (`:` -> `::`), confirmed by round-tripping the two blocks
+  # through docutils with each spelling rather than by reading. Fixed, re-measured at ZERO
+  # warnings, and the flag turned on in the same commit — so the site now fails rather than
+  # publishing a broken page, which is what this file claimed to want for months.
+  #
+  # .github/workflows/ci.yml enforces the same zero at PR time, since RTD only builds after a
+  # push to a tracked branch. Keeping both is deliberate, not redundant.
+  #
+  # `nitpicky` is deliberately NOT enabled either. It surfaces ~70 unresolved cross-references
+  # (70 when measured 2026-08-04), and all but one of them are broken `:func:`/`:meth:`/
+  # `:class:` targets in *package* docstrings pointing at private, renamed or third-party names.
+  # That is a package-source cleanup, not a docs change, so turning the flag on now would only
+  # trade a silent problem for a red build. The single docs/ one -- a `citing.md` reference to
+  # a function under the wrong module path -- is fixed.
+  #
+  # The count is reproducible: two consecutive `-E` builds of an unchanged tree produced
+  # byte-identical warning sets. But it TRACKS PACKAGE DOCSTRINGS, so it moves whenever those
+  # are edited (it read 67 earlier the same day, before unrelated docstring work landed).
+  # Re-measure before quoting it; do not treat a stale figure as a regression.
+  #
+  # The default (non-nitpicky) build is stable at exactly 2 across every run measured, on
+  # several different states of the tree. That is why the CI ceiling is pinned against the
+  # default build and not against `-n`.
 
 # pip, not uv. RTD's docs: uv is supported via python.install, but "use build.jobs
 # only when you need an advanced uv workflow" -- combining uv with a build.jobs

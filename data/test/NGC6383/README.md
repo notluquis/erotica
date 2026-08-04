@@ -1,8 +1,14 @@
 # NGC 6383 working area
 
 This directory is a project-specific workspace used while developing the
-`cosmic` package and revising the A&A NGC 6383 manuscript. It is not the
-general package source; reusable code should live under `cosmic/`.
+`erotica` package and revising the A&A NGC 6383 manuscript. It is not the
+general package source; reusable code should live under `erotica/`.
+
+> The package was renamed COSMIC → EROTICA on 2026-07-21. This file still said
+> `cosmic/` until 2026-08-04, which made it an instruction to put new code in a
+> directory that does not exist. The manuscript sources under `Tex_File/` and
+> `comments_paper/` legitimately say COSMIC — that was the name at submission
+> time, and they are the historical record, not a rename that was missed.
 
 ## Layout
 
@@ -24,9 +30,11 @@ general package source; reusable code should live under `cosmic/`.
 - `MIST/` and `PARSEC/`: isochrone tables. These are large data dependencies,
   ignored by git.
 - `ASteCA/`: old ASteCA copy/results used for comparison and historical checks.
-- `COSMIC_aux.py`: deprecated compatibility shim for archived notebooks. The
-  reusable implementation now lives in `cosmic/analysis/`; new notebooks should
-  import from `cosmic.analysis`.
+- `COSMIC_aux.py`: deprecated compatibility shim for archived notebooks. (The
+  filename keeps the old spelling because the archived notebooks import it by
+  that name; it is a historical artefact, not a missed rename.) The reusable
+  implementation now lives in `erotica/analysis/`; new notebooks should import
+  from `erotica.analysis`.
 
 ## Paper-faithful clustering settings
 

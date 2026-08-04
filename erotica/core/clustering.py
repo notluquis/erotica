@@ -173,7 +173,7 @@ class Clustering:
                receives exactly 1.0**, so the score cannot rank those points at all. That is the
                mechanism behind this package's benchmark AUC of 0.776 against ASteCA's 0.917.
 
-               Soft membership has no clamp. Measured over 2700 fits, 15 seeds with 5 held out:
+               Soft membership has no clamp. Measured over 2700 fits, 15 seeds with 5 held out::
 
                    metric                probabilities_    soft
                    ROC-AUC                    0.7706      0.9867
@@ -281,7 +281,7 @@ class Clustering:
                only when a pass makes no progress (``_hdbscan_boruvka.pyx:585-598``), so leaf
                geometry decides tie-breaks and therefore labels.
 
-               Measured on synthetic contaminated frames, 12 seeds, n=1500, contamination 0.9:
+               Measured on synthetic contaminated frames, 12 seeds, n=1500, contamination 0.9::
 
                    approx=True   leaf_size    5    10    20    40   100   200   400
                                  ROC-AUC   .8887 .8944 .9006 .9009 .9020 .9043 .9043

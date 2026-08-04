@@ -10,10 +10,18 @@ is other people's method, implemented.**
 Machine-readable metadata lives in [`CITATION.cff`](https://github.com/notluquis/erotica/blob/dev/CITATION.cff),
 which GitHub renders as a *Cite this repository* button.
 
-```{warning}
-**Pre-release.** The author list, ORCIDs and Zenodo DOI in `CITATION.cff` are not final. A software
-paper is in preparation; once it has a DOI the `preferred-citation` field will redirect the citation
-button to it, which is the correct target for a methods paper with a companion code release.
+**v0.1.0 is released and archived.** Cite the concept DOI
+[`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959), which always resolves to the
+latest version; the v0.1.0 version DOI is
+[`10.5281/zenodo.21769960`](https://doi.org/10.5281/zenodo.21769960) if you need to pin the exact
+release you ran.
+
+```{note}
+The author list, ORCID and DOI in `CITATION.cff` are final as of 2026-08-03 — this page carried a
+"pre-release, author list and DOI not final" warning that had outlived every condition it named.
+What is still open is the *preferred* citation: a software paper is under review, and once it has a
+DOI the `preferred-citation` field will redirect GitHub's citation button to it, which is the
+correct target for a methods paper with a companion code release.
 ```
 
 ```{note}
@@ -29,7 +37,7 @@ wrong bibcode propagates silently into every paper that copies it.
 
 | method | cite | note |
 |---|---|---|
-| King profile | King (1962), AJ 67, 471 — `1962AJ.....67..471K` | **Empirical**, in his own words *"merely a convenient fitting formula"*. The additive background is **not** in his Eq. (14); see {func}`~erotica.analysis.structure.king_profile`. |
+| King profile | King (1962), AJ 67, 471 — `1962AJ.....67..471K` | **Empirical**, in his own words *"merely a convenient fitting formula"*. The additive background is **not** in his Eq. (14); see {func}`~erotica.analysis.king_profile`. |
 | King dynamical model | King (1966), AJ 71, 64 — `1966AJ.....71...64K` | A different object from the 1962 law. There is no "King 1964". |
 | EFF profile | Elson, Fall & Freeman (1987), ApJ 323, 54 — `1987ApJ...323...54E` | Convention trap: `γ_MvdM = γ_EFF + 1` against McLaughlin & van der Marel (2005). Their abstract is also the earliest statement of the corona problem: *"At least some and perhaps all the clusters in the sample extend beyond their eventual tidal radii, with **up to 50% of the total masses in unbound halos**."* |
 | Corona component | Danilov & Putkov (2012), Astron. Rep. 56, 609; Seleznev (2016), MNRAS 456, 3757 | Seleznev states the mechanism the corona term exists to fix. |

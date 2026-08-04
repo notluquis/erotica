@@ -55,11 +55,26 @@ the row that replaced it.
   patch. Commit with `git commit --no-verify` until the hook is fixed
   (release-blocker: fix the pre-commit config — see `~/phd/erotica-package.md`).
 
-- **Read the Docs slug migration is pending.** The RTD project is named `erotica` but its slug was
-  still `cosmic-clusters` as of 2026-08-02 (verified against the RTD API), so
-  `cosmic-clusters.readthedocs.io` serves the live docs. **README links now point at
-  `erotica.readthedocs.io` deliberately, ahead of the slug migration** — they 404 until it lands.
-  Do not "fix" them backwards.
+- **~~Read the Docs slug migration is pending.~~ Done — the slug is `erotica`.** This entry claimed
+  the slug was "still `cosmic-clusters` as of 2026-08-02 (verified against the RTD API)" and that
+  the README's `erotica.readthedocs.io` links "404 until it lands". Both halves are now false.
+  Measured directly 2026-08-04:
+
+  | URL | status |
+  |---|---|
+  | `erotica.readthedocs.io/en/latest/` | **200 — serving the live docs** |
+  | `cosmic-clusters.readthedocs.io/en/latest/` | **404 — the old slug is gone** |
+
+  So the README links are correct and load; do not add warnings back. Keep the old slug out of new
+  links entirely — it resolves to nothing.
+
+- **PyPI: `erotica` is published.** Verified 2026-08-04 via `pypi.org/pypi/erotica/json` → HTTP 200,
+  version **0.1.0**, artefacts `erotica-0.1.0.tar.gz` and `erotica-0.1.0-py3-none-any.whl`. The old
+  dist name `cosmic-cluster-analysis` returns 404 and was never published. `pip install erotica`
+  works, so any doc still saying "install from source (current)" is stale.
+  ⚠ **Check `pypi.org/pypi/<name>/json`, never `pypi.org/project/<name>/`** — the latter returns
+  HTTP 200 with a Cloudflare challenge page whether or not the project exists, which is how you
+  conclude a name is free when it is taken, or taken when it is free.
 
 - **CDS accepts ASCII and FITS only — no HDF5, no parquet.** A&A mandates data deposit, usually at
   CDS, so any table destined for the NGC 6383 paper must be produced in an accepted format. Verified

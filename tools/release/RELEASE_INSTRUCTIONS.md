@@ -1,6 +1,22 @@
-# 🚀 EROTICA v0.0.1 Release Instructions
+# 🚀 EROTICA Release Instructions
 
-¡Felicidades! El proyecto EROTICA está completamente preparado para el release v0.0.1. Aquí tienes las instrucciones finales para completar el lanzamiento:
+> **Nota (2026-08-04).** Este documento se escribió como el recorrido del release **v0.0.1**.
+> La versión actual es **v0.1.0**: ya está etiquetada, publicada en
+> [PyPI](https://pypi.org/project/erotica/) y archivada en Zenodo
+> ([`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959)). Los pasos siguen
+> siendo válidos como guía general, pero **sustituye `0.0.1` por la versión que estés
+> lanzando** en cada comando.
+>
+> Los nombres de los artefactos también estaban equivocados: decían
+> `cosmic_cluster_analysis-*`, un nombre de distribución que dejó de existir con el cambio
+> COSMIC → EROTICA del 2026-07-21, de modo que ningún archivo listado aquí se generaba.
+> Verificado contra los artefactos reales publicados en PyPI: `erotica-0.1.0.tar.gz` y
+> `erotica-0.1.0-py3-none-any.whl`.
+>
+> **Prefiere `tools/release/release.sh`**, que deriva la versión desde `pyproject.toml` en vez
+> de tenerla escrita a mano, y comprueba que `CITATION.cff` coincida.
+
+Instrucciones para completar el lanzamiento:
 
 ## ✅ Lo que ya está listo:
 
@@ -23,8 +39,8 @@
    - **NUEVO**: `MIGRATION_NOTES.md` con detalles de migración
 
 4. **Archivos de distribución**:
-   - Source distribution: `cosmic_cluster_analysis-0.0.1.tar.gz` (214MB - incluye datos de test)
-   - Wheel: `cosmic_cluster_analysis-0.0.1-py3-none-any.whl` (52KB - solo código)
+   - Source distribution: `erotica-<VERSION>.tar.gz` (incluye datos de test)
+   - Wheel: `erotica-<VERSION>-py3-none-any.whl` (solo código)
    - **NUEVO**: Archivos legacy excluidos correctamente del paquete distribuido
 
 ## 🎯 Pasos finales para el release:
@@ -85,7 +101,7 @@ This is an **alpha release** intended for development and testing. The API may c
 
 ## 🎯 Key Features
 - **Advanced Clustering**: HDBSCAN with Optuna hyperparameter optimization
-- **Gaia Integration**: Native support for Gaia, 2MASS, and WISE photometric systems  
+- **Gaia Integration**: Native support for Gaia, 2MASS, and WISE photometric systems
 - **Data Processing**: Comprehensive preprocessing and quality control tools
 - **Analysis Tools**: Statistical characterization and visualization capabilities
 - **Modular Design**: Clean package structure with organized submodules
@@ -141,8 +157,8 @@ analyzer.run_analysis()
 ```
 
 6. **Adjuntar archivos de distribución**:
-   - Arrastra `dist/cosmic_cluster_analysis-0.0.1.tar.gz`
-   - Arrastra `dist/cosmic_cluster_analysis-0.0.1-py3-none-any.whl`
+   - Arrastra `dist/erotica-<VERSION>.tar.gz`
+   - Arrastra `dist/erotica-<VERSION>-py3-none-any.whl`
 
 7. Marca como "pre-release" (ya que es alpha)
 8. Click "Publish release"
@@ -171,12 +187,19 @@ Después del release, verifica que funciona:
 
 ```bash
 # Clonar en un directorio nuevo
-git clone https://github.com/notluquis/erotica.git cosmic-test
-cd cosmic-test
+git clone https://github.com/notluquis/erotica.git erotica-test
+cd erotica-test
 
 # Instalar y probar
 pip install -e .
-python -c "import erotica; print('✅ EROTICA v0.0.1 instalado correctamente!')"
+python -c "import erotica; print('✅ EROTICA', erotica.__version__, 'instalado correctamente!')"
+```
+
+O, ya que el paquete está publicado, directamente desde PyPI:
+
+```bash
+pip install erotica
+python -c "import erotica; print(erotica.__version__)"
 ```
 
 ## 🎉 ¡Felicidades!

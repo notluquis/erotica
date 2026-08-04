@@ -46,9 +46,11 @@ jobs:
   # a bad cross-reference or an unparseable RST block reached `main` and was discovered, if at all,
   # by a reader.
   #
-  # This does NOT turn on fail_on_warning globally -- that is a separate, larger cleanup. It fails
-  # on the errors that make the build wrong rather than untidy, and it PRINTS the warning count so
-  # the number is visible and can be driven down deliberately instead of by surprise.
+  # The count is measured and PINNED at ZERO: the build failing fails the job (see the pipefail
+  # note below), and any warning at all fails it too. The ceiling was 2 for a few hours on
+  # 2026-08-04 -- both warnings were in `erotica/core/clustering.py`, where a table introduced
+  # with `:` instead of `::` parsed as a blockquote and a definition list. Fixing those took two
+  # characters, so the ceiling went to 0 rather than being institutionalised at 2.
   docs:
     runs-on: ubuntu-latest
     steps:
@@ -58,18 +60,67 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      # `docs` alone is not enough: autodoc imports the package, and the analysis modules import
-      # pymc at module scope in places, so a docs-only environment fails on import rather than on
-      # documentation. This is the same coupling that keeps `bayes` in the test-bayes job.
-      - run: pip install -e .[docs,bayes]
+      # `docs` alone, deliberately -- and this is a correction. This step used to install
+      # `.[docs,bayes]` under a comment asserting that "`docs` alone is not enough: the analysis
+      # modules import pymc at module scope, so a docs-only environment fails on import".
+      # Measured 2026-08-04 in a clean venv: false. With only `.[docs]` installed and pymc
+      # absent, `import erotica` succeeds (PEP 562 lazy submodules, plus every heavy dependency
+      # is listed in `autodoc_mock_imports`) and the build produces the same 2 warnings.
+      #
+      # Installing `bayes` here was worse than redundant: `.readthedocs.yaml` installs ONLY the
+      # `docs` extra, so the job was testing an environment that is not the one that publishes
+      # the site. CI could pass while Read the Docs failed. This now matches RTD exactly, which
+      # is the point of building docs in CI at all.
+      - run: pip install -e .[docs]
       - name: Build HTML, failing on errors
         run: |
+          # `set -o pipefail` is load-bearing, not tidiness. GitHub's default shell is
+          # `bash -e {0}`, and `-e` does NOT propagate a failure through a pipe: the step's
+          # exit status is `tee`'s, which is always 0. Until 2026-08-04 this step was named
+          # "failing on errors" while passing on every build that failed.
+          set -o pipefail
           python -m sphinx -T -b html docs docs/_build/html 2>&1 | tee /tmp/sphinx.log
-          echo "--- warning count ---"
-          grep -c "WARNING" /tmp/sphinx.log || true
-      - name: Check that every documented API target actually resolved
+
+      # Measured 0 on 2026-08-04, so the gate is zero-tolerance and duplicates what
+      # `fail_on_warning: true` now does on Read the Docs. Keeping BOTH is deliberate: RTD only
+      # builds after a push to a tracked branch, so this is what fails a pull request.
+      #
+      # Fragile in one direction only: a Sphinx release that rewords a message could introduce a
+      # warning that is not a real regression. If this fails right after a Sphinx bump, read the
+      # message before assuming the docs broke -- but do NOT raise the ceiling to make it pass.
+      - name: Docs must build with zero warnings
+        run: |
+          COUNT=$(grep -c "WARNING\|ERROR" /tmp/sphinx.log || true)
+          echo "sphinx warnings+errors: $COUNT (ceiling: 0)"
+          grep "WARNING\|ERROR" /tmp/sphinx.log || true
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::Docs emitted $COUNT warning(s). Fix them; do not raise this ceiling."
+            exit 1
+          fi
+
+      # Renamed 2026-08-04. This step used to be called "Check that every documented API target
+      # actually resolved", which it has never done: `linkcheck` resolves external URLs, not
+      # Python cross-references, and the trailing `|| true` meant it could not fail either way.
+      # Two assertions in one step name, both false -- the same defect class as the missing
+      # pipefail above. Resolving API targets is what `-n` does, reported below rather than
+      # claimed here.
+      - name: External link check (informational, never gates)
         run: |
           python -m sphinx -T -b linkcheck docs docs/_build/linkcheck 2>&1 | tail -20 || true
+
+      # Nitpicky counts unresolved cross-references -- the check the step above used to advertise
+      # falsely. 70 as of 2026-08-04, all but one of them broken `:func:`/`:meth:`/`:class:`
+      # targets in package docstrings pointing at private, renamed or third-party names.
+      #
+      # Reported, not gated. The count is reproducible run-to-run, but it tracks package
+      # docstrings rather than anything under docs/, so it moves on ordinary source edits and a
+      # ceiling here would fail the job for reasons a docs change cannot fix. Driving it to zero
+      # is a package-source cleanup; the gate that protects docs/ is the default-build ceiling
+      # above, which is stable at 2.
+      - name: Unresolved cross-reference count (informational)
+        run: |
+          python -m sphinx -T -b html -n docs docs/_build/nitpick 2>&1 | tee /tmp/sphinx-n.log | tail -5
+          echo "unresolved cross-references: $(grep -c 'WARNING\|ERROR' /tmp/sphinx-n.log || true) (informational; tracks package docstrings)"
       - uses: actions/upload-artifact@v4
         with:
           name: docs-html
