@@ -123,13 +123,20 @@ Issues = "https://github.com/notluquis/erotica/issues"
 Changelog = "https://github.com/notluquis/erotica/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
-py-modules = [
-  "clustering",
-  "cluster_analysis",
-  "data_loader",
-  "data_preprocessor",
-  "utils",
-]
+# NOT shipped: the five bare top-level shims (clustering, cluster_analysis, data_loader,
+# data_preprocessor, utils). They were declared here, so `pip install erotica` dropped
+# `utils.py`, `clustering.py` and `data_loader.py` UNNAMESPACED into site-packages -- and
+# `utils` in particular is one of the most collision-prone names on PyPI. Installing a module
+# called `utils` into a user's environment can shadow their own or another package's.
+#
+# They are 81 lines total and are pure re-export shims (`from erotica.utils.utils import
+# compare_datasets`). Nothing in this repository imports them -- checked across .py and .ipynb.
+# The files stay in the working tree so any local notebook that used them still runs; they are
+# simply not installed.
+#
+# Shipped in v0.1.0. Anyone who did `import utils` expecting EROTICA after installing from PyPI
+# should use `from erotica.utils.utils import compare_datasets` instead.
+py-modules = []
 
 [tool.setuptools.packages.find]
 include = ["erotica*"]
