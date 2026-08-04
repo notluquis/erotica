@@ -203,6 +203,19 @@ class Clustering:
             "allow_single_cluster": False,
             "metric": "euclidean",
             "match_reference_implementation": True,
+            # Pinned because it CHANGES THE LABELS, contrary to hdbscan's own docstring
+            # ("This does not alter the resulting clustering, but may have an effect on the
+            # runtime", hdbscan_.py:977-981). On 2D euclidean data `algorithm="best"` dispatches
+            # to Boruvka, whose approximate MST resets distance bounds only when a pass makes no
+            # progress (_hdbscan_boruvka.pyx:585-598), so leaf geometry decides tie-breaks.
+            # Measured:
+            #   approx_min_span_tree=True (the default): leaf_size 5 -> different labels,
+            #                                            20/40 -> same, 200 -> different
+            #   approx_min_span_tree=False:              leaf_size 5/20/40/200 -> all identical
+            # Leaving it unpinned makes a run depend on a value nobody set deliberately.
+            # 40 is hdbscan's own default, chosen here for continuity with every published run
+            # rather than on evidence that it is optimal -- it has not been tuned.
+            "leaf_size": 40,
             **(hdbscan_kwargs or {}),
         }
         if probability_method not in ("hdbscan", "soft"):

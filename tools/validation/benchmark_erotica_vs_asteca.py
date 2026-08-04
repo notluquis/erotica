@@ -304,20 +304,32 @@ def _zscore(x: np.ndarray) -> np.ndarray:
 # understate the package; reporting only the alternative would hide a real default-value
 # failure mode. Both are measured.
 EROTICA_CONFIGS = {
-    "erotica_pm": (("pmra", "pmdec"), "max_members"),
-    "erotica_3d": (("pmra", "pmdec", "plx"), "max_members"),
-    "erotica_5d": (("ra", "dec", "pmra", "pmdec", "plx"), "max_members"),
-    "erotica_pm_maxlambda": (("pmra", "pmdec"), "max_lambda"),
-    "erotica_3d_maxlambda": (("pmra", "pmdec", "plx"), "max_lambda"),
-    "erotica_5d_maxlambda": (("ra", "dec", "pmra", "pmdec", "plx"), "max_lambda"),
+    "erotica_pm": (("pmra", "pmdec"), "max_members", "hdbscan"),
+    "erotica_3d": (("pmra", "pmdec", "plx"), "max_members", "hdbscan"),
+    "erotica_5d": (("ra", "dec", "pmra", "pmdec", "plx"), "max_members", "hdbscan"),
+    "erotica_pm_maxlambda": (("pmra", "pmdec"), "max_lambda", "hdbscan"),
+    "erotica_3d_maxlambda": (("pmra", "pmdec", "plx"), "max_lambda", "hdbscan"),
+    "erotica_5d_maxlambda": (("ra", "dec", "pmra", "pmdec", "plx"), "max_lambda", "hdbscan"),
     # The third sweep-step rule, added 2026-08-04. `max_members` is the argmax of a
     # condensed-tree ROW count -- issue #7's quantity -- and `max_lambda` collapses to
     # mcs_range.start; `max_persistence` scores each step by cluster_persistence_ of the
     # cluster the selector actually returns. Kept as separate arms so all three are scored
     # on identical frames rather than compared across runs.
-    "erotica_pm_maxpersistence": (("pmra", "pmdec"), "max_persistence"),
-    "erotica_3d_maxpersistence": (("pmra", "pmdec", "plx"), "max_persistence"),
-    "erotica_5d_maxpersistence": (("ra", "dec", "pmra", "pmdec", "plx"), "max_persistence"),
+    "erotica_pm_maxpersistence": (("pmra", "pmdec"), "max_persistence", "hdbscan"),
+    "erotica_3d_maxpersistence": (("pmra", "pmdec", "plx"), "max_persistence", "hdbscan"),
+    "erotica_5d_maxpersistence": (
+        ("ra", "dec", "pmra", "pmdec", "plx"),
+        "max_persistence",
+        "hdbscan",
+    ),
+    # Soft-membership arms, added 2026-08-04. probabilities_ is exactly 1.0 for ~84% of an
+    # EOM-merged cluster (the min() clamp in _hdbscan_tree.pyx:519-557), which is the mechanism
+    # behind erotica_3d's AUC of 0.776. These score the same pipeline with
+    # all_points_membership_vectors instead. This harness -- not the ad-hoc screen -- is what
+    # decides whether the default moves, because it carries the f_i term and the ASteCA arm.
+    "erotica_pm_soft": (("pmra", "pmdec"), "max_persistence", "soft"),
+    "erotica_3d_soft": (("pmra", "pmdec", "plx"), "max_persistence", "soft"),
+    "erotica_5d_soft": (("ra", "dec", "pmra", "pmdec", "plx"), "max_persistence", "soft"),
 }
 
 
@@ -328,7 +340,7 @@ def run_erotica_config(
     mcs_range: range,
 ) -> tuple[np.ndarray, np.ndarray, float, str | None]:
     """Return (p_tilde, member_mask, seconds, error). Columns are z-scored first."""
-    quantities, selection = EROTICA_CONFIGS[config]
+    quantities, selection, probability_method = EROTICA_CONFIGS[config]
     cols = {f"{q}_z": _zscore(getattr(real, q)) for q in quantities}
     table = QTable(cols)
     try:
@@ -340,6 +352,7 @@ def run_erotica_config(
                 min_cluster_size_samples=mcs_range,
                 probability_threshold=0.5,
                 selection=selection,
+                probability_method=probability_method,
             )
         return probs, mask, secs, None
     except Exception as exc:  # a failure to find any cluster is a legitimate result
@@ -380,7 +393,7 @@ def erotica_branch_diagnostic(
     mean taken over cells. ``selected_n`` and ``selected_is_empty`` are reported alongside
     so a purity change can be told apart from a change in how often nothing is selected.
     """
-    quantities, selection = EROTICA_CONFIGS[config]
+    quantities, selection, probability_method = EROTICA_CONFIGS[config]
     cols = {f"{q}_z": _zscore(getattr(real, q)) for q in quantities}
     from erotica import Clustering
     from erotica.core.clustering import Clustering as _C
@@ -394,6 +407,7 @@ def erotica_branch_diagnostic(
                 min_cluster_size_samples=mcs_range,
                 probability_threshold=0.5,
                 selection=selection,
+                probability_method=probability_method,
             )
         labels = np.asarray(clu.data["cluster_hdbscan"], dtype=int)
         f_i = np.asarray(clu.data["probability_times"], dtype=float)
