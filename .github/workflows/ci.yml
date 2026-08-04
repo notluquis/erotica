@@ -21,7 +21,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e .[dev]
-      - run: pytest -q
+      # The external-oracle extra, installed WITHOUT its dependency chain -- ocelot's own deps
+      # (healpy, dustmaps, gaiaunlimited, astromet) are irrelevant here and slow. `|| true`
+      # because an oracle that becomes uninstallable must not take the whole suite down; the
+      # test is importorskip-gated, so it degrades to a visible SKIP. Added 2026-08-04: without
+      # it the King62 cross-check skipped in every environment, which is how tests/CLAUDE.md
+      # advertised an oracle that had never run.
+      - run: pip install --no-deps 'ocelot>=0.4.10' || true
+      # -rs so a skipped oracle is PRINTED. A silent skip is what let the missing King62 test
+      # go unnoticed; this is the cheapest guard against the same failure recurring.
+      - run: pytest -q -rs
 
   # The Bayesian paths produce every published number, and until 2026-07-27 no
   # test had ever sampled a PyMC model -- the suite monkeypatched the sampler

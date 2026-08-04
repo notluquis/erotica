@@ -52,6 +52,16 @@ dev = [
   "pre-commit>=3.0",
   "nbstripout>=0.7",
 ]
+# External oracles. Kept OUT of `dev` on purpose: these exist only so a test can check this
+# package against an INDEPENDENT implementation, and `pip install --no-deps` is the point --
+# ocelot's full dependency chain pulls healpy, dustmaps, gaiaunlimited and astromet, none of
+# which this package needs. `tests/test_structure.py::test_king_profile_matches_ocelot_king62`
+# is importorskip-gated, so without this extra it SKIPS silently, which is how
+# `tests/CLAUDE.md` came to advertise a King62 cross-validation that did not exist for months.
+# Declaring it is what makes the skip visible as a choice instead of an accident.
+oracles = [
+  "ocelot>=0.4.10",
+]
 docs = [
   "sphinx>=7.0",
   "pydata-sphinx-theme>=0.15",

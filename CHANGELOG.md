@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed — BREAKING
+- **`dill_cache` is gone from `ClusterAnalyzer`, `load_dataset` and `_load_from_path`.** It was
+  never a cache: it wrote `path.with_suffix(".dill")`, while the read fired only when the
+  *caller's own* path ended in `.dill`, so the sidecar was written on every load and consulted
+  on none. Removed rather than repaired — a working cache needs an mtime check against the
+  source and a comparison of the stored `dataloader_kwargs`, neither of which existed, and a
+  stale sidecar silently shadowing an edited catalogue is a worse failure than the one being
+  fixed. The keyword still accepts a value and raises `DeprecationWarning`; a sentinel default
+  means `dill_cache=False` warns too, because that was the value that used to *avoid* the write.
+  Loading a path that itself ends in `.dill` is unaffected.
+
+### Changed — BREAKING
+- **`PhotometricMassEstimator.assign_nearest` now takes arrays, not a `QTable` plus column
+  names.** The two `assign*` methods had no input on which both could be called: one took
+  `(mag_column, color_column, source_id)` as arrays, the other a table plus name strings, and
+  `color_column` meant an array in the first and a string in the second. Both now use the array
+  signature and return `source_id`, `mass`, `mass_std`. `assign_nearest`'s `mass_std` is
+  **`NaN`** — a single nearest isochrone point carries no spread, and `0.0` would assert an
+  exact mass. `assign_from_samples` is unchanged, including its genuine `0.0` at `k=1`. The
+  constructor now classifies the isochrone form it was given, so calling the method that does
+  not match raises by name instead of failing inside a delegate.
+
+### Fixed
+- **`king_profile` truncates at `r_t`.** Beyond the tidal radius the squared bracket climbed
+  back toward `1/(1+(r_t/r_c)²)` — with `r_c=5, r_t=20, b=0` it returned `0` at `r=20` and then
+  0.0061, 0.0205, 0.0371, 0.0564 at 30, 50, 100, 1000, i.e. more at large radius than at
+  1.35 `r_c`. It now returns the background `b` outside `r_t`, matching the four
+  implementations in this package that already did (`_king_model`, `_king_corona_model`,
+  `RDP_bayesian`, and the test oracle). **No published result changes**: `king_expected_count`
+  already capped its integral at `min(R_t, field_radius)`, and no fitting path calls
+  `king_profile`.
+- **`eff_surface_density` and `corona_surface_density` accept a Quantity scale radius**
+  (`a`, `R_2`), which `king_profile` always did. The previous failure was at `1.0 + (r/a)**2`,
+  not at the background term as the docstring claimed, so `b = 0` never avoided it.
+- **`compare_datasets` returns its comparison** instead of only printing. Printing is unchanged
+  and now behind `verbose=True`.
+- **The docs build fails when it is broken.** `fail_on_warning: true` is on for Read the Docs
+  and CI enforces zero warnings; previously the CI step piped `sphinx` through `tee` without
+  `pipefail`, so a step named "failing on errors" passed on every build that failed.
+
+### Added
+- **An external oracle for `king_profile`**, which `tests/CLAUDE.md` had advertised for months
+  without one existing: a form-independent check against King (1962) Eq. 18 (always runs), plus
+  a cross-check against `ocelot`'s `king62` under a new **`oracles`** extra (skips if absent).
+
 ## [0.1.0] - 2026-08-03
 
 First archived release. This is the version deposited to Zenodo and the one the
