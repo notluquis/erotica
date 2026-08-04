@@ -1,0 +1,464 @@
+{
+ "reproduction_gate": {
+  "measured": {
+   "preclip_p05": 771,
+   "postclip_p05": 650,
+   "p06": 628
+  },
+  "expected": {
+   "preclip_p05": 771,
+   "postclip_p05": 650,
+   "p06": 628
+  },
+  "pass": true
+ },
+ "_written": "2026-08-04T15:26:00",
+ "magnitude_dependence": {
+  "n_preclip": 771,
+  "median_e_plx_by_gmag_quartile": [
+   0.0295196995139122,
+   0.08963347226381302,
+   0.16016028821468353,
+   0.44489678740501404
+  ],
+  "rows": {
+   "published (stored flags: histogram mode + std, raw parallax)": {
+    "overall": 0.8430609597924773,
+    "by_quartile": [
+     0.9637305699481865,
+     0.9010416666666666,
+     0.772020725388601,
+     0.7357512953367875
+    ],
+    "gradient_first_minus_last": 0.227979274611399,
+    "quartile_medians": [
+     14.605124473571777,
+     17.06559658050537,
+     18.07037353515625,
+     19.57030487060547
+    ]
+   },
+   "package raw clip (biweight, raw parallax)": {
+    "overall": 0.9377431906614786,
+    "by_quartile": [
+     0.9844559585492227,
+     0.953125,
+     0.9015544041450777,
+     0.9119170984455959
+    ],
+    "gradient_first_minus_last": 0.07253886010362687,
+    "quartile_medians": [
+     14.605124473571777,
+     17.06559658050537,
+     18.07037353515625,
+     19.57030487060547
+    ]
+   },
+   "SHIPPED normalised clip (z with excess variance)": {
+    "overall": 0.9792477302204928,
+    "by_quartile": [
+     0.927461139896373,
+     0.9895833333333334,
+     1.0,
+     1.0
+    ],
+    "gradient_first_minus_last": -0.07253886010362698,
+    "quartile_medians": [
+     14.605124473571777,
+     17.06559658050537,
+     18.07037353515625,
+     19.57030487060547
+    ]
+   }
+  },
+  "gate_gradient_below": 0.1,
+  "shipped_gradient": -0.07253886010362698,
+  "shipped_gradient_within_gate": true,
+  "historical_raw_gradient_published": 0.214,
+  "median_gmag_by_quartile": [
+   14.605124473571777,
+   17.06559658050537,
+   18.07037353515625,
+   19.57030487060547
+  ]
+ },
+ "synthetic_oracle": {
+  "n_stars": 771,
+  "n_realizations": 300,
+  "true_parallax_mas": 0.9,
+  "raw": {
+   "overall": 0.6542715088629485,
+   "by_quartile": [
+    0.9931778929188256,
+    0.8356944444444444,
+    0.5601554404145078,
+    0.22899827288428323
+   ],
+   "gradient_first_minus_last": 0.7641796200345424,
+   "quartile_medians": [
+    14.605124473571777,
+    17.06559658050537,
+    18.07037353515625,
+    19.57030487060547
+   ]
+  },
+  "normalised": {
+   "overall": 0.9552226545611759,
+   "by_quartile": [
+    0.957651122625216,
+    0.9551388888888889,
+    0.9542141623488773,
+    0.9538860103626943
+   ],
+   "gradient_first_minus_last": 0.0037651122625217415,
+   "quartile_medians": [
+    14.605124473571777,
+    17.06559658050537,
+    18.07037353515625,
+    19.57030487060547
+   ]
+  },
+  "caveats": [
+   "no contaminants: cannot price the normalised clip's greater permissiveness",
+   "no ADQL parallax window: a prior measurement attributed ~78% of the historical faint-end loss to the query window rather than the clip"
+  ]
+ },
+ "radial_selection": {
+  "n": 770,
+  "spearman_rho_gmag_radius": 0.1572224287428732,
+  "spearman_p": 1.170862653790363e-05,
+  "curves": {
+   "published_stored_flags": {
+    "bin_centres_arcmin": [
+     1.6961692466463272,
+     4.80901395799272,
+     13.752473587022623,
+     26.444039236728266,
+     39.58969024782621,
+     48.84105341700265,
+     60.364980628946725,
+     66.93902914167364
+    ],
+    "retention": [
+     0.9072164948453608,
+     0.8645833333333334,
+     0.8541666666666666,
+     0.8125,
+     0.8020833333333334,
+     0.8229166666666666,
+     0.7916666666666666,
+     0.8865979381443299
+    ],
+    "n_per_bin": [
+     97,
+     96,
+     96,
+     96,
+     96,
+     96,
+     96,
+     97
+    ],
+    "overall_retention": 0.8428571428571429,
+    "core_suppression": -0.09969304036584758,
+    "core_suppression_pct": -9.96930403658476,
+    "core_suppression_by_n_bins": {
+     "5": -0.07264124547499762,
+     "6": -0.08686416603078073,
+     "8": -0.09969304036584758,
+     "10": -0.13153246440525046,
+     "12": -0.1326740599801588
+    },
+    "core_suppression_bin_spread": 0.06003281450516118,
+    "core_resolving_bins": [
+     {
+      "lo": 0.0,
+      "hi": 1.0,
+      "n": 24,
+      "retention": 0.875,
+      "binomial_se": 0.06750771560841522
+     },
+     {
+      "lo": 1.0,
+      "hi": 2.0,
+      "n": 32,
+      "retention": 0.96875,
+      "binomial_se": 0.030757843257858637
+     },
+     {
+      "lo": 2.0,
+      "hi": 4.0,
+      "n": 72,
+      "retention": 0.8888888888888888,
+      "binomial_se": 0.03703703703703704
+     },
+     {
+      "lo": 4.0,
+      "hi": 8.0,
+      "n": 57,
+      "retention": 0.8596491228070176,
+      "binomial_se": 0.046007724077697244
+     },
+     {
+      "lo": 8.0,
+      "hi": 16.0,
+      "n": 74,
+      "retention": 0.8513513513513513,
+      "binomial_se": 0.041354144193058336
+     },
+     {
+      "lo": 16.0,
+      "hi": 32.0,
+      "n": 129,
+      "retention": 0.8217054263565892,
+      "binomial_se": 0.03370018501694263
+     },
+     {
+      "lo": 32.0,
+      "hi": 70.0,
+      "n": 382,
+      "retention": 0.824607329842932,
+      "binomial_se": 0.019457974677907216
+     }
+    ],
+    "permutation_null_sd": 0.047238814395407315,
+    "permutation_null_p": 0.035666666666666666,
+    "n_permutations": 3000,
+    "beyond_null": true
+   },
+   "shipped_normalised": {
+    "bin_centres_arcmin": [
+     1.6961692466463272,
+     4.80901395799272,
+     13.752473587022623,
+     26.444039236728266,
+     39.58969024782621,
+     48.84105341700265,
+     60.364980628946725,
+     66.93902914167364
+    ],
+    "retention": [
+     0.979381443298969,
+     1.0,
+     0.9791666666666666,
+     0.96875,
+     0.9895833333333334,
+     0.9791666666666666,
+     0.96875,
+     0.9690721649484536
+    ],
+    "n_per_bin": [
+     97,
+     96,
+     96,
+     96,
+     96,
+     96,
+     96,
+     97
+    ],
+    "overall_retention": 0.9792207792207792,
+    "core_suppression": -0.003591729155770329,
+    "core_suppression_pct": -0.3591729155770329,
+    "core_suppression_by_n_bins": {
+     "5": -0.011807178604743562,
+     "6": -0.008509360776827402,
+     "8": -0.003591729155770329,
+     "10": -0.010990820760481856,
+     "12": -0.008795346449137043
+    },
+    "core_suppression_bin_spread": 0.008215449448973233,
+    "core_resolving_bins": [
+     {
+      "lo": 0.0,
+      "hi": 1.0,
+      "n": 24,
+      "retention": 1.0,
+      "binomial_se": 0.0
+     },
+     {
+      "lo": 1.0,
+      "hi": 2.0,
+      "n": 32,
+      "retention": 0.96875,
+      "binomial_se": 0.030757843257858637
+     },
+     {
+      "lo": 2.0,
+      "hi": 4.0,
+      "n": 72,
+      "retention": 0.9861111111111112,
+      "binomial_se": 0.0137921010275613
+     },
+     {
+      "lo": 4.0,
+      "hi": 8.0,
+      "n": 57,
+      "retention": 1.0,
+      "binomial_se": 0.0
+     },
+     {
+      "lo": 8.0,
+      "hi": 16.0,
+      "n": 74,
+      "retention": 0.9864864864864865,
+      "binomial_se": 0.013421895416371761
+     },
+     {
+      "lo": 16.0,
+      "hi": 32.0,
+      "n": 129,
+      "retention": 0.9689922480620154,
+      "binomial_se": 0.015261613003065087
+     },
+     {
+      "lo": 32.0,
+      "hi": 70.0,
+      "n": 382,
+      "retention": 0.9764397905759162,
+      "binomial_se": 0.007760337803001486
+     }
+    ],
+    "permutation_null_sd": 0.015912487985916202,
+    "permutation_null_p": 0.7596666666666667,
+    "n_permutations": 3000,
+    "beyond_null": false
+   },
+   "raw": {
+    "bin_centres_arcmin": [
+     1.6961692466463272,
+     4.80901395799272,
+     13.752473587022623,
+     26.444039236728266,
+     39.58969024782621,
+     48.84105341700265,
+     60.364980628946725,
+     66.93902914167364
+    ],
+    "retention": [
+     0.9381443298969072,
+     0.9270833333333334,
+     0.9166666666666666,
+     0.9375,
+     0.9479166666666666,
+     0.96875,
+     0.9375,
+     0.9278350515463918
+    ],
+    "n_per_bin": [
+     97,
+     96,
+     96,
+     96,
+     96,
+     96,
+     96,
+     97
+    ],
+    "overall_retention": 0.9376623376623376,
+    "core_suppression": 0.004807317088489915,
+    "core_suppression_pct": 0.4807317088489915,
+    "core_suppression_by_n_bins": {
+     "5": 0.0066360840150361255,
+     "6": 0.0036750029878455104,
+     "8": 0.004807317088489915,
+     "10": -0.02014945497592202,
+     "12": -0.026945110973503494
+    },
+    "core_suppression_bin_spread": 0.03358119498853962,
+    "core_resolving_bins": [
+     {
+      "lo": 0.0,
+      "hi": 1.0,
+      "n": 24,
+      "retention": 0.9583333333333334,
+      "binomial_se": 0.04078937543219002
+     },
+     {
+      "lo": 1.0,
+      "hi": 2.0,
+      "n": 32,
+      "retention": 0.96875,
+      "binomial_se": 0.030757843257858637
+     },
+     {
+      "lo": 2.0,
+      "hi": 4.0,
+      "n": 72,
+      "retention": 0.9305555555555556,
+      "binomial_se": 0.029958747929501813
+     },
+     {
+      "lo": 4.0,
+      "hi": 8.0,
+      "n": 57,
+      "retention": 0.9122807017543859,
+      "binomial_se": 0.03746919739866594
+     },
+     {
+      "lo": 8.0,
+      "hi": 16.0,
+      "n": 74,
+      "retention": 0.918918918918919,
+      "binomial_se": 0.031730908150436034
+     },
+     {
+      "lo": 16.0,
+      "hi": 32.0,
+      "n": 129,
+      "retention": 0.9302325581395349,
+      "binomial_se": 0.022429898705600564
+     },
+     {
+      "lo": 32.0,
+      "hi": 70.0,
+      "n": 382,
+      "retention": 0.9450261780104712,
+      "binomial_se": 0.011661870217828146
+     }
+    ],
+    "permutation_null_sd": 0.028133847295644783,
+    "permutation_null_p": 0.857,
+    "n_permutations": 3000,
+    "beyond_null": false
+   }
+  }
+ },
+ "survey_vs_pipeline": {
+  "pipeline_shipped_core_suppression": -0.003591729155770329,
+  "pipeline_published_core_suppression": -0.09969304036584758,
+  "pipeline_shipped_beyond_null": false,
+  "pipeline_published_beyond_null": true,
+  "survey": {
+   "sbar_multi": {
+    "core_suppression": 0.0038743117094252044,
+    "orders_attained": [
+     10
+    ],
+    "resolving": false
+   },
+   "sbar_patch": {
+    "core_suppression": 0.023712722459344304,
+    "orders_attained": [
+     11
+    ],
+    "resolving": false
+   },
+   "sbar_patch_mp5": {
+    "core_suppression": 0.045623717618412885,
+    "orders_attained": [
+     12
+    ],
+    "resolving": false
+   }
+  },
+  "definition": "1 - <S>_{r<1.38'} / <S>_{r<70'}, both area-weighted",
+  "sign_convention": "positive = core suppressed relative to the field; negative = core over-retained",
+  "ratio_pipeline_shipped_over_sbar_multi": -0.9270625146222942,
+  "ratio_pipeline_published_over_sbar_multi": -25.73180679378999,
+  "ratio_pipeline_shipped_over_sbar_patch": -0.15146844323457098,
+  "ratio_pipeline_published_over_sbar_patch": -4.204200531456153,
+  "ratio_pipeline_shipped_over_sbar_patch_mp5": -0.07872504353570639,
+  "ratio_pipeline_published_over_sbar_patch_mp5": -2.1851143565208577
+ }
+}

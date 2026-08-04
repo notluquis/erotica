@@ -152,6 +152,9 @@ tools/validation/benchmark_*.cells.jsonl
 # cells died in aggregation and, having written nothing, lost 40 minutes of compute: they are
 # crash insurance, not evidence. The summary sidecars carrying quoted numbers are committed.
 tools/validation/*.cells.jsonl
+# Per-row archive-query caches (A1's Gaia patch slicing writes one row per source). Same
+# rationale: regenerable, and large enough to matter.
+tools/validation/*.rows.jsonl
 
 # LaTeX build products for the A&A methods paper (regenerate with `latexmk -pdf`)
 paper/methods-aa/*.aux

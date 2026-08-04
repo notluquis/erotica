@@ -1,0 +1,163 @@
+{
+ "query": {
+  "n_sources": 5873,
+  "radius_deg": 0.35,
+  "seconds": 949.9,
+  "transport": "sliced-sync (order 8, 44 slices, 2 subdivided)",
+  "count_star": 5873,
+  "row_count_check_pass": true,
+  "adql": "SELECT ra, dec, source_id, phot_g_mean_mag\nFROM gaiadr3.gaia_source\nWHERE 1 = CONTAINS(POINT(ra,dec),CIRCLE(263.682600, -32.583800, 0.350000))\nand astrometric_matched_transits<11\nand phot_g_mean_mag<50"
+ },
+ "_written": "2026-08-04T15:15:49",
+ "map": {
+  "n_pixels": 1878,
+  "n_sources": 5873,
+  "radius_deg": 0.35,
+  "min_points": 20,
+  "nan_fraction": 0.0010649627263045794,
+  "order_histogram": {
+   "-1": 2,
+   "8": 3,
+   "9": 342,
+   "10": 1188,
+   "11": 343
+  },
+  "order_arcmin": {
+   "8": 15.506132466502539,
+   "9": 7.753066233251269,
+   "10": 3.8765331166256347,
+   "11": 1.9382665583128174,
+   "12": 0.9691332791564087
+  },
+  "max_order_attained": 11,
+  "median_order": 10.0,
+  "resolving_gate_order": 11,
+  "m10_min": 20.09566879272461,
+  "m10_max": 20.948501586914062,
+  "oracle": {
+   "reference": "gaiaunlimited.selectionfunctions.surveyTCG.build_patch_map",
+   "seconds": 19.5,
+   "same_pixel_set": true,
+   "n_ref_pixels": 1878,
+   "max_abs_m10_diff": 0.0,
+   "pass": true
+  }
+ },
+ "sbar": {
+  "patch_radius_arcmin": 21.0,
+  "r_max_arcmin": 20.58,
+  "n_radii": 80,
+  "n_az": 128,
+  "n_mag": 24,
+  "primary_min_points": 5,
+  "sweep": {
+   "20": {
+    "min_points": 20,
+    "order_histogram": {
+     "-1": 2,
+     "8": 3,
+     "9": 342,
+     "10": 1188,
+     "11": 343
+    },
+    "max_order_attained": 11,
+    "mean_order_inside_Rc": 10.206154336734693,
+    "resolution_arcmin": 3.3603526717305074,
+    "S_min": 0.9664867386647815,
+    "S_max": 0.9980016815471106,
+    "S_at_centre": 0.9937336278462636,
+    "S_at_patch_edge": 0.9980016815471106,
+    "core_suppression_within_patch": 0.023374113776494343,
+    "core_suppression_pct": 2.3374113776494343,
+    "max_nan_fraction": 0.046875
+   },
+   "10": {
+    "min_points": 10,
+    "order_histogram": {
+     "-1": 2,
+     "8": 3,
+     "9": 30,
+     "10": 754,
+     "11": 1053,
+     "12": 36
+    },
+    "max_order_attained": 12,
+    "mean_order_inside_Rc": 10.985650510204081,
+    "resolution_arcmin": 1.957641349348722,
+    "S_min": 0.9669401000352448,
+    "S_max": 0.9980265156777264,
+    "S_at_centre": 0.9945626314951109,
+    "S_at_patch_edge": 0.9980265156777264,
+    "core_suppression_within_patch": 0.023356025345265596,
+    "core_suppression_pct": 2.3356025345265596,
+    "max_nan_fraction": 0.046875
+   },
+   "5": {
+    "min_points": 5,
+    "order_histogram": {
+     "8": 3,
+     "9": 7,
+     "10": 303,
+     "11": 1102,
+     "12": 463
+    },
+    "max_order_attained": 12,
+    "mean_order_inside_Rc": 11.16358418367347,
+    "resolution_arcmin": 1.730492640560386,
+    "S_min": 0.9051183136695814,
+    "S_max": 0.9978828545835025,
+    "S_at_centre": 0.9945626314951109,
+    "S_at_patch_edge": 0.9975700677825701,
+    "core_suppression_within_patch": 0.04497240997677854,
+    "core_suppression_pct": 4.497240997677854,
+    "max_nan_fraction": 0.0390625
+   }
+  },
+  "core_suppression_range_over_sweep": [
+   0.023356025345265596,
+   0.04497240997677854
+  ],
+  "stable_across_sweep": false,
+  "resolution_gate_arcmin": 1.6607999999999998,
+  "resolving": false,
+  "splice": {
+   "seam_arcmin": 20.58,
+   "outer_source": "multi (order 10)",
+   "continuity_scale": 0.999395480052622
+  },
+  "written": "tools/validation/a1_sbar_patch_mp5.npz"
+ },
+ "m10_variance_discriminator": {
+  "question": "is the extra suppression at min_points=5 real core structure, or the nonlinearity of m10_to_completeness acting on a noisier 5-star median?",
+  "reading": "if M10_core is unchanged while its sd rises and S_core falls, the extra suppression is the nonlinearity, not structure",
+  "by_min_points": {
+   "20": {
+    "n_core": 9,
+    "m10_core_mean": 20.513631184895832,
+    "m10_core_sd": 0.31347179412841797,
+    "m10_field_mean": 20.83330770116145,
+    "m10_field_sd": 0.05300149978866733,
+    "S_core": 0.9736899392529894,
+    "S_field": 0.9975303485988815
+   },
+   "10": {
+    "n_core": 9,
+    "m10_core_mean": 20.51466242472331,
+    "m10_core_sd": 0.31509879839856497,
+    "m10_field_mean": 20.834540869004822,
+    "m10_field_sd": 0.06045195622006509,
+    "S_core": 0.973660399634981,
+    "S_field": 0.9974773034161228
+   },
+   "5": {
+    "n_core": 9,
+    "m10_core_mean": 20.43713315327962,
+    "m10_core_sd": 0.7576537201243214,
+    "m10_field_mean": 20.833673223597756,
+    "m10_field_sd": 0.08567704786603975,
+    "S_core": 0.9576578218690498,
+    "S_field": 0.9972478603513969
+   }
+  }
+ }
+}
