@@ -1,0 +1,567 @@
+{
+ "question": "Does gating on r_tot/a_fit -- a function of the same posterior that yields gamma -- manufacture the census gamma~2 result?",
+ "n_census_attempted": 407,
+ "n_census_converged": 403,
+ "n_null": 192,
+ "gate_threshold": 16.0,
+ "tracking": {
+  "verdict": "TRACKING -- slope ~1 inside the gate; the gate does not compress toward 2",
+  "fitted_gate": {
+   "fit_ratio>=0": {
+    "n": 192,
+    "slope": 0.8975660821855953,
+    "slope_se": 0.04895930643819257,
+    "intercept": 0.4776350752260856,
+    "resid_sd": 0.6588601362003907,
+    "x_min": 1.535995833246205,
+    "x_max": 4.982270491914355,
+    "y_median": 3.417714020597858,
+    "x_median": 3.2734500732020697,
+    "pred_at_2": 2.2727672395972762,
+    "pred_at_3": 3.1703333217828713,
+    "pred_at_4": 4.067899403968466
+   },
+   "fit_ratio>=2": {
+    "n": 189,
+    "slope": 0.9019077522438539,
+    "slope_se": 0.04961344396930564,
+    "intercept": 0.45867446424222175,
+    "resid_sd": 0.6623751640736238,
+    "x_min": 1.535995833246205,
+    "x_max": 4.982270491914355,
+    "y_median": 3.4192936577267607,
+    "x_median": 3.283857544279033,
+    "pred_at_2": 2.2624899687299296,
+    "pred_at_3": 3.1643977209737835,
+    "pred_at_4": 4.066305473217637
+   },
+   "fit_ratio>=4": {
+    "n": 146,
+    "slope": 0.9591431519941664,
+    "slope_se": 0.052492567315388615,
+    "intercept": 0.22767423765483644,
+    "resid_sd": 0.6286731800234586,
+    "x_min": 1.535995833246205,
+    "x_max": 4.971459596642271,
+    "y_median": 3.234553220903469,
+    "x_median": 3.1998730533188438,
+    "pred_at_2": 2.1459605416431695,
+    "pred_at_3": 3.1051036936373357,
+    "pred_at_4": 4.064246845631502
+   },
+   "fit_ratio>=8": {
+    "n": 92,
+    "slope": 1.0223422023991808,
+    "slope_se": 0.06436475098870217,
+    "intercept": -0.0342751583691731,
+    "resid_sd": 0.5880805743150171,
+    "x_min": 1.535995833246205,
+    "x_max": 4.971459596642271,
+    "y_median": 3.0856330227701676,
+    "x_median": 3.133425554005738,
+    "pred_at_2": 2.0104092464291887,
+    "pred_at_3": 3.0327514488283693,
+    "pred_at_4": 4.05509365122755
+   },
+   "fit_ratio>=12": {
+    "n": 63,
+    "slope": 1.0776270659909544,
+    "slope_se": 0.06212863221636695,
+    "intercept": -0.18338085172278035,
+    "resid_sd": 0.48094686563568684,
+    "x_min": 1.535995833246205,
+    "x_max": 4.95295072329074,
+    "y_median": 2.934590650637021,
+    "x_median": 2.947659076065167,
+    "pred_at_2": 1.9718732802591283,
+    "pred_at_3": 3.0495003462500825,
+    "pred_at_4": 4.1271274122410375
+   },
+   "fit_ratio>=16": {
+    "n": 46,
+    "slope": 1.1335554170455848,
+    "slope_se": 0.06272919072890083,
+    "intercept": -0.34709557369579935,
+    "resid_sd": 0.4340546561162011,
+    "x_min": 1.535995833246205,
+    "x_max": 4.95295072329074,
+    "y_median": 3.2812854802769524,
+    "x_median": 3.171556365322712,
+    "pred_at_2": 1.9200152603953704,
+    "pred_at_3": 3.053570677440955,
+    "pred_at_4": 4.18712609448654
+   },
+   "fit_ratio>=24": {
+    "n": 28,
+    "slope": 1.1292304203611507,
+    "slope_se": 0.06354976930485817,
+    "intercept": -0.4428353460290188,
+    "resid_sd": 0.3462387460941423,
+    "x_min": 1.535995833246205,
+    "x_max": 4.95295072329074,
+    "y_median": 3.2812854802769524,
+    "x_median": 3.2688560733384424,
+    "pred_at_2": 1.8156254946932826,
+    "pred_at_3": 2.944855915054433,
+    "pred_at_4": 4.0740863354155845
+   },
+   "fit_ratio>=32": {
+    "n": 11,
+    "slope": 1.1145483829288743,
+    "slope_se": 0.07891211971292642,
+    "intercept": -0.5789849934211418,
+    "resid_sd": 0.2537853212599372,
+    "x_min": 1.535995833246205,
+    "x_max": 4.80494544818111,
+    "y_median": 2.507161720286627,
+    "x_median": 2.8468055864234807,
+    "pred_at_2": 1.6501117724366066,
+    "pred_at_3": 2.7646601553654806,
+    "pred_at_4": 3.879208538294355
+   }
+  },
+  "ground_truth_gate": {
+   "true_ratio>=8": {
+    "n": 97,
+    "slope": 1.0312656727523801,
+    "slope_se": 0.05068168069018986,
+    "intercept": 0.14441965191091866,
+    "resid_sd": 0.4812365209662955,
+    "x_min": 1.535995833246205,
+    "x_max": 4.971459596642271,
+    "y_median": 3.3792476198564856,
+    "x_median": 3.1102339416884544,
+    "pred_at_2": 2.206950997415679,
+    "pred_at_3": 3.238216670168059,
+    "pred_at_4": 4.269482342920439
+   },
+   "true_ratio>=16": {
+    "n": 57,
+    "slope": 1.001495365444578,
+    "slope_se": 0.06404366243300703,
+    "intercept": 0.22575493003653915,
+    "resid_sd": 0.4617647295337016,
+    "x_min": 1.5986585431740499,
+    "x_max": 4.95295072329074,
+    "y_median": 3.217249173235916,
+    "x_median": 2.9167956327068456,
+    "pred_at_2": 2.228745660925695,
+    "pred_at_3": 3.230241026370273,
+    "pred_at_4": 4.231736391814851
+   }
+  },
+  "collider_shift_fitgate_minus_truegate": {
+   "at_gamma_true_2": -0.30873040053032463,
+   "at_gamma_true_3": -0.176670348929318,
+   "at_gamma_true_4": -0.04461029732831179
+  },
+  "high_gamma_survival": {
+   "n_gated_with_gamma_true_above_3": 25,
+   "n_recovered_above_3": 25,
+   "n_recovered_below_2p5": 0,
+   "min_recovered": 3.154168919793948,
+   "testable": true
+  },
+  "recovery_by_gamma_true_bin": {
+   "1.5-2.5": {
+    "n": 15,
+    "gamma_true_median": 2.1487482022539766,
+    "recovered_median": 1.9801383618603283,
+    "recovered_sd": 0.473334086112267,
+    "bias": 0.05556045378138341,
+    "per_cell_halfwidth_median": 0.18571487447968182
+   },
+   "2.5-3.5": {
+    "n": 12,
+    "gamma_true_median": 2.979561060141435,
+    "recovered_median": 3.044379785215485,
+    "recovered_sd": 0.5448036205081634,
+    "bias": 0.027535215166427873,
+    "per_cell_halfwidth_median": 0.28662763074913333
+   },
+   "3.5-5.0": {
+    "n": 19,
+    "gamma_true_median": 4.2413579776314725,
+    "recovered_median": 4.319181988029425,
+    "recovered_sd": 0.7745655008020362,
+    "bias": 0.25963486235111954,
+    "per_cell_halfwidth_median": 0.5236991001441689
+   }
+  },
+  "admission_probability": [
+   {
+    "lo": 1.535995833246205,
+    "hi": 2.3041368369020514,
+    "n": 39,
+    "p_fit_gate": 0.3076923076923077,
+    "p_true_gate": 0.3333333333333333
+   },
+   {
+    "lo": 2.3041368369020514,
+    "hi": 2.9458852181942303,
+    "n": 38,
+    "p_fit_gate": 0.23684210526315788,
+    "p_true_gate": 0.42105263157894735
+   },
+   {
+    "lo": 2.9458852181942303,
+    "hi": 3.594130663879812,
+    "n": 38,
+    "p_fit_gate": 0.15789473684210525,
+    "p_true_gate": 0.21052631578947367
+   },
+   {
+    "lo": 3.594130663879812,
+    "hi": 4.240086915301843,
+    "n": 38,
+    "p_fit_gate": 0.23684210526315788,
+    "p_true_gate": 0.23684210526315788
+   },
+   {
+    "lo": 4.240086915301843,
+    "hi": 4.982270491914355,
+    "n": 39,
+    "p_fit_gate": 0.2564102564102564,
+    "p_true_gate": 0.28205128205128205
+   }
+  ],
+  "correlations": {
+   "marginal_logratiofit_gamma": -0.17723623730037363,
+   "partial_given_ratiotrue": -0.34364107959503526,
+   "partial_given_ratiotrue_gammatrue": -0.6185432165553691,
+   "marginal_logratiotrue_gamma": 0.01355790973011571,
+   "corr_logratiotrue_logratiofit": 0.8359590255241965
+  },
+  "gate_admits_gamma_true_range": [
+   1.535995833246205,
+   4.95295072329074
+  ],
+  "injected_gamma_true_range": [
+   1.535995833246205,
+   4.982270491914355
+  ]
+ },
+ "census_gates": {
+  "null_calibrated_ceiling": 91.73347008276369,
+  "n_gated_outside_calibration": 11,
+  "gamma_of_uncalibrated_tail": 1.5561304588481575,
+  "variants": {
+   "ungated (converged)": {
+    "n": 403,
+    "median": 2.65949243328963,
+    "mean": 2.868274733931001,
+    "sd": 1.0752373930084684,
+    "p16": 1.8219142104799761,
+    "p84": 3.9509327485325545,
+    "frac_above_3": 0.3771712158808933,
+    "frac_1p8_2p2": 0.1588089330024814
+   },
+   "median gate  r_tot/a >= 16": {
+    "n": 120,
+    "median": 1.934727426634151,
+    "mean": 1.924224854928569,
+    "sd": 0.37644683247431016,
+    "p16": 1.5356851738465407,
+    "p84": 2.3166669358183105,
+    "frac_above_3": 0.0,
+    "frac_1p8_2p2": 0.35833333333333334
+   },
+   "median gate + calibrated range": {
+    "n": 109,
+    "median": 2.0057623730119603,
+    "mean": 1.9605923531033649,
+    "sd": 0.3723963370094279,
+    "p16": 1.5730785374672356,
+    "p84": 2.326603182605803,
+    "frac_above_3": 0.0,
+    "frac_1p8_2p2": 0.3944954128440367
+   },
+   "CONSERVATIVE  r_tot/a_q16 >= 16": {
+    "n": 71,
+    "median": 1.8348213603199366,
+    "mean": 1.89513213094461,
+    "sd": 0.4050033455247944,
+    "p16": 1.4639489613507948,
+    "p84": 2.3296414773411023,
+    "frac_above_3": 0.0,
+    "frac_1p8_2p2": 0.28169014084507044
+   },
+   "conservative + calibrated range": {
+    "n": 60,
+    "median": 2.0239019991002642,
+    "mean": 1.9558660865650976,
+    "sd": 0.4063001200701499,
+    "p16": 1.49084386279951,
+    "p84": 2.357762093142896,
+    "frac_above_3": 0.0,
+    "frac_1p8_2p2": 0.3333333333333333
+   },
+   "LIBERAL  r_tot/a_q84 >= 16": {
+    "n": 179,
+    "median": 2.020303365603501,
+    "mean": 2.0221369330756356,
+    "sd": 0.44295261276398373,
+    "p16": 1.5855492356600698,
+    "p84": 2.385866326118103,
+    "frac_above_3": 0.01675977653631285,
+    "frac_1p8_2p2": 0.329608938547486
+   }
+  },
+  "gated_scatter_budget": {
+   "observed_sd": 0.37644683247431016,
+   "typical_posterior_sd": 0.20858055364051548,
+   "implied_intrinsic_sd": 0.3133789564137282
+  },
+  "lever_arm_trend": [
+   {
+    "lo": 0,
+    "hi": 4,
+    "n": 74,
+    "gamma_median": 4.421533250778653,
+    "per_cell_sd_median": 1.1910275440983489,
+    "n_stars_median": 108.5
+   },
+   {
+    "lo": 4,
+    "hi": 8,
+    "n": 113,
+    "gamma_median": 3.1176021692789098,
+    "per_cell_sd_median": 0.8180908128846461,
+    "n_stars_median": 86.0
+   },
+   {
+    "lo": 8,
+    "hi": 16,
+    "n": 96,
+    "gamma_median": 2.5390695950185798,
+    "per_cell_sd_median": 0.4806305810016751,
+    "n_stars_median": 64.0
+   },
+   {
+    "lo": 16,
+    "hi": 32,
+    "n": 69,
+    "gamma_median": 2.030627331452682,
+    "per_cell_sd_median": 0.30294382623458255,
+    "n_stars_median": 48.0
+   },
+   {
+    "lo": 32,
+    "hi": null,
+    "n": 51,
+    "gamma_median": 1.7082544495866046,
+    "per_cell_sd_median": 0.1524882679551061,
+    "n_stars_median": 84.0
+   }
+  ],
+  "young_ungated_median": 2.5848591809016814,
+  "young_ungated_n": 342,
+  "young_gated_median": 1.9196554515130297,
+  "young_gated_n": 109,
+  "young_conservative_median": 1.8304673359907322,
+  "young_conservative_n": 63
+ },
+ "n_dependence": {
+  "census": {
+   "ungated (converged)": {
+    "n": 403,
+    "corr_logN_gamma": 0.31594719664814064
+   },
+   "median gate": {
+    "n": 120,
+    "corr_logN_gamma": 0.25178499321548065
+   },
+   "median gate + calibrated range": {
+    "n": 109,
+    "corr_logN_gamma": 0.3249796303019716
+   },
+   "conservative q16 gate": {
+    "n": 71,
+    "corr_logN_gamma": 0.2933069993579271
+   }
+  },
+  "null_design_check_corr_logN_gammatrue": -0.0752414442582932,
+  "null": {
+   "ungated": {
+    "n": 192,
+    "corr_logN_bias": 0.04682218040263172,
+    "bias_slope_per_efold": 0.03487876990831698
+   },
+   "gated": {
+    "n": 46,
+    "corr_logN_bias": -0.033040041377397376,
+    "bias_slope_per_efold": -0.01566192905033884
+   }
+  },
+  "pinned_bias_shrinks_with_n": {
+   "bias_n60": 0.17017807087534154,
+   "bias_n628": 0.04529112805780322
+  },
+  "conclusion": "census corr(log N, gamma) = +0.252 has the opposite sign to the estimator artefact (which would be negative, since the lever-arm bias shrinks with N) and is absent from the injection null inside the gate. Not the pinned-background residue; a property of the sample, still uninterpreted."
+ },
+ "catalogue_gate": {
+  "corr_log_catratio_log_fitratio": 0.2727156943675354,
+  "corr_log_catratio_gamma": -0.018923136601611934,
+  "corr_log_fitratio_gamma": -0.7729139668378138,
+  "catalogue_ratio_median": 3.682833759172411,
+  "fitted_ratio_median": 8.561230755526944,
+  "gates": {
+   "r_tot/r_c >= 2.00": {
+    "n": 296,
+    "median": 2.691516818200137,
+    "mean": 2.885029225946039,
+    "sd": 0.918562959177925,
+    "p16": 2.026362531903008,
+    "p84": 3.8169850884749033,
+    "frac_above_3": 0.3716216216216216,
+    "frac_1p8_2p2": 0.17905405405405406,
+    "overlap_with_fit_gate": 90,
+    "overlap_frac": 0.75,
+    "median_fitted_ratio_admitted": 8.911286525159749,
+    "frac_admitted_below_ratio_8": 0.42905405405405406
+   },
+   "r_tot/r_c >= 3.68": {
+    "n": 203,
+    "median": 2.6903735866634104,
+    "mean": 2.8200882723538836,
+    "sd": 0.7963778066473179,
+    "p16": 2.052059094711679,
+    "p84": 3.543228125832668,
+    "frac_above_3": 0.3399014778325123,
+    "frac_1p8_2p2": 0.19704433497536947,
+    "overlap_with_fit_gate": 71,
+    "overlap_frac": 0.5916666666666667,
+    "median_fitted_ratio_admitted": 11.573016019796725,
+    "frac_admitted_below_ratio_8": 0.33497536945812806
+   },
+   "r_tot/r_c >= 5.00": {
+    "n": 140,
+    "median": 2.6465397390457026,
+    "mean": 2.7724684628103637,
+    "sd": 0.7139353906204712,
+    "p16": 2.0703097665424948,
+    "p84": 3.438371528613104,
+    "frac_above_3": 0.32142857142857145,
+    "frac_1p8_2p2": 0.22142857142857142,
+    "overlap_with_fit_gate": 58,
+    "overlap_frac": 0.48333333333333334,
+    "median_fitted_ratio_admitted": 13.104102093606253,
+    "frac_admitted_below_ratio_8": 0.25
+   },
+   "r_tot/r_c >= 5.84 (matched n)": {
+    "n": 120,
+    "median": 2.6606661097459874,
+    "mean": 2.7690220472698814,
+    "sd": 0.699521749382322,
+    "p16": 2.080301142211382,
+    "p84": 3.3996279958826805,
+    "frac_above_3": 0.31666666666666665,
+    "frac_1p8_2p2": 0.225,
+    "overlap_with_fit_gate": 52,
+    "overlap_frac": 0.43333333333333335,
+    "median_fitted_ratio_admitted": 14.443286006636251,
+    "frac_admitted_below_ratio_8": 0.21666666666666667
+   },
+   "r_tot/r_c >= 8.00": {
+    "n": 85,
+    "median": 2.5895527228294277,
+    "mean": 2.7040317883852523,
+    "sd": 0.6648191095683051,
+    "p16": 2.0672024490640495,
+    "p84": 3.3666250854642805,
+    "frac_above_3": 0.25882352941176473,
+    "frac_1p8_2p2": 0.24705882352941178,
+    "overlap_with_fit_gate": 45,
+    "overlap_frac": 0.375,
+    "median_fitted_ratio_admitted": 17.229349633333705,
+    "frac_admitted_below_ratio_8": 0.17647058823529413
+   }
+  },
+  "matched_n_threshold": 5.843349371941067,
+  "observed_trend_span": 2.7132788011920486,
+  "gamma3_predicted_trend_span": 0.58916795043399,
+  "null_catalogue_axis_is_vacuous_by_design": {
+   "corr_log_catratio_log_ratiotrue": 0.020545658879488823,
+   "note": "a_true drawn independently of catalogue radii; null carries no information about whether HR24 r_c proxies the EFF lever arm"
+  }
+ },
+ "systematics": {
+  "free_background": {
+   "n_paired": 336,
+   "pinned_median": 2.6005673965238643,
+   "free_median": 3.4526289753110184,
+   "paired_delta_median": 0.41326467297157365,
+   "paired_delta_mean": 0.6429898617034652,
+   "gated_n": 104,
+   "gated_pinned_median": 1.9836201552279715,
+   "gated_free_median": 2.3797884297633156,
+   "gated_delta_median": 0.24307193273109517,
+   "direction": "UP -- away from gamma=2"
+  },
+  "ellipticity": {
+   "worst_case": {
+    "gamma_true": 4.0,
+    "axis_ratio": 0.3,
+    "delta_gamma": -0.346031351126713
+   },
+   "at_gamma_true_2": [
+    {
+     "axis_ratio": 1.0,
+     "delta_gamma": -0.0018818678935634825
+    },
+    {
+     "axis_ratio": 0.71,
+     "delta_gamma": -0.0028483757231152484
+    },
+    {
+     "axis_ratio": 0.5,
+     "delta_gamma": -0.017870457662351624
+    },
+    {
+     "axis_ratio": 0.3,
+     "delta_gamma": -0.02577893241026974
+    }
+   ],
+   "max_abs_bias_at_gamma2": 0.02577893241026974,
+   "direction": "DOWN toward 2, but only for high gamma; negligible at gamma=2"
+  }
+ },
+ "near_2_excess": {
+  "census_gated_frac": 0.35833333333333334,
+  "null_gated_frac": 0.08695652173913043,
+  "ratio": 4.120833333333334
+ },
+ "verdict": {
+  "criteria": {
+   "slope_in_gate_near_1": {
+    "value": 1.1335554170455848,
+    "threshold": ">= 0.7",
+    "passed": true
+   },
+   "high_gamma_survives_gate": {
+    "value": 1.0,
+    "threshold": ">= 0.9",
+    "passed": true
+   },
+   "gate_admits_full_gamma_range": {
+    "value": 0.9914923296813068,
+    "threshold": ">= 0.8",
+    "passed": true
+   },
+   "conservative_gate_agrees": {
+    "value": 0.018139626088303995,
+    "threshold": "<= 0.25",
+    "passed": true
+   }
+  },
+  "answer": "NO -- the gate is a legitimate recoverability cut, not a collider that manufactures the peak",
+  "primary_evidence": "25 of 25 gated injection cells with gamma_true > 3 recovered gamma > 3 (min 3.154); the census has 0 of 120 above 3 inside the same gate.",
+  "regression_slope_in_gate": 1.1335554170455848,
+  "residual_collider_shift_at_gamma2": -0.30873040053032463,
+  "headline_gamma": 2.0057623730119603,
+  "headline_n": 109,
+  "headline_caveat": "restricted to r_tot/a_fit <= 91.7, the ceiling the injection null calibrates; the unrestricted gated value is 1.935 (n=120)",
+  "defensible_claim": "Among Hunt & Reffert open clusters whose lever arm permits gamma to be measured (r_tot/a_fit >= 16, inside the calibrated range), the EFF index concentrates at gamma ~ 2.01 with intrinsic spread ~0.31 and no cluster above gamma = 3. This is a statement about the RECOVERABLE subsample, not the census.",
+  "scope_warning": "The whole-census statement is separate and weaker: the full gamma-vs-lever-arm trend is consistent with one underlying gamma ~ 2 population plus the measured pinned lever-arm bias."
+ }
+}
