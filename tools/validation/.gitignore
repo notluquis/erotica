@@ -1,0 +1,31 @@
+# Per-cell benchmark checkpoints. These carry the raw per-star probability vectors for
+# every method in every cell (several MB), which is the same reason `*.npz` is ignored at
+# the repo root: bulk arrays stay out of git, and anything a paper quotes must live in the
+# committed JSON sidecar instead.
+#
+# The checkpoints are regenerable by re-running
+# `benchmark_erotica_vs_asteca.py`, and the sidecar is regenerable from a checkpoint with
+# `benchmark_finalise.py <out>.json`.
+*.cells.jsonl
+
+# The two assembled benchmark sidecars, which BREAK the contract stated just above and are
+# ignored for that reason rather than as an exception to it. Every other sidecar in this
+# directory is 1-14 KB; these are 3040 KB and 776 KB, because `benchmark_finalise.py` copies
+# per-cell arrays into the assembled file instead of reducing them. So they are checkpoints
+# wearing a sidecar's name, and `check-added-large-files` was right to reject them.
+#
+# Regenerate: re-run `benchmark_erotica_vs_asteca.py`, then
+# `benchmark_finalise.py <name>.json`. The quotable numbers are the summariser's output
+# (`benchmark_erotica_vs_asteca_summarise.py`) and are written up in
+# `~/phd/agent-findings/benchmark-results.md` and `~/phd/papers/P02.md`.
+#
+# TODO: make benchmark_finalise.py emit a reduced sidecar, then un-ignore these.
+benchmark_erotica_vs_asteca.json
+benchmark_threeway_adaptive.json
+
+# Cached VizieR pulls. Same contract as `hr24_clusters.ecsv`: the fetch script, not the
+# file, is the source of truth, so a stale catalogue cannot silently persist.
+# `hr24_members.parquet` is 37 MB / 1291929 rows, regenerable with
+# `fetch_hr24_members.py`; `.chunks/` is that script's per-page resume cache.
+hr24_members.parquet
+hr24_members.chunks/
