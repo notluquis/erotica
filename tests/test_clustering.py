@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pytest
 from astropy import units as u
@@ -676,3 +678,105 @@ class TestSweepStepSelection:
             assert chosen["selected_persistence"] == 0.0
         else:
             assert chosen["selected_persistence"] == pytest.approx(float(persistence[label]))
+
+
+class TestCoincidentRowGuard:
+    """Duplicate rows silently destroy ``cluster_persistence_``, which the default rule ranks on.
+
+    Mechanism, from the hdbscan source: >= min_samples identical rows give core distance 0, hence
+    mutual reachability 0, hence lambda = INFTY (``_hdbscan_tree.pyx:112``), hence
+    ``get_stability_scores`` (``:635``) takes the ``isinf`` branch and returns exactly 1.0 for
+    EVERY cluster. ``selection="max_persistence"`` is an argmax over that quantity, so its result
+    becomes arbitrary. Cross-matched catalogues produce repeated coordinates as a matter of course.
+    """
+
+    @staticmethod
+    def _duplicated_table(n_dup: int, seed: int = 3) -> QTable:
+        """Two real blobs plus ``n_dup`` byte-identical rows at a third location."""
+        rng = np.random.default_rng(seed)
+        a = rng.normal([0.0, 0.0], 0.3, (120, 2))
+        b = rng.normal([6.0, 6.0], 0.3, (120, 2))
+        dup = np.repeat(np.array([[-5.0, 5.0]]), n_dup, axis=0)
+        pm = np.vstack([a, b, dup])
+        return QTable({"pmra": pm[:, 0] * u.mas / u.yr, "pmdec": pm[:, 1] * u.mas / u.yr})
+
+    def test_the_degeneracy_is_real_before_testing_the_warning(self):
+        """Guard the guard: prove hdbscan actually collapses, so the warning is not decoration.
+
+        If a future hdbscan stops returning all-1.0 persistence for coincident rows, this fails
+        first and tells us the warning below is now protecting against nothing.
+        """
+        import hdbscan
+
+        tbl = self._duplicated_table(n_dup=41)
+        X = np.column_stack([np.asarray(tbl["pmra"], float), np.asarray(tbl["pmdec"], float)])
+        pers = hdbscan.HDBSCAN(min_cluster_size=40, min_samples=40).fit(X).cluster_persistence_
+        assert pers.size > 0, "no clusters at all — the fixture stopped exercising the mechanism"
+        # The trigger is min_samples+1, not min_samples: the core distance is the distance to the
+        # k-th nearest OTHER point (k=min_samples+1 in every fit path), so exactly min_samples
+        # coincident rows still leave it non-zero. Measured, and sharp:
+        #   n_dup=40 -> max_lambda 3.113, persistence [0.7645 0.5795]
+        #   n_dup=41 -> max_lambda inf,   persistence [1. 1. 1.]
+        # This assertion caught the guard firing one row early.
+        assert np.allclose(pers, 1.0), (
+            f"expected the all-1.0 degeneracy from infinite lambda, got {pers}"
+        )
+
+    def test_warns_when_duplicates_reach_min_samples(self):
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(self._duplicated_table(n_dup=41))
+        with pytest.warns(RuntimeWarning, match="cluster_persistence_ will be exactly 1.0"):
+            clust.search_pseudoprobability(
+                columns=["pmra", "pmdec"],
+                min_cluster_size_samples=range(40, 46),
+                min_samples=40,
+                probability_threshold=0.5,
+            )
+
+    def test_the_warning_names_the_escape_hatch_for_the_default_rule(self):
+        """A warning that does not say what to do instead gets ignored."""
+        from erotica.core.clustering import Clustering
+
+        info = (
+            Clustering._warn_on_coincident_rows.__func__
+            if hasattr(Clustering._warn_on_coincident_rows, "__func__")
+            else Clustering._warn_on_coincident_rows
+        )
+        with pytest.warns(RuntimeWarning, match="selection='max_members'"):
+            info(
+                np.repeat(np.array([[1.0, 2.0]]), 12, axis=0),
+                ["pmra", "pmdec"],
+                [10],
+                10,
+                "max_persistence",
+            )
+
+    def test_clean_data_does_not_warn(self):
+        """The negative control. A guard that always fires is noise, not a guard."""
+        from erotica.core.clustering import Clustering
+
+        rng = np.random.default_rng(11)
+        X = rng.normal(0.0, 1.0, (400, 2))  # continuous: duplicates have probability zero
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            info = Clustering._warn_on_coincident_rows(
+                X, ["pmra", "pmdec"], [10], 10, "max_persistence"
+            )
+        assert info["max_multiplicity"] == 1
+        assert info["degenerate"] is False
+
+    def test_reports_the_diagnostic_for_provenance(self):
+        from erotica.core.clustering import Clustering
+
+        with pytest.warns(RuntimeWarning):
+            info = Clustering._warn_on_coincident_rows(
+                np.repeat(np.array([[1.0, 2.0]]), 12, axis=0),
+                ["pmra", "pmdec"],
+                [10],
+                10,
+                "max_persistence",
+            )
+        assert info["max_multiplicity"] == 12
+        assert info["degenerate"] is True
+        assert info["n_distinct"] == 1

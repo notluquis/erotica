@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Sequence
 
 import numpy as np
@@ -167,6 +168,7 @@ class Clustering:
 
         samples = list(min_cluster_size_samples)
         X = self.data[list(columns)].to_pandas().values
+        self._warn_on_coincident_rows(X, columns, samples, min_samples, selection)
         n_sources = len(self.data)
         n_samples = len(samples)
         labels_matrix = np.full((n_sources, n_samples), -1, dtype=np.int32)
@@ -491,6 +493,92 @@ class Clustering:
         self.combined_data = combine_datasets(self.data, self.bad_data)
 
     @staticmethod
+    def _warn_on_coincident_rows(X, columns, samples, min_samples, selection) -> dict:
+        """Warn when duplicate rows can degrade ``cluster_persistence_``.
+
+        .. danger::
+           **Coincident rows silently destroy ``cluster_persistence_``, and the failure is graded
+           rather than binary, so there is no exception to catch.**
+
+           Traced through the hdbscan source. ``min_samples`` or more identical rows give a core
+           distance of 0, hence a mutual reachability of 0, hence ``lambda = INFTY``
+           (``_hdbscan_tree.pyx:112``). ``get_stability_scores`` (``:635``) then takes the
+           ``np.isinf(max_lambda)`` branch and assigns **every** cluster a persistence of exactly
+           1.0.
+
+           Sub-threshold duplicates are the nastier case: they never trigger the infinity, they
+           just inflate the *global* ``max(tree['lambda_val'])`` that every persistence is divided
+           by. Measured on a synthetic frame, 39 near-coincident rows at ``min_samples=40`` moved
+           ``max_lambda`` from 7.06 to 141.3 and pushed every persistence toward zero:
+
+               n_dup=39: max_lambda=141.3  persistence=[0.0235 0.0144 0.7225 0.0004]
+               n_dup=40: max_lambda=inf    persistence=[1. 1. 1. 1.]
+
+           This matters because ``selection="max_persistence"`` is the default sweep-step rule, and
+           it is an argmax over exactly that quantity. Ties at 1.0 make the argmax arbitrary;
+           crushed values make it noise. EROTICA runs on cross-matched catalogues, where repeated
+           coordinates are an ordinary artefact rather than a pathology.
+
+           See ``~/phd/agent-findings/hdbscan-mechanism.md``.
+
+        Returns the diagnostic dict so a caller can record it in provenance.
+        """
+        arr = np.asarray(X, dtype=float)
+        finite = np.isfinite(arr).all(axis=1)
+        clean = arr[finite]
+        if clean.size == 0:
+            return {"n_rows": 0, "n_distinct": 0, "max_multiplicity": 0}
+
+        _, counts = np.unique(clean, axis=0, return_counts=True)
+        max_mult = int(counts.max())
+        n_in_dups = int(counts[counts > 1].sum())
+        # min_samples defaults to min_cluster_size, so the smallest sweep step is the lowest
+        # threshold at which the infinity can fire.
+        #
+        # The trigger is min_samples + 1 duplicates, NOT min_samples, and the +1 is load-bearing:
+        # the core distance is the distance to the k-th nearest *other* point (every fit path uses
+        # k=min_samples+1), so exactly min_samples coincident rows still leave a non-zero core
+        # distance. Measured, and it is sharp:
+        #     n_dup=40, min_samples=40 -> max_lambda 3.113, persistence [0.7645 0.5795]
+        #     n_dup=41, min_samples=40 -> max_lambda inf,   persistence [1. 1. 1.]
+        # An earlier version of this guard used >= min_samples and would have fired one row early.
+        threshold = int(min_samples) if min_samples else int(min(samples)) if samples else 0
+
+        info = {
+            "n_rows": int(clean.shape[0]),
+            "n_distinct": int(len(counts)),
+            "max_multiplicity": max_mult,
+            "n_rows_in_duplicate_groups": n_in_dups,
+            "min_samples_threshold": threshold,
+            "degenerate": bool(threshold and max_mult > threshold),
+        }
+        if info["degenerate"]:
+            warnings.warn(
+                f"{max_mult} identical rows in {list(columns)} at min_samples={threshold} "
+                f"(the trigger is min_samples+1): "
+                "mutual reachability is 0 for that group, so lambda is infinite and EVERY "
+                "cluster_persistence_ will be exactly 1.0. "
+                + (
+                    "selection='max_persistence' is an argmax over that quantity and its result "
+                    "is therefore arbitrary here -- pass selection='max_members' or deduplicate."
+                    if selection == "max_persistence"
+                    else "cluster_persistence_ is unusable on this input."
+                ),
+                RuntimeWarning,
+                stacklevel=3,
+            )
+        elif max_mult > 1 and threshold and max_mult >= max(2, threshold // 4):
+            warnings.warn(
+                f"{n_in_dups} rows lie in duplicate groups in {list(columns)} "
+                f"(largest {max_mult}, min_samples={threshold}). Below the threshold that makes "
+                "lambda infinite, but duplicates still inflate the global max(lambda_val) that "
+                "every cluster_persistence_ is divided by, which biases the sweep-step choice.",
+                RuntimeWarning,
+                stacklevel=3,
+            )
+        return info
+
+    @staticmethod
     def _build_pseudoprobability(labels_storage: list[list[int]]) -> np.ndarray:
         return np.array(
             [
@@ -532,6 +620,36 @@ class Clustering:
            HDBSCAN's own stability measure for that specific cluster, rather than a proxy
            for how big something is. The value was already being collected here and thrown
            away.
+
+        .. important::
+           **The default is justified on PRINCIPLE, not on measured superiority, and an
+           earlier version of this docstring overstated it.**
+
+           It was adopted on 54 cells from one generator with no held-out block. Re-measured
+           on 108 cells with 3 of 6 realisations held out, the paired per-cell difference
+           against ``"max_members"`` is within one standard error of zero on **every**
+           metric, and the sign flips between blocks:
+
+               metric      block       delta (persistence - members)   wins
+               ROC-AUC     train              -0.0144 +- 0.0101       20/54
+               ROC-AUC     HELD-OUT           +0.0103 +- 0.0170       22/54
+               purity      HELD-OUT           +0.0112 +- 0.0182       16/54
+               recall      HELD-OUT           +0.0026 +- 0.0189       16/54
+               sigma_pm    HELD-OUT           -0.0206 +- 0.0360           -
+
+           So the two rules are **not distinguishable by performance** on this generator.
+
+           It remains the default for a reason that does not depend on that: ``"max_members"``
+           is the argmax of ``desired_len``, a count of **condensed-tree rows** matched against
+           flat-cluster point counts — the units mismatch behind issue #7. Ranking sweep steps
+           by a quantity that is known to be the wrong kind of number is indefensible even when
+           it happens to score the same. ``cluster_persistence_`` is at least the quantity it
+           claims to be.
+
+           ⚠ But see the coincident-row guard: ``cluster_persistence_`` collapses to exactly 1.0
+           for every cluster when the input contains more than ``min_samples`` duplicate rows,
+           which makes this argmax arbitrary. Measured zero duplicates in the NGC 6383
+           catalogues at all four radii, so it is not currently firing.
         """
         if selection == "max_persistence":
             return max(
