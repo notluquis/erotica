@@ -78,7 +78,9 @@ def test_median_keys_hold_nanmedian_and_mean_aliases_match():
 def test_king_std_uses_sigma_median():
     trace = _make_trace()
     results = _summarize_king_trace(trace)
-    assert results["king_std"] == pytest.approx(float(np.nanmedian(trace.posterior["sigma"].values)))
+    assert results["king_std"] == pytest.approx(
+        float(np.nanmedian(trace.posterior["sigma"].values))
+    )
 
 
 def test_derived_quantities_computed_from_median():
@@ -110,14 +112,14 @@ def test_derived_quantities_computed_from_median():
 # There are no golden numbers here. Every target is either analytic or injected.
 # ---------------------------------------------------------------------------
 
+import importlib.util  # noqa: E402
+
 from erotica.analysis.structure import (  # noqa: E402
     KingPriors,
     king_expected_count,
     king_expected_count_weighted,
     king_unbinned,
 )
-
-import importlib.util  # noqa: E402
 
 requires_bayes_extra = pytest.mark.skipif(
     importlib.util.find_spec("pymc") is None, reason="requires the 'bayes' extra"
@@ -146,11 +148,11 @@ def _sample_king(seed, *, field=FIELD, **params):
 @pytest.mark.parametrize(
     "k,b,R_c,R_t,field",
     [
-        (6.0, 0.05, 4.0, 30.0, 70.0),   # the NGC 6383-like regime
-        (1.0, 0.0, 1.0, 10.0, 10.0),    # no background, field edge exactly at R_t
-        (20.0, 0.5, 0.7, 55.0, 70.0),   # tiny core, background-dominated
+        (6.0, 0.05, 4.0, 30.0, 70.0),  # the NGC 6383-like regime
+        (1.0, 0.0, 1.0, 10.0, 10.0),  # no background, field edge exactly at R_t
+        (20.0, 0.5, 0.7, 55.0, 70.0),  # tiny core, background-dominated
         (3.3, 0.01, 12.0, 14.0, 40.0),  # core comparable to R_t
-        (5.0, 0.2, 3.0, 50.0, 20.0),    # field INSIDE R_t: integral must truncate
+        (5.0, 0.2, 3.0, 50.0, 20.0),  # field INSIDE R_t: integral must truncate
     ],
 )
 def test_king_normalisation_matches_quadrature(k, b, R_c, R_t, field):
@@ -164,7 +166,9 @@ def test_king_normalisation_matches_quadrature(k, b, R_c, R_t, field):
     quad = pytest.importorskip("scipy.integrate").quad
     numeric = quad(
         lambda r: 2.0 * np.pi * r * _king_sigma(r, k=k, b=b, R_c=R_c, R_t=R_t),
-        0.0, field, limit=400,
+        0.0,
+        field,
+        limit=400,
     )[0]
     closed = king_expected_count(k, b, R_c, R_t, field)
     assert closed == pytest.approx(numeric, rel=1e-8)
@@ -219,7 +223,8 @@ def test_unbinned_fit_returns_the_posterior_by_default():
 
     radii = _sample_king(5, **TRUE_KING)
     res = king_unbinned(
-        radii, field_radius=FIELD,
+        radii,
+        field_radius=FIELD,
         sampling=SamplingConfig(draws=200, tune=200, chains=1, random_seed=2, progressbar=False),
     )
     assert "king_trace" in res
@@ -278,6 +283,7 @@ def test_prior_predictive_covers_the_plausible_range():
     assert np.all(r_t > r_c)  # ordering holds by construction, not by a bound
 
 
+@requires_bayes_extra
 def test_stars_outside_the_field_are_rejected_not_silently_fitted():
     """The normalisation assumes completeness inside the disc; violating it biases R_t."""
     radii = np.concatenate([_sample_king(7, **TRUE_KING), [95.0]])
@@ -285,6 +291,7 @@ def test_stars_outside_the_field_are_rejected_not_silently_fitted():
         king_unbinned(radii, field_radius=FIELD)
 
 
+@requires_bayes_extra
 def test_too_few_stars_is_an_error():
     with pytest.raises(ValueError, match="ten stars"):
         king_unbinned(np.array([1.0, 2.0, 3.0]), field_radius=FIELD)
@@ -369,7 +376,9 @@ def test_weighted_normalisation_matches_quadrature_for_varying_completeness():
     integrate = pytest.importorskip("scipy.integrate")
     numeric = integrate.quad(
         lambda r: 2 * np.pi * r * _king_sigma(r, **TRUE_KING) * _crowding_completeness(r),
-        0.0, FIELD, limit=400,
+        0.0,
+        FIELD,
+        limit=400,
     )[0]
     got = king_expected_count_weighted(
         **TRUE_KING, field_radius=FIELD, completeness=_crowding_completeness
@@ -395,9 +404,7 @@ def test_completeness_outside_zero_one_is_rejected():
 
 def test_misaligned_completeness_array_is_rejected():
     with pytest.raises(ValueError, match="shape"):
-        king_expected_count_weighted(
-            **TRUE_KING, field_radius=FIELD, completeness=np.ones(7)
-        )
+        king_expected_count_weighted(**TRUE_KING, field_radius=FIELD, completeness=np.ones(7))
 
 
 @requires_bayes_extra
@@ -424,7 +431,9 @@ def test_selection_correction_removes_the_bias_it_is_meant_to_remove():
     cfg = dict(draws=1500, tune=1000, chains=2, random_seed=7, progressbar=False)
     naive = king_unbinned(observed, field_radius=FIELD, sampling=SamplingConfig(**cfg))
     fixed = king_unbinned(
-        observed, field_radius=FIELD, completeness=_crowding_completeness,
+        observed,
+        field_radius=FIELD,
+        completeness=_crowding_completeness,
         sampling=SamplingConfig(**cfg),
     )
 
@@ -447,7 +456,6 @@ def test_selection_correction_removes_the_bias_it_is_meant_to_remove():
 # ---------------------------------------------------------------------------
 
 from erotica.analysis.structure import (  # noqa: E402
-    EFFPriors,
     compare_radial_profiles,
     corona_surface_density,
     eff_expected_count,
@@ -473,10 +481,10 @@ def _sample_profile(seed, sigma_fn, field=FIELD):
     "k,b,a,gamma,field",
     [
         (6.0, 0.05, 4.0, 3.0, 70.0),
-        (1.0, 0.0, 1.0, 4.0, 10.0),    # gamma=4 is Plummer
+        (1.0, 0.0, 1.0, 4.0, 10.0),  # gamma=4 is Plummer
         (20.0, 0.5, 0.7, 2.5, 70.0),
         (3.3, 0.01, 12.0, 5.0, 40.0),
-        (2.0, 0.1, 3.0, 2.0, 50.0),    # gamma=2 exactly: the logarithmic singularity
+        (2.0, 0.1, 3.0, 2.0, 50.0),  # gamma=2 exactly: the logarithmic singularity
         (2.0, 0.1, 3.0, 2.0000001, 50.0),  # and just beside it
     ],
 )
@@ -485,15 +493,19 @@ def test_eff_normalisation_matches_quadrature(k, b, a, gamma, field):
     integrate = pytest.importorskip("scipy.integrate")
     numeric = integrate.quad(
         lambda r: 2 * np.pi * r * eff_surface_density(r, k=k, b=b, a=a, gamma=gamma),
-        0.0, field, limit=400,
+        0.0,
+        field,
+        limit=400,
     )[0]
     assert eff_expected_count(k, b, a, gamma, field) == pytest.approx(numeric, rel=1e-8)
 
 
 def test_eff_normalisation_is_continuous_across_gamma_two():
     """The two branches must agree in the limit, not merely each be finite."""
-    vals = [eff_expected_count(4.0, 0.02, 3.0, g, 60.0)
-            for g in (2.0 - 1e-4, 2.0 - 1e-8, 2.0, 2.0 + 1e-8, 2.0 + 1e-4)]
+    vals = [
+        eff_expected_count(4.0, 0.02, 3.0, g, 60.0)
+        for g in (2.0 - 1e-4, 2.0 - 1e-8, 2.0, 2.0 + 1e-8, 2.0 + 1e-4)
+    ]
     assert np.all(np.isfinite(vals))
     assert max(vals) - min(vals) < 1e-3 * abs(vals[2])
 
@@ -519,14 +531,18 @@ def test_eff_recovers_injected_parameters():
     # 1.01; at these settings it is 1.0000 with bulk-ESS ~1600.
     radii = _sample_profile(21, lambda r: eff_surface_density(r, **TRUE_EFF))
     res = eff_unbinned(
-        radii, field_radius=FIELD,
-        sampling=SamplingConfig(draws=1500, tune=2000, chains=4, target_accept=0.95,
-                                random_seed=5, progressbar=False),
+        radii,
+        field_radius=FIELD,
+        sampling=SamplingConfig(
+            draws=1500, tune=2000, chains=4, target_accept=0.95, random_seed=5, progressbar=False
+        ),
     )
     for name in ("k", "b", "a", "gamma"):
         med = float(getattr(res[f"{name}_median"], "value", res[f"{name}_median"]))
         sd = float(getattr(res[f"{name}_std"], "value", res[f"{name}_std"]))
-        assert abs(med - TRUE_EFF[name]) < 3 * sd, f"{name}: {med:.3f}+/-{sd:.3f} vs {TRUE_EFF[name]}"
+        assert abs(med - TRUE_EFF[name]) < 3 * sd, (
+            f"{name}: {med:.3f}+/-{sd:.3f} vs {TRUE_EFF[name]}"
+        )
 
     summary = az.summary(res["eff_trace"], var_names=["k", "b", "a", "gamma"])
     assert pd.to_numeric(summary["r_hat"], errors="coerce").max() < 1.01
@@ -539,11 +555,13 @@ def test_plummer_is_eff_with_gamma_fixed_to_four():
 
     radii = _sample_profile(22, lambda r: eff_surface_density(r, k=5.0, b=0.02, a=4.0, gamma=4.0))
     res = eff_unbinned(
-        radii, field_radius=FIELD, gamma=4.0,
+        radii,
+        field_radius=FIELD,
+        gamma=4.0,
         sampling=SamplingConfig(draws=400, tune=400, chains=1, random_seed=6, progressbar=False),
     )
     assert res["model"] == "plummer"
-    assert res["gamma_median"] == pytest.approx(4.0)   # held fixed, not fitted
+    assert res["gamma_median"] == pytest.approx(4.0)  # held fixed, not fitted
     assert res["gamma_std"] == pytest.approx(0.0)
 
 
@@ -595,6 +613,7 @@ def test_bayes_factor_identifies_the_generating_model():
     assert eff_res["log_bayes_factor_vs_best"]["king"] < -1.0
 
 
+@requires_bayes_extra
 def test_compare_rejects_unknown_models():
     with pytest.raises(ValueError, match="unknown models"):
         compare_radial_profiles(np.linspace(1, 50, 100), field_radius=FIELD, models=("king", "nfw"))
@@ -612,11 +631,11 @@ def test_eff_accepts_a_completeness_and_reduces_to_the_plain_fit_when_flat():
     from erotica.analysis.inference import SamplingConfig
 
     radii = _sample_profile(51, lambda r: eff_surface_density(r, **TRUE_EFF))
-    cfg = SamplingConfig(draws=800, tune=1000, chains=2, target_accept=0.95,
-                         random_seed=9, progressbar=False)
+    cfg = SamplingConfig(
+        draws=800, tune=1000, chains=2, target_accept=0.95, random_seed=9, progressbar=False
+    )
     plain = eff_unbinned(radii, field_radius=FIELD, sampling=cfg)
-    flat = eff_unbinned(radii, field_radius=FIELD, completeness=np.full(256, 0.6),
-                        sampling=cfg)
+    flat = eff_unbinned(radii, field_radius=FIELD, completeness=np.full(256, 0.6), sampling=cfg)
 
     assert plain["completeness_corrected"] is False
     assert flat["completeness_corrected"] is True
@@ -627,10 +646,10 @@ def test_eff_accepts_a_completeness_and_reduces_to_the_plain_fit_when_flat():
     assert float(flat["k_median"]) > 1.3 * float(plain["k_median"])
 
 
+@requires_bayes_extra
 def test_eff_completeness_validation():
     with pytest.raises(ValueError, match="within"):
-        eff_unbinned(np.linspace(1, 50, 40), field_radius=FIELD,
-                     completeness=np.full(256, 1.5))
+        eff_unbinned(np.linspace(1, 50, 40), field_radius=FIELD, completeness=np.full(256, 1.5))
     with pytest.raises(ValueError, match="shape"):
         eff_unbinned(np.linspace(1, 50, 40), field_radius=FIELD, completeness=np.ones(9))
 
@@ -651,13 +670,23 @@ def test_corona_normalisation_matches_quadrature():
 
     from erotica.analysis.structure import corona_expected_count, corona_surface_density
 
-    for delta_f, R_2, field in [(0.02, 40.0, 70.0), (0.02, 90.0, 70.0),
-                                (5.0, 10.0, 70.0), (0.02, 70.0, 70.0)]:
+    for delta_f, R_2, field in [
+        (0.02, 40.0, 70.0),
+        (0.02, 90.0, 70.0),
+        (5.0, 10.0, 70.0),
+        (0.02, 70.0, 70.0),
+    ]:
         numeric = quad(
-            lambda x: 2 * np.pi * x * float(
-                corona_surface_density(np.array([x]), delta_f=delta_f, R_2=R_2)[0]
-            ),
-            0.0, field, limit=400,
+            # delta_f and R_2 are bound as defaults, not captured: a bare closure over the
+            # loop variables would make every iteration integrate the LAST parameter pair
+            # once quad deferred the call, and the test would still pass on the final case.
+            lambda x, delta_f=delta_f, R_2=R_2: 2
+            * np.pi
+            * x
+            * float(corona_surface_density(np.array([x]), delta_f=delta_f, R_2=R_2)[0]),
+            0.0,
+            field,
+            limit=400,
         )[0]
         closed = corona_expected_count(delta_f, R_2, field)
         assert abs(closed / numeric - 1) < 1e-8, (delta_f, R_2, field, closed, numeric)
@@ -680,7 +709,7 @@ def test_corona_becomes_a_flat_background_when_large():
     This is why a corona wider than the footprint cannot be distinguished from a
     flat background, and why an unconstrained ``R_2`` posterior is itself the result.
     """
-    from erotica.analysis.structure import corona_surface_density, king_profile
+    from erotica.analysis.structure import corona_surface_density
 
     r = np.linspace(0.1, 70.0, 50)
     sigma = corona_surface_density(r, delta_f=1e-4, R_2=1e5)
@@ -689,7 +718,7 @@ def test_corona_becomes_a_flat_background_when_large():
 
 
 def test_corona_vanishes_outside_its_radius():
-    from erotica.analysis.structure import corona_surface_density, king_profile
+    from erotica.analysis.structure import corona_surface_density
 
     r = np.array([1.0, 10.0, 29.9, 30.0, 30.1, 50.0])
     sigma = corona_surface_density(r, delta_f=0.02, R_2=30.0)
@@ -723,16 +752,23 @@ def test_bayes_factor_finds_a_corona_that_fits_inside_the_field():
 
     def surface(r):
         return king_profile(
-            r, core_radius=king_truth["R_c"], tidal_radius=king_truth["R_t"],
-            amplitude=king_truth["k"], background=0.0,
+            r,
+            core_radius=king_truth["R_c"],
+            tidal_radius=king_truth["R_t"],
+            amplitude=king_truth["k"],
+            background=0.0,
         ) + corona_surface_density(r, delta_f=delta_f, R_2=R_2)
 
     data = _sample_profile(77, surface)
     # SMC needs the draws here: the corona model has a genuine k <-> delta_f degeneracy
     # and at 1000 draws the evidence scatter swamped the verdict.
     res = compare_radial_profiles(
-        data, field_radius=FIELD, models=("king", "king_corona"),
-        draws=4000, chains=4, random_seed=3,
+        data,
+        field_radius=FIELD,
+        models=("king", "king_corona"),
+        draws=4000,
+        chains=4,
+        random_seed=3,
     )
     assert res["best"] == "king_corona", res["log_marginal_likelihood"]
     assert res["resolvable"]["king"], "verdict is within the chain scatter of the evidence"
@@ -756,7 +792,8 @@ def test_reported_king_medians_are_medians_not_means():
 
     radii = _sample_king(5, k=5.0, b=0.001, R_c=2.0, R_t=200.0)
     fit = king_unbinned(
-        radii, field_radius=FIELD,
+        radii,
+        field_radius=FIELD,
         sampling=SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=4, progressbar=False),
     )
     draws = np.asarray(fit["king_trace"].posterior["R_t"].values).ravel()
@@ -869,9 +906,7 @@ def test_the_default_king_fit_is_a_point_process_with_no_nuisance_scatter():
         profile,
         field_radius=FIELD * u.arcmin,
         return_trace=True,
-        sampling=SamplingConfig(
-            draws=500, tune=500, chains=2, random_seed=31, progressbar=False
-        ),
+        sampling=SamplingConfig(draws=500, tune=500, chains=2, random_seed=31, progressbar=False),
     )
     variables = set(unbinned["king_trace"].posterior.data_vars)
     assert "sigma" not in variables, f"the default fit carries a nuisance sigma: {variables}"
@@ -908,14 +943,10 @@ def test_the_default_king_fit_recovers_the_injected_core_radius():
     res = analyzer.fit_king_profile(
         profile,
         field_radius=FIELD * u.arcmin,
-        sampling=SamplingConfig(
-            draws=1000, tune=1000, chains=2, random_seed=32, progressbar=False
-        ),
+        sampling=SamplingConfig(draws=1000, tune=1000, chains=2, random_seed=32, progressbar=False),
     )
     r_c = float(res["R_c_median"].to_value(u.arcmin))
-    assert abs(r_c - TRUE_KING["R_c"]) < 0.6, (
-        f"R_c = {r_c:.3f}' vs injected {TRUE_KING['R_c']}'"
-    )
+    assert abs(r_c - TRUE_KING["R_c"]) < 0.6, f"R_c = {r_c:.3f}' vs injected {TRUE_KING['R_c']}'"
     # az.rhat / az.ess rather than az.summary: arviz >= 1 formats the summary
     # frame for display and rounds R-hat to two decimals, so a genuine 1.0051
     # reads back as exactly 1.01 and the PART A floor cannot be applied to it.

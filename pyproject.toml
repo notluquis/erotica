@@ -82,6 +82,12 @@ bayes = [
   # cited #7049 — wrong: that is a 2023 issue about progress bars under pmap, closed in a week.)
   "blackjax>=1",
   "fast-histogram>=0.11",
+  # ArviZ 1.x ships NO netCDF engine of its own. Without one, InferenceData.to_netcdf raises
+  # "cannot write NetCDF files with format='NETCDF4' because none of the suitable backend
+  # libraries (netCDF4, h5netcdf) are installed" -- which is every provenance sidecar and every
+  # stored trace. This was added to environment.yml on 2026-08-02 and NOT here, and CI installs
+  # from this file, so test-bayes has been red ever since. Keep the two files in step.
+  "h5netcdf>=1.3",
 ]
 asteca = [
   "asteca>=0.6",
@@ -99,6 +105,10 @@ paper = [
   "asteca>=0.6",
   "seaborn>=0.12",
   "fast-histogram>=0.11",
+  # Same reason as in [bayes]: ArviZ 1.x ships no netCDF engine, so without this every stored
+  # trace and provenance sidecar fails to write. This extra is what regenerates the paper
+  # figures, so it hits the failure on the first fit.
+  "h5netcdf>=1.3",
 ]
 
 [project.urls]

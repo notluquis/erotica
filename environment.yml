@@ -86,11 +86,12 @@ dependencies:
   - h5netcdf
 
   # --- [dev] ---
+  # ruff replaced black + isort + flake8. It is what .pre-commit-config.yaml runs and what
+  # pyproject.toml's [dev] extra declares, so this file installing the old trio -- and NOT ruff --
+  # meant a conda-created env could not run the hooks that gate a commit. Fixed 2026-08-03.
   - pytest>=8
   - pytest-cov>=4
-  - black>=23
-  - isort>=5.12
-  - flake8>=6
+  - ruff>=0.14
   - mypy>=1.5
   - pre-commit>=3
   - nbstripout>=0.7
