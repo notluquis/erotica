@@ -1,14 +1,30 @@
-@ARTICLE{cash1979,
-  author = {{Cash}, W.},
-  title = "{Parameter estimation in astronomy through application of the likelihood ratio}",
-  journal = {\apj}, year = 1979, volume = {228}, pages = {939-947},
-  doi = {10.1086/156922}, adsurl = {https://ui.adsabs.harvard.edu/abs/1979ApJ...228..939C}}
+% References specific to the A&A methods paper.
+%
+% THE SHARED ENTRIES ARE NOT COPIED HERE. `aanda.tex` names `../paper` as a second bibliography
+% source, so the entries verified against NASA SciX/ADS on 2026-08-03 for the JOSS paper —
+% cash1979, perren2015, kronemartins2014, pera2021, pera2021king, hunt2021, olivares2018,
+% jackson2022, rozo2015, myles2021, disanto2018, dolphin2002, vonhippel2006, garling2025, chi2026,
+% plevne2026, ramezani2026, pulgar2024a, pulgar2024b — stay single-sourced there.
+%
+% cash1979 and olivares2018 WERE duplicated here and have been removed: BibTeX takes the first
+% definition it finds and silently ignores the second, so a duplicated key is a record that can
+% drift from its twin without anything failing. Two copies of one fact is the failure mode this
+% project has spent the day removing.
+%
+% Do NOT add a key here that already exists in ../paper.bib.
+%
+% ⚠ VERIFICATION STATUS. ../paper.bib carries the rule "every entry was checked by fetching NASA
+% SciX/ADS — title, author list, journal, volume, page and DOI confirmed against the record. Do
+% not 'correct' any field from memory; re-fetch instead." The two entries below were written FROM
+% MEMORY on 2026-08-04 and are therefore UNVERIFIED against that standard. Fetch both from ADS,
+% confirm every field, and delete this warning before submission.
 
 @ARTICLE{hunt2024,
   author = {{Hunt}, Emily L. and {Reffert}, Sabine},
   title = "{Improving the open cluster census. III.}",
   journal = {\aap}, year = 2024, volume = {686}, eid = {A42},
-  doi = {10.1051/0004-6361/202348662}, adsurl = {https://ui.adsabs.harvard.edu/abs/2024A&A...686A..42H}}
+  doi = {10.1051/0004-6361/202348662},
+  adsurl = {https://ui.adsabs.harvard.edu/abs/2024A&A...686A..42H}}
 
 @ARTICLE{pang2022,
   author = {{Pang}, Xiaoying and {Tang}, Shih-Yun and {Li}, Yuqian and others},
@@ -16,10 +32,3 @@
   journal = {\apj}, year = 2022, volume = {931}, eid = {156},
   doi = {10.3847/1538-4357/ac674e},
   adsurl = {https://ui.adsabs.harvard.edu/abs/2022ApJ...931..156P}}
-
-@ARTICLE{olivares2018,
-  author = {{Olivares}, J. and {Sarro}, L.~M. and {Moraux}, E. and others},
-  title = "{The Seven Sisters DANCe. II. Proper motions and the lithium depletion boundary}",
-  journal = {\aap}, year = 2018, volume = {617}, eid = {A15},
-  doi = {10.1051/0004-6361/201730547},
-  adsurl = {https://ui.adsabs.harvard.edu/abs/2018A&A...617A..15O}}
