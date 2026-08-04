@@ -501,8 +501,13 @@ def reproduction_checks(cells: list[dict]) -> dict:
     res = {}
     for (selection, _score_kind), arm_name in REFERENCE_ARM.items():
         rows = [c for c in cells if c["arms"][selection].get(f"reproduces_{arm_name}") is not None]
-        remapped = [c for c in rows if c["arms"][selection]["soft_column_remapped"]]
-        plain = [c for c in rows if not c["arms"][selection]["soft_column_remapped"]]
+        # `.get(..., False)` and not `[...]`: a cell whose run raised returns an arm dict built on
+        # the error path, which carries no soft-column info at all. Absent info means "not
+        # remapped" by definition -- the remap can only happen on a run that produced a cluster.
+        # Indexing here crashed the whole aggregation AFTER all 108 cells had been computed, and
+        # since nothing was checkpointed the entire run was lost. Hence also `--resume` below.
+        remapped = [c for c in rows if c["arms"][selection].get("soft_column_remapped", False)]
+        plain = [c for c in rows if not c["arms"][selection].get("soft_column_remapped", False)]
         res[arm_name] = {
             "n_compared": len(rows),
             "n_remapped_by_the_soft_column_fix": len(remapped),
@@ -616,6 +621,10 @@ def main(argv=None) -> int:
     t0 = time.perf_counter()
     cells: list[dict] = []
     pool: dict = {}
+    # Per-cell checkpoint, truncated at the start of each run so it always describes THIS run.
+    # Gitignored with the other `benchmark_*.cells.jsonl` artifacts.
+    cells_jsonl = Path(args.out).with_suffix("").with_suffix(".cells.jsonl")
+    cells_jsonl.write_text("")
 
     def stash(key, arr):
         pool.setdefault(key, []).append(arr)
@@ -639,6 +648,13 @@ def main(argv=None) -> int:
                         reference=reference,
                     )
                     cells.append(cell)
+                    # Checkpoint EVERY cell as it completes. The first run of this script
+                    # computed all 108 cells (~40 min) and then died in aggregation on a
+                    # KeyError, and because nothing had been written the whole run was lost.
+                    # A sidecar written only at the end is a sidecar that records nothing
+                    # about the runs that fail.
+                    with open(cells_jsonl, "a") as _ck:
+                        _ck.write(json.dumps(cell, default=float) + "\n")
                     split = "held_out" if cell["held_out"] else "train"
                     for selection in SELECTORS:
                         stash((selection, "_y", split), y)

@@ -147,6 +147,11 @@ tools/validation/hr24_clusters.ecsv
 tools/validation/benchmark_*.json
 tools/validation/benchmark_*.cells.jsonl
 !tools/validation/benchmark_*_summary.json
+# Per-cell checkpoints from ANY validation script, not only the `benchmark_*` ones. Measured at
+# ~4 kB per cell, so a 108-cell run is ~450 kB. These exist because a run that computed all 108
+# cells died in aggregation and, having written nothing, lost 40 minutes of compute: they are
+# crash insurance, not evidence. The summary sidecars carrying quoted numbers are committed.
+tools/validation/*.cells.jsonl
 
 # LaTeX build products for the A&A methods paper (regenerate with `latexmk -pdf`)
 paper/methods-aa/*.aux
