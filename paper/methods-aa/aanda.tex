@@ -71,13 +71,42 @@ the normalisation. Every fit returns an \textsc{ArviZ} \texttt{InferenceData} po
 \section{Introduction}
 \label{sec:intro}
 
-\TODO{Draft. Frame: \emph{Gaia} DR3 turned open clusters into a large-sample statistical
-enterprise, but the open-source tooling is fragmented --- membership finders (\textsc{UPMASK},
-\textsc{pyUPMASK}, \textsc{hdbscan} pipelines) and parameter fitters (\asteca, \textsc{BASE-9})
-are separate tools with separate data models. Cite Krone-Martins \& Moitinho 2014; Pera et al.
-2021; Hunt \& Reffert 2021, 2023, 2024; Perren et al. 2015; von Hippel et al. 2006;
-Cantat-Gaudin et al.; Tarricq et al. 2022. Then the calibration gap, scoped narrowly --- see
-\S\ref{sec:calibration} for the exact claim and what it does \emph{not} say.}
+\emph{Gaia} DR3 turned open clusters from a catalogue of individually studied objects into a
+statistical population: membership lists now exist for several thousand clusters, derived
+homogeneously, with astrometry precise enough that the interesting questions are about
+\emph{distributions} of structural parameters rather than about any single object.
+
+The tooling has not followed. Membership determination and structural fitting are performed by
+separate codes with separate data models --- \textsc{upmask} and \textsc{pyUPMASK} for membership,
+\textsc{hdbscan}-based pipelines for large-scale census work, \asteca\ and \textsc{BASE-9} for
+parameter estimation --- so an end-to-end analysis is glue code, and each stage hands the next a
+point estimate. \TODO{cite Krone-Martins \& Moitinho 2014; Pera et al.\ 2021; Hunt \& Reffert
+2021, 2023, 2024; Perren et al.\ 2015; von Hippel et al.\ 2006; Cantat-Gaudin et al.; Tarricq et
+al.\ 2022.} A membership probability becomes a cut, a cut becomes a member list, and the list is
+fitted as though it were the truth. The uncertainty that survives to the final parameter is the
+uncertainty of the last stage alone.
+
+That matters more at population scale than for one cluster, because a systematic that is
+negligible against a single object's error bar is not negligible against a distribution of several
+thousand. Three of the systematics measured in \S\ref{sec:recoverability} have exactly this
+character: each is small for one cluster and each would be read as physics by a survey-scale
+comparison that did not correct for it. The same is true of the selection function
+(\S\ref{sec:a1}) and of the boundary between a cluster and its comoving neighbours
+(\S\ref{sec:b1}), which is invisible to every contamination metric because the stars in question
+are genuine cluster members --- of a different cluster.
+
+There is also something the field does not report. Membership methods emit per-star
+probabilities, and those probabilities are used as weights, as cuts, and as inputs to mass
+functions --- but whether a stated probability of $0.7$ corresponds to a $\sim$70\% true-member
+frequency is, as far as we can establish, not checked for stellar clusters. Scoring membership
+output certainly is done, and the prior art is substantial; the specific missing piece is the
+reliability check, and \S\ref{sec:calibration} states the claim narrowly and puts the adjacent
+literature up front, because most of the surrounding ground is occupied.
+
+This paper presents \erotica, describes the choices that are not free, and measures it: against
+injected truth, against the reference implementations, and against the calibration standard the
+adjacent photometric-redshift literature applies as a matter of course. Several of the results are
+negative, and two of them overturn numbers this project previously reported.
 
 %-------------------------------------------------------------------------------
 \section{The pipeline}
