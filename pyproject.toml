@@ -86,8 +86,13 @@ bayes = [
   # "cannot write NetCDF files with format='NETCDF4' because none of the suitable backend
   # libraries (netCDF4, h5netcdf) are installed" -- which is every provenance sidecar and every
   # stored trace. This was added to environment.yml on 2026-08-02 and NOT here, and CI installs
-  # from this file, so test-bayes has been red ever since. Keep the two files in step.
-  "h5netcdf>=1.3",
+  # from this file, so test-bayes was red ever since. Keep the two files in step.
+  #
+  # The [h5py] extra is load-bearing and a bare "h5netcdf" is NOT enough: h5py is an OPTIONAL
+  # extra of h5netcdf, not a dependency, so `pip install h5netcdf` yields an engine with no
+  # backend and the failure becomes "No module named 'h5py', backend not available". The first
+  # version of this line omitted it and CI stayed red for exactly that reason.
+  "h5netcdf[h5py]>=1.3",
 ]
 asteca = [
   "asteca>=0.6",
@@ -105,10 +110,10 @@ paper = [
   "asteca>=0.6",
   "seaborn>=0.12",
   "fast-histogram>=0.11",
-  # Same reason as in [bayes]: ArviZ 1.x ships no netCDF engine, so without this every stored
-  # trace and provenance sidecar fails to write. This extra is what regenerates the paper
+  # Same reason as in [bayes], including the [h5py] extra: ArviZ 1.x ships no netCDF engine,
+  # and h5netcdf without a backend is still no engine. This extra regenerates the paper
   # figures, so it hits the failure on the first fit.
-  "h5netcdf>=1.3",
+  "h5netcdf[h5py]>=1.3",
 ]
 
 [project.urls]

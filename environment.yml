@@ -83,7 +83,15 @@ dependencies:
   # trace WRITER (provenance.py:164) and the published-trace reader (figures.py:70). It works in
   # the old mamba `base` only because h5netcdf happens to be an unrelated leaf there, which is
   # exactly the kind of accidental dependency a clean environment is meant to expose.
+  #
+  # h5py is declared EXPLICITLY, not left to h5netcdf. On PyPI h5py is an optional extra of
+  # h5netcdf (`h5py; extra == "h5py"`), so an engine can install with no backend and fail with
+  # "No module named 'h5py', backend not available" -- which is exactly what happened to CI on
+  # 2026-08-04. conda-forge's h5netcdf does pull h5py today, but relying on that is the same
+  # accidental-leaf mistake this comment already warns about. pyproject.toml uses
+  # `h5netcdf[h5py]`.
   - h5netcdf
+  - h5py
 
   # --- [dev] ---
   # ruff replaced black + isort + flake8. It is what .pre-commit-config.yaml runs and what
