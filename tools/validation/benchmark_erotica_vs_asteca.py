@@ -310,6 +310,14 @@ EROTICA_CONFIGS = {
     "erotica_pm_maxlambda": (("pmra", "pmdec"), "max_lambda"),
     "erotica_3d_maxlambda": (("pmra", "pmdec", "plx"), "max_lambda"),
     "erotica_5d_maxlambda": (("ra", "dec", "pmra", "pmdec", "plx"), "max_lambda"),
+    # The third sweep-step rule, added 2026-08-04. `max_members` is the argmax of a
+    # condensed-tree ROW count -- issue #7's quantity -- and `max_lambda` collapses to
+    # mcs_range.start; `max_persistence` scores each step by cluster_persistence_ of the
+    # cluster the selector actually returns. Kept as separate arms so all three are scored
+    # on identical frames rather than compared across runs.
+    "erotica_pm_maxpersistence": (("pmra", "pmdec"), "max_persistence"),
+    "erotica_3d_maxpersistence": (("pmra", "pmdec", "plx"), "max_persistence"),
+    "erotica_5d_maxpersistence": (("ra", "dec", "pmra", "pmdec", "plx"), "max_persistence"),
 }
 
 

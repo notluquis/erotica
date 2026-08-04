@@ -143,7 +143,7 @@ class Clustering:
         probability_threshold: float = 0.5,
         min_cluster_members: int | None = None,
         max_cluster_members: int | None = None,
-        selection: str = "max_members",
+        selection: str = "max_persistence",
         select_cluster: bool = True,
         hdbscan_kwargs: dict | None = None,
     ) -> None:
@@ -203,15 +203,25 @@ class Clustering:
             if np.count_nonzero(probability > probability_threshold) < 1:
                 continue
 
+            # Score this sweep step by the persistence of the cluster the selector would
+            # actually return, not by a count of condensed-tree rows. `cluster_persistence_`
+            # is HDBSCAN's own stability measure, is indexed by flat-cluster label, and was
+            # already being collected here and discarded. See `selection=` in the docstring.
+            persistence = np.asarray(getattr(model, "cluster_persistence_", []), dtype=float)
+            step_label = self._cluster_label_from_tree(tree, labels, len(labels))
+            step_persistence = (
+                float(persistence[step_label]) if 0 <= step_label < persistence.size else 0.0
+            )
+
             results.append(
                 {
                     "min_cluster_size": int(min_cluster_size),
                     "desired_len": int(desired_len),
                     "lambda_value": lambda_value,
+                    "selected_label": int(step_label),
+                    "selected_persistence": step_persistence,
                     "relative_validity": float(getattr(model, "relative_validity_", np.nan)),
-                    "cluster_persistence": np.asarray(
-                        getattr(model, "cluster_persistence_", []), dtype=float
-                    ),
+                    "cluster_persistence": persistence,
                 }
             )
 
@@ -500,11 +510,39 @@ class Clustering:
 
     @staticmethod
     def _select_pseudoprobability_result(results: list[dict], selection: str) -> dict:
+        """Choose which sweep step to keep.
+
+        .. danger::
+           **``"max_members"`` and ``"max_lambda"`` are both defective above ~0.8
+           contamination, measured.** They are retained only to reproduce results published
+           before 2026-08-04.
+
+           ``"max_members"`` is the argmax of ``desired_len``, which is a count of
+           **condensed-tree rows** — the same quantity behind issue #7. At high
+           contamination it selects a ``min_cluster_size`` whose densest branch lies *inside
+           the field*, and no label chosen from that branch can be right. Measured selected
+           purity 0.638 against an oracle of 0.940.
+
+           ``"max_lambda"`` is not the alternative: it chose ``mcs_range.start`` in **12 of
+           12** cells, i.e. it ignores the sweep entirely and returns whatever the smallest
+           ``min_cluster_size`` produced.
+
+           ``"max_persistence"`` (the default) scores each step by
+           ``cluster_persistence_`` **of the cluster the selector actually returns** —
+           HDBSCAN's own stability measure for that specific cluster, rather than a proxy
+           for how big something is. The value was already being collected here and thrown
+           away.
+        """
+        if selection == "max_persistence":
+            return max(
+                results,
+                key=lambda item: (item["selected_persistence"], item["lambda_value"]),
+            )
         if selection == "max_members":
             return max(results, key=lambda item: (item["desired_len"], item["lambda_value"]))
         if selection == "max_lambda":
             return max(results, key=lambda item: (item["lambda_value"], item["desired_len"]))
-        raise ValueError("selection must be 'max_members' or 'max_lambda'.")
+        raise ValueError("selection must be 'max_persistence', 'max_members' or 'max_lambda'.")
 
     @staticmethod
     def _cluster_label_for_size(labels: np.ndarray, desired_len: int) -> int:

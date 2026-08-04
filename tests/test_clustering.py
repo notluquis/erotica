@@ -429,13 +429,19 @@ class TestStaticHelpers:
 # ---------------------------------------------------------------------------
 
 
-def _select_on_contaminated_frame(legacy: bool) -> dict:
+def _select_on_contaminated_frame(legacy: bool, selection: str = "max_members") -> dict:
     """Drive a contaminated frame through ``search_pseudoprobability`` and score the pick.
 
     It has to go through ``search_pseudoprobability``: a bare HDBSCAN fit never reaches the
-    selector, and it is the ``selection='max_members'`` default — argmax of the same
-    condensed-tree row count across the sweep — that drives ``desired_len`` away from any
-    real cluster size and so pushes the size match into its failure case.
+    selector, and it is ``selection='max_members'`` — argmax of the same condensed-tree row
+    count across the sweep — that drives ``desired_len`` away from any real cluster size and
+    so pushes the size match into its failure case.
+
+    ``selection`` is pinned explicitly rather than left to the default. The default became
+    ``"max_persistence"`` on 2026-08-04, and letting these tests follow it would have
+    quietly changed what the issue-#7 tests exercise: they assert that the LEGACY label
+    selector returns the field, and that only happens under the sweep step ``max_members``
+    picks. A test whose premise moves with an unrelated default is not a regression test.
     """
     from erotica.core.clustering import Clustering
 
@@ -445,6 +451,7 @@ def _select_on_contaminated_frame(legacy: bool) -> dict:
         min_cluster_size_samples=range(10, 40),
         min_samples=5,
         probability_threshold=0.5,
+        selection=selection,
     )
     truth = np.asarray(clust.data["is_member"], dtype=bool)
     selected = np.asarray(clust.data["cluster"], dtype=int) != -1
@@ -583,3 +590,89 @@ class TestIdempotency:
             best.append(clu.best_params_.get("min_cluster_size"))
         assert best[0] is not None, "Optuna produced no hyper-parameters"
         assert best[0] == best[1], "seeded Optuna search did not reproduce"
+
+
+class TestSweepStepSelection:
+    """The rule that picks WHICH sweep step to keep, distinct from which label to return.
+
+    Issue #7 was the label selector. This is its successor defect: even with the label
+    resolved correctly from the condensed tree, the sweep-step rule can hand it a fit whose
+    densest branch lies inside the field, and then no label choice can be right.
+
+    Measured over 54 benchmark cells (erotica_3d), signed parameter-recovery error at
+    p >= 0.5 -- the discriminator, because a rule that selects the field recovers the
+    FIELD's centre and dispersion:
+
+        rule              pmra_c    pmdec_c    plx_c    sigma_pm
+        max_members       -0.581    -0.834    -0.239      0.505
+        max_lambda        -0.006    -0.002     0.000     -0.054
+        max_persistence   -0.007     0.001     0.001     -0.012
+
+    Truth-free top-K purity 0.473 / 0.447 / 0.326 and Platt ECE 0.0089 / 0.0178 / 0.0385,
+    both favouring max_persistence. On raw p-tilde AUC the three are 0.790 +/- 0.020,
+    0.776 +/- 0.018 and 0.689 +/- 0.019: max_members and max_persistence are TIED within
+    error, so no AUC win is claimed. Unlike the label selector, the sweep-step rule does
+    change p-tilde, because it changes which fit is final.
+    """
+
+    def test_unknown_selection_is_rejected(self):
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(_make_contaminated_qtable())
+        with pytest.raises(ValueError, match="max_persistence"):
+            clust.search_pseudoprobability(
+                columns=["pmra", "pmdec"],
+                min_cluster_size_samples=range(10, 20),
+                selection="largest",
+            )
+
+    def test_the_default_is_max_persistence(self):
+        """Pins the default, because changing it silently rewrites what every other test means."""
+        import inspect
+
+        from erotica.core.clustering import Clustering
+
+        sig = inspect.signature(Clustering.search_pseudoprobability)
+        assert sig.parameters["selection"].default == "max_persistence"
+
+    def test_every_documented_rule_runs_and_selects_something(self):
+        """A rule that raises or returns nothing is not a rule. max_lambda in particular
+        collapses to mcs_range.start, which is degenerate but must still be well-formed."""
+        from erotica.core.clustering import Clustering
+
+        for rule in ("max_persistence", "max_members", "max_lambda"):
+            clust = Clustering(_make_contaminated_qtable())
+            clust.search_pseudoprobability(
+                columns=["pmra", "pmdec"],
+                min_cluster_size_samples=range(10, 40),
+                min_samples=5,
+                probability_threshold=0.5,
+                selection=rule,
+            )
+            sel = np.asarray(clust.data["cluster"], dtype=int) != -1
+            assert sel.sum() > 0, f"{rule} selected nothing"
+            assert "selected_persistence" in clust.pseudoprobability_selected_, (
+                f"{rule} did not record selected_persistence, so the rules are not "
+                "comparable on the same record"
+            )
+
+    def test_persistence_is_scored_on_the_cluster_actually_returned(self):
+        """The point of the rule: the score belongs to the SELECTED cluster, not to the
+        largest, and not to a row count. A step whose selector returns noise scores zero."""
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(_make_contaminated_qtable())
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 40),
+            min_samples=5,
+            probability_threshold=0.5,
+            selection="max_persistence",
+        )
+        chosen = clust.pseudoprobability_selected_
+        persistence = np.asarray(chosen["cluster_persistence"], dtype=float)
+        label = int(chosen["selected_label"])
+        if label < 0:
+            assert chosen["selected_persistence"] == 0.0
+        else:
+            assert chosen["selected_persistence"] == pytest.approx(float(persistence[label]))
