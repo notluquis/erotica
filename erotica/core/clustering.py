@@ -219,8 +219,32 @@ class Clustering:
                "wins" only by converging on the answer the exact tree computes directly. Tuning
                ``leaf_size`` would be tuning the approximation error.
 
-               **On the real NGC 6383 catalogues it makes no difference at all.** Largest-cluster
-               membership, exact versus approximate, every radius and two ``min_cluster_size``:
+               ⚠ **CORRECTION, 2026-08-04: on this package's path the switch is a NO-OP, and the
+               real-data table below is vacuous rather than reassuring.**
+               ``base_kwargs`` hardcodes ``match_reference_implementation=True``, and that flag
+               *forces* ``approx_min_span_tree = False`` (``hdbscan_.py:743-746``). So the exact
+               tree was already in use, both arms of the comparison below were exact, and
+               Jaccard 1.0000 was guaranteed by construction. Verified directly: with
+               ``match_reference_implementation=True``, setting ``approx_min_span_tree`` either
+               way returns byte-identical labels.
+
+               The parameter is kept because it makes the exactness explicit instead of an
+               accident of another flag, and because it becomes live the moment
+               ``match_reference_implementation`` is turned off. The synthetic ``leaf_size``
+               numbers above were measured *without* that flag and remain valid for that case.
+
+               **The flag that actually changes results here is
+               ``match_reference_implementation``**, which is hardcoded ``True`` and does four
+               things, not the three its own docs list: ``min_samples -= 1``,
+               ``min_cluster_size += 1``, ``approx_min_span_tree = False``, and an extra ``-1``
+               assignment in ``do_labelling`` (``_hdbscan_tree.pyx:508-512``). Measured on a
+               contaminated frame: largest cluster 236 vs 228, noise 1011 vs 1027 — and it is
+               **not** reproducible by applying the three documented shifts by hand, which is how
+               the fourth effect was found.
+
+               Original table follows, retained as the record of a measurement that could not
+               have come out any other way. Largest-cluster membership, every radius and two
+               ``min_cluster_size``:
 
                    radius   n       mcs   approx   exact   Jaccard   speedup
                      40'    23740    50     6241    6241   1.0000     12.3x
