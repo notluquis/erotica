@@ -187,11 +187,29 @@ class Clustering:
                which repairs reliability but *cannot* create resolution -- soft retains 1.9x the
                resolution, so its advantage survives the transformation that could have erased it.
 
-               It is nevertheless off by default because that screen used its own generator and
-               scored the per-star term ALONE, while what ships is the product with
-               ``probability_times``. Moving a default on evidence from a single generator is the
-               error already made once with ``selection`` (see that parameter's note), and it is
-               not being repeated. Flip it after the validated benchmark, not before.
+               ⚠ **The validated benchmark has now run, and it cuts that gain by ~8x.** Those
+               numbers score ``probabilities_`` ALONE; what ships is the product with
+               ``probability_times``. On ``benchmark_erotica_vs_asteca.py``, 108 cells with half
+               the seeds held out, paired per cell::
+
+                   arm                  dROC (held-out)      dAP (held-out)     wins
+                   3d soft - 3d       +0.0249 +- 0.0189   +0.0413 +- 0.0223    27/54
+                   5d soft - 5d       +0.0309 +- 0.0133   +0.0740 +- 0.0160    27/54
+
+               The gain is **real** -- dAP on 5d is 4.6 standard errors, and every held-out delta
+               exceeds its train counterpart, the opposite of overfitting. But it is +0.03 ROC,
+               not +0.22: the ``f_i`` factor multiplies both scores and washes most of the
+               advantage out. **Scoring one factor of a product and reporting it as the product's
+               improvement was the error**, and it is why this stayed off the default until the
+               harness ran.
+
+               It also does **not** close the gap it was meant to: 0.5883 average precision
+               against ASteCA's 0.8615. Soft membership recovers roughly a quarter of that
+               distance. The rest is not in the per-star score.
+
+               ``wins 27/54`` is exactly half, so the mean gain comes from large wins in some
+               cells rather than a uniform shift -- an improvement in expectation, not in every
+               case. Worth enabling on a 5D feature set; not worth a claim.
 
                Cost: ``prediction_data=True`` on the final fit only. Measured 4.9 s for n=12000
                with 3 clusters -- ``all_points_membership_vectors`` does linear scans per
