@@ -59,7 +59,23 @@ TRUE_KING = dict(k=1.0, R_c=1.38, R_t=54.0, b=0.0)
 FIELD = 70.0
 N_DRAW = 4000  # before thinning; the fit sees fewer
 CORE_RADIUS = 1.38  # = R_c, the aperture the suppression is quoted over
-NGC6383_MEASURED_SUPPRESSION = 0.01156  # order-12 patch mode
+# CORRECTED 2026-08-04. This was `0.01156  # order-12 patch mode`, and that number could not be
+# reproduced: no patch-mode npz existed on disk, and `king_model_validity.md` asserted "1.156%"
+# and "patch mode: Still to do" in the SAME section. A hardcoded constant whose provenance is a
+# claim that the measurement had not been made.
+#
+# Measured for real by `a1_patch_selection_function.py` (sidecar
+# `a1_patch_selection_function.json`): **2.371%** mean suppression inside R_c at `mode='patch'`,
+# `min_points=20`. Note also that patch mode does NOT reach order 12 in this field at the default
+# min_points -- 343 pixels at order 11, 1188 at order 10 -- so "order-12 patch mode" described a
+# configuration that does not occur here. The min_points=5 variant that does reach order 12 gives
+# 4.562%, but that excess is an artefact (core M10 sd doubles while its mean barely moves, and the
+# subdivision is density-driven so core and field end up at different resolutions).
+#
+# Consequence for this script: every prediction derived from this constant was 2x low.
+NGC6383_MEASURED_SUPPRESSION = (
+    0.02371  # a1_patch_selection_function.json, mode='patch', min_points=20
+)
 
 
 def king_sigma(r, *, k, R_c, R_t, b):
@@ -126,8 +142,11 @@ def main():
     for f in floors:
         r = run_level(f, args.realizations, args.seed)
         rows.append(r)
-        print(f"  floor={f:.2f}  suppression={r['core_suppression']:7.2%}  "
-              f"R_c bias = {r['bias_mean']:+7.2%} +/- {r['bias_sem']:.2%}", flush=True)
+        print(
+            f"  floor={f:.2f}  suppression={r['core_suppression']:7.2%}  "
+            f"R_c bias = {r['bias_mean']:+7.2%} +/- {r['bias_sem']:.2%}",
+            flush=True,
+        )
 
     supp = np.array([r["core_suppression"] for r in rows])
     bias = np.array([r["bias_mean"] for r in rows])
@@ -149,33 +168,53 @@ def main():
     slope_all, chi2_all, dof_all = fit(np.ones_like(supp, dtype=bool))
     slope_low, chi2_low, dof_low = fit(low)
 
-    print(f"\nglobal fit (all {len(rows)} levels): bias = {slope_all:.3f} x suppression, "
-          f"chi2/dof = {chi2_all / dof_all:.1f}  -> NONLINEAR over the full range")
-    print(f"low-suppression fit (<= {LINEAR_MAX:.0%}, {low.sum()} levels): "
-          f"bias = {slope_low:.3f} x suppression, chi2/dof = {chi2_low / max(dof_low, 1):.2f}")
+    print(
+        f"\nglobal fit (all {len(rows)} levels): bias = {slope_all:.3f} x suppression, "
+        f"chi2/dof = {chi2_all / dof_all:.1f}  -> NONLINEAR over the full range"
+    )
+    print(
+        f"low-suppression fit (<= {LINEAR_MAX:.0%}, {low.sum()} levels): "
+        f"bias = {slope_low:.3f} x suppression, chi2/dof = {chi2_low / max(dof_low, 1):.2f}"
+    )
     print("  local slope by level:")
-    for r, s_i, b_i in zip(rows, supp, bias):
+    # strict=True: all three come from the same rung list, so a length mismatch means a rung was
+    # dropped upstream -- an error worth raising, not one to truncate away silently.
+    for _r, s_i, b_i in zip(rows, supp, bias, strict=True):
         if s_i > 1e-6:
             print(f"    suppression {s_i:6.2%} -> bias/suppression = {b_i / s_i:.3f}")
     print(f"\n  => first order holds below ~{LINEAR_MAX:.0%} and breaks above it, which is exactly")
-    print(f"     what delta_theta = eps I^-1 v predicts. Extrapolation is safe BELOW the knee only.")
+    print("     what delta_theta = eps I^-1 v predicts. Extrapolation is safe BELOW the knee only.")
 
     extrapolated = slope_low * NGC6383_MEASURED_SUPPRESSION
-    print(f"\nNGC 6383 measured suppression = {NGC6383_MEASURED_SUPPRESSION:.3%}  "
-          f"(inside the linear regime)")
-    print(f"  -> predicted R_c bias = {extrapolated:+.3%}   "
-          f"[global-fit slope would have said {slope_all * NGC6383_MEASURED_SUPPRESSION:+.3%}]")
+    print(
+        f"\nNGC 6383 measured suppression = {NGC6383_MEASURED_SUPPRESSION:.3%}  "
+        f"(inside the linear regime)"
+    )
+    print(
+        f"  -> predicted R_c bias = {extrapolated:+.3%}   "
+        f"[global-fit slope would have said {slope_all * NGC6383_MEASURED_SUPPRESSION:+.3%}]"
+    )
 
     out = Path(__file__).with_name("completeness_bias_scaling.json")
-    out.write_text(json.dumps(dict(
-        truth=TRUE_KING, field_radius=FIELD, n_draw=N_DRAW, levels=rows,
-        linear_regime_max_suppression=LINEAR_MAX,
-        slope_low=slope_low, chi2_per_dof_low=chi2_low / max(dof_low, 1),
-        slope_all=slope_all, chi2_per_dof_all=chi2_all / dof_all,
-        linear_below_knee=bool(chi2_low / max(dof_low, 1) < 3),
-        ngc6383_suppression=NGC6383_MEASURED_SUPPRESSION,
-        ngc6383_predicted_Rc_bias=extrapolated,
-    ), indent=1))
+    out.write_text(
+        json.dumps(
+            dict(
+                truth=TRUE_KING,
+                field_radius=FIELD,
+                n_draw=N_DRAW,
+                levels=rows,
+                linear_regime_max_suppression=LINEAR_MAX,
+                slope_low=slope_low,
+                chi2_per_dof_low=chi2_low / max(dof_low, 1),
+                slope_all=slope_all,
+                chi2_per_dof_all=chi2_all / dof_all,
+                linear_below_knee=bool(chi2_low / max(dof_low, 1) < 3),
+                ngc6383_suppression=NGC6383_MEASURED_SUPPRESSION,
+                ngc6383_predicted_Rc_bias=extrapolated,
+            ),
+            indent=1,
+        )
+    )
     print(f"\nwrote {out}")
 
 
