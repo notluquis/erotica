@@ -13,7 +13,7 @@ from erotica.core.clustering import Clustering
 
 from ._clipping import DEFAULT_MAXITERS as _CLIP_MAXITERS
 from ._clipping import sigma_clip_parallax as _sigma_clip_parallax
-from ._io import load_dataset
+from ._io import _DEPRECATED, _warn_dill_cache, load_dataset
 from ._isochrone import IsochroneFitter
 from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probability_vs_gmag
 from ._sagitta import pms_characterization as _pms_characterization
@@ -33,7 +33,7 @@ class ClusterAnalyzer:
         file_obj,
         *,
         dataloader_kwargs: dict | None = None,
-        dill_cache: bool = True,
+        dill_cache: Any = _DEPRECATED,
         search_method: str = "optuna",
         output_dir: str | None = None,
         verbose: int = logging.INFO,
@@ -62,16 +62,22 @@ class ClusterAnalyzer:
             selection knobs (``systems``, ``include_distances``, ``fidelity``
             and so on). Ignored by the in-memory and ``.dill`` paths, which have
             nothing to load.
-        dill_cache : bool, default True
-            **Write-only caching, and the asymmetry matters.** After reading a
-            non-``.dill`` path this writes a dict payload to the same name with
-            a ``.dill`` suffix -- but nothing reads it back on a later run with
-            the original path, which is re-read from source every time. To use
-            the cache you must pass the ``.dill`` path itself as `file_obj`.
-            Because the auto-written payload is a *dict*, it never carries a
-            clustering run; only a hand-saved ``Clustering`` pickle restores
-            one. Setting this to ``False`` skips the write and leaves
-            ``dill_path`` as ``None``.
+        dill_cache : deprecated
+            **Accepted and ignored; passing it raises ``DeprecationWarning``.**
+            Removed 2026-08-04 because it was never a cache. It wrote a dict
+            payload beside the input with a ``.dill`` suffix, but the read path
+            fired only when the *caller's own* `file_obj` already ended in
+            ``.dill``, so the sidecar it wrote was never consulted and every run
+            re-read the source. Nothing in the package or the test suite ever
+            read the resulting ``dill_path`` attribute, which is also gone.
+
+            It was deleted rather than repaired: a working cache needs an mtime
+            check against the source and a comparison of `dataloader_kwargs`,
+            neither of which exists anywhere here, and without them a stale
+            sidecar silently shadowing an edited catalogue is a worse bug than
+            the redundant read. To load a pickle, pass the ``.dill`` path itself
+            as `file_obj`; to write one, call :func:`dill.dump` yourself, which
+            is what ``tools/validation/ngc6383_radius_robustness.py`` does.
         search_method : str, default "optuna"
             Stored for the :class:`~erotica.core.Clustering` instances this
             object builds on demand, notably in :meth:`clusters_summary` when no
@@ -102,13 +108,13 @@ class ClusterAnalyzer:
         ``self.clustering`` is ``None`` for every input form except a ``.dill``
         holding a pickled ``Clustering``.
         """
+        _warn_dill_cache(dill_cache)
         self.selected_cluster: int | None = None
         self.search_method = search_method
 
         result = load_dataset(
             file_obj,
             dataloader_kwargs=dataloader_kwargs,
-            dill_cache=dill_cache,
             output_dir=output_dir,
             verbose=verbose,
             debug_mode=debug_mode,
@@ -120,7 +126,6 @@ class ClusterAnalyzer:
         self.base_dir = Path(result["base_dir"])
         self.output_dir = Path(result["output_dir"])
         self.source = result["source"]
-        self.dill_path = result["dill_path"]
 
     # ------------------------------------------------------------------
     # Summaries

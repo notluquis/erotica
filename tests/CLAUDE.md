@@ -12,9 +12,28 @@ The strongest ones already here, worth copying:
   the `King(R_t→∞) ≡ EFF(γ=2)` identity to 80 decimal places;
 - a **parameter-free special case** — `fractal_cluster(D=3)` must be a uniform ball, checked as
   Poisson pulls against the exact `r³` law;
-- an **external implementation** — `king_profile` cross-validated against `ocelot`'s `King62`;
+- an **independent published equation** — `king_profile` integrated by `scipy.integrate.quad` against
+  King (1962) **Eq. (18)**, the cumulative count, derived by hand in `_king_eq18_count` rather than
+  imported. Different algebra, so it catches a wrong prefactor, a wrong exponent *and* a wrong
+  truncation. Always runs;
+- an **external implementation** — `king_profile` against `ocelot`'s `king_surface_density`
+  (`test_king_profile_matches_ocelot_king62`). Read its strength correctly: ocelot evaluates the
+  **same algebraic form**, so it pins transcription and truncation, not the shape of the model —
+  which is why the Eq. (18) check above exists alongside it. **`ocelot` is not a declared dependency
+  of this project**, so the test is `importorskip`-gated and does *not* run in a clean checkout;
+  `pip install --no-deps ocelot` enables it;
 - a **monotonicity that cannot be faked** — a tighter σ-clip can never keep more sources, and its
   selection must be a *subset* of the looser one.
+
+> **The ocelot bullet was aspirational until 2026-08-04; the Eq. (18) bullet above it is new.**
+> This file claimed the ocelot cross-validation as an existing strength of the suite;
+> `grep -rn "ocelot\|King62" tests/` returned only this sentence. `King62` truncates at `R_t` and
+> `king_profile` did not, so the advertised oracle would have caught that defect on day one. Instead
+> an un-truncated King profile shipped — climbing back to half its central value at large radius —
+> and was used as the data generator for the test that makes the published NGC 6383 corona
+> interpretation falsifiable, where **69.4% of the injected stars came from the spurious tail**.
+> **Do not describe an oracle here before the test exists**; a claimed oracle is worse than an
+> admitted gap, because it stops anyone from writing the real one.
 
 ## The four ways tests here have failed to bite
 

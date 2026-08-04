@@ -455,8 +455,12 @@ def radial_density_profile(
 def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=0.0, amplitude=1.0):
     r"""Projected King profile shape, plus an additive ``background``.
 
-    .. math:: \Sigma(r) = k\left[\frac{1}{\sqrt{1+(r/r_c)^2}}
-                               - \frac{1}{\sqrt{1+(r_t/r_c)^2}}\right]^2 + b
+    .. math:: \Sigma(r) = \begin{cases}
+                  k\left[\frac{1}{\sqrt{1+(r/r_c)^2}}
+                       - \frac{1}{\sqrt{1+(r_t/r_c)^2}}\right]^2 + b
+                  & r \le r_t \\
+                  b & r > r_t
+              \end{cases}
 
     .. important::
        **The** ``+ b`` **is not King's.** King (1962, AJ 67, 471) Eq. (14) is the bracket
@@ -500,10 +504,17 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
         positionally); ``None`` raises ``TypeError``.
     tidal_radius : float or Quantity
         :math:`r_t`, in arcmin when a plain float. Required on the same terms.
-        Note the profile is **not** clipped to zero beyond :math:`r_t` here --
-        the bracket goes negative and the square makes it rise again, so this
-        function only describes the model inside :math:`r_t`. The normalisation
-        in :func:`king_expected_count` does the truncation.
+        The cluster term is **truncated** at :math:`r_t`: beyond it the return
+        value is the background `b` alone, not zero and not a continuation of
+        the formula. Evaluating the bracket past :math:`r_t` would send it
+        negative and the square would make the profile *rise* again -- with
+        ``rc=5, rt=20, k=1`` the untruncated expression gives 0.0206 at
+        :math:`r = 50` against 0.0419 at :math:`r = 10`, i.e. half the central
+        shape re-appearing outside the cluster. The truncation here matches
+        :func:`_king_model`, :func:`_king_corona_model` and
+        :func:`RDP_bayesian`, which all switch to `b` at :math:`r > R_t`, and
+        the normalisation in :func:`king_expected_count`, which caps the
+        cluster term at :math:`\min(R_t, R_f)`.
     background : float, default 0.0
         The additive :math:`b`, in the same surface-density units as
         `amplitude`. See the warning above: on a membership-selected sample this
@@ -515,9 +526,10 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
     Returns
     -------
     ndarray
-        :math:`\Sigma(r)`, same shape as `radius`. Dimensionless with the
-        default `amplitude` and `background`; otherwise it carries whatever
-        units those two were given, since they are applied without conversion.
+        :math:`\Sigma(r)`, same shape as `radius`, equal to `background` for
+        :math:`r > r_t`. Dimensionless with the default `amplitude` and
+        `background`; otherwise it carries whatever units those two were given,
+        since they are applied without conversion.
 
     Raises
     ------
@@ -547,7 +559,15 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
         raise TypeError("core_radius and tidal_radius are required.")
     rc = core_radius.to(u.arcmin).value if hasattr(core_radius, "to") else float(core_radius)
     rt = tidal_radius.to(u.arcmin).value if hasattr(tidal_radius, "to") else float(tidal_radius)
-    profile = (1 / np.sqrt(1 + (r / rc) ** 2) - 1 / np.sqrt(1 + (rt / rc) ** 2)) ** 2
+    # The truncation is not cosmetic: past r_t the bracket goes negative and the square
+    # sends the profile back UP, so an untruncated evaluation puts more light at 50' than
+    # at 10' for rc=5, rt=20. `np.where` here is the same switch _king_model,
+    # _king_corona_model and RDP_bayesian already apply, and the value outside is `b`, not
+    # zero -- the background does not stop at the tidal radius.
+    bracket = 1 / np.sqrt(1 + (r / rc) ** 2) - 1 / np.sqrt(1 + (rt / rc) ** 2)
+    # `[()]` keeps a scalar input returning a scalar, as it did before the truncation
+    # was added; np.where would otherwise hand back a 0-d array.
+    profile = np.where(r <= rt, bracket**2, 0.0)[()]
     return amplitude * profile + background
 
 
@@ -1019,12 +1039,15 @@ def eff_surface_density(radius, *, k, b, a, gamma):
     b : float
         Additive background, same units as `k`. The caveats in
         :func:`king_profile` about what ``b`` is *not* apply here too.
-    a : float
-        Scale radius :math:`a`, **in arcmin, as a plain number**. Unlike
-        `radius` this argument is *not* unit-aware: passing a Quantity raises
-        :class:`~astropy.units.UnitConversionError` when the background is
-        added, because `radius` has already been stripped to a bare array. The
-        asymmetry is easy to trip over -- give `a` as a float.
+    a : float or Quantity
+        Scale radius :math:`a`, in arcmin when a plain number; a Quantity is
+        **converted**, on the same convention as `radius` and as
+        :func:`king_profile` applies to `core_radius` and `tidal_radius`.
+        (Before 2026-08-04 this argument was not unit-aware and a Quantity
+        raised :class:`~astropy.units.UnitConversionError` -- at ``1.0 +
+        (r/a)**2``, the *first* addition, because `radius` had already been
+        stripped to a bare array, so it failed for any angular unit even with
+        ``b = 0``. The docstring blamed the ``+ b`` and was wrong about it.)
     gamma : float
         Power-law slope :math:`\gamma`. The projected density falls as
         :math:`r^{-\gamma}` at large radius. ``gamma=4`` is the Plummer profile.
@@ -1041,6 +1064,10 @@ def eff_surface_density(radius, *, k, b, a, gamma):
     :func:`eff_expected_count` always takes a `field_radius`.
     """
     r = quantity_values(radius, u.arcmin)
+    # Same two-line convention as king_profile's rc/rt: convert a Quantity, take a
+    # plain number as arcmin. Without it `r / a` carries 1/arcmin and the failure is
+    # at `1.0 + (r/a)**2`, before `b` is ever reached.
+    a = a.to(u.arcmin).value if hasattr(a, "to") else float(a)
     return k * (1.0 + (r / a) ** 2) ** (-gamma / 2.0) + b
 
 
@@ -1296,13 +1323,21 @@ def corona_surface_density(radius, *, delta_f, R_2):
     ----------
     delta_f : float or tensor
         Space density of the corona, in stars per unit volume.
-    R_2 : float or tensor
-        Corona radius, same units as `radius`.
+    R_2 : float or Quantity
+        Corona radius, in arcmin when a plain number; a Quantity is
+        **converted**, on the same convention as `radius`. (Before 2026-08-04
+        this argument was not unit-aware and a Quantity raised
+        :class:`~astropy.units.UnitConversionError` inside
+        ``np.maximum(R_2**2 - r**2, 0.0)``, because `radius` had already been
+        stripped to a bare array -- the identical defect
+        :func:`eff_surface_density` carried on ``a``.)
     """
     # Explicit unit: quantity_values(x) with no target strips whatever unit x carries.
     # Passing degrees where arcmin is meant returns silently wrong values -- measured, a
     # 480x error at r = 20. Plain arrays pass through unchanged and are taken as arcmin.
     r = quantity_values(radius, u.arcmin)
+    # Same two-line convention as king_profile's rc/rt.
+    R_2 = R_2.to(u.arcmin).value if hasattr(R_2, "to") else float(R_2)
     # The clamp at zero *is* the truncation: beyond R_2 the radicand is negative,
     # so clipping it sends the density to zero. An explicit `np.where(r < R_2, ...)`
     # on top is dead code that reads as if it were doing the work.

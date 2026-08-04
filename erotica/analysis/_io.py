@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,33 @@ from astropy.table import QTable, Table
 from erotica.core.clustering import Clustering
 from erotica.io._helpers import apply_unit_corrections, handle_masked_columns
 from erotica.io.loader import DataLoader
+
+#: Sentinel distinguishing "the caller passed ``dill_cache``" from "they did not".
+#: A plain ``False`` default cannot do that, and ``dill_cache=False`` was the one
+#: value that used to *avoid* the write, so it has to warn as well.
+_DEPRECATED = object()
+
+_DILL_CACHE_REMOVED = (
+    "dill_cache is deprecated and has no effect. It was never a cache: the sidecar "
+    "was written to <input>.dill but only read back when the CALLER's own path "
+    "already ended in .dill, so it never shortened a load. Reinstating it would "
+    "need an mtime check and a dataloader_kwargs comparison that never existed -- "
+    "and a stale sidecar silently shadowing an edited source file is a worse "
+    "failure than the redundant read it would save. To load a pickle, pass the "
+    ".dill path itself as file_obj; to write one, call dill.dump."
+)
+
+
+def _warn_dill_cache(value: Any) -> None:
+    """Emit the deprecation for the removed ``dill_cache`` keyword.
+
+    :class:`~erotica.analysis.ClusterAnalyzer` is public API in a released v0.1.0,
+    so the keyword is still accepted; it is a no-op. Staying silent would be worse
+    than warning, because a caller who passed ``dill_cache=True`` believed a file
+    was being written and may be relying on it existing.
+    """
+    if value is not _DEPRECATED:
+        warnings.warn(_DILL_CACHE_REMOVED, DeprecationWarning, stacklevel=3)
 
 
 @contextmanager
@@ -49,19 +77,27 @@ def load_dataset(
     file_obj: Any,
     *,
     dataloader_kwargs: dict | None = None,
-    dill_cache: bool = True,
+    dill_cache: Any = _DEPRECATED,
     output_dir: str | None = None,
     verbose: int = logging.INFO,
     debug_mode: bool = False,
 ):
-    """Load input data for :class:`ClusterAnalyzer` from a path or in-memory object."""
+    """Load input data for :class:`ClusterAnalyzer` from a path or in-memory object.
+
+    Parameters
+    ----------
+    dill_cache : deprecated
+        Accepted and ignored; passing it raises :class:`DeprecationWarning`. See
+        :func:`_warn_dill_cache` for why the feature was removed rather than
+        repaired.
+    """
+    _warn_dill_cache(dill_cache)
     dataloader_kwargs = dataloader_kwargs or {}
 
     if isinstance(file_obj, str):
         return _load_from_path(
             file_obj,
             dataloader_kwargs=dataloader_kwargs,
-            dill_cache=dill_cache,
             output_dir=output_dir,
             verbose=verbose,
             debug_mode=debug_mode,
@@ -96,7 +132,6 @@ def _load_from_path(
     path_like: str,
     *,
     dataloader_kwargs: dict,
-    dill_cache: bool,
     output_dir: str | None,
     verbose: int,
     debug_mode: bool,
@@ -154,22 +189,11 @@ def _load_from_path(
             "base_dir": base_dir,
             "output_dir": out_dir,
             "source": str(path),
-            "dill_path": path,
         }
 
     # Fallback: regular file to be read by DataLoader
     loader = DataLoader(str(path), verbose=verbose, debug_mode=debug_mode)
     data = loader.load_data(**dataloader_kwargs)
-    dill_path = path.with_suffix(".dill")
-    if dill_cache and path.suffix.lower() != ".dill":
-        payload = {
-            "data": data,
-            "source": str(path),
-            "loader_kwargs": dataloader_kwargs,
-        }
-        with dill_path.open("wb") as handle:
-            dill.dump(payload, handle, protocol=dill.HIGHEST_PROTOCOL)
-
     return {
         "data": data,
         "loader": loader,
@@ -177,7 +201,6 @@ def _load_from_path(
         "base_dir": base_dir,
         "output_dir": out_dir,
         "source": str(path),
-        "dill_path": dill_path if dill_cache else None,
     }
 
 
@@ -205,7 +228,6 @@ def _load_from_table(
         "base_dir": base_dir,
         "output_dir": out_dir,
         "source": source,
-        "dill_path": None,
     }
 
 

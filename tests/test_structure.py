@@ -187,6 +187,191 @@ def test_background_only_normalisation_is_the_disc_area():
     assert got == pytest.approx(0.3 * np.pi * 70.0**2)
 
 
+# ---------------------------------------------------------------------------
+# king_profile against external / form-independent oracles -- Defect 1.
+#
+# ``tests/CLAUDE.md`` advertised "king_profile cross-validated against ocelot's
+# King62" as one of the strongest oracles in this suite. It did not exist, and
+# King62 truncates, so it would have caught on day one the defect fixed on
+# 2026-08-04: king_profile evaluated the King (1962) Eq. (14) bracket at every
+# radius, so past R_t the bracket went NEGATIVE and the square sent the profile
+# back UP -- with rc=5, rt=20, k=1 it returned 0.0 at r=20 and then 0.0061 /
+# 0.0205 / 0.0371 / 0.0564 at r = 30 / 50 / 100 / 1000, i.e. more surface density
+# at 1000' than at 1.35 core radii.
+#
+# Two oracles are used, and they are not equally strong:
+#
+#  * ``_king_eq18_count`` below is King (1962) Eq. (18), the *cumulative* count.
+#    It is a DIFFERENT published equation with different algebra, derived here in
+#    its docstring from Eq. (14) by hand, and it is compared against numerical
+#    quadrature of the shipped ``king_profile``. Form-independent: a wrong
+#    prefactor, a wrong truncation, or a wrong exponent all break it. It needs
+#    nothing beyond scipy and therefore ALWAYS RUNS.
+#  * ocelot's ``king_surface_density`` is an independent *implementation* but the
+#    SAME algebraic form, so pointwise agreement tests transcription and
+#    truncation, not the shape of the model. ocelot is not in this project's
+#    declared dependencies, so that test is OPT-IN (``importorskip``).
+# ---------------------------------------------------------------------------
+
+
+def _king_eq18_count(radius, r_core, r_tidal, k=1.0):
+    r"""Enclosed King (1962) count, Eq. (18), derived here from Eq. (14).
+
+    This is an oracle, so it is derived rather than imported. Writing
+    :math:`x = (r/r_c)^2` and :math:`x_t = (r_t/r_c)^2`, Eq. (14) expands to
+
+    .. math::
+        \Sigma(r)/k = \frac{1}{1+x} - \frac{2}{\sqrt{(1+x)(1+x_t)}}
+                      + \frac{1}{1+x_t},
+
+    and with :math:`r\,dr = \tfrac{1}{2}r_c^2\,dx` the enclosed count
+    :math:`N(<R) = \int_0^R 2\pi r\,\Sigma(r)\,dr` integrates term by term to
+
+    .. math::
+        N(<R) = \pi k r_c^2\left[\ln(1+X)
+                - \frac{4\left(\sqrt{1+X}-1\right)}{\sqrt{1+x_t}}
+                + \frac{X}{1+x_t}\right],\qquad X = (R/r_c)^2,
+
+    which is King's Eq. (18). Valid for :math:`R \le r_t`; beyond the tidal
+    radius the cluster term contributes nothing more, so the caller must clamp
+    ``radius`` at ``r_tidal`` -- that clamp is exactly the behaviour under test.
+    """
+    x = (np.asarray(radius, dtype=float) / r_core) ** 2
+    x_t = (r_tidal / r_core) ** 2
+    return (
+        np.pi
+        * k
+        * r_core**2
+        * (np.log1p(x) - 4.0 * (np.sqrt(1.0 + x) - 1.0) / np.sqrt(1.0 + x_t) + x / (1.0 + x_t))
+    )
+
+
+@pytest.mark.parametrize(
+    "r_core, r_tidal, k",
+    [
+        (5.0, 20.0, 1.0),  # the configuration in which the defect was measured
+        (4.0, 30.0, 6.0),  # the NGC 6383-like regime
+        (0.7, 55.0, 20.0),  # tiny core, high concentration
+        (12.0, 14.0, 3.3),  # core comparable to R_t
+    ],
+)
+def test_king_profile_integrates_to_king_eq18(r_core, r_tidal, k):
+    """Form-independent oracle: King (1962) Eq. (18) against quadrature of Eq. (14).
+
+    Eq. (18) is a separate published result, re-derived in ``_king_eq18_count``'s
+    docstring rather than copied from the code under test, so agreement is evidence
+    about the *model*, not about a shared expression. The radii deliberately straddle
+    ``r_tidal``: past it the enclosed count must stop growing, because the cluster is
+    over. The pre-2026-08-04 ``king_profile`` failed exactly there -- its spurious
+    rising tail kept adding stars, by a factor 27 of the true cluster count at
+    ``R = 20 r_t``.
+
+    An absolute-count comparison also pins the prefactor, which a ratio-only oracle
+    would let float (failure mode 1 in ``tests/CLAUDE.md``).
+    """
+    quad = pytest.importorskip("scipy.integrate").quad
+
+    def integrand(r):
+        sigma = king_profile(
+            r, core_radius=r_core, tidal_radius=r_tidal, amplitude=k, background=0.0
+        )
+        return 2.0 * np.pi * r * sigma
+
+    for radius in (0.5 * r_core, r_core, 0.5 * r_tidal, r_tidal, 1.5 * r_tidal, 20.0 * r_tidal):
+        numeric = quad(integrand, 0.0, radius, limit=400)[0]
+        expected = _king_eq18_count(min(radius, r_tidal), r_core, r_tidal, k)
+        assert numeric == pytest.approx(expected, rel=1e-8), (
+            f"R={radius}: quadrature {numeric:.6f} vs King Eq. (18) {expected:.6f}"
+        )
+
+
+def test_king_profile_and_king_expected_count_describe_the_same_model():
+    """The profile and its normalisation must be the same object.
+
+    ``king_expected_count`` was always correct -- it caps the cluster term at
+    ``min(R_t, R_f)`` and is checked against ``scipy.integrate.quad`` to 1e-9 above.
+    ``king_profile`` was not. Nothing in the suite compared them, so the package
+    shipped a plotted profile and a fitted normalisation that were different models,
+    and the discrepancy grew with field radius (a factor 2.5 in total count at
+    ``R_f = 3.5 r_t``). This is the assertion that ties them together.
+    """
+    quad = pytest.importorskip("scipy.integrate").quad
+    k, b, r_core, r_tidal = 6.0, 0.05, 4.0, 30.0
+
+    def integrand(r):
+        sigma = king_profile(r, core_radius=r_core, tidal_radius=r_tidal, amplitude=k, background=b)
+        return 2.0 * np.pi * r * sigma
+
+    for field in (10.0, 30.0, 70.0, 105.0):
+        numeric = quad(integrand, 0.0, field, limit=400)[0]
+        assert numeric == pytest.approx(
+            king_expected_count(k, b, r_core, r_tidal, field), rel=1e-8
+        ), f"field={field}"
+
+
+def test_king_profile_equals_the_background_beyond_the_tidal_radius():
+    """Beyond R_t the cluster is gone but the background is not.
+
+    The value outside is ``b``, not zero: the four in-package King implementations
+    (``_king_model``, ``_king_corona_model``, ``RDP_bayesian`` and the ``_king_sigma``
+    oracle at the top of this file) all switch to ``b`` there, and
+    ``king_expected_count`` adds ``b * pi * R_f^2`` over the whole field rather than
+    over the disc of radius ``R_t``. A truncation to zero would be a different model
+    and would break the normalisation just as the rising tail did.
+    """
+    r = np.array([10.0, 20.0, 30.0, 50.0, 100.0, 1000.0])
+    for b in (0.0, 0.5):
+        got = king_profile(r, core_radius=5.0, tidal_radius=20.0, amplitude=1.0, background=b)
+        np.testing.assert_allclose(got[1:], b, rtol=0, atol=0)
+        assert got[0] > b  # and inside R_t the cluster is still there
+        # The profile must never rise with radius; the defect made it do exactly that.
+        assert np.all(np.diff(got) <= 0)
+
+
+def test_king_profile_matches_ocelot_king62():
+    """External implementation: ``ocelot.model.distribution.king62``.
+
+    ocelot (Jeff Jackson / Emily Hunt, `github.com/emilyhunt/ocelot`) implements King
+    (1962) independently and truncates -- ``result[radius >= r_tidal] = 0``. It is the
+    oracle ``tests/CLAUDE.md`` claimed this suite already had; it did not, and the
+    absence is what let the un-truncated profile ship.
+
+    **Read the strength of this oracle correctly.** ocelot's
+    ``king_surface_density`` evaluates the same algebraic expression as
+    ``king_profile``, so this is an independent *implementation*, not an independent
+    *form*: it pins transcription and truncation. The form-independent check is
+    ``test_king_profile_integrates_to_king_eq18``, which uses a different published
+    equation. Also note ocelot has **no background term** -- King's Eq. (14) has none
+    (see the ``.. important::`` block on ``king_profile``) -- so ``b`` is subtracted
+    before comparing, and ocelot's strict ``radius < r_tidal`` versus this package's
+    ``r <= R_t`` is why the comparison is made with the bracket, which vanishes at
+    ``r = r_tidal`` either way.
+
+    ocelot is NOT a declared dependency of this project, so this test is opt-in;
+    install it with ``pip install --no-deps ocelot`` (its King62 module needs only
+    numpy/numba/scipy/astropy).
+    """
+    king62 = pytest.importorskip("ocelot.model.distribution.king62")
+
+    r = np.concatenate([np.linspace(0.0, 19.9, 60), np.array([20.0, 20.1, 30.0, 50.0, 1000.0])])
+    for k, b, r_core, r_tidal in ((1.0, 0.0, 5.0, 20.0), (6.0, 0.05, 4.0, 30.0)):
+        r_here = r * (r_tidal / 20.0)
+        mine = king_profile(
+            r_here, core_radius=r_core, tidal_radius=r_tidal, amplitude=k, background=b
+        )
+        theirs = king62.king_surface_density(r_here, r_core, r_tidal, k=k)
+        np.testing.assert_allclose(mine - b, theirs, rtol=1e-12, atol=1e-15)
+
+    # And ocelot's Eq. (18) confirms the by-hand derivation in `_king_eq18_count`,
+    # which is what the always-running test above is measured against.
+    radii = np.linspace(0.1, 30.0, 25)
+    np.testing.assert_allclose(
+        _king_eq18_count(radii, 4.0, 30.0, 6.0),
+        king62.king_number_density(radii, 4.0, 30.0, k=6.0),
+        rtol=1e-12,
+    )
+
+
 @requires_bayes_extra
 def test_unbinned_fit_recovers_injected_parameters():
     """Oracle: the parameters the test injected, plus the PART A convergence floor."""
@@ -736,19 +921,57 @@ def test_bayes_factor_finds_a_corona_that_fits_inside_the_field():
     (``2 ln B = -2.27``). That was read as "the footprint does not contain the
     object" rather than "the corona model does not work" -- and the reading is only
     legitimate if the model *can* be distinguished when the corona is small enough
-    to be seen whole. So: inject a corona at ``R_2 = 20'`` in a 70' field and require
+    to be seen whole. So: inject a corona at ``R_2 = 35'`` in a 70' field and require
     the comparison to prefer it over King + flat background.
 
     Without this test the NGC 6383 interpretation is unfalsifiable.
+
+    .. warning::
+       **Until 2026-08-04 this test ran on a generator that was not the model it
+       names.** ``king_profile`` did not truncate at :math:`R_t`, so past 10' its
+       bracket went negative and the square sent the cluster term back *up*: the
+       injected sample held 3847 stars of which **2668 (69.4%) came from that
+       spurious rising tail**, and every star beyond ``R_2 = 35'`` -- the region the
+       corona model says must be empty -- was an artefact. Failure mode (A) in
+       ``~/phd/methodology.md`` PART K: a generator producing something other than
+       its label.
+
+       The fix truncates the generator, and the normalisations below are then
+       **rescaled by a derived factor, not a tuned one**, so the thresholds are not
+       silently re-baselined on a 3x smaller sample. See ``SCALE``.
+
+       Measured on the corrected generator: 3903 stars injected (3847 before), all
+       of them inside ``R_2``, 3134 of them in the diagnostic annulus
+       :math:`(R_t, R_2) = (10', 35')` against 3096 predicted by
+       ``corona_expected_count``. The verdict is ``2 ln B = -894`` against King +
+       flat background, i.e. the assertion below clears its ``-6`` floor by two
+       orders of magnitude -- and it does so *because* the footprint now contains a
+       hard outer edge at :math:`R_2` that a flat background cannot produce, which
+       is the identifiability claim the test exists to make.
     """
-    from erotica.analysis.structure import corona_surface_density, king_profile
+    from erotica.analysis.structure import (
+        corona_expected_count,
+        corona_surface_density,
+        king_expected_count,
+        king_profile,
+    )
 
     # The corona must extend BEYOND the tidal radius -- that is what a corona is, and
     # it is also the only configuration in which the model is identifiable. Nested
     # inside R_t (the first attempt used R_2 = 20 < R_t = 30) the corona is absorbed
     # by a slightly different King and the comparison correctly prefers King.
-    king_truth = {"k": 8.0, "b": 0.0, "R_c": 2.0, "R_t": 10.0}
-    delta_f, R_2 = 0.006, 35.0
+    #
+    # SCALE is computed, not chosen. The pre-truncation generator emitted
+    #   king_expected_count-with-no-cutoff (2769) + corona (1078) = 3847 stars;
+    # the same parameters through the truncated generator emit
+    #   101 + 1078 = 1178. SCALE = 3847 / 1178 = 3.265 restores the sample size the
+    # SMC thresholds below were established at, applied to BOTH normalisations so the
+    # King:corona ratio and every shape parameter (R_c, R_t, R_2) are untouched. The
+    # radial *shape* of the injection is therefore exactly the intended model; only
+    # the number of stars drawn from it changes.
+    SCALE = 3.265
+    king_truth = {"k": 8.0 * SCALE, "b": 0.0, "R_c": 2.0, "R_t": 10.0}
+    delta_f, R_2 = 0.006 * SCALE, 35.0
 
     def surface(r):
         return king_profile(
@@ -760,6 +983,29 @@ def test_bayes_factor_finds_a_corona_that_fits_inside_the_field():
         ) + corona_surface_density(r, delta_f=delta_f, R_2=R_2)
 
     data = _sample_profile(77, surface)
+
+    # Guard the generator before trusting the verdict, because the verdict is only
+    # meaningful if the data are what the docstring says. Both of these fail
+    # immediately if the truncation regresses, and neither costs a sampler run.
+    assert data.max() <= R_2, (
+        f"stars injected beyond the corona radius R_2={R_2}: max r = {data.max():.2f}. "
+        "The generator is not the model -- king_profile is not truncating at R_t."
+    )
+    # The discriminating population: the annulus (R_t, R_2) holds stars that the
+    # King term cannot reach at all, and the region beyond R_2 must be empty, which
+    # is what a flat background cannot reproduce.
+    n_annulus = int(np.sum((data > king_truth["R_t"]) & (data <= R_2)))
+    expected_annulus = corona_expected_count(delta_f, R_2, R_2) - corona_expected_count(
+        delta_f, R_2, king_truth["R_t"]
+    )
+    assert n_annulus == pytest.approx(expected_annulus, rel=0.1), (
+        f"corona annulus population {n_annulus} vs expected {expected_annulus:.0f}"
+    )
+    args = (king_truth["k"], king_truth["b"], king_truth["R_c"], king_truth["R_t"])
+    assert king_expected_count(*args, R_2) == pytest.approx(king_expected_count(*args, FIELD)), (
+        "the King term must contribute nothing outside R_t, or the annulus is not diagnostic"
+    )
+
     # SMC needs the draws here: the corona model has a genuine k <-> delta_f degeneracy
     # and at 1000 draws the evidence scatter swamped the verdict.
     res = compare_radial_profiles(
@@ -842,6 +1088,50 @@ def test_corona_respects_the_unit_of_the_radius():
     np.testing.assert_allclose(
         np.asarray(corona_surface_density(r, delta_f=0.02, R_2=40.0)),
         np.asarray(corona_surface_density(r.to(u.deg), delta_f=0.02, R_2=40.0)),
+        rtol=1e-12,
+    )
+
+
+@pytest.mark.parametrize(
+    "func, float_kwargs, quantity_kwargs",
+    [
+        (
+            king_profile,
+            dict(core_radius=1.38, tidal_radius=54.0),
+            dict(core_radius=1.38 * u.arcmin, tidal_radius=0.9 * u.deg),
+        ),
+        (
+            eff_surface_density,
+            dict(k=1.0, b=0.0, a=1.65, gamma=2.32),
+            dict(k=1.0, b=0.0, a=99.0 * u.arcsec, gamma=2.32),
+        ),
+        (
+            corona_surface_density,
+            dict(delta_f=0.02, R_2=40.0),
+            dict(delta_f=0.02, R_2=(40.0 * u.arcmin).to(u.deg)),
+        ),
+    ],
+)
+def test_profiles_accept_a_quantity_scale_radius(func, float_kwargs, quantity_kwargs):
+    """The *scale* arguments must obey the same unit convention as ``radius``.
+
+    Oracle: the physically identical parameter expressed in a different angular unit
+    (54' = 0.9 deg, 1.65' = 99", 40' = 2/3 deg) must give the identical profile. That is
+    parameter-free -- no tolerance is chosen against a fitted number, and the equality
+    holds to machine precision or the conversion is wrong.
+
+    Until 2026-08-04 only ``king_profile`` honoured it. ``eff_surface_density(a=...)``
+    and ``corona_surface_density(R_2=...)`` raised
+    :class:`~astropy.units.UnitConversionError` for **any** angular unit, because
+    ``radius`` had already been stripped to a bare array by ``quantity_values`` and the
+    ratio then carried a stray ``1/arcmin``. Note ``b = 0`` in the EFF case: the failure
+    was at ``1.0 + (r/a)**2``, the first addition, not at the ``+ b`` the old docstring
+    blamed, so a zero background did not avoid it.
+    """
+    r = np.array([1.0, 5.0, 20.0]) * u.arcmin
+    np.testing.assert_allclose(
+        np.asarray(func(r, **quantity_kwargs)),
+        np.asarray(func(r, **float_kwargs)),
         rtol=1e-12,
     )
 

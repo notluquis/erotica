@@ -82,9 +82,7 @@ def test_cluster_mass_matches_the_hand_computed_chain():
     """Oracle: the full magnitude -> mass chain, recomputed in the test."""
     mags = np.array([9.0, 12.0, 15.0, 18.0])
     distance = 1.11 * u.kpc
-    expected = np.sum(
-        (10 ** ((SOLAR_MAG - (mags - 5 * np.log10(1110.0 / 10))) / 2.5)) ** (1 / 3.5)
-    )
+    expected = np.sum((10 ** ((SOLAR_MAG - (mags - 5 * np.log10(1110.0 / 10))) / 2.5)) ** (1 / 3.5))
     got = estimate_cluster_mass(mags, distance)
     assert got.to_value(u.Msun) == pytest.approx(expected)
 
@@ -124,8 +122,8 @@ def test_cluster_mass_accepts_a_table_and_requires_gmag():
 def _synthetic_isochrone(n=200):
     """A monotonic CMD track with a known mass at every point."""
     mass = np.linspace(0.2, 8.0, n)
-    mag = 14.0 - 2.5 * np.log10(mass**3.5)     # brighter for heavier
-    color = 1.6 - 0.15 * mass                   # bluer for heavier
+    mag = 14.0 - 2.5 * np.log10(mass**3.5)  # brighter for heavier
+    color = 1.6 - 0.15 * mass  # bluer for heavier
     return mag, color, mass
 
 
@@ -133,11 +131,13 @@ def test_nearest_isochrone_point_recovers_the_injected_mass():
     """Oracle: stars placed exactly on the track must get their own mass back."""
     mag, color, mass = _synthetic_isochrone()
     pick = np.array([10, 60, 120, 199])
-    stars = QTable({
-        "designation": np.arange(pick.size),
-        "Gmag": mag[pick] * u.mag,
-        "BP_RP": color[pick] * u.mag,
-    })
+    stars = QTable(
+        {
+            "designation": np.arange(pick.size),
+            "Gmag": mag[pick] * u.mag,
+            "BP_RP": color[pick] * u.mag,
+        }
+    )
     out = assign_mass_nearest_isochrone_point_kdtree(stars, (mag, color, mass))
     np.testing.assert_allclose(out["mass"].to_value(u.Msun), mass[pick], rtol=1e-10)
 
@@ -145,7 +145,7 @@ def test_nearest_isochrone_point_recovers_the_injected_mass():
 def test_assign_masses_averages_the_k_nearest_and_reports_a_spread():
     """k=1 must be exact; k>1 must be close but carry a non-zero spread."""
     mag, color, mass = _synthetic_isochrone()
-    iso = [(mag, color, np.zeros_like(mass), mass)]   # legacy 4-column layout
+    iso = [(mag, color, np.zeros_like(mass), mass)]  # legacy 4-column layout
     pick = np.array([40, 100, 150])
 
     exact = assign_masses(iso, mag[pick], color[pick], np.arange(pick.size), k=1)
@@ -153,9 +153,7 @@ def test_assign_masses_averages_the_k_nearest_and_reports_a_spread():
     assert np.all(exact["mass_std"].to_value(u.Msun) == 0.0)
 
     smoothed = assign_masses(iso, mag[pick], color[pick], np.arange(pick.size), k=5)
-    np.testing.assert_allclose(
-        smoothed["mass"].to_value(u.Msun), mass[pick], rtol=0.05
-    )
+    np.testing.assert_allclose(smoothed["mass"].to_value(u.Msun), mass[pick], rtol=0.05)
     assert np.all(smoothed["mass_std"].to_value(u.Msun) > 0.0)
 
 
@@ -173,6 +171,126 @@ def test_assign_masses_drops_non_finite_isochrone_points():
     out = assign_masses(iso, np.array([mag[20]]), np.array([color[20]]), [0], k=1)
     assert np.isfinite(out["mass"].to_value(u.Msun)).all()
     assert out["mass"].to_value(u.Msun)[0] == pytest.approx(mass[20], rel=1e-10)
+
+
+# ---------------------------------------------------------------------------
+# PhotometricMassEstimator -- Defect 5.
+#
+# Until 2026-08-04 the two ``assign*`` methods of this one class had
+# incompatible contracts: ``assign_from_samples`` took three positional ARRAYS,
+# used ``self.k``, returned ``mass_std`` and hardcoded its id column to
+# ``source_id``; ``assign_nearest`` took a QTable plus column-NAME strings,
+# ignored ``self.k``, returned no ``mass_std`` and named its id column after
+# ``designation_column``. ``color_column`` meant an array in one and a string in
+# the other, and the constructor accepted either isochrone layout while checking
+# neither, so the wrong one surfaced inside a KDTree query.
+#
+# ``assign_nearest`` had zero callers and zero tests, so it was moved onto
+# ``assign_from_samples``' contract. The oracle below is the same one used for
+# the free functions: stars placed exactly on a synthetic track must get their
+# own injected mass back, whichever method assigns it.
+# ---------------------------------------------------------------------------
+
+
+def test_both_assign_methods_share_one_contract():
+    """Oracle: the injected mass, recovered through both entry points.
+
+    Same call signature, same output schema, same numbers on stars that sit exactly
+    on the track -- that is what makes the two interchangeable downstream, and it is
+    the property that did not hold before. The comparison is between the two methods
+    AND against the injected truth, so a change that broke both consistently would
+    still be caught.
+    """
+    from erotica.analysis.photometry import PhotometricMassEstimator
+
+    mag, color, mass = _synthetic_isochrone()
+    pick = np.array([10, 60, 120, 199])
+    ids = np.array([11, 22, 33, 44])
+
+    single = PhotometricMassEstimator((mag, color, mass))
+    sampled = PhotometricMassEstimator([(mag, color, np.zeros_like(mass), mass)], k=1)
+    assert single.isochrone_form == "single"
+    assert sampled.isochrone_form == "samples"
+
+    from_nearest = single.assign_nearest(mag[pick], color[pick], ids)
+    from_samples = sampled.assign_from_samples(mag[pick], color[pick], ids)
+
+    assert from_nearest.colnames == from_samples.colnames == ["source_id", "mass", "mass_std"]
+    for table in (from_nearest, from_samples):
+        np.testing.assert_array_equal(np.asarray(table["source_id"]), ids)
+        assert table["mass"].unit == u.Msun
+        assert table["mass_std"].unit == u.Msun
+        np.testing.assert_allclose(table["mass"].to_value(u.Msun), mass[pick], rtol=1e-10)
+
+
+def test_nearest_reports_nan_spread_and_k_equals_one_reports_zero():
+    """A single nearest point has no spread; ``k = 1`` over samples has a real zero.
+
+    The distinction is the whole reason ``mass_std`` may not be 0.0 in both cases.
+    ``assign_from_samples(k=1)`` averages one point drawn from a *set* of sampled
+    isochrones, so zero scatter is a measurement. ``assign_nearest`` has no set to
+    scatter over, so 0.0 would assert that the mass is known exactly -- the opposite
+    of the truth. NaN says "unmeasured", and aggregations that use ``nan``-aware
+    reductions will skip it instead of being dragged towards zero.
+    """
+    from erotica.analysis.photometry import PhotometricMassEstimator
+
+    mag, color, mass = _synthetic_isochrone()
+    pick = np.array([10, 60, 120])
+    ids = np.arange(pick.size)
+
+    nearest = PhotometricMassEstimator((mag, color, mass)).assign_nearest(
+        mag[pick], color[pick], ids
+    )
+    assert np.all(np.isnan(nearest["mass_std"].to_value(u.Msun))), (
+        "a single nearest point has no spread; 0.0 would claim an exact mass"
+    )
+
+    k1 = PhotometricMassEstimator([(mag, color, np.zeros_like(mass), mass)], k=1)
+    spread = k1.assign_from_samples(mag[pick], color[pick], ids)["mass_std"].to_value(u.Msun)
+    assert np.all(spread == 0.0)
+    assert not np.any(np.isnan(spread))
+
+
+@pytest.mark.parametrize(
+    "isochrones, match",
+    [
+        ([], "empty"),
+        (5, "must be a sequence"),
+        # Four bare arrays: the sampled form's INNER layout leaked one level up.
+        # Read as three isochrones it would take iso[3] -- a mass -- as a magnitude.
+        ((np.zeros(9), np.zeros(9), np.zeros(9), np.zeros(9)), "neither accepted form"),
+        ((np.zeros(9), np.zeros(4), np.zeros(9)), "same points"),
+        ([(np.zeros(9), np.zeros(9))], "neither accepted form"),
+    ],
+)
+def test_the_isochrone_form_is_validated_in_the_constructor(isochrones, match):
+    """The wrong layout must fail where it was passed, not inside a KDTree query.
+
+    Nothing distinguishes the two layouts once the arrays are stacked, so the
+    constructor is the last place the mistake is still legible. Each case here is a
+    layout that used to be accepted silently and then produced either a crash with an
+    unrelated message or -- for the four-plain-arrays case -- plausible numbers built
+    from the wrong columns.
+    """
+    from erotica.analysis.photometry import PhotometricMassEstimator
+
+    with pytest.raises((TypeError, ValueError), match=match):
+        PhotometricMassEstimator(isochrones)
+
+
+def test_calling_the_method_for_the_other_form_raises_by_name():
+    """A stored form and a mismatched call is still a caller error, reported as one."""
+    from erotica.analysis.photometry import PhotometricMassEstimator
+
+    mag, color, mass = _synthetic_isochrone(n=20)
+    single = PhotometricMassEstimator((mag, color, mass))
+    sampled = PhotometricMassEstimator([(mag, color, np.zeros_like(mass), mass)])
+
+    with pytest.raises(ValueError, match=r"assign_from_samples\(\) needs the 'samples'"):
+        single.assign_from_samples(mag[:1], color[:1], [0])
+    with pytest.raises(ValueError, match=r"assign_nearest\(\) needs the 'single'"):
+        sampled.assign_nearest(mag[:1], color[:1], [0])
 
 
 # ---------------------------------------------------------------------------

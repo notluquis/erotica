@@ -146,13 +146,17 @@ def test_dynamics_analyzer_class_facade():
     from erotica.analysis import ClusterDynamicsAnalyzer
 
     table = _analysis_table()
-    analyzer = ClusterDynamicsAnalyzer(table, distance=1.1 * u.kpc, center=(263.7 * u.deg, -32.58 * u.deg))
+    analyzer = ClusterDynamicsAnalyzer(
+        table, distance=1.1 * u.kpc, center=(263.7 * u.deg, -32.58 * u.deg)
+    )
     mass = analyzer.cluster_mass()
     assert mass.unit == u.Msun
     galactocentric_distance, galactocentric_error = analyzer.galactocentric_distance()
     assert galactocentric_distance.unit == u.kpc
     assert galactocentric_error.unit == u.kpc
-    hill = analyzer.hill_radius(cluster_mass=mass, cluster_mass_err=0.1 * mass, return_linear_size=True)
+    hill = analyzer.hill_radius(
+        cluster_mass=mass, cluster_mass_err=0.1 * mass, return_linear_size=True
+    )
     assert hill["angular_size"].unit == u.arcmin
     assert hill["linear_size"].unit == u.pc
 
@@ -274,3 +278,88 @@ def test_public_cosmic_aux_api_is_exported_from_analysis():
     assert legacy_public_names <= exported
     for name in legacy_public_names:
         assert hasattr(analysis, name), name
+
+
+# ---------------------------------------------------------------------------
+# The removed ``dill_cache`` -- Defect 4.
+#
+# ``dill_cache=True`` wrote ``<input>.dill`` on every path load, but the read
+# path in ``_io._load_from_path`` fired only when the CALLER's own `file_obj`
+# already ended in ``.dill``. The sidecar it wrote was therefore never consulted:
+# a write-only "cache" that cost a full pickle dump per load and saved nothing.
+# It was deleted on 2026-08-04 rather than completed, because a working cache
+# needs an mtime check and a ``dataloader_kwargs`` comparison that exist nowhere
+# in this package, and a stale sidecar shadowing an edited catalogue is a worse
+# failure than the redundant read.
+#
+# The first test below is the mutation detector: restore the ``dill.dump`` in
+# ``_load_from_path`` and it goes red.
+# ---------------------------------------------------------------------------
+
+
+def _write_catalogue(directory):
+    path = directory / "catalogue.ecsv"
+    QTable({"ra": [263.7, 263.8], "dec": [-32.5, -32.6], "source_id": [1, 2]}).write(
+        path, format="ascii.ecsv"
+    )
+    return path
+
+
+def test_loading_a_catalogue_writes_no_dill_sidecar(tmp_path):
+    """Oracle: the contents of the directory, which nothing else touches.
+
+    A cache that is never read is pure cost, and this asserts the cost is gone by
+    listing the directory rather than by inspecting a flag. The old behaviour left a
+    ``catalogue.dill`` beside every catalogue ever loaded.
+    """
+    from erotica.analysis.analyzer import ClusterAnalyzer
+
+    path = _write_catalogue(tmp_path)
+    analyzer = ClusterAnalyzer(str(path))
+
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["catalogue.ecsv"]
+    assert not (tmp_path / "catalogue.dill").exists()
+    # and the attribute that pointed at the phantom file is gone with it
+    assert not hasattr(analyzer, "dill_path")
+    assert len(analyzer.data) == 2
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_dill_cache_is_a_deprecated_no_op(tmp_path, value):
+    """``ClusterAnalyzer`` is public API in a released v0.1.0, so the keyword still
+    binds -- but it must warn, including for ``dill_cache=False``.
+
+    ``False`` is the value that used to *suppress* the write, so a caller passing it
+    was already getting the behaviour they wanted and would otherwise never learn the
+    keyword had gone. Warning on both is why the default is a sentinel and not
+    ``False``.
+    """
+    from erotica.analysis.analyzer import ClusterAnalyzer
+
+    path = _write_catalogue(tmp_path)
+    with pytest.warns(DeprecationWarning, match="dill_cache is deprecated"):
+        analyzer = ClusterAnalyzer(str(path), dill_cache=value)
+
+    assert not (tmp_path / "catalogue.dill").exists()
+    assert len(analyzer.data) == 2
+
+
+def test_a_dill_path_is_still_unpickled(tmp_path):
+    """The read path that *did* work must survive the removal of the write path.
+
+    Passing the ``.dill`` file itself was always the only way the pickle was used,
+    and it is still supported -- the deleted plumbing was the sidecar write and the
+    ``dill_path`` bookkeeping, not this.
+    """
+    import dill
+
+    from erotica.analysis.analyzer import ClusterAnalyzer
+
+    payload = {"data": QTable({"ra": [1.0], "dec": [2.0], "source_id": [7]})}
+    path = tmp_path / "restored.dill"
+    with path.open("wb") as handle:
+        dill.dump(payload, handle)
+
+    analyzer = ClusterAnalyzer(str(path))
+    assert len(analyzer.data) == 1
+    assert int(analyzer.data["source_id"][0]) == 7

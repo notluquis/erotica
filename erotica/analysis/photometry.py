@@ -297,6 +297,79 @@ def assign_masses(isochrones, mag_column, color_column, source_id, *, k: int = 5
     return table
 
 
+def _classify_isochrone_form(isochrones) -> str:
+    """Decide which of the two isochrone layouts was supplied, or refuse.
+
+    The two layouts this module accepts are not distinguishable once you are
+    inside a KDTree query, which is where the mistake used to surface:
+
+    ``"single"``
+        exactly three numeric 1-D arrays, read as ``(mag, color, mass)``.
+    ``"samples"``
+        a sequence of *sampled* isochrones, each itself a sequence of at least
+        four arrays, read positionally as ``iso[0]`` = magnitude, ``iso[1]`` =
+        colour, ``iso[3]`` = mass (``iso[2]`` is unused).
+
+    The discriminator is whether the top-level entries are numeric arrays
+    (``"single"``) or sequences of arrays (``"samples"``). It is deliberately
+    strict about the ``"single"`` case being *exactly* three arrays: four plain
+    arrays are the sampled form's inner layout leaked one level up, and reading
+    them as three isochrones would silently take ``iso[3]`` -- a mass -- as a
+    magnitude and return numbers that look like masses.
+
+    Returns
+    -------
+    str
+        ``"single"`` or ``"samples"``.
+
+    Raises
+    ------
+    TypeError
+        If `isochrones` is not a sequence at all.
+    ValueError
+        If it is empty, if the three-array form has mismatched lengths, or if
+        the layout matches neither form.
+    """
+    try:
+        items = list(isochrones)
+    except TypeError as exc:
+        raise TypeError(f"isochrones must be a sequence, got {type(isochrones).__name__}.") from exc
+    if not items:
+        raise ValueError("isochrones is empty; nothing to assign masses from.")
+
+    def _numeric_1d(entry) -> bool:
+        arr = np.asarray(quantity_values(entry) if hasattr(entry, "unit") else entry)
+        return arr.ndim == 1 and arr.dtype.kind in "fiu"
+
+    all_plain = all(_numeric_1d(entry) for entry in items)
+    if all_plain:
+        if len(items) != 3:
+            raise ValueError(
+                f"isochrones is {len(items)} plain numeric arrays, which is neither "
+                "accepted form. The single-isochrone form is exactly three arrays "
+                "(mag, color, mass); the sampled form is a sequence of isochrones, "
+                "each itself a sequence of at least four arrays with iso[0]=mag, "
+                "iso[1]=color, iso[3]=mass."
+            )
+        lengths = {len(np.asarray(entry)) for entry in items}
+        if len(lengths) != 1:
+            raise ValueError(
+                f"the three isochrone arrays (mag, color, mass) have lengths {sorted(lengths)}; "
+                "they must describe the same points."
+            )
+        return "single"
+
+    usable = [entry for entry in items if hasattr(entry, "__len__") and len(entry) >= 4]
+    if not usable:
+        raise ValueError(
+            "isochrones matches neither accepted form: no entry is a sequence of at "
+            "least four arrays (iso[0]=mag, iso[1]=color, iso[3]=mass), and it is not "
+            "the single-isochrone form of exactly three numeric arrays "
+            "(mag, color, mass)."
+        )
+    return "samples"
+
+
 class PhotometricMassEstimator:
     """Mass-assignment facade for sampled isochrones and CMD source tables."""
 
@@ -305,21 +378,26 @@ class PhotometricMassEstimator:
 
         Parameters
         ----------
-        isochrones : sequence of array-like, or tuple of array-like
-            **The accepted form differs between the two methods, and nothing
-            checks which one was given.**
+        isochrones : sequence of array-like
+            One of two layouts, **classified and validated here** by
+            :func:`_classify_isochrone_form` so that supplying the wrong one
+            raises at construction with a message naming both forms, rather
+            than somewhere inside a KDTree query:
 
-            For :meth:`assign_from_samples`, a sequence of sampled isochrones,
-            each indexable with at least four entries read positionally as
-            ``iso[0]`` = magnitude, ``iso[1]`` = colour, ``iso[3]`` = mass in
-            :math:`M_\odot` (``iso[2]`` is not used). Entries shorter than four
-            are skipped silently, and non-finite points are dropped.
+            *Sampled* (``self.isochrone_form == "samples"``) -- a sequence of
+            sampled isochrones, each indexable with at least four entries read
+            positionally as ``iso[0]`` = magnitude, ``iso[1]`` = colour,
+            ``iso[3]`` = mass in :math:`M_\odot` (``iso[2]`` is not used).
+            Entries shorter than four are skipped by
+            :func:`assign_masses`; non-finite points are dropped. Use
+            :meth:`assign_from_samples`.
 
-            For :meth:`assign_nearest`, a single
-            ``(iso_mag, iso_color, iso_mass)`` triple.
+            *Single* (``self.isochrone_form == "single"``) -- exactly three
+            numeric arrays ``(iso_mag, iso_color, iso_mass)`` of equal length.
+            Use :meth:`assign_nearest`.
 
-            Passing one form and calling the other method fails inside the
-            delegate, not here.
+            Calling the method that does not match the stored form raises
+            :class:`ValueError` naming the form that was given.
         k : int, default 5
             Number of nearest isochrone points averaged per star by
             :meth:`assign_from_samples`; overridable per call. Clamped to
@@ -328,8 +406,16 @@ class PhotometricMassEstimator:
             in the output measures: the scatter of the `k` neighbours in the
             CMD, which is a **local sampling spread of the isochrone, not a
             propagated photometric uncertainty**. With ``k=1`` it is 0 by
-            construction. Unused by :meth:`assign_nearest`, which always takes
-            the single closest point.
+            construction -- a real zero, because one *sample* of the isochrone
+            set genuinely has no spread; contrast :meth:`assign_nearest`, whose
+            ``mass_std`` is ``NaN``.
+
+        Raises
+        ------
+        TypeError
+            If `isochrones` is not a sequence.
+        ValueError
+            If `isochrones` is empty, or matches neither accepted layout.
 
         Warnings
         --------
@@ -345,22 +431,67 @@ class PhotometricMassEstimator:
 
         Notes
         -----
-        The two methods return **different schemas**, so they are not
-        interchangeable downstream. :meth:`assign_from_samples` returns
-        ``source_id``, ``mass`` and ``mass_std``; :meth:`assign_nearest`
-        returns only the designation column (named by its
-        `designation_column` argument, ``"designation"`` by default) and
-        ``mass`` -- there is **no** ``mass_std``, because a single nearest point
-        has no spread to report. Masses are Astropy Quantities in
-        :math:`M_\odot` in both cases, and neither method mutates its input.
+        The two methods take the **same arguments** and return the **same
+        schema** -- ``source_id``, ``mass`` and ``mass_std``, masses as Astropy
+        Quantities in :math:`M_\odot`, inputs never mutated. They differ only
+        in which isochrone layout they consume and in what ``mass_std`` means.
+
+        Until 2026-08-04 they did not: ``assign_from_samples`` took three
+        positional arrays and hardcoded the output id column to ``source_id``,
+        while ``assign_nearest`` took a ``QTable`` plus column-*name* strings,
+        named its id column after `designation_column`, ignored `k`, and
+        returned no ``mass_std`` at all -- so ``color_column`` meant an array in
+        one and a string in the other, and the two outputs could not be
+        concatenated. ``assign_nearest`` had no callers and no tests, so it was
+        moved onto ``assign_from_samples``' contract rather than the reverse.
         """
+        self.isochrone_form = _classify_isochrone_form(isochrones)
         self.isochrones = isochrones
         self.k = k
+
+    def _require_form(self, form: str, method: str) -> None:
+        if self.isochrone_form != form:
+            raise ValueError(
+                f"{method}() needs the {form!r} isochrone form, but this estimator was "
+                f"built with the {self.isochrone_form!r} form. "
+                + (
+                    "Pass a sequence of sampled isochrones (iso[0]=mag, iso[1]=color, "
+                    "iso[3]=mass), or call assign_nearest()."
+                    if form == "samples"
+                    else "Pass a single (iso_mag, iso_color, iso_mass) triple, or call "
+                    "assign_from_samples()."
+                )
+            )
 
     def assign_from_samples(
         self, mag_column, color_column, source_id, *, k: int | None = None
     ) -> QTable:
-        """Assign masses from sampled legacy isochrone arrays."""
+        r"""Assign masses averaged over the `k` nearest points of *sampled* isochrones.
+
+        Parameters
+        ----------
+        mag_column, color_column : array-like
+            Per-star magnitude and colour. Arrays, not column names.
+        source_id : array-like
+            Per-star identifier, copied unchanged into the output.
+        k : int, optional
+            Overrides ``self.k`` for this call.
+
+        Returns
+        -------
+        QTable
+            Columns ``source_id``, ``mass`` and ``mass_std``, masses in
+            :math:`M_\odot`. ``mass_std`` is the standard deviation of the `k`
+            neighbouring isochrone points -- a spread over the isochrone
+            *samples*, not a propagated photometric error. It is exactly 0 when
+            ``k = 1``, which is a true zero rather than a missing value.
+
+        Raises
+        ------
+        ValueError
+            If this estimator holds the single-isochrone form.
+        """
+        self._require_form("samples", "assign_from_samples")
         return assign_masses(
             self.isochrones,
             mag_column,
@@ -369,22 +500,58 @@ class PhotometricMassEstimator:
             k=self.k if k is None else k,
         )
 
-    def assign_nearest(
-        self,
-        stars: QTable,
-        *,
-        magnitude_column: str = "Gmag",
-        color_column: str = "BP_RP",
-        designation_column: str = "designation",
-    ) -> QTable:
-        """Assign masses from a single ``(mag, color, mass)`` isochrone tuple."""
-        return assign_mass_nearest_isochrone_point_kdtree(
+    def assign_nearest(self, mag_column, color_column, source_id) -> QTable:
+        r"""Assign the mass of the single nearest point of one isochrone.
+
+        Same arguments and same output schema as :meth:`assign_from_samples`,
+        so the two are interchangeable downstream.
+
+        Parameters
+        ----------
+        mag_column, color_column : array-like
+            Per-star magnitude and colour. Arrays, not column names.
+        source_id : array-like
+            Per-star identifier, copied unchanged into the output.
+
+        Returns
+        -------
+        QTable
+            Columns ``source_id``, ``mass`` and ``mass_std``, masses in
+            :math:`M_\odot`. **``mass_std`` is all-NaN, deliberately.** A single
+            nearest point has no spread to report, and 0.0 would assert the
+            opposite of the truth -- that the mass is known exactly. NaN
+            propagates through :func:`numpy.nanmean`-style aggregation as
+            "unmeasured", which is what it is. Do not read it as a photometric
+            uncertainty in either method: see the ``.. danger::`` note on
+            :func:`assign_mass_nearest_isochrone_point_kdtree`.
+
+        Raises
+        ------
+        ValueError
+            If this estimator holds the sampled-isochrone form.
+
+        Notes
+        -----
+        ``self.k`` is not consulted -- "the nearest point" is the definition of
+        this method, so there is no neighbour count to set.
+        """
+        self._require_form("single", "assign_nearest")
+        stars = QTable(
+            {
+                "source_id": np.asarray(source_id),
+                "_mag": quantity_values(mag_column),
+                "_color": quantity_values(color_column),
+            }
+        )
+        table = assign_mass_nearest_isochrone_point_kdtree(
             stars,
             self.isochrones,
-            magnitude_column=magnitude_column,
-            color_column=color_column,
-            designation_column=designation_column,
+            magnitude_column="_mag",
+            color_column="_color",
+            designation_column="source_id",
         )
+        table["mass_std"] = np.full(len(table), np.nan) * u.Msun
+        return table
 
 
 __all__ = [
