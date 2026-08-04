@@ -450,6 +450,81 @@ def test_load_reports_a_missing_file_rather_than_returning_empty(tmp_path):
 def test_load_reports_a_missing_trace_for_summaries_saved_without_one(tmp_path):
     az = pytest.importorskip("arviz")
     csv = tmp_path / "fit.csv"
-    store_trace_results(az.from_dict({"posterior": {"mu": np.zeros((2, 10))}}), csv, save_trace=False)
+    store_trace_results(
+        az.from_dict({"posterior": {"mu": np.zeros((2, 10))}}), csv, save_trace=False
+    )
     with pytest.raises(FileNotFoundError, match="trace"):
         load_results(csv, load_trace=True)
+
+
+# ---------------------------------------------------------------------------
+# Trace identity. Trace_Index was a UTC timestamp truncated to whole seconds and used as an
+# IDENTITY -- it named the NetCDF, named the sidecar, and linked the CSV rows to both. A clock
+# reading is the wrong thing to identify data with, and the code hit both failure modes: two
+# calls in one second overwrote a trace while leaving both summary rows, and storing the same
+# trace twice produced two indistinguishable copies.
+# ---------------------------------------------------------------------------
+
+
+def test_two_fits_in_the_same_second_do_not_destroy_a_trace(tmp_path):
+    """The data-loss case. Both traces must survive, and both must be recoverable."""
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    first = az.from_dict({"posterior": {"mu": np.full((2, 50), 1.0)}})
+    second = az.from_dict({"posterior": {"mu": np.full((2, 50), 2.0)}})
+
+    store_trace_results(first, csv)
+    store_trace_results(second, csv)  # same wall-clock second in any realistic run
+
+    traces = sorted(tmp_path.glob("fit_trace_*.nc"))
+    assert len(traces) == 2, f"a trace was overwritten: {[t.name for t in traces]}"
+
+    # and they hold different draws -- not two copies of one fit
+    values = {float(np.mean(az.from_netcdf(t).posterior["mu"].values)) for t in traces}
+    assert values == {1.0, 2.0}, f"traces do not hold the two distinct fits: {values}"
+
+    sidecars = sorted(tmp_path.glob("fit_provenance_*.json"))
+    assert len(sidecars) == 2, "a provenance sidecar was overwritten"
+
+
+def test_storing_the_same_trace_twice_is_idempotent(tmp_path):
+    """Identity is content-derived, so re-storing one fit must not fabricate a second archive."""
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    trace = az.from_dict({"posterior": {"mu": np.full((2, 50), 7.0)}})
+
+    store_trace_results(trace, csv)
+    store_trace_results(trace, csv)
+
+    traces = sorted(tmp_path.glob("fit_trace_*.nc"))
+    assert len(traces) == 1, (
+        f"the same trace was archived twice: {[t.name for t in traces]}. Identity is supposed to "
+        "come from content, so an identical trace should reuse its slot."
+    )
+
+
+def test_load_trace_works_without_only_last_when_one_fit_is_stored(tmp_path):
+    """The documented-but-unreachable case: load_trace=True with only_last=False ALWAYS raised
+    FileNotFoundError('... : None'), however many valid traces existed, because trace_path was
+    assigned only inside the only_last branch."""
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    mu = np.random.default_rng(0).normal(size=(2, 100))
+    store_trace_results(az.from_dict({"posterior": {"mu": mu}}), csv)
+
+    results, trace = load_results(csv, load_trace=True, only_last=False)
+    assert trace is not None, "load_trace=True with only_last=False still returns no trace"
+    np.testing.assert_allclose(np.asarray(trace.posterior["mu"].values), mu)
+    assert len(results) >= 1
+
+
+def test_ambiguous_trace_says_what_is_ambiguous(tmp_path):
+    """Two fits and only_last=False cannot name 'the' trace. The error must say so, and say how
+    many -- the old message was 'No trace file found ... : None', which described neither."""
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    store_trace_results(az.from_dict({"posterior": {"mu": np.full((2, 50), 1.0)}}), csv)
+    store_trace_results(az.from_dict({"posterior": {"mu": np.full((2, 50), 2.0)}}), csv)
+
+    with pytest.raises(FileNotFoundError, match="distinct traces"):
+        load_results(csv, load_trace=True, only_last=False)

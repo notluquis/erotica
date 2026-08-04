@@ -18,8 +18,9 @@ import platform
 import subprocess
 import sys
 from dataclasses import asdict, dataclass, is_dataclass
-from datetime import datetime, timezone
-from importlib.metadata import PackageNotFoundError, version as _dist_version
+from datetime import UTC, datetime
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _dist_version
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +72,35 @@ def _require_arviz():
 
 
 def posterior_mode(values) -> float:
-    """Estimate posterior mode with ArviZ KDE if available, else histogram mode."""
+    """Estimate posterior mode with ArviZ KDE if available, else histogram mode.
+
+    Parameters
+    ----------
+    values : array-like
+        Posterior draws for one variable. Ravelled first, so chain and draw
+        structure is discarded and a vector-valued variable is pooled into a
+        single sample. Non-finite draws are removed before the estimate.
+
+    Returns
+    -------
+    float
+        The mode, as a plain float in whatever unit the caller's draws carried.
+        This function is unit-agnostic: it neither reads nor attaches units.
+
+    Raises
+    ------
+    ValueError
+        If no finite draws remain.
+
+    Notes
+    -----
+    The fallback is guarded by a bare ``except Exception``, so it is entered on
+    **any** KDE failure, not only on ArviZ being absent. A degenerate posterior
+    that makes :func:`arviz.kde` raise therefore returns a histogram mode with
+    no warning. The two estimators do not agree in general -- the fallback
+    returns a bin centre from ``bins="auto"``, so its resolution is set by the
+    number of draws, not by the width of the posterior.
+    """
     values = np.asarray(values, dtype=float).ravel()
     values = values[np.isfinite(values)]
     if len(values) == 0:
@@ -98,8 +127,44 @@ def calculate_mode(values, bw: str = "default", circular: bool = False) -> float
     return posterior_mode(values)
 
 
-def summarize_trace(trace, *, excluded_parameters=("likelihood", "likelihood_unobserved")) -> list[TraceSummary]:
-    """Summarize all posterior variables in an ArviZ InferenceData object."""
+def summarize_trace(
+    trace, *, excluded_parameters=("likelihood", "likelihood_unobserved")
+) -> list[TraceSummary]:
+    """Summarize all posterior variables in an ArviZ InferenceData object.
+
+    Parameters
+    ----------
+    trace : arviz.InferenceData
+        Must carry a ``posterior`` group.
+    excluded_parameters : sequence of str, optional
+        Variable names to skip. The defaults are the log-likelihood nodes, which
+        are per-draw bookkeeping rather than parameters of the model.
+
+    Returns
+    -------
+    list of TraceSummary
+        One entry per retained variable, in ``trace.posterior.data_vars`` order,
+        each holding ``mean``, ``median``, ``std`` and ``mode`` as plain floats.
+        Units are **not** carried: a radius sampled in arcmin comes back as a
+        bare number, and the caller must reattach the unit.
+
+    Raises
+    ------
+    ValueError
+        If `trace` has no ``posterior`` attribute.
+
+    Notes
+    -----
+    Each variable is **ravelled before summarising**, so chains are pooled *and
+    a vector-valued variable collapses to a single row covering every element at
+    once*. If a model samples one mass per star, the row named ``mass`` is the
+    mean over all stars and all draws together -- not a per-star quantity. Read
+    per-element summaries off the trace directly instead.
+
+    A variable whose draws are all non-finite is dropped silently rather than
+    reported as NaN, so an absent row means "nothing finite to summarise", not
+    "not sampled".
+    """
     if not hasattr(trace, "posterior"):
         raise ValueError("Trace must be an ArviZ InferenceData object with a posterior group.")
     summaries: list[TraceSummary] = []
@@ -122,6 +187,86 @@ def summarize_trace(trace, *, excluded_parameters=("likelihood", "likelihood_uno
     return summaries
 
 
+def _same_posterior(a, b) -> bool:
+    """Whether two traces carry the same posterior draws.
+
+    Deliberately strict and deliberately cheap to reason about: same variable names, same shapes,
+    same values. Anything else -- sample_stats, attrs, creation metadata -- is allowed to differ,
+    because it does differ between two writes of one trace and is not what identifies the fit.
+    """
+    try:
+        pa, pb = a.posterior, b.posterior
+        va, vb = set(pa.data_vars), set(pb.data_vars)
+        if va != vb:
+            return False
+        return all(np.array_equal(np.asarray(pa[v].values), np.asarray(pb[v].values)) for v in va)
+    except Exception:  # noqa: BLE001 - "cannot tell" must read as "not the same"
+        return False
+
+
+def _allocate_trace_index(path: Path, trace) -> int:
+    """Return an index that names a trace file without destroying an existing one.
+
+    ``Trace_Index`` was a UTC timestamp truncated to whole seconds, used as an *identity*: it
+    named the NetCDF, named the provenance sidecar, and linked the CSV rows to both. A clock
+    reading is the wrong thing to identify data with, for two independent reasons, and the code
+    hit both:
+
+    * **It is not unique.** Two calls inside the same second produced the same index, and the
+      second silently overwrote the first's ``.nc`` while both sets of summary rows survived in
+      the CSV. Storing several fits in a loop therefore lost traces and left the CSV claiming
+      they existed. Adding sub-second precision only narrows that window; it does not close it.
+    * **It is not derived from the content.** Storing the *same* trace twice produced two
+      indices, two files and two sidecars, so the archive could not say whether two entries were
+      two fits or one fit written twice.
+
+    The fix is to make the index an *allocated identifier* rather than a reading: seeded from the
+    clock so the archive stays sortable and older files keep their meaning, then resolved against
+    what is already on disk.
+
+    * If nothing occupies the slot, take it.
+    * If the occupant is **byte-identical to what we are about to write**, reuse it. Storing the
+      same trace twice is then idempotent instead of duplicating.
+    * Otherwise step forward until a free slot is found. The index stops being a timestamp at that
+      point, which is why ``Date_Time`` exists and is the column to read for *when*.
+
+    Sameness is decided with :func:`file_checksum`, the digest this module already uses to
+    identify inputs — the same notion of "same data" applied to outputs.
+    """
+    index = int(datetime.now(tz=UTC).timestamp())
+    if trace is None:
+        return index
+
+    def slot(i: int) -> Path:
+        return path.with_name(f"{path.stem}_trace_{i}.nc")
+
+    if not slot(index).exists():
+        return index
+
+    # Occupied. Decide sameness on the DRAWS, not on the file.
+    #
+    # The first version of this compared blake2b digests of the two .nc files, using
+    # file_checksum -- and that can never match, because NetCDF embeds creation metadata, so two
+    # writes of one identical trace differ byte-for-byte. The comment above that code said
+    # exactly this and the code did it anyway; the idempotence test caught it.
+    #
+    # Comparing the summaries instead would be weaker, not stronger: distinct posteriors can
+    # share a mean and a standard deviation. So compare the posterior arrays themselves, which
+    # is what "the same trace" has to mean.
+    try:
+        import arviz as az
+
+        existing = az.from_netcdf(slot(index))
+        if _same_posterior(existing, trace):
+            return index  # identical trace already archived -- idempotent
+    except Exception:  # noqa: BLE001 - an unreadable neighbour must not cost the caller their run
+        pass
+
+    while slot(index).exists():
+        index += 1
+    return index
+
+
 def store_trace_results(
     trace,
     file_path,
@@ -137,10 +282,47 @@ def store_trace_results(
     versions that produced it (see :func:`build_metadata`). Extra fields can be
     supplied through `metadata` -- typically the input catalogue path and the
     sampler seed, which this function cannot discover on its own.
+
+    Parameters
+    ----------
+    trace : arviz.InferenceData
+        The posterior to summarise and, optionally, archive.
+    file_path : str or path-like
+        CSV to append to. Created if absent; if present, the existing rows are
+        read and the new ones concatenated, so the file accumulates across runs
+        rather than being overwritten.
+    excluded_parameters : sequence of str, optional
+        Forwarded to :func:`summarize_trace`.
+    save_trace : bool, default True
+        Also write ``<stem>_trace_<index>.nc`` and the JSON provenance sidecar
+        beside the CSV. Turning this off keeps the summary rows but leaves the
+        result unreproducible -- the numbers survive, the record of what made
+        them does not.
+    metadata : dict, optional
+        Extra fields for the sidecar. ``trace_index`` and ``variables`` are
+        added automatically; anything here is merged on top of them.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The **full** table written to `file_path`, i.e. previously stored rows
+        plus the new ones -- not just this call's rows. Columns: ``Parameter``,
+        ``Mean``, ``Median``, ``Standard_Deviation``, ``Std`` (a duplicate of
+        the previous column, kept for older readers), ``Mode``, ``Date_Time``
+        and ``Trace_Index``. The statistics are plain floats with no units, for
+        the reason given in :func:`summarize_trace`.
+
+    Notes
+    -----
+    ``Trace_Index`` is the UTC Unix time **truncated to whole seconds**, and it
+    is what names the NetCDF and the sidecar. Two calls inside the same second
+    therefore land on the same index and the second silently overwrites the
+    first's trace file, while both sets of summary rows remain in the CSV. This
+    matters when storing several fits in a loop.
     """
     path = Path(file_path)
     summaries = summarize_trace(trace, excluded_parameters=excluded_parameters)
-    trace_index = int(datetime.now(tz=timezone.utc).timestamp())
+    trace_index = _allocate_trace_index(path, trace if save_trace else None)
     rows = [
         {
             "Parameter": item.variable,
@@ -149,7 +331,7 @@ def store_trace_results(
             "Standard_Deviation": item.std,
             "Std": item.std,
             "Mode": item.mode,
-            "Date_Time": datetime.now(tz=timezone.utc).isoformat(),
+            "Date_Time": datetime.now(tz=UTC).isoformat(),
             "Trace_Index": trace_index,
         }
         for item in summaries
@@ -161,7 +343,9 @@ def store_trace_results(
         updated = new_data
     updated.to_csv(path, index=False)
     if save_trace:
-        trace.to_netcdf(path.with_name(f"{path.stem}_trace_{trace_index}.nc"))
+        target = path.with_name(f"{path.stem}_trace_{trace_index}.nc")
+        if not target.exists():  # _allocate_trace_index guarantees this is free, or identical
+            trace.to_netcdf(target)
         write_metadata(
             path.with_name(f"{path.stem}_provenance_{trace_index}.json"),
             trace_index=trace_index,
@@ -172,23 +356,99 @@ def store_trace_results(
 
 
 def load_results(file_path="fit_parameters.csv", *, load_trace=False, only_last=True):
-    """Load summarized CSV results and optionally the associated NetCDF trace."""
+    """Load summarized CSV results and optionally the associated NetCDF trace.
+
+    Parameters
+    ----------
+    file_path : str or path-like, default ``"fit_parameters.csv"``
+        The summary CSV written by :func:`store_trace_results`.
+    load_trace : bool, default False
+        Also read the NetCDF trace stored alongside the CSV. Requires ArviZ and
+        **requires** ``only_last=True``; see the warning below.
+    only_last : bool, default True
+        Keep only the rows sharing the most recent ``Date_Time``, i.e. the last
+        fit stored. This is also what locates the trace: the ``Trace_Index`` of
+        the surviving rows is what names the ``.nc`` file.
+
+    Returns
+    -------
+    results : pandas.DataFrame
+        The stored summary rows, filtered to the last fit when `only_last`.
+    trace : arviz.InferenceData or None
+        ``None`` unless `load_trace` is set.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the CSV is absent, or if `load_trace` is set and the trace cannot be
+        located -- including the ``only_last=False`` case described below.
+    ImportError
+        If `load_trace` is set and ArviZ is not installed.
+
+    Warnings
+    --------
+    ``load_trace=True`` with ``only_last=False`` **always raises**
+    ``FileNotFoundError: No trace file found for summarized results: None``,
+    however many valid traces sit next to the CSV. ``trace_path`` is only ever
+    assigned inside the ``only_last`` branch, so on the other branch it is still
+    ``None`` when the existence check runs. This is behaviour as it stands, not
+    a design: a CSV holding several fits has several ``Trace_Index`` values and
+    the function has no rule for choosing among them. To load a trace, leave
+    `only_last` at its default; to inspect every stored fit, load with
+    ``load_trace=False`` and open the ``.nc`` files by ``Trace_Index`` yourself.
+    """
     az = _require_arviz() if load_trace else None
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"No summarized results file found: {path}")
     results = pd.read_csv(path)
-    trace_path = None
-    if only_last:
-        results["Date_Time"] = pd.to_datetime(results["Date_Time"])
-        max_date = results["Date_Time"].max()
-        results = results[results["Date_Time"] == max_date]
-        trace_index = int(results.iloc[0]["Trace_Index"])
-        trace_path = path.with_name(f"{path.stem}_trace_{trace_index}.nc")
+    # Filter first. This is the ROW concern, and it is deliberately independent of the trace
+    # concern below -- see the comment there for why separating them was the fix.
+    if only_last and "Date_Time" in results.columns and not results.empty:
+        results = results[results["Date_Time"] == results["Date_Time"].max()]
+
+    # Locating the trace and filtering the rows are two separate concerns, and conflating them
+    # is what made `load_trace=True, only_last=False` raise unconditionally: `trace_path` was
+    # assigned only inside the `only_last` branch, so the other branch always reached the
+    # existence check with `None` and reported "No trace file found ... : None" no matter how
+    # many valid traces sat next to the CSV.
+    #
+    # The real precondition is not `only_last`. It is that the surviving rows refer to exactly
+    # ONE trace, which `only_last=True` happens to guarantee and `only_last=False` satisfies
+    # whenever the CSV holds a single fit. Resolving it from the rows makes that explicit, makes
+    # the working case work, and turns the ambiguous case into an error that says what is
+    # ambiguous.
     trace = None
     if load_trace:
-        if trace_path is None or not trace_path.exists():
-            raise FileNotFoundError(f"No trace file found for summarized results: {trace_path}")
+        try:
+            import arviz as az
+        except ImportError as exc:
+            raise ImportError(
+                "arviz is required to load a stored trace. Install the 'bayes' extra."
+            ) from exc
+
+        if "Trace_Index" not in results.columns:
+            raise FileNotFoundError(
+                f"{path} has no Trace_Index column, so no trace can be located. It was probably "
+                "written by a version predating store_trace_results."
+            )
+        indices = sorted(set(results["Trace_Index"].dropna().tolist()))
+        if not indices:
+            raise FileNotFoundError(f"No Trace_Index values in {path}; nothing to load.")
+        if len(indices) > 1:
+            raise FileNotFoundError(
+                f"{len(indices)} distinct traces are referenced by these rows "
+                f"({indices[:5]}{'...' if len(indices) > 5 else ''}), so 'the' trace is "
+                "ambiguous. Pass only_last=True for the most recent fit, or filter the frame "
+                "to one Trace_Index and call again."
+            )
+        trace_path = path.with_name(f"{path.stem}_trace_{int(indices[0])}.nc")
+        if not trace_path.exists():
+            raise FileNotFoundError(
+                f"Rows reference Trace_Index {int(indices[0])} but {trace_path} does not exist. "
+                "The summary row outlived its trace -- see store_trace_results on why that used "
+                "to happen silently."
+            )
         trace = az.from_netcdf(trace_path)
     return results, trace
 
@@ -273,6 +533,35 @@ def file_checksum(path: str | os.PathLike[str], *, algorithm: str = "blake2b") -
     digest identifies the *content*: a file that is renamed, re-downloaded or
     re-sorted into a different path but is byte-identical yields the same value,
     which is what "same input" has to mean.
+
+    Parameters
+    ----------
+    path : str or path-like
+        File to digest. Must exist and be readable.
+    algorithm : str, default ``"blake2b"``
+        Any name :func:`hashlib.file_digest` accepts. Note this also **names the
+        key** in the returned dict, so changing it changes the output schema.
+
+    Returns
+    -------
+    dict
+        ``{"path": str, "bytes": int, <algorithm>: <hex digest>}``. The third
+        key is the *value of* `algorithm`, not the literal string
+        ``"algorithm"`` -- with the default it is ``"blake2b"``. Callers reading
+        the digest generically should take the one key that is neither ``path``
+        nor ``bytes`` rather than hard-coding a hash name.
+
+    Raises
+    ------
+    OSError
+        If the file cannot be opened or stat-ed. :func:`build_metadata` catches
+        this and records the failure instead of propagating it, unless it was
+        called with ``strict=True``.
+    ValueError
+        If `algorithm` is not a hash :mod:`hashlib` supports ("unsupported hash
+        type"). Note :func:`build_metadata` does **not** catch this one, so a
+        mistyped algorithm aborts the whole provenance record rather than
+        degrading it.
     """
     p = Path(path)
     with p.open("rb") as fh:
@@ -290,6 +579,20 @@ def dependency_versions() -> dict[str, str]:
     Read from installed distribution metadata rather than by importing each
     package -- importing PyMC costs seconds and is a side effect a provenance
     call has no business causing.
+
+    Returns
+    -------
+    dict
+        Distribution name to version string, restricted to
+        ``_TRACKED_DISTRIBUTIONS`` and to those actually installed. A package
+        that is not installed is **omitted rather than recorded as null**, which
+        is itself the record: no ``pymc`` key means the run produced no
+        Bayesian numbers. Insertion order follows ``_TRACKED_DISTRIBUTIONS``.
+
+        The versions are distribution versions from installed metadata, so they
+        can differ from a package's ``__version__`` attribute if the two were
+        allowed to drift (``scikit-learn`` is keyed by its distribution name,
+        not by ``sklearn``).
     """
     found: dict[str, str] = {}
     for dist in _TRACKED_DISTRIBUTIONS:
@@ -337,7 +640,9 @@ def build_metadata(
     >>> meta = build_metadata(seeds=42, cluster=3)
     >>> sorted(meta)[:3]
     ['cluster', 'created_at', 'dependencies']
-    >>> import json; isinstance(json.dumps(meta), str)
+    >>> import json
+    ...
+    ... isinstance(json.dumps(meta), str)
     True
     """
     if inputs is None:
@@ -354,7 +659,7 @@ def build_metadata(
                 input_records.append({"path": str(item), "error": str(exc)})
 
     record = {
-        "created_at": datetime.now(tz=timezone.utc).isoformat(),
+        "created_at": datetime.now(tz=UTC).isoformat(),
         "erotica_version": _EROTICA_VERSION,
         "git": git_provenance(),
         "python": sys.version.split()[0],
@@ -369,7 +674,28 @@ def build_metadata(
 
 
 def write_metadata(path: str | os.PathLike[str], **kwargs: Any) -> Path:
-    """Write :func:`build_metadata` to `path` as indented JSON."""
+    """Write :func:`build_metadata` to `path` as indented JSON.
+
+    Parameters
+    ----------
+    path : str or path-like
+        Destination file, **overwritten** if it exists. Parent directories are
+        not created.
+    **kwargs
+        Passed straight through to :func:`build_metadata` -- ``inputs``,
+        ``seeds``, ``strict``, and any extra fields worth recording.
+
+    Returns
+    -------
+    Path
+        The file written, so the call can be chained or logged.
+
+    Notes
+    -----
+    :func:`build_metadata` calls :func:`json.dumps` on the record before
+    returning it, so an unserialisable field raises **before** `path` is
+    touched. A failed call therefore leaves no truncated sidecar behind.
+    """
     target = Path(path)
     target.write_text(json.dumps(build_metadata(**kwargs), indent=2))
     return target
