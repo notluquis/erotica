@@ -1,0 +1,67 @@
+# Render the JOSS paper on every change that touches it.
+#
+# WHY THIS EXISTS AND WHY IT IS A GATE RATHER THAN A CHORE
+# --------------------------------------------------------
+# `paper/paper.md` is Markdown with LaTeX math and pandoc citation keys resolved against
+# `paper/paper.bib`. Neither is checked by anything else in this repository: `pytest` does not
+# read it, `sphinx` does not build it, and a broken `\Lambda` or a citation key with no bib entry
+# is invisible until an editor runs it. JOSS's own toolchain (Inara) is the only thing that
+# evaluates them.
+#
+# It had never been run. `~/phd/agent-findings/joss-paper-status.md` records the attempt: neither
+# pandoc nor docker was available on the machine, so the math and the citation keys in a paper
+# marked "SUBMITTABLE" had been rendered exactly zero times. Asking a human to remember to install
+# docker before every edit is the kind of rule that does not survive contact with a deadline --
+# so it runs here instead, on the only trigger that matters, which is a change to the paper.
+#
+# A failure here means one of:
+#   * a citation key in paper.md with no matching entry in paper.bib (the common one),
+#   * LaTeX that pandoc cannot parse,
+#   * malformed YAML front matter -- authors, affiliations, ORCID.
+#
+# WHAT THIS DOES NOT CHECK
+# ------------------------
+# That the prose is true, that the claims are supported, or that the numbers match the code. Those
+# are review, and this repository has been wrong about all three at various points. A green tick
+# here means the document COMPILES, nothing more.
+
+name: JOSS paper
+
+on:
+  push:
+    paths:
+      - "paper/**"
+      - ".github/workflows/joss-paper.yml"
+  pull_request:
+    paths:
+      - "paper/**"
+      - ".github/workflows/joss-paper.yml"
+  workflow_dispatch:
+
+# Least privilege: this reads the repository and writes an artifact. It needs nothing else, and in
+# particular it must never inherit the `id-token: write` that publish.yml holds.
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    name: Build the draft PDF
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build draft PDF with Inara
+        uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+          paper-path: paper/paper.md
+
+      - name: Upload the rendered paper
+        uses: actions/upload-artifact@v4
+        with:
+          name: joss-paper
+          path: paper/paper.pdf
+          if-no-files-found: error
