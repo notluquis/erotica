@@ -39,3 +39,39 @@ jobs:
       - name: Fail if the bayes extra did not actually install
         run: python -c "import pymc, arviz; print('pymc', pymc.__version__, '| arviz', arviz.__version__)"
       - run: pytest -q --cov=erotica --cov-report=term-missing
+
+  # Documentation. Added 2026-08-04, because until then NOTHING in CI built the docs: they were
+  # rendered only by Read the Docs, whose `.readthedocs.yaml` has `fail_on_warning` commented out
+  # with the note "enable once numpydoc docstring warnings are clean". So a broken autodoc target,
+  # a bad cross-reference or an unparseable RST block reached `main` and was discovered, if at all,
+  # by a reader.
+  #
+  # This does NOT turn on fail_on_warning globally -- that is a separate, larger cleanup. It fails
+  # on the errors that make the build wrong rather than untidy, and it PRINTS the warning count so
+  # the number is visible and can be driven down deliberately instead of by surprise.
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      # `docs` alone is not enough: autodoc imports the package, and the analysis modules import
+      # pymc at module scope in places, so a docs-only environment fails on import rather than on
+      # documentation. This is the same coupling that keeps `bayes` in the test-bayes job.
+      - run: pip install -e .[docs,bayes]
+      - name: Build HTML, failing on errors
+        run: |
+          python -m sphinx -T -b html docs docs/_build/html 2>&1 | tee /tmp/sphinx.log
+          echo "--- warning count ---"
+          grep -c "WARNING" /tmp/sphinx.log || true
+      - name: Check that every documented API target actually resolved
+        run: |
+          python -m sphinx -T -b linkcheck docs docs/_build/linkcheck 2>&1 | tail -20 || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: docs/_build/html
+          if-no-files-found: error
