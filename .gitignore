@@ -136,3 +136,14 @@ data/external/
 # Prototype query caches
 tools/prototypes/.*_cache/
 tools/validation/hr24_clusters.ecsv
+
+# Benchmark RUN artifacts. The repo commits a JSON sidecar for every script that produces a
+# quoted number, but these two exceed the 500 KB pre-commit ceiling (3-10 MB: 108 cells x
+# per-star arrays). They were already untracked-but-unignored, which reads as an oversight
+# rather than a decision; this makes it a decision. Regenerate with
+#   python tools/validation/benchmark_erotica_vs_asteca.py
+# The SUMMARY sidecars that carry the quoted numbers ARE committed
+# (ptilde_decomposition.json, erroraware_mc_convergence.json).
+tools/validation/benchmark_*.json
+tools/validation/benchmark_*.cells.jsonl
+!tools/validation/benchmark_*_summary.json

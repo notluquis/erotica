@@ -58,6 +58,53 @@ DESIGN DECISIONS THAT ARE NOT FREE
    evaluated on held-out seeds. Fitting and scoring on the same rows returns ECE ~ 0 and
    is a fabricated number.
 
+THE ERROR-AWARE ARMS, AND WHAT WOULD FALSIFY THEM (pre-registered 2026-08-04)
+-----------------------------------------------------------------------------
+Reading ``run_asteca`` against ``run_erotica_config`` found a concrete violation of design
+decision 1 above. ASteCA is handed **per-star measurement errors** (``e_pmra``, ``e_pmde``,
+``e_plx``) and resamples them 1000 times (``memb.fastmp(N_runs=1000)``). Every EROTICA arm
+was handed five columns and **no errors at all**. "Feature parity" was declared
+non-negotiable and was not held.
+
+EROTICA ships the structural analogue and it was never wired in here:
+``Clustering.search_pseudoprobability_error_aware`` (``erotica/core/_error_aware.py``)
+perturbs every source by its per-source covariance, re-runs the ``min_cluster_size`` sweep
+inside each draw, and returns an error-aware recovery frequency ``f_i^MC`` (mean clustered
+fraction over draws x resolutions) with a spread. The ``*_erroraware`` arms below score
+
+    p_tilde^MC = score * f_i^MC
+
+with ``score`` from the ordinary sweep and only the ``f_i`` factor replaced.
+
+**PRE-REGISTERED FALSIFICATION.** The hypothesis is that the EROTICA-to-ASteCA gap is
+per-star error propagation. It is falsified if the error-aware arms do **not** improve
+out-of-sample average precision over their non-error-aware counterparts on the held-out
+seeds. If that is the outcome, the next suspect is ASteCA's ``cl.get_nmembers(algo="ripley")``
+-- which estimates the number of cluster members and conditions the whole membership
+assignment, and for which EROTICA has no analogue -- and the result is to be recorded and
+the track stopped there. **Tuning HDBSCAN is explicitly NOT the next step**: the held-out
+soft-membership measurement already ruled the per-star score out as the lever (soft
+membership moves held-out AP by +0.074 +- 0.016 against a 0.35 gap to ASteCA).
+
+THREE LIMITATIONS OF THE ERROR-AWARE ARMS, STATED RATHER THAN DISCOVERED
+------------------------------------------------------------------------
+1. **Draw budget.** ASteCA resamples 1000 times. These arms default to ``--ea-nmc 100``.
+   The cost is ``n_mc x len(sweep)`` HDBSCAN fits *per cell*, and at the full 90-step sweep
+   1000 draws is ~75 CPU-hours over this grid. 100 draws is a deliberate choice, not an
+   oversight: ``f_i`` is already an average over sweep steps, so the Monte-Carlo error on
+   its mean is not the binding uncertainty here -- the across-seed spread is.
+2. **Sweep grid inside a draw.** The draws run a decimated sweep (``--ea-mcs-step 10``,
+   9 steps rather than 90) for the same cost reason. That is a second difference from the
+   baseline ``f_i``, so a bare ``f_i^MC`` vs ``f_i`` comparison would confound error
+   propagation with grid coarseness. ``benchmark_erroraware_analysis.py`` therefore also
+   computes the **no-error ``f_i`` on the identical decimated grid** as a matched control,
+   and the error-propagation effect is the difference against *that*.
+3. **No astrometric correlations are exercised.** ``gaia_covariance``'s headline capability
+   is sampling the full per-source covariance including Gaia's PM/parallax correlations.
+   This generator writes no ``*_corr`` columns (and ``e_pmra`` and ``e_pmdec`` are literally
+   the same array), so the covariance assembled here is **diagonal by construction**. The
+   correlated-covariance path is exercised but not tested by this benchmark.
+
 NEGATIVE CONTROLS AND NULLS (run, and reported)
 -----------------------------------------------
 * **Field-only control**: a realisation with no cluster injected at all. If the mcs sweep
@@ -292,7 +339,7 @@ def _zscore(x: np.ndarray) -> np.ndarray:
     return (x - np.mean(x)) / (s if s > 0 else 1.0)
 
 
-# name -> (quantities fed to HDBSCAN, branch-selection rule).
+# name -> (quantities fed to HDBSCAN, branch-selection rule, probability method, error-aware).
 #
 # ``selection`` is a documented ``search_pseudoprobability`` argument with exactly two
 # legal values and NEITHER uses ground truth, so both are fair game:
@@ -303,34 +350,161 @@ def _zscore(x: np.ndarray) -> np.ndarray:
 # cluster, so the two rules can disagree completely. Reporting only the default would
 # understate the package; reporting only the alternative would hide a real default-value
 # failure mode. Both are measured.
+#
+# The fourth field is ERROR-AWARE: when True the ``f_i`` factor of ``p_tilde`` is replaced by
+# the Monte-Carlo, error-propagated ``f_i^MC`` from
+# ``Clustering.search_pseudoprobability_error_aware``, using the SAME per-star errors ASteCA
+# receives. See "THE ERROR-AWARE ARMS" in the module docstring for the pre-registered
+# falsification criterion and the three stated limitations.
 EROTICA_CONFIGS = {
-    "erotica_pm": (("pmra", "pmdec"), "max_members", "hdbscan"),
-    "erotica_3d": (("pmra", "pmdec", "plx"), "max_members", "hdbscan"),
-    "erotica_5d": (("ra", "dec", "pmra", "pmdec", "plx"), "max_members", "hdbscan"),
-    "erotica_pm_maxlambda": (("pmra", "pmdec"), "max_lambda", "hdbscan"),
-    "erotica_3d_maxlambda": (("pmra", "pmdec", "plx"), "max_lambda", "hdbscan"),
-    "erotica_5d_maxlambda": (("ra", "dec", "pmra", "pmdec", "plx"), "max_lambda", "hdbscan"),
+    "erotica_pm": (("pmra", "pmdec"), "max_members", "hdbscan", False),
+    "erotica_3d": (("pmra", "pmdec", "plx"), "max_members", "hdbscan", False),
+    "erotica_5d": (("ra", "dec", "pmra", "pmdec", "plx"), "max_members", "hdbscan", False),
+    "erotica_pm_maxlambda": (("pmra", "pmdec"), "max_lambda", "hdbscan", False),
+    "erotica_3d_maxlambda": (("pmra", "pmdec", "plx"), "max_lambda", "hdbscan", False),
+    "erotica_5d_maxlambda": (
+        ("ra", "dec", "pmra", "pmdec", "plx"),
+        "max_lambda",
+        "hdbscan",
+        False,
+    ),
     # The third sweep-step rule, added 2026-08-04. `max_members` is the argmax of a
     # condensed-tree ROW count -- issue #7's quantity -- and `max_lambda` collapses to
     # mcs_range.start; `max_persistence` scores each step by cluster_persistence_ of the
     # cluster the selector actually returns. Kept as separate arms so all three are scored
     # on identical frames rather than compared across runs.
-    "erotica_pm_maxpersistence": (("pmra", "pmdec"), "max_persistence", "hdbscan"),
-    "erotica_3d_maxpersistence": (("pmra", "pmdec", "plx"), "max_persistence", "hdbscan"),
+    "erotica_pm_maxpersistence": (("pmra", "pmdec"), "max_persistence", "hdbscan", False),
+    "erotica_3d_maxpersistence": (("pmra", "pmdec", "plx"), "max_persistence", "hdbscan", False),
     "erotica_5d_maxpersistence": (
         ("ra", "dec", "pmra", "pmdec", "plx"),
         "max_persistence",
         "hdbscan",
+        False,
     ),
     # Soft-membership arms, added 2026-08-04. probabilities_ is exactly 1.0 for ~84% of an
     # EOM-merged cluster (the min() clamp in _hdbscan_tree.pyx:519-557), which is the mechanism
     # behind erotica_3d's AUC of 0.776. These score the same pipeline with
     # all_points_membership_vectors instead. This harness -- not the ad-hoc screen -- is what
     # decides whether the default moves, because it carries the f_i term and the ASteCA arm.
-    "erotica_pm_soft": (("pmra", "pmdec"), "max_persistence", "soft"),
-    "erotica_3d_soft": (("pmra", "pmdec", "plx"), "max_persistence", "soft"),
-    "erotica_5d_soft": (("ra", "dec", "pmra", "pmdec", "plx"), "max_persistence", "soft"),
+    "erotica_pm_soft": (("pmra", "pmdec"), "max_persistence", "soft", False),
+    "erotica_3d_soft": (("pmra", "pmdec", "plx"), "max_persistence", "soft", False),
+    "erotica_5d_soft": (("ra", "dec", "pmra", "pmdec", "plx"), "max_persistence", "soft", False),
+    # ERROR-AWARE arms, added 2026-08-04. Identical to `erotica_5d` / `erotica_5d_soft` in
+    # every respect EXCEPT that `f_i` is replaced by the Monte-Carlo error-propagated
+    # `f_i^MC`. Isolating one factor is the point: if these move and nothing else changed,
+    # the movement is attributable to per-star error propagation and to nothing else.
+    "erotica_5d_erroraware": (
+        ("ra", "dec", "pmra", "pmdec", "plx"),
+        "max_members",
+        "hdbscan",
+        "mc",
+    ),
+    "erotica_5d_soft_erroraware": (
+        ("ra", "dec", "pmra", "pmdec", "plx"),
+        "max_persistence",
+        "soft",
+        "mc",
+    ),
+    # MATCHED CONTROL for the two arms above, and it is not optional. `f_i^MC` differs from
+    # the shipped `f_i` in TWO ways at once: the error resampling, and the decimated sweep
+    # grid the resampling is run on (9 steps, not 90). Comparing `*_erroraware` against
+    # `erotica_5d` alone would confound the two and could credit error propagation for a
+    # grid artefact. This arm is `score * f_i` with the SAME decimated grid and NO error
+    # perturbation, so the error-propagation effect is (mc - coarse), not (mc - shipped).
+    "erotica_5d_coarsef": (
+        ("ra", "dec", "pmra", "pmdec", "plx"),
+        "max_members",
+        "hdbscan",
+        "coarse",
+    ),
 }
+
+# Per-star 1-sigma errors for each clustering quantity, on the RAW scale. `ra` / `dec` carry
+# no error column in `Realisation` -- and ASteCA is handed none either (`asteca.Cluster` takes
+# `e_pmra`, `e_pmde`, `e_plx` only), so a zero here is parity, not an omission.
+ERROR_ATTR = {"pmra": "e_pmra", "pmdec": "e_pmdec", "plx": "e_plx", "ra": None, "dec": None}
+
+# Monte-Carlo settings for the error-aware arms; set from the CLI in main().
+EA_SETTINGS = {"n_mc": 100, "mcs_step": 10, "random_state": 0}
+
+# One realisation's `f_i^MC` is reused by every error-aware arm that shares its feature
+# columns and MC settings. `f_i` does not depend on the branch-selection rule or on the
+# probability method -- `final_probability_times` is computed from `labels_matrix`, which is
+# filled at every sweep step before any selection happens (verified in
+# `clustering.py:400-460`, and asserted per cell in `benchmark_ptilde_decomposition.py`).
+# Without this cache the two error-aware arms would pay the MC cost twice for one number.
+_F_MC_CACHE: dict[tuple, tuple[np.ndarray, np.ndarray]] = {}
+
+
+def _zscored_columns(real: Realisation, quantities: tuple[str, ...]) -> QTable:
+    """z-scored feature columns plus, for the error-aware path, errors on the SAME scale.
+
+    ``_zscore`` divides by ``np.std(x)`` (or 1.0 when the column is constant), so a 1-sigma
+    error on the raw column becomes ``e / std(x)`` on the z-scored one. Getting this wrong is
+    silent: the sampler would still run, just with errors in the wrong units.
+    """
+    cols = {f"{q}_z": _zscore(getattr(real, q)) for q in quantities}
+    table = QTable(cols)
+    for q in quantities:
+        attr = ERROR_ATTR.get(q)
+        s = float(np.std(np.asarray(getattr(real, q), dtype=float)))
+        s = s if s > 0 else 1.0
+        table[f"{q}_z_error"] = (
+            np.asarray(getattr(real, attr), dtype=float) / s
+            if attr
+            else np.zeros(real.truth.size, dtype=float)
+        )
+    return table
+
+
+def _error_aware_fi(
+    table: QTable, feature_cols: tuple[str, ...], *, mcs_range: range, mode: str
+) -> tuple[np.ndarray, np.ndarray]:
+    """``(f_mean, f_std)`` on the decimated grid, cached per (data, columns, settings).
+
+    ``mode='mc'`` propagates the per-star errors through ``n_mc`` draws.
+    ``mode='coarse'`` is the matched control: the same decimated grid, errors set to zero
+    and a single draw, which makes it the deterministic clustered fraction on that grid.
+    """
+    import hashlib
+
+    X = np.column_stack([np.asarray(table[c], dtype=float) for c in feature_cols])
+    E = np.column_stack([np.asarray(table[f"{c}_error"], dtype=float) for c in feature_cols])
+    grid = range(mcs_range.start, mcs_range.stop, EA_SETTINGS["mcs_step"])
+    n_mc = EA_SETTINGS["n_mc"] if mode == "mc" else 1
+    key = (
+        hashlib.sha1(np.ascontiguousarray(X).tobytes()).hexdigest(),
+        hashlib.sha1(np.ascontiguousarray(E).tobytes()).hexdigest(),
+        feature_cols,
+        (grid.start, grid.stop, grid.step),
+        mode,
+        n_mc,
+        EA_SETTINGS["random_state"],
+    )
+    if key not in _F_MC_CACHE:
+        if mode == "mc":
+            # Through the public package method, so the arm exercises the shipped code path
+            # (covariance assembly included) rather than a local reimplementation of it.
+            from erotica import Clustering
+
+            clu = Clustering(table.copy())
+            _F_MC_CACHE[key] = clu.search_pseudoprobability_error_aware(
+                columns=feature_cols,
+                n_mc=n_mc,
+                min_cluster_size_samples=grid,
+                random_state=EA_SETTINGS["random_state"],
+            )
+        else:
+            from erotica.core._error_aware import error_aware_pseudoprobability
+
+            _F_MC_CACHE[key] = error_aware_pseudoprobability(
+                X,
+                errors=np.zeros_like(E),
+                n_mc=1,
+                min_cluster_size_samples=grid,
+                random_state=EA_SETTINGS["random_state"],
+            )
+    return _F_MC_CACHE[key]
 
 
 def run_erotica_config(
@@ -340,15 +514,25 @@ def run_erotica_config(
     mcs_range: range,
 ) -> tuple[np.ndarray, np.ndarray, float, str | None]:
     """Return (p_tilde, member_mask, seconds, error). Columns are z-scored first."""
-    quantities, selection, probability_method = EROTICA_CONFIGS[config]
-    cols = {f"{q}_z": _zscore(getattr(real, q)) for q in quantities}
-    table = QTable(cols)
+    quantities, selection, probability_method, error_aware = EROTICA_CONFIGS[config]
+    table = _zscored_columns(real, quantities)
+    feature_cols = tuple(f"{q}_z" for q in quantities)
+    if error_aware:
+        return _run_erotica_error_aware(
+            real,
+            table,
+            feature_cols,
+            selection=selection,
+            probability_method=probability_method,
+            mcs_range=mcs_range,
+            mode=str(error_aware),
+        )
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             probs, mask, secs = bm.run_erotica(
-                table,
-                columns=tuple(cols),
+                table[list(feature_cols)],
+                columns=feature_cols,
                 min_cluster_size_samples=mcs_range,
                 probability_threshold=0.5,
                 selection=selection,
@@ -358,6 +542,58 @@ def run_erotica_config(
     except Exception as exc:  # a failure to find any cluster is a legitimate result
         n = real.truth.size
         return np.zeros(n), np.zeros(n, bool), float("nan"), f"{type(exc).__name__}: {exc}"
+
+
+def _run_erotica_error_aware(
+    real: Realisation,
+    table: QTable,
+    feature_cols: tuple[str, ...],
+    *,
+    selection: str,
+    probability_method: str,
+    mcs_range: range,
+    mode: str,
+) -> tuple[np.ndarray, np.ndarray, float, str | None]:
+    """``p_tilde^MC = score * f_i^MC`` -- the ordinary score, the error-propagated frequency.
+
+    The ordinary sweep still runs, because it is what produces ``score`` and the selected
+    branch; only the ``f_i`` factor is swapped. The member mask reproduces exactly what
+    ``_annotate_pseudoprobability_results`` does with ``probability`` -- selected label AND
+    over threshold -- so the mask means the same thing in this arm as in every other.
+    """
+    from erotica import Clustering
+
+    n = real.truth.size
+    t0 = time.perf_counter()
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            clu = Clustering(table[list(feature_cols)])
+            clu.search_pseudoprobability(
+                columns=feature_cols,
+                min_cluster_size_samples=mcs_range,
+                probability_threshold=0.5,
+                selection=selection,
+                probability_method=probability_method,
+            )
+            f_mc, _f_std = _error_aware_fi(table, feature_cols, mcs_range=mcs_range, mode=mode)
+        tab = clu.data
+        if probability_method == "soft" and "probability_soft" in tab.colnames:
+            score = np.asarray(tab["probability_soft"], dtype=float)
+        else:
+            score = np.asarray(tab["probability_hdbscan"], dtype=float)
+        p_mc = score * f_mc
+        labels = np.asarray(tab["cluster_hdbscan"], dtype=int)
+        sel = int((clu.pseudoprobability_selected_ or {}).get("selected_cluster", -1))
+        mask = (labels == sel) & (p_mc > 0.5) if sel >= 0 else np.zeros(n, bool)
+        return p_mc, mask, time.perf_counter() - t0, None
+    except Exception as exc:
+        return (
+            np.zeros(n),
+            np.zeros(n, bool),
+            time.perf_counter() - t0,
+            f"{type(exc).__name__}: {exc}",
+        )
 
 
 def erotica_branch_diagnostic(
@@ -393,7 +629,7 @@ def erotica_branch_diagnostic(
     mean taken over cells. ``selected_n`` and ``selected_is_empty`` are reported alongside
     so a purity change can be told apart from a change in how often nothing is selected.
     """
-    quantities, selection, probability_method = EROTICA_CONFIGS[config]
+    quantities, selection, probability_method, _error_aware = EROTICA_CONFIGS[config]
     cols = {f"{q}_z": _zscore(getattr(real, q)) for q in quantities}
     from erotica import Clustering
     from erotica.core.clustering import Clustering as _C
@@ -636,7 +872,9 @@ def run_cell(
     caps: dict[str, int] = {}
     if adaptive:
         for cfg in set(configs) | set(diagnostic_configs):
-            quantities, _ = EROTICA_CONFIGS[cfg]
+            # EROTICA_CONFIGS entries are 4-tuples; the 2-name unpack that used to be here
+            # raised under --adaptive-sweep the moment a third field was added.
+            quantities = EROTICA_CONFIGS[cfg][0]
             caps[cfg] = adaptive_mcs_cap(real, quantities, lo=mcs_range.start)
 
     method_probs: dict[str, np.ndarray] = {}
@@ -901,9 +1139,26 @@ def main(argv=None) -> int:
     )
     ap.add_argument("--skip-control", action="store_true")
     ap.add_argument("--skip-sensitivity", action="store_true")
+    ap.add_argument(
+        "--ea-nmc",
+        type=int,
+        default=100,
+        help="Monte-Carlo error draws for the *_erroraware arms. ASteCA's fastMP uses 1000; "
+        "see limitation 1 in the module docstring for why this defaults lower.",
+    )
+    ap.add_argument(
+        "--ea-mcs-step",
+        type=int,
+        default=10,
+        help="decimation of the mcs sweep INSIDE each error draw (10 -> 9 steps, not 90). "
+        "See limitation 2: the matched no-error control on the same grid is what makes the "
+        "error-propagation effect separable from the grid effect.",
+    )
     args = ap.parse_args(argv)
 
     configs = [c for c in args.configs.split(",") if c]
+    EA_SETTINGS["n_mc"] = int(args.ea_nmc)
+    EA_SETTINGS["mcs_step"] = int(args.ea_mcs_step)
     mcs_range = range(args.mcs_lo, args.mcs_hi)
     pyupmask_cfg = None
     if args.pyupmask:
