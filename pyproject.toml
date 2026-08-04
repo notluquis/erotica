@@ -105,7 +105,16 @@ bayes = [
   "h5netcdf[h5py]>=1.3",
 ]
 asteca = [
-  "asteca>=0.6",
+  # >=0.7, NOT >=0.6. The published benchmark table (tools/validation/benchmark_erotica_vs_asteca.py)
+  # was measured against asteca 0.7.0, and it is the competing method's own numbers -- the
+  # `asteca_fastmp` row is the baseline every EROTICA claim is stated relative to.
+  #
+  # The floor is load-bearing precisely BECAUSE the API did not change: 0.6.9 exposes the same
+  # Cluster.get_center / get_nmembers / Membership.fastmp surface, so it runs to completion, raises
+  # nothing, and silently produces a DIFFERENT baseline. There is no failure signal to catch it.
+  # `>=0.6` therefore admitted an environment in which the paper's central table cannot be
+  # reproduced and would appear to reproduce with different numbers. Raised 2026-08-04.
+  "asteca>=0.7",
 ]
 selection = [
   "gaiaunlimited>=0.3",

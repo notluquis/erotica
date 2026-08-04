@@ -40,6 +40,23 @@
 #
 #   mamba create -n _probe --dry-run -c conda-forge python=3.14 <every dependency below>
 
+# ---------------------------------------------------------------------------------------------
+# WHICH LOCAL ENV ACTUALLY RUNS THIS PACKAGE — audited 2026-08-04, because the answer surprised me
+# and the wrong choice fails SILENTLY rather than loudly.
+#
+#   erotica-bench   erotica 0.1.0 (editable) + asteca 0.7.0   <- the only env that reproduces the
+#                                                                published benchmark table
+#   cosmic          NO erotica installed; asteca 0.6.9        <- prior sessions prescribed this one
+#   erotica         does not exist locally, despite `name:` below naming it
+#
+# `cosmic` appears to work because `pytest` and the validation scripts are run from the repo root,
+# which puts `erotica/` on sys.path via the current directory. `import erotica` from ANY other
+# working directory fails there. And its asteca 0.6.9 exposes the same API as 0.7.0, so the
+# benchmark runs to completion and silently reports a different `asteca_fastmp` baseline.
+#
+# Two failure modes with no error message between them. Use `erotica-bench` for anything that
+# produces a number, or create the env this file declares.
+# ---------------------------------------------------------------------------------------------
 name: erotica
 
 channels:
@@ -116,6 +133,11 @@ dependencies:
   - pip
   - pip:
       - gaiadr3-zeropoint>=0.1.0
-      - asteca>=0.6
+      # >=0.7 and not >=0.6, kept in step with pyproject.toml's `asteca` extra. The published
+      # benchmark table was measured on 0.7.0. 0.6.9 exposes the SAME API, so it runs, raises
+      # nothing, and silently yields a different `asteca_fastmp` baseline -- the row every EROTICA
+      # claim is stated relative to. No failure signal exists to catch that, so the floor is the
+      # only guard. Raised 2026-08-04.
+      - asteca>=0.7
       - gaiaunlimited>=0.3
       - hr-selection-function>=1.0
