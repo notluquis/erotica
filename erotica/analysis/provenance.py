@@ -224,14 +224,24 @@ def _allocate_trace_index(path: Path, trace) -> int:
     clock so the archive stays sortable and older files keep their meaning, then resolved against
     what is already on disk.
 
-    * If nothing occupies the slot, take it.
-    * If the occupant is **byte-identical to what we are about to write**, reuse it. Storing the
-      same trace twice is then idempotent instead of duplicating.
-    * Otherwise step forward until a free slot is found. The index stops being a timestamp at that
-      point, which is why ``Date_Time`` exists and is the column to read for *when*.
+    * If **any already-archived trace carries the same posterior draws**, return *its* index.
+      Storing one trace twice is then idempotent, whatever the clock did in between.
+    * Otherwise take the clock-seeded slot, stepping forward while it is occupied. The index stops
+      being a timestamp at that point, which is why ``Date_Time`` exists and is the column to read
+      for *when*.
 
-    Sameness is decided with :func:`file_checksum`, the digest this module already uses to
-    identify inputs — the same notion of "same data" applied to outputs.
+    Sameness is decided on the posterior draws (see :func:`_same_posterior`), not on the file:
+    NetCDF embeds creation metadata, so two writes of one identical trace are never
+    byte-identical, and comparing summaries would be weaker still because distinct posteriors can
+    share a mean and a standard deviation.
+
+    .. warning::
+       The search is over **all** sibling slots by design. An earlier version checked only the
+       slot the clock named and returned early when it was free, so two stores one second apart
+       produced a duplicate — the precise outcome this function exists to prevent. It passed
+       whenever both calls fell inside one second, which made its own idempotence test a coin
+       flip on timing. Content-derived identity cannot be conditional on *when* the second write
+       happens.
     """
     index = int(datetime.now(tz=UTC).timestamp())
     if trace is None:
@@ -240,26 +250,34 @@ def _allocate_trace_index(path: Path, trace) -> int:
     def slot(i: int) -> Path:
         return path.with_name(f"{path.stem}_trace_{i}.nc")
 
-    if not slot(index).exists():
-        return index
-
-    # Occupied. Decide sameness on the DRAWS, not on the file.
+    # Look for this trace among EVERY archived slot, not just the one the clock happens to name.
     #
-    # The first version of this compared blake2b digests of the two .nc files, using
-    # file_checksum -- and that can never match, because NetCDF embeds creation metadata, so two
-    # writes of one identical trace differ byte-for-byte. The comment above that code said
-    # exactly this and the code did it anyway; the idempotence test caught it.
+    # This is the correction to the first version, and the failure is worth keeping because the
+    # test caught it only by luck. That version checked `slot(index)` alone and returned early if
+    # it was free. Since `index` is seeded from the clock, two stores of one trace one second
+    # apart got two different indices, the second slot was empty, and it archived a duplicate --
+    # the exact behaviour this function exists to prevent. It passed whenever both calls landed
+    # inside the same second and failed when they straddled a boundary, so the idempotence test
+    # was a coin flip on wall-clock timing rather than a check on identity.
     #
-    # Comparing the summaries instead would be weaker, not stronger: distinct posteriors can
-    # share a mean and a standard deviation. So compare the posterior arrays themselves, which
-    # is what "the same trace" has to mean.
+    # Content-derived identity cannot be conditional on when the second write happens. Scanning
+    # the siblings is what makes it unconditional.
+    #
+    # Sameness is decided on the DRAWS, not on the file. The version before that compared blake2b
+    # digests of the two .nc files -- which can never match, because NetCDF embeds creation
+    # metadata, so two writes of one identical trace differ byte-for-byte. Comparing summaries
+    # would be weaker still: distinct posteriors can share a mean and a standard deviation.
     try:
         import arviz as az
 
-        existing = az.from_netcdf(slot(index))
-        if _same_posterior(existing, trace):
-            return index  # identical trace already archived -- idempotent
-    except Exception:  # noqa: BLE001 - an unreadable neighbour must not cost the caller their run
+        for existing_path in sorted(path.parent.glob(f"{path.stem}_trace_*.nc")):
+            try:
+                if _same_posterior(az.from_netcdf(existing_path), trace):
+                    # Recover the index this trace already owns, so the CSV rows point at it.
+                    return int(existing_path.stem.rsplit("_trace_", 1)[1])
+            except Exception:  # noqa: BLE001 - one unreadable neighbour must not abort the scan
+                continue
+    except Exception:  # noqa: BLE001 - no arviz, or an unreadable directory: fall through
         pass
 
     while slot(index).exists():

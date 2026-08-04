@@ -20,14 +20,17 @@ was meant to describe, so ``build_metadata`` is fed hostile values on purpose.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pytest
 
+from erotica.analysis import provenance
 from erotica.analysis.provenance import (
     build_metadata,
     calculate_mode,
@@ -488,18 +491,45 @@ def test_two_fits_in_the_same_second_do_not_destroy_a_trace(tmp_path):
 
 
 def test_storing_the_same_trace_twice_is_idempotent(tmp_path):
-    """Identity is content-derived, so re-storing one fit must not fabricate a second archive."""
+    """Identity is content-derived, so re-storing one fit must not fabricate a second archive.
+
+    The two stores are FORCED ONTO DIFFERENT CLOCK SECONDS, and that is the whole point of the
+    test rather than an incidental detail. The first version of this test called
+    ``store_trace_results`` twice back to back, which normally lands both inside one second --
+    and the implementation it was written against checked only the slot the clock named, so it
+    was idempotent by collision rather than by content. The test passed for months of runs and
+    then failed the first time the two calls straddled a second boundary, archiving
+    ``fit_trace_1785866397.nc`` and ``fit_trace_1785866398.nc``.
+
+    A test that passes because two events happened to share a timestamp is not testing identity.
+    Pinning the clock to two different values makes the property unconditional: the second store
+    must find the first by its DRAWS, not by landing on the same integer.
+    """
     az = pytest.importorskip("arviz")
     csv = tmp_path / "fit.csv"
     trace = az.from_dict({"posterior": {"mu": np.full((2, 50), 7.0)}})
 
-    store_trace_results(trace, csv)
-    store_trace_results(trace, csv)
+    real_datetime = provenance.datetime
+    # Unbounded: `store_trace_results` also stamps `Date_Time` once per summary row, so a fixed
+    # list of ticks exhausts and raises StopIteration instead of testing anything.
+    tick = itertools.count(1785866397.0)
+
+    class _Clock:
+        """`datetime` stand-in whose `now` advances a full second on every call."""
+
+        @staticmethod
+        def now(tz=None):
+            return real_datetime.fromtimestamp(next(tick), tz=tz)
+
+    with mock.patch.object(provenance, "datetime", _Clock):
+        store_trace_results(trace, csv)
+        store_trace_results(trace, csv)
 
     traces = sorted(tmp_path.glob("fit_trace_*.nc"))
     assert len(traces) == 1, (
         f"the same trace was archived twice: {[t.name for t in traces]}. Identity is supposed to "
-        "come from content, so an identical trace should reuse its slot."
+        "come from content, so an identical trace must reuse its slot even when the two stores "
+        "fall in different clock seconds."
     )
 
 
