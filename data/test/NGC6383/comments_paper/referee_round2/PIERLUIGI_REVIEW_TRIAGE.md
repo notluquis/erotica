@@ -132,6 +132,113 @@ propio. (Dato adicional no usado: Kalari adopta **d = 1340 pc**, frente a nuestr
 
 ---
 
+---
+
+## 3bis. SEGUNDA PASADA sobre Kalari — cuatro cosas más, una de ellas grave
+
+Releído el cuerpo completo de Kalari 2019 §3.3. La primera pasada se quedó corta.
+
+### (a) El ±1.6 es el **error de la media**, no la dispersión
+
+> "The error on the mean age takes into account the reddening uncertainties and photometric errors.
+> **The standard deviation of CTTS ages is 3.4 Myr**, and 70% of all CTTS have ages between 1–4 Myr."
+
+La distribución real: rango **0.4–18 Myr**, IQR **1.4–3.8**, **σ = 3.4 Myr**. Nuestro `2.80 ± 1.60`
+está mal por partida doble: no es mediana (es media) y el ±1.6 no es una dispersión sino el error
+de esa media. Citarlo como si fuera la anchura de la población hace parecer a la población de
+Kalari **el doble de estrecha de lo que es**.
+
+### (b) El rango de masas también difiere entre abstract y cuerpo
+
+| | masas |
+|---|---|
+| Abstract de Kalari | "mass range between **0.3 and 1** M☉" |
+| §3.3 de Kalari | "The mass range is between **0.3–0.9** M☉, **with the median mass 0.5 M☉**" |
+| **Nuestro l.387** | "masses ranging from 0.3 to **1.0** M☉" ← seguimos el abstract otra vez |
+
+Mismo patrón que con mean/median: **dos veces tomamos el abstract donde el cuerpo dice otra cosa.**
+
+### (c) 🔴 Kalari adopta **d = 1340 pc**; nosotros 1.11 kpc — y no lo decimos en ninguna parte
+
+`grep` sobre `aanda.tex`: **cero menciones** de la distancia de Kalari.
+
+| | |
+|---|---|
+| DM Kalari (1340 pc) | 10.636 |
+| DM nuestro (1110 pc) | 10.227 |
+| **Δ** | **0.41 mag → factor 1.46 en luminosidad** |
+
+Kalari *interpola posiciones del CMD sobre tracks PMS*, así que la distancia entra directamente en
+la edad. A mayor distancia supuesta, las mismas estrellas son intrínsecamente **más luminosas**, y
+sobre una track de contracción PMS eso significa **más jóvenes**. Es decir: **sus edades están
+sesgadas hacia lo joven respecto de las nuestras por construcción**, en la dirección que explicaría
+parte de la diferencia con nuestros 3.53 Myr.
+
+Y nuestro texto actual dice que la diferencia *"reflects the choice of evolutionary code **rather
+than the data**"*. Con una diferencia de distancia del 21% eso es, en el mejor de los casos,
+incompleto: la distancia **es** un dato de entrada, y difiere. Un referee que conozca a Kalari
+puede objetar esa frase.
+
+⚠ No afirmar cuántos Myr son sin calcularlo sobre las tracks: el signo es firme, la magnitud no.
+
+### (d) Kalari ya trae el mecanismo y el orden CTTS/WTTS — y responde a R16
+
+- **Por qué difieren los modelos**, con cita: sigue el patrón de **Herczeg & Hillenbrand (2015)** —
+  para tipos anteriores a M (el grueso de su muestra) Bressan da edades menores que Siess. Nuestro
+  texto dice vagamente "the choice of evolutionary code"; hay una referencia y una dirección.
+- **Comparación con Rauw hecha por él mismo**: Rauw da 2.8 ± 0.5 Myr para las estrellas X, y Kalari
+  advierte que *"X-ray emitting PMS stars (likely Weak Line T Tauri stars) are generally older than
+  CTTS"*. **R16 era precisamente sobre cómo ordenamos la comparación Kalari↔Rauw** — y el propio
+  Kalari ya explica por qué esos dos números no son directamente comparables.
+- Kalari advierte además (citando Mayne & Naylor 2008) que la edad **estadística de la población**
+  es más fiable que las edades individuales — relevante porque nosotros comparamos una edad de
+  cúmulo contra un estadístico de población con σ = 3.4 Myr.
+
+---
+
+## 3ter. Opciones para los tres tachados discutibles
+
+**El hallazgo que las ordena:** la guía de A&A dice que las tablas deben ser autoexplicativas,
+pero que *"details should not clutter the header and are better presented as **explanatory
+footnotes**"*. El caption de la Tabla 1 tiene **233 palabras**, y `\tablefoot{}` **ya se usa en
+este mismo manuscrito** (l.170). Eso da una salida que no había considerado y que no es un
+compromiso: no es "borrar" ni "dejar", es **mover a footnote**.
+
+### T1 — "not the 1σ default" (Y_frac)
+
+| opción | a favor | en contra |
+|---|---|---|
+| **A. Aceptar el corte** | "95% credible-interval bounds" ya lo dice | pierde el contraste explícito con el resto de la tabla |
+| **B. Mover a `\tablefoot`** ⭐ | conserva la precisión, alivia el caption, forma nativa A&A | ninguno |
+
+### T4 — offsets de color de Rauw (0.12–0.24 / >0.24 mag)
+
+| opción | a favor | en contra |
+|---|---|---|
+| **A. Mantener** | es procedencia metodológica, ligada a R16 | es la frase más densa del párrafo |
+| **B. Comprimir en sitio** ⭐ | conserva los números y la lógica "no recuperamos su lista de emisores" | requiere reescribir |
+| **C. A footnote** | máximo alivio | rompe el hilo del argumento, que es prosa y no dato tabular |
+
+Recomiendo **B**: el referee (R16) pidió *procedencia*; borrar cómo se hizo el cruce va en contra.
+
+### T5 — lista de radios de la literatura (15.0; 29.0±4.2; 22.7; 29.7±7.7)
+
+| opción | a favor | en contra |
+|---|---|---|
+| **A. Aceptar el corte** ⭐ | los cuatro valores **están en `tab:literature`**; el paréntesis es redundancia real, y el rango "15–30 arcmin" + la referencia a la tabla sobreviven | el lector pierde los valores en línea |
+| B. Mantener | autocontenido | duplica la tabla |
+
+Éste es el único de los tres donde Pierluigi tiene razón sin matices.
+
+### Y para T2/T3 (los que había marcado como rechazar)
+
+Con el mecanismo de footnote, **deja de ser rechazo**: el caveat de no-independencia (R5) y el del
+anillo de fondo (R11) **se mueven a `\tablefoot`**. Pierluigi obtiene el caption corto que pide,
+el referee conserva sus respuestas, y A&A obtiene su forma preferida. Es la opción que satisface a
+los tres.
+
+---
+
 ## 4. Qué falta decidir antes de tocar nada
 
 1. **T2 y T3 se rechazan** — deshacen R5 y R11. Confirmar con Pierluigi que su instrucción cubre
