@@ -1,0 +1,248 @@
+[
+ {
+  "page": 3,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "uncertainties are the 9 r, not the 1\u03c3 default"
+ },
+ {
+  "page": 3,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "), and is not independent of the parallax- based value because the distance-modulus prior was centered on it."
+ },
+ {
+  "page": 3,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "t ), the only extraction whose profile reaches a fitted background annulus beyond the cluster; whose profile reaches a fitted backgro all narrower windows give consistent R Rt m und ann values."
+ },
+ {
+  "page": 4,
+  "type": "Highlight",
+  "comment": "structures",
+  "text": "structure."
+ },
+ {
+  "page": 4,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "(viridis color map; color bar at right)"
+ },
+ {
+  "page": 4,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "As shown in the figure, stars with fainter magnitudes tend to have lower astrometric fidelity. This becomes more evident at G > 18 mag."
+ },
+ {
+  "page": 5,
+  "type": "Highlight",
+  "comment": "posterior estimate",
+  "text": "posterior"
+ },
+ {
+  "page": 5,
+  "type": "Highlight",
+  "comment": "revise punctuation",
+  "text": ". and the optimal KDE bandwidth."
+ },
+ {
+  "page": 6,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "Only selected columns and five rows are printed here for guidance regarding the table form and content."
+ },
+ {
+  "page": 6,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "r: sources with \u03b4\u03d6/\u03d6 < 0.1 (blue solid histogram; used for the estimate), all sources (gray dashed), and \u03b4\u03d6/\u03d6 > 0.1 (orange dotted; not used). The black curve is a Gaussian fit; the black dash-dotted line and the gray vertical band mark the mean parallax, \u00b5\u03d6 \u03d6 = 0.908 mas, and its standard error."
+ },
+ {
+  "page": 6,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "\u03d6 with the same split (blue circles < 0.1, orange triangles > 0.1);"
+ },
+ {
+  "page": 6,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "especially pronounced at fainter magnitudes; the mean-parallax line is repeated, with a gray band showing the 1\u03c3 parallax dispersion"
+ },
+ {
+  "page": 6,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "with the same split \u00b1."
+ },
+ {
+  "page": 6,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "the black dash-dotted line marks the adopted distance (\u00b5d d = 1.11 kpc, the mode of the sampled distances), with a gray band showing its \u00b10.06 kpc dispersion."
+ },
+ {
+  "page": 7,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "(viridis color map)."
+ },
+ {
+  "page": 7,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "indicating the inferred mean proper-motion values (\u00b5\u03b1 \u2212\u22121 \u03b1\u2217 , \u00b5\u03b4 \u03b4 ) = (2.542, \u22121.713) mas yr nf r\u22121 \u03b1\u2217\u03b4 , with corresponding orange dashed lines high- lighting these central coordinates."
+ },
+ {
+  "page": 7,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "(viridis color map)."
+ },
+ {
+  "page": 7,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "lines at \u03b1 = 263.683\u25e6 t \u25e6 and \u03b4 = \u221232.584\u25e6 ar \u25e6"
+ },
+ {
+  "page": 7,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "A scale bar of 5 parsecs is in- cluded at the bottom right to provide a reference for the spatial scale."
+ },
+ {
+  "page": 8,
+  "type": "Highlight",
+  "comment": "approximately correspond",
+  "text": "correspond approximately .."
+ },
+ {
+  "page": 8,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "e: an- nular number densities of the reference sample (black points)"
+ },
+ {
+  "page": 8,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "The black dashed and dotted vertical lines mark the core radius (Rc c = 1.96 arcmin) and the outer radius c preferred by this 40 arcmin-window fit (R Rt = 40 arcmin),"
+ },
+ {
+  "page": 8,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "and the gray t dash-dotted horizontal line marks the fitted background level b."
+ },
+ {
+  "page": 9,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "mag BP RP Orange filled symbols are PMS candidates \u2265. (Sagitta PMS probability \u22650.6), blue filled symbols are non-PMS sources, and open black symbols are sources without 2MASS pho- tometry, which we exclude from the Sagitta-based classification; star \u2265 markers denote members ( \u02dcp \u22650.8) and diamonds "
+ },
+ {
+  "page": 10,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": ": 8.80\u201315.44 (blue solid), 15.44\u201316.99 (orange dashed), mag 16.99\u201317.93 (teal dotted), and 17.93\u201320.66 mag (red dash-dotted)"
+ },
+ {
+  "page": 11,
+  "type": "Highlight",
+  "comment": "directly depends",
+  "text": "depends directly"
+ },
+ {
+  "page": 11,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "In all panels the quartiles are drawn as blue solid, orange dashed, teal dotted, and red dash-dotted \u2299\u2299 curves; in the right panel single stars are the blue solid and binaries the orange dashed curve."
+ },
+ {
+  "page": 12,
+  "type": "Highlight",
+  "comment": "early dynamical",
+  "text": "early-dynamical"
+ },
+ {
+  "page": 13,
+  "type": "Highlight",
+  "comment": ". Kalari (2019) notes ...",
+  "text": "models reddene Kalari (2019) no"
+ },
+ {
+  "page": 13,
+  "type": "Highlight",
+  "comment": "(0.94 probability of being a binary)",
+  "text": "binary, with a 0.94 probability of being a binary star ac- \u2265 cording to our analysis;"
+ },
+ {
+  "page": 13,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "mitter list. Instead, we used 0.12\u20130.24 mag above the their published R main-sequence RC RC CH color osets, 012\u2013024 mag above the \u2212H\u03b1 relation for candidates and > 0.24 mag main-sequen for emitters"
+ },
+ {
+  "page": 14,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "15.0, Kharchenko et al. 2005; 29.0 \u00b1 .ff. \u00b1 4.2, Piskunov et al. 2008; 22.7, Hunt & Reffert 2024; 29.7 \u00b1 . 7.7, Pulgar-Escobar & Henr\u00edquez-Salgado 2024; +7"
+ },
+ {
+  "page": 14,
+  "type": "Highlight",
+  "comment": "consistent",
+  "text": "maller than o compatible"
+ },
+ {
+  "page": 14,
+  "type": "Highlight",
+  "comment": ". In line with",
+  "text": "; in line"
+ },
+ {
+  "page": 17,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": ", gathered from various studies"
+ },
+ {
+  "page": 19,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "The dark-gray dashed line again repre- sents the best mode-fit isochrone."
+ },
+ {
+  "page": 19,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "The dark-gray dashed line represents the best mode-fit isochrone, illustrating the evolutionary track inferred for the cluster."
+ },
+ {
+  "page": 20,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "r; the red dashed circle is the 40 arcmin cone-search radius."
+ },
+ {
+  "page": 20,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "the core radius Rc c with a solid dark-blue line, the half-light radius Rh hl with a dash-dotted burgundy line, the half-mass radius R Rhm c with a solid magenta line, the Hill radius R RHill hl with a dash-dotted yellow line, and the gravitational bound radius Rb bound with a solid hm orange line"
+ },
+ {
+  "page": 20,
+  "type": "StrikeOut",
+  "comment": "",
+  "text": "A scale t bar indicating 5 pc is positioned at the bottom right to provide spatial reference relative to the cluster scale."
+ },
+ {
+  "page": 21,
+  "type": "Highlight",
+  "comment": "with d_omega/omega < 0.1",
+  "text": "with fractional parallax error below 0.1"
+ }
+]
