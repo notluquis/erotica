@@ -1282,3 +1282,26 @@ loosened, which is what the number supports and what the original text said befo
 re-purposed it.
 
 Clean 26 pp / marked 29 pp; gate.py 12/12.
+
+## 68. The correction written in Sect. 67 needed correcting (2026-08-17)
+
+Applying Sect. 67's own lesson -- that added prose goes in unreviewed -- to the prose Sect. 67 added,
+twenty minutes old and audited by nobody.
+
+**It contradicted itself.** The rewritten Appendix D paragraph read: *"R_c by the inner density,
+which **the wider windows** demonstrably lower to ~1.4 arcmin while the selection-stable **50 arcmin**
+run reproduces the adopted value"*. The 50 arcmin window is a wider window. Table D.2 gives R_c =
+1.96, 1.90, 1.36, 1.38 at 40, 50, 60 and 70 arcmin, so only the 60 and 70 arcmin windows lower it,
+and the sentence as written denied its own second clause. Now "the 60 and 70 arcmin windows".
+
+**And Sect. 4's lead-in over-claimed by one item.** It says "Each is needed downstream" and then
+names three things, while the section covers four: parallax and distance, proper motions, radial
+velocities, and the centre. The radial velocities are reported rather than used -- 29 of 254 stars,
+which the text itself calls only an indicative measure -- so "each" was wrong. Now "Three of these
+feed the rest of the paper".
+
+Checked and correct as written: Sect. 8's "a factor of several" against the paper's 3-7, and
+Sect. 6's description of what Sagitta returns against its own three networks for PMS probability,
+age and extinction.
+
+Clean 26 pp / marked 29 pp; gate.py 12/12.
