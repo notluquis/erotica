@@ -12,7 +12,7 @@ are highlighted).
 |---|---|
 | 1 Introduction | 1 Introduction |
 | 2 Methodology (data paragraphs) | 2 Data |
-| 2.1 COSMIC / samplers | 3.1 The COSMIC pipeline |
+| 2.1 COSMIC / samplers | 3.1 The EROTICA pipeline |
 | 2.1.1 Membership determination | 3.2 Membership determination |
 | 3 Results (membership part) | 3.3 Membership of NGC 6383 |
 | 2.1.2 Parallax and distance + 3 (result) | 4.1 Parallax and distance |
@@ -49,7 +49,7 @@ extraction-radius question).
 
 ### R1. Sect. 2.1, tool enumeration, purposes, and references
 
-We agree and have restructured the opening of Sect. 2.1. A new paragraph now walks through the five steps of the analysis and states explicitly, for each tool, the task it performs in this work and why it follows from the previous step: HDBSCAN identifies the members as a proper-motion over-density; PyMC/NUTS then samples the parallax-distance, proper-motion, and King-profile posteriors of those members; a weighted scikit-learn kernel density estimate locates the cluster center; ASteCA, sampled with DEMetropolis because its grid-interpolated likelihood has no usable gradients, fits the age, metallicity, extinction, and distance modulus; and Sagitta characterizes the pre-main-sequence content. Every tool now carries its canonical reference and a footnote with its website at first mention (COSMIC, PyMC, HDBSCAN, scikit-learn, ASteCA, and Sagitta).
+We agree and have restructured the opening of Sect. 2.1. A new paragraph now walks through the five steps of the analysis and states explicitly, for each tool, the task it performs in this work and why it follows from the previous step: HDBSCAN identifies the members as a proper-motion over-density; PyMC/NUTS then samples the parallax-distance, proper-motion, and King-profile posteriors of those members; a weighted scikit-learn kernel density estimate locates the cluster center; ASteCA, sampled with DEMetropolis because its grid-interpolated likelihood has no usable gradients, fits the age, metallicity, extinction, and distance modulus; and Sagitta characterizes the pre-main-sequence content. Every tool now carries its canonical reference and a footnote with its website at first mention (EROTICA, PyMC, HDBSCAN, scikit-learn, ASteCA, and Sagitta). The pipeline is the same code the round-1 version called COSMIC; it was renamed to avoid a collision with the `cosmic-popsynth` binary-population code, and the revised Sect. 3.1 says so at first mention.
 
 ### R2. Sect. 2.1.1, the native HDBSCAN membership probability
 

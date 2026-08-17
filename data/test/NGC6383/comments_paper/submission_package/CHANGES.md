@@ -724,3 +724,49 @@ paraphrases: it catches R17's and Fig. B.4's, and it misses Appendix B's "The cr
 ... correspond to these marginal posteriors", whose subject is "these" and which therefore names
 no isochrone token. A sentence-level regex cannot resolve an anaphor. The docstring says so. It
 is a screen against silent reintroduction, not a proof of consistency.
+
+## 52. Re-reading the referee and the co-author once more (2026-08-16)
+
+All 17 referee points re-verified against the current `aanda.tex`, in context and after every edit
+of Sects. 48-51. All 17 hold. The general criticism holds too: the nine main-text sections run
+Introduction, Data, Analysis framework and cluster membership, Astrometric parameters, Cluster
+structure, Age extinction and stellar content, Luminosity mass and dynamical state, Comparison
+with previous studies, Conclusions -- exactly the order the cover letter promises.
+
+**The automated pass reported 6 of 17 as missing. All six were false negatives**, from patterns
+rather than facts: citations live as bibcodes, not surnames (`2016ApJS..227....5D` is de Grijs &
+Bono; `2023ASPC..534..275O` is Offner; `2004A&A...416..221D` is De Becker), and `p = 0.010` is
+written `p=0.010`. Every one was resolved by reading the site. This is the same failure mode this
+package's notes have recorded twice before, and it is worth the reminder that a red check is a
+claim to verify, not a fact.
+
+**One co-author comment was counted as applied and never was.** The triage recorded "11/11
+aplicados" for the wording comments; C2's literal annotation is
+`{"page": 5, "type": "Highlight", "comment": "posterior estimate", "text": "posterior"}`, and the
+string `posterior estimate` has zero occurrences in the manuscript, before or after any edit. The
+summary had reworded the request as "`posterior distribution` (no *estimate*)" and, so reworded,
+treated it as satisfied. Re-reading the site: the p. 5 `posterior` is the King structural fit,
+whose sampler does converge, so the word is correct and `posterior estimate` would be less precise.
+The manuscript does not change; the count does, and the triage now says so.
+
+**The response letter still called the pipeline COSMIC.** The section map's new-side entry read
+"3.1 The COSMIC pipeline" against a section actually titled "The EROTICA pipeline", and R1 listed
+COSMIC among the tools. Both corrected, and R1 now states the rename and its reason, matching
+Sect. 3.1. The two surviving COSMIC mentions are deliberate history: the round-1 side of the
+mapping table, and the rename explanation itself. No stale URLs anywhere: the manuscript points at
+`github.com/notluquis/erotica` and the Zenodo DOI, and `cosmic-clusters` appears nowhere.
+
+**Two copies of the letters had diverged.** `referee_round2/` holds working copies of both letters
+that were two and twelve lines behind the ones in `submission_package/letters/`. Resynced, and the
+triage now names `submission_package/letters/` as the authoritative pair.
+
+**Arithmetic that checks out.** The sweep grid is $m_{cl} = 10 \ldots 299$, which is 290 runs, so
+the letter's "the fraction of the 290 sweep runs" and the manuscript's grid agree. Pierluigi's
+three `viridis` strikes are all gone; the one surviving "viridis color bar" is in Fig. C.4's
+caption, a string he did not mark. The seven Kalari corrections are all still in place.
+
+**Length.** The main body ends on p. 15 with References on p. 16, against A&A's 12-page main-body
+cap. Measured across this session's commits the body has been 15 pages throughout: everything
+added in Sects. 48-51 landed in the appendices, so the 24 -> 26 page growth does not touch the cap.
+`AANDA_GUIDELINES_AUDIT.md` judges the policy likely not to apply to this manuscript, submitted
+before its 2025-04-02 trigger; that judgement is unchanged and untested.

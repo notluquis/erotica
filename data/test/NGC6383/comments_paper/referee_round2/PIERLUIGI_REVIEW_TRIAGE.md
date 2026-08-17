@@ -289,9 +289,27 @@ los tres.
 
 Cada punto comprobado **en contexto** sobre `clean_source/aanda.tex`, no por presencia de palabra.
 
-### Los 11 comentarios: 11/11 aplicados
+📁 **Las cartas que se envían viven en `submission_package/letters/`.** Las copias de este
+directorio (`cover_letter_round2.txt`, `response_letter.md`) son de trabajo y llegaron a divergir
+de las buenas; se resincronizaron el 2026-08-16. Ante duda, manda `submission_package/letters/`.
 
-C1 `outer structures` · C2 `posterior distribution` (no *estimate* — ver §2.1) · C3 puntuación KDE ·
+### Los 11 comentarios: 10 aplicados + 1 ya satisfecho
+
+⚠ **Corregido 2026-08-16.** Esta línea decía **11/11 aplicados** y contaba C2 como aplicado. No lo
+está, y no debe estarlo. La anotación literal es
+`{"page": 5, "type": "Highlight", "comment": "posterior estimate", "text": "posterior"}`: pide
+`posterior` → `posterior estimate`. La cadena `posterior estimate` **nunca ha existido** en el
+`.tex` (cero ocurrencias antes y después de toda edición). Lo que ocurrió es que el resumen
+reformuló la petición como "`posterior distribution` (no *estimate*)" y, así reformulada, la dio
+por cumplida — porque el texto ya decía `posterior distribution`.
+
+Veredicto tras releer el sitio: el `posterior` de la p.5 es el del ajuste de King
+("yielding the posterior distribution of the structural parameters"), y **ese sampler sí
+converge**, así que la palabra es correcta y `posterior estimate` sería menos preciso, no más.
+**No se cambia el manuscrito; se corrige el recuento.** La lección es la del propio documento: un
+resumen que reformula la petición puede declararla cumplida sin que nadie haya tocado nada.
+
+C1 `outer structures` · C2 **no aplicado, ya satisfecho** (ver arriba) · C3 puntuación KDE ·
 C4 `approximately correspond` · C5 `directly depends` · C6 `early dynamical` **×6** · C7 punto antes
 de `Kalari (2019) notes` · C8 `(0.94 probability…)` comprimido · C9 `consistent` · C10 punto antes
 de `In line with` · C11 `$\delta\varpi/\varpi<0.1$`.
