@@ -199,7 +199,15 @@ def _same_posterior(a, b) -> bool:
         va, vb = set(pa.data_vars), set(pb.data_vars)
         if va != vb:
             return False
-        return all(np.array_equal(np.asarray(pa[v].values), np.asarray(pb[v].values)) for v in va)
+        # equal_nan=True is required, not defensive. `np.array_equal([1.0, nan], [1.0, nan])` is
+        # False by default, so a posterior holding ANY non-finite draw would never compare equal
+        # to itself and the content-derived identity would degrade silently to "always allocate a
+        # new slot" -- duplicating the archive with no warning. Non-finite draws are an expected
+        # condition here: `summarize_trace` documents dropping all-non-finite variables.
+        return all(
+            np.array_equal(np.asarray(pa[v].values), np.asarray(pb[v].values), equal_nan=True)
+            for v in va
+        )
     except Exception:  # noqa: BLE001 - "cannot tell" must read as "not the same"
         return False
 
@@ -244,11 +252,20 @@ def _allocate_trace_index(path: Path, trace) -> int:
        happens.
     """
     index = int(datetime.now(tz=UTC).timestamp())
-    if trace is None:
-        return index
 
     def slot(i: int) -> Path:
         return path.with_name(f"{path.stem}_trace_{i}.nc")
+
+    if trace is None:
+        # `save_trace=False`: there is no content to match against, so the identity cannot be
+        # content-derived -- but it still must not COLLIDE. Returning the raw clock reading here
+        # was a hole in exactly the guarantee this function exists to provide: a second call in
+        # the same second would stamp its summary rows with an index already naming a DIFFERENT
+        # trace's `.nc`, and `load_results(load_trace=True)` would then hand back one fit's
+        # posterior beside another fit's summary numbers, silently. Step past occupied slots.
+        while slot(index).exists():
+            index += 1
+        return index
 
     # Look for this trace among EVERY archived slot, not just the one the clock happens to name.
     #
@@ -341,6 +358,14 @@ def store_trace_results(
     path = Path(file_path)
     summaries = summarize_trace(trace, excluded_parameters=excluded_parameters)
     trace_index = _allocate_trace_index(path, trace if save_trace else None)
+    # ONE stamp for the whole call, not one per row. `datetime.now().isoformat()` carries
+    # microseconds, so evaluating it inside the comprehension below gave every parameter of a
+    # single fit a DIFFERENT `Date_Time` (measured: 6 distinct values in a 6-row loop). Since
+    # `load_results(only_last=True)` keeps the rows sharing the maximum `Date_Time`, a four-
+    # parameter King fit was reduced to whichever parameter happened to be serialised last, with
+    # the other three dropped silently -- on the path the published figures are regenerated from.
+    # `Date_Time` identifies the storing EVENT; it is not a per-row measurement.
+    stored_at = datetime.now(tz=UTC).isoformat()
     rows = [
         {
             "Parameter": item.variable,
@@ -349,7 +374,7 @@ def store_trace_results(
             "Standard_Deviation": item.std,
             "Std": item.std,
             "Mode": item.mode,
-            "Date_Time": datetime.now(tz=UTC).isoformat(),
+            "Date_Time": stored_at,
             "Trace_Index": trace_index,
         }
         for item in summaries
@@ -362,14 +387,22 @@ def store_trace_results(
     updated.to_csv(path, index=False)
     if save_trace:
         target = path.with_name(f"{path.stem}_trace_{trace_index}.nc")
-        if not target.exists():  # _allocate_trace_index guarantees this is free, or identical
+        sidecar = path.with_name(f"{path.stem}_provenance_{trace_index}.json")
+        reused = target.exists()  # _allocate_trace_index returned an existing, identical trace
+        if not reused:
             trace.to_netcdf(target)
-        write_metadata(
-            path.with_name(f"{path.stem}_provenance_{trace_index}.json"),
-            trace_index=trace_index,
-            variables=[item.variable for item in summaries],
-            **(metadata or {}),
-        )
+        # The sidecar needs the SAME protection as the NetCDF, and did not have it. On the
+        # idempotent path the trace was correctly left alone while `write_metadata` overwrote its
+        # provenance record unconditionally -- so re-storing one trace preserved the data and
+        # destroyed the account of what produced it (`created_at`, the input checksums, the seeds,
+        # any caller-supplied `metadata`). That is the one thing this module exists to keep.
+        if not (reused and sidecar.exists()):
+            write_metadata(
+                sidecar,
+                trace_index=trace_index,
+                variables=[item.variable for item in summaries],
+                **(metadata or {}),
+            )
     return updated
 
 

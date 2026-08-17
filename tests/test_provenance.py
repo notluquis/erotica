@@ -558,3 +558,115 @@ def test_ambiguous_trace_says_what_is_ambiguous(tmp_path):
 
     with pytest.raises(FileNotFoundError, match="distinct traces"):
         load_results(csv, load_trace=True, only_last=False)
+
+
+def test_only_last_returns_the_whole_fit_not_one_parameter(tmp_path):
+    """A multi-parameter fit must survive ``only_last=True`` intact.
+
+    ``Date_Time`` was stamped with ``datetime.now()`` INSIDE the per-row comprehension, and
+    ``isoformat()`` carries microseconds, so every parameter of one fit got a different timestamp.
+    ``load_results(only_last=True)`` keeps the rows sharing the maximum ``Date_Time``, so a King
+    fit over ``R_c, R_t, k, b`` came back as ONE row -- whichever parameter was serialised last --
+    with the other three dropped and no error raised. Every prior test used a single-variable
+    trace, so ``len(latest) == 1`` passed for the wrong reason.
+
+    This is the path the published NGC 6383 figures are regenerated from.
+    """
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    trace = az.from_dict(
+        {
+            "posterior": {
+                "R_c": np.full((2, 50), 1.96),
+                "R_t": np.full((2, 50), 54.0),
+                "k": np.full((2, 50), 4.92),
+                "b": np.full((2, 50), 0.011),
+            }
+        }
+    )
+    store_trace_results(trace, csv)
+
+    results, _ = load_results(csv, only_last=True)
+    assert set(results["Parameter"]) == {"R_c", "R_t", "k", "b"}, (
+        f"only_last dropped parameters: kept {sorted(results['Parameter'])}. One fit must have "
+        "one Date_Time, so the whole fit survives the filter."
+    )
+    assert results["Date_Time"].nunique() == 1, "one store call must stamp one Date_Time"
+
+
+def test_unsaved_trace_does_not_claim_an_occupied_index(tmp_path, monkeypatch):
+    """``save_trace=False`` must not stamp rows with an index that names another trace's file.
+
+    ``_allocate_trace_index`` returned the raw clock reading whenever ``trace is None``, skipping
+    the collision loop entirely -- so a ``save_trace=False`` call in the same second as an earlier
+    saved fit inherited that fit's index. ``load_results(load_trace=True)`` would then return one
+    fit's posterior beside another fit's summary numbers, silently.
+    """
+    import pandas as pd
+
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    tick = itertools.repeat(1785000000.0)  # frozen clock: every call lands in the same second
+    real_datetime = provenance.datetime  # capture BEFORE patching, or _Clock shadows it
+
+    class _Clock:
+        @staticmethod
+        def now(tz=None):
+            return real_datetime.fromtimestamp(next(tick), tz=tz)
+
+    saved = az.from_dict({"posterior": {"mu": np.full((2, 50), 1.0)}})
+    other = az.from_dict({"posterior": {"mu": np.full((2, 50), 9.0)}})
+    with mock.patch.object(provenance, "datetime", _Clock):
+        store_trace_results(saved, csv)
+        store_trace_results(other, csv, save_trace=False)
+
+    df = pd.read_csv(csv)
+    saved_idx, unsaved_idx = df["Trace_Index"].iloc[0], df["Trace_Index"].iloc[-1]
+    assert saved_idx != unsaved_idx, (
+        f"the unsaved fit claimed index {unsaved_idx}, which already names the saved fit's "
+        ".nc; loading it would return the wrong posterior for these summary rows"
+    )
+
+
+def test_restoring_an_identical_trace_keeps_the_original_provenance(tmp_path):
+    """The idempotent path protected the NetCDF and not its sidecar.
+
+    Re-storing one trace correctly skipped rewriting the ``.nc`` and then overwrote
+    ``*_provenance_*.json`` anyway, discarding the first call's ``metadata`` and ``created_at``:
+    the archive kept the data and lost the record of what produced it.
+    """
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    trace = az.from_dict({"posterior": {"mu": np.full((2, 50), 7.0)}})
+
+    store_trace_results(trace, csv, metadata={"catalogue": "ngc6383_70.fits", "seed": 42})
+    store_trace_results(trace, csv)  # same trace, no metadata
+
+    sidecars = sorted(tmp_path.glob("fit_provenance_*.json"))
+    assert len(sidecars) == 1, "the idempotent store must not fork the provenance record"
+    kept = json.loads(sidecars[0].read_text())
+    assert kept.get("catalogue") == "ngc6383_70.fits", "the original metadata was overwritten"
+    assert kept.get("seed") == 42
+
+
+def test_idempotence_survives_non_finite_draws(tmp_path):
+    """``np.array_equal`` is False for NaN against NaN unless ``equal_nan=True``.
+
+    Without it, any posterior holding a non-finite draw never compares equal to itself, so the
+    content-derived identity degrades silently to "always allocate a new slot" and the archive
+    duplicates. Non-finite draws are expected here -- ``summarize_trace`` documents dropping
+    all-non-finite variables.
+    """
+    az = pytest.importorskip("arviz")
+    csv = tmp_path / "fit.csv"
+    mu = np.full((2, 50), 3.0)
+    mu[0, 7] = np.nan
+    trace = az.from_dict({"posterior": {"mu": mu}})
+
+    store_trace_results(trace, csv)
+    store_trace_results(trace, csv)
+
+    traces = sorted(tmp_path.glob("fit_trace_*.nc"))
+    assert len(traces) == 1, (
+        f"a trace with a NaN draw was archived twice: {[t.name for t in traces]}"
+    )
