@@ -244,6 +244,32 @@ def c_build():
             f"{pages.group(1) if pages else '?'} pp, " + ", ".join(f"{k} {v}" for k, v in bad.items()))
 
 
+@check("sin texto fuera de columna en ninguno de los dos PDF")
+def c_overfull():
+    """An Overfull \\hbox is text sticking out of the column, and in two-column A&A it lands
+    on top of the neighbouring column.
+
+    This check did not exist until a human looked at the marked PDF and said it looked
+    awful. The clean build had been checked for Overfull and had none; the marked build had
+    never been checked at all and had twelve, because latexdiff's default UNDERLINE markup
+    strikes deleted text with ulem's \\sout, which cannot break across lines. A long struck
+    citation list therefore ran off the column and overprinted the text beside it.
+
+    The lesson is not about latexdiff. Eleven checks were written and none of them looked at
+    the artefact the referee actually opens.
+    """
+    bad = {}
+    for tag, log in (("limpio", TEX.parent / "aanda.log"),
+                     ("marcado", MARKED.parent / "aanda_marked.log")):
+        if not log.exists():
+            bad[tag] = "sin log"
+            continue
+        n = log.read_text().count("Overfull \\hbox")
+        if n:
+            bad[tag] = n
+    return not bad, "0 en ambos" if not bad else f"cajas desbordadas: {bad}"
+
+
 @check("el zip enviado compila solo")
 def c_zip():
     import tempfile, zipfile
@@ -279,7 +305,7 @@ def main() -> int:
     c_linters(); c_typos(); c_strip(); c_linenumbers()
     if not args.quick:
         print("\n=== compilacion ===")
-        c_build(); c_zip()
+        c_build(); c_zip(); c_overfull()
 
     failed = [n for n, ok, _ in results if not ok]
     print(f"\n{len(results) - len(failed)}/{len(results)} pasan")

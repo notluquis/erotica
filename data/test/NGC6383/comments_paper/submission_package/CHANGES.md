@@ -1069,3 +1069,30 @@ No page was added: 26 pp before and after. The response letter's General remarks
 under the structure heading.
 
 Clean 26 pp / marked 30 pp; gate.py 11/11.
+
+## 61. The marked PDF was unreadable, and no check looked at it (2026-08-17)
+
+Spotted by a human opening the marked PDF. Deleted text printed **on top of** the text beside it:
+"Conrad et al. 2017" over "(1978)" on page 1, two columns superimposed on page 2.
+
+**Cause.** latexdiff's default `UNDERLINE` markup strikes deletions with ulem's `\sout`, which
+cannot break across lines. In A&A's narrow two columns a long struck citation list runs off its
+column and lands on the neighbouring one. Measured, this is not subtle: **12 overfull boxes**.
+
+**Fix, in two parts.** `--type=CFONT` marks by colour instead of striking, so deleted text reflows
+like any other text; it is also one of the two options the editor's letter allows ("boldface or
+colored text"). That took 12 overfull boxes to 1. The survivor was Table D.2, where every cell
+changed, so the diff carries the old and the new value in each and the row came out 93.9pt too
+wide. `marked_changes/fit_marked_tables.py` compiles, reads the log and wraps in `\resizebox` only
+the tabulars that actually overflowed -- wrapping the ones that already fit would shrink them for
+nothing, and the clean manuscript is never touched because its tables fit there. Now **0 overfull
+boxes in both PDFs**, 28 pp marked.
+
+**The part worth recording is not the fix.** Eleven checks had been written, `gate.py` among them,
+and not one looked at overfull boxes in the marked build. The clean build *was* checked and had
+none; the marked build -- the artefact the referee opens to see what changed -- had never been
+checked at all. An overfull box is one grep of a log file. The gate now checks both builds and
+fails on any, which is check number twelve.
+
+Recorded as an open thread in the hub: all of this tooling is hardcoded to aa52082-24 and needs to
+become a configurable package before P02 copies it.

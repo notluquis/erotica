@@ -43,10 +43,23 @@ docstring records the class it cannot see (a sentence whose subject is "these").
 ```
 cp clean_source/aanda.tex marked_changes/new_revised.tex
 cd marked_changes
-latexdiff old_submitted.tex new_revised.tex > aanda_marked.tex
+latexdiff --type=CFONT old_submitted.tex new_revised.tex > aanda_marked.tex
 python3 strip_moved_floats.py aanda_marked.tex     # REQUIRED, see below
+python3 fit_marked_tables.py aanda_marked.tex      # REQUIRED, see below
 pdflatex aanda_marked && bibtex aanda_marked && pdflatex aanda_marked && pdflatex aanda_marked
 ```
+
+`--type=CFONT` is not optional either. latexdiff's default UNDERLINE strikes deleted text with
+ulem's `\sout`, which cannot break across lines; in A&A's two columns a long struck citation list
+runs off its column and prints on top of the text beside it. Measured: **12 overfull boxes with
+UNDERLINE, 1 with CFONT**, and the marked PDF was visibly unreadable in places. CFONT marks by
+colour, which is one of the two options the editor's letter allows ("boldface or colored text").
+
+`fit_marked_tables.py` closes the last one. Marking a table whose every cell changed puts the old
+and the new value in each cell, so Table D.2 came out 93.9pt too wide. The script compiles, reads
+the log, and wraps **only** the tabulars that actually overflowed — wrapping the ones that already
+fit would shrink them for nothing. The clean manuscript is never touched: those tables fit there.
+Result: **0 overfull boxes in both PDFs**, which `gate.py` now enforces.
 `strip_moved_floats.py` is not optional. latexdiff has no move detection (upstream #162), so
 each float relocated by the round-2 restructure leaves a struck-through caption with no image
 at its old position, which reads as "this figure was cut". The script removes such a span only
