@@ -1158,3 +1158,36 @@ overflow belongs to it. Testing the equal-size variant produced an overflow at l
 matched a table ending at line 306, shrank a table that was never too wide, and broke the build.
 The script now requires the overflow to fall inside the tabular it wraps. The shipped pipeline had
 never hit it, which is the usual reason a bug survives.
+
+## 64. The 0.17 to 0.138 change was right; its attribution was not (2026-08-17)
+
+Prompted by a question about why the coefficient had been 0.17 in the first place. Checked against
+the two `phd-kb` notes that exist for exactly this constant -- the first time in this whole review
+that the knowledge graph was consulted, and it settled the question in one read.
+
+**The change is correct.** Both values are published for the identical arrangement,
+`t_rh = C N / ln(gamma N) * sqrt(r_hm^3 / GM)`: 0.138 in Spitzer (1987) Eq. 2-63 and 0.17 in
+Binney & Tremaine (2008) Eq. 7.108. The gap is entirely the assumed virial coefficient
+`x = <v^2> r_h / GM`, 0.4 against 0.45; the local relaxation times are identical. Computing `x(W0)`
+for King models gives 0.40-0.42 for `W0` = 1-7 and reaches 0.45 only near `W0` = 8, so **0.138 is
+the model-consistent value for a low-concentration open cluster**. This is a definitional
+difference with a right answer for this application, not a convention to split.
+
+**The attribution was wrong, in the manuscript and in both letters.** They credited 0.138 to
+Spitzer & Hart (1971). Traced to the primary source, Spitzer & Hart's Eqs. (1)-(3) are where
+`<v^2> = 0.4 GM/R_h` comes from -- they are the origin of the **0.4 that sets the Coulomb-logarithm
+argument**, not of the prefactor. Neither Spitzer (1987) nor Heggie & Hut (2003), the actual
+sources of this arrangement, was in the bibliography at all. `1987degc.book.....S` is now cited at
+the equation, and both letters say so.
+
+The manuscript also now states what adopting 0.17 would cost -- 23% longer `t_rh`, in the same
+direction as the mass-spectrum correction already carried as a systematic, so the adopted value is
+the conservative one for the dynamical-youth argument. That pre-empts the obvious referee question
+after R7, which was about exactly this kind of unexplained numerical choice.
+
+**Not asserted, deliberately.** The knowledge-graph note flags its attribution of `x = 0.45` to
+Binney & Tremaine's section 7.4.5 as resting on a secondary citation and never verified against the
+section itself. The manuscript therefore says the two normalizations "differ only in the assumed
+virial coefficient" without naming a number we have not read in its source.
+
+Clean 26 pp / marked 29 pp; gate.py 12/12.

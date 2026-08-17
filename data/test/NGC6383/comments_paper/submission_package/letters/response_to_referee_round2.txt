@@ -36,19 +36,25 @@ CORRECTIONS MADE ON OUR OWN INITIATIVE
 While verifying every numerical claim for this revision we found and corrected
 three errors inherited from the originally submitted version (the first two
 detailed here, the third in our reply to R5), all visible in the marked-up
-PDF: (i) the half-mass relaxation time used the coefficient 0.17 instead of
-the standard 0.138 (Spitzer & Hart 1971); t_rh becomes 24.7 +/- 7.6 Myr (was
-30.5 +/- 9.4), the minimum segregation time 2.38 +/- 1.24 Myr (was 2.94 +/-
-1.17), and the age remains well below t_rh (age/t_rh ~ 0.14), so no conclusion
-changes; a conservative note on the multi-mass Coulomb constant (Giersz &
-Heggie 1996) was added. (ii) The Galactic mass enclosed within the cluster's
-orbit had been computed from a Galactic-centre scaling relation not applicable
-at 7.19 kpc; we now use the McMillan (2017) potential (M = (8.8 +/- 0.5) x
-10^10 Msun), which moves the Hill radius from 28.3 to 33.6 +/- 2.2 arcmin (the
-gravitational bound radius, which sets the King prior scale T_max, is
-unchanged, so no fitted parameter is affected); the count of members outside
-the Hill radius becomes 18. The distance-modulus uncertainty correction is
-described in our reply to point R5.
+PDF: (i) the half-mass relaxation time used the coefficient 0.17 where the
+standard form of Spitzer (1987, Eq. 2-63) has 0.138. The two differ only in
+the assumed virial coefficient, and 0.138 is the value consistent with a low-
+concentration cluster; 0.17 would lengthen t_rh by 23%, in the same direction
+as the mass-spectrum correction below, so the adopted value is the
+conservative one for our argument. The reference has been corrected too:
+Spitzer & Hart (1971) is the source of the virial coefficient 0.4 that sets
+the Coulomb-logarithm argument, not of this prefactor. t_rh becomes 24.7 +/-
+7.6 Myr (was 30.5 +/- 9.4), the minimum segregation time 2.38 +/- 1.24 Myr
+(was 2.94 +/- 1.17), and the age remains well below t_rh (age/t_rh ~ 0.14), so
+no conclusion changes; a conservative note on the multi-mass Coulomb constant
+(Giersz & Heggie 1996) was added. (ii) The Galactic mass enclosed within the
+cluster's orbit had been computed from a Galactic-centre scaling relation not
+applicable at 7.19 kpc; we now use the McMillan (2017) potential (M = (8.8 +/-
+0.5) x 10^10 Msun), which moves the Hill radius from 28.3 to 33.6 +/- 2.2
+arcmin (the gravitational bound radius, which sets the King prior scale T_max,
+is unchanged, so no fitted parameter is affected); the count of members
+outside the Hill radius becomes 18. The distance-modulus uncertainty
+correction is described in our reply to point R5.
 
 Re-checking Kalari (2019) against its body text rather than its abstract,
 while preparing our reply to R16, turned up four further corrections to our
