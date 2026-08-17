@@ -808,3 +808,33 @@ abstract frames the age uncertainty as PMS-model systematics rather than as a po
 
 Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; 21 figures live, 0 "??";
 source zip compiles standalone.
+
+## 54. Line numbers were printing over the appendix text (2026-08-16)
+
+Found by looking at the rendered pages rather than at the source. On p. 18, a stray "20" split
+"recov-ered" in the caption of Fig. B.1, a "50" sat alone above a paragraph, and "10" and "40"
+overprinted the last lines of both columns. The same thing happened on every appendix page.
+
+They are line numbers. `linenoaa.sty` sets `\modulolinenumbers[10]`, which matches the sequence
+exactly, and `aanda.tex` turns numbering off with `\nolinenumbers` immediately after `\maketitle` --
+but `aa.cls`'s definition of `\appendix` ends with `\fi\fi\linenumbers`, which switches it back on
+unconditionally. The body therefore had no numbers and the appendices did, printed into the gutter
+of a two-column layout where they land on top of the text.
+
+Fixed in `aanda.tex`, not in the class: `\nolinenumbers` reissued immediately after
+`\begin{appendix}`, with a comment naming the cause so it is not "cleaned up" later. The vendored
+`aa.cls` stays byte-identical.
+
+Worth naming the reason it survived four review passes: **every one of them read the source or the
+extracted text, and none of them looked at the page.** `pdftotext` reports a stray "20" as just
+another token, LaTeX logs no Overfull box because nothing overflows -- the numbers are placed
+exactly where the package asks -- and both figures on that page were verified to have no content
+outside their bounding boxes. Only the rendered image shows the collision.
+
+Alternative not taken: turning line numbers on throughout, which A&A referees generally find
+useful. The author had deliberately switched them off for the body, so the appendices were made to
+match rather than the reverse. Say so if the preference is the other way; it is a one-line change.
+
+Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; the remaining isolated
+numbers in the extracted text of the appendix pages are axis ticks inside Figs. C.4-C.6, verified
+by rendering.
