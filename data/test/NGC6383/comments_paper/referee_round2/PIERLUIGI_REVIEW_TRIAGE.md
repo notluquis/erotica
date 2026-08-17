@@ -36,23 +36,49 @@ es además la forma neutra, coherente con cómo firmas. Sin objeción.
 | Highlight **con nota** | 11 | correcciones de redacción |
 | StrikeOut (sin nota) | 30 | texto que considera redundante |
 
+### 2.0 Verificación definitiva (segunda pasada, 2026-08-16)
+
+⚠ **La primera pasada localizó las anotaciones con un matcher de palabras, y ese método no puede
+fallar en anotaciones cortas**: con una sola palabra marcada (`structure.`), *cualquier* línea que
+la contenga puntúa 1.00. Reportó "39/41 mapeadas con ≥60%", cifra que para las cortas no
+significaba nada. Rehecho extrayendo el contexto real de la página alrededor de cada rectángulo.
+**Dos mapeos estaban mal** y aparecieron **dos multiplicidades** que la primera pasada no vio.
+
+Recuento exacto de los 30 tachados: **28 en captions, 2 en cuerpo** (l.391 y l.400). De los 28 en
+captions, 3 son los caveats científicos de la Tabla 1 (l.77). Total **25 verbosidad pura + 5 de
+contenido** — la cifra original se sostiene.
+
 ### 2.1 Los 11 comentarios de forma — todos aceptables
 
-| p. | dice | pide |
-|---|---|---|
-| 4 | `structure.` | `structures` |
-| 5 | `posterior` | `posterior estimate` |
-| 5 | `. and the optimal KDE bandwidth.` | revisar puntuación |
-| 8 | `correspond approximately` | `approximately correspond` |
-| 11 | `depends directly` | `directly depends` |
-| 12 | `early-dynamical` | `early dynamical` (sin guion) |
-| 13 | `…models reddened … ; Kalari (2019) notes` | punto y aparte: `. Kalari (2019) notes …` |
-| 13 | `binary, with a 0.94 probability of being a binary star according to our analysis` | `(0.94 probability of being a binary)` |
-| 14 | `compatible` | `consistent` |
-| 14 | `; in line` | `. In line with` |
-| 21 | `with fractional parallax error below 0.1` | `with δϖ/ϖ < 0.1` |
+Con la línea **verificada** del `.tex` (no la del matcher):
 
-Ninguno toca ciencia. El de p.13 es el **mismo pasaje de Kalari** que señala en el correo (§4).
+| # | p. | línea | pide | veredicto |
+|---|---|---|---|---|
+| 1 | 4 | **151** cuerpo | `outer structure` → `structures` | ✅ trivial |
+| 2 | 5 | **193** cuerpo | `posterior` → `posterior estimate` | ✅ trivial |
+| 3 | 5 | **209** cuerpo | punto suelto: `. and the optimal KDE bandwidth.` | ✅ **es una errata real** |
+| 4 | 8 | **265** cuerpo | `correspond approximately` → `approximately correspond` | ✅ trivial |
+| 5 | 11 | **351** cuerpo | `depends directly` → `directly depends` | ✅ trivial |
+| 6 | 12 | **359** cuerpo | `early-dynamical` → `early dynamical` | ⚠ **ver multiplicidad** |
+| 7 | 13 | **387** cuerpo | `;` → `.` antes de `Kalari (2019) notes` | ✅ y coincide con §3/§3bis |
+| 8 | 13 | **389** cuerpo | comprimir a `(0.94 probability of being a binary)` | ✅ |
+| 9 | 14 | **400** cuerpo | `compatible` → `consistent` | ✅ mejor uso estadístico |
+| 10 | 14 | **406** cuerpo | `; in line` → `. In line with` | ✅ |
+| 11 | 21 | **590** caption Ap. D | `fractional parallax error below 0.1` → `δϖ/ϖ < 0.1` | ✅ **y refuerza: ver abajo** |
+
+**Correcciones a la primera pasada:**
+- **#11 NO está en el caption de la Tabla 1 (l.77)** como dije, sino en el **caption de la tabla del
+  Apéndice D (l.590)**.
+- **#6 no está en el abstract (l.35)** como dije, sino en el cuerpo (l.359).
+
+**Dos multiplicidades que la primera pasada no vio — marcó una ocurrencia, hay cinco:**
+
+| término | ocurrencias | implicación |
+|---|---|---|
+| `early-dynamical` | **l.35, 353, 359, 361, 412** | quitar el guion en una sola deja el manuscrito inconsistente. Aplicar a las 5 o a ninguna. |
+| `fractional parallax error` (en prosa) | **l.77, 177, 179, 186, 590** | el `.tex` **ya usa `$\delta\varpi/\varpi$` en l.186**, así que lo de Pierluigi no es preferencia sino **consistencia**: hay dos notaciones conviviendo. Refuerza aceptarlo, y conviene decidir si l.77 también cambia. |
+
+Ninguno toca ciencia. El de p.13 es el **mismo pasaje de Kalari** que señala en el correo (§3).
 
 ### 2.2 Los 30 tachados — 25 seguros, 5 en conflicto
 
