@@ -23,6 +23,17 @@ A&A ROUND-2 resubmission. Compiles to 26 pp clean / 30 pp marked / 0 errors / 0 
 - `CHANGES.md`, full original→current changelog (10 categories).
 - `AANDA_GUIDELINES_AUDIT.md`, A&A house-style audit.
 
+## Before rebuilding anything: the consistency check
+ok     aanda.tex: 0
+ok     response_to_referee_round2.md: 0
+ok     cover_letter_round2.txt: 0
+
+OK - ningun documento contradice la no-convergencia del ensemble.
+Sect. 4.4 says the DEMetropolis isochrone ensemble does not converge. Nine sentences across the
+manuscript and the two letters said the opposite, in three separate passes, each found only after
+the previous pass declared itself complete. This screens the cheap class of that defect; its own
+docstring records the class it cannot see (a sentence whose subject is "these").
+
 ## Rebuild the marked-changes PDF after editing clean_source/
 ```
 cp clean_source/aanda.tex marked_changes/new_revised.tex

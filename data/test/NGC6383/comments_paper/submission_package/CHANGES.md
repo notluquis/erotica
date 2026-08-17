@@ -697,3 +697,30 @@ returns zero on all three documents; it returned nine before this pass and three
 
 Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs / 0 undefined citations; 21 figures live,
 0 "??"; source zip compiles standalone.
+
+## 51. The consistency sweep, made runnable (2026-08-16)
+
+Sect. 50 closed with the sentence "machine check for the future: a sentence tying `posterior` to
+`isochrone|ASteCA|DEMetropolis|loga` without an adjacent qualifier is a defect", and then left it
+as prose -- the same mistake as the `strip_moved_floats.py` of Sect. 47, in the same file, two
+sections apart. It is now `check_posterior_claims.py`, wired into MANIFEST's rebuild recipe.
+
+**Its first version passed its own mutation test while catching nothing.** The regex required the
+isochrone token to appear *before* the word `posterior`; the real R17 defect puts them the other
+way round ("posterior distributions ... for the astrometric, structural, and age parameters"), so
+reintroducing that exact sentence left the check green. It also treated any later `ensemble` in
+the sentence as a qualifier, which whitewashed a false claim made earlier in the same sentence.
+Both fixed: matching is order-agnostic, and only an explicit denial (`not`, `does not`, `rather
+than`, `instead of`, `without`) excuses the sentence.
+
+A first narrowing pass then flagged two false positives -- Table 1's caption ("the 1-sigma
+posterior uncertainty", the convention the tablefoot scopes) and a `t_seg` sentence that merely
+contains the word "age". The trigger is therefore assertive phrasings only: `posterior
+distributions`, `sampled posterior`, `posterior width`, `credible intervals`. A bare "posterior
+median" stays legal, because it is correct for the King fit.
+
+**Measured coverage, not assumed.** Mutation-tested against the verbatim original sentences, not
+paraphrases: it catches R17's and Fig. B.4's, and it misses Appendix B's "The credible intervals
+... correspond to these marginal posteriors", whose subject is "these" and which therefore names
+no isochrone token. A sentence-level regex cannot resolve an anaphor. The docstring says so. It
+is a screen against silent reintroduction, not a proof of consistency.
