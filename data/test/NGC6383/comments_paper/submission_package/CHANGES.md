@@ -1,7 +1,7 @@
 # NGC 6383 (aa52082-24), Complete changelog: original submission → current revision
 
 Baseline = originally submitted manuscript (`marked_changes/old_submitted.tex`).
-Current = `clean_source/aanda.tex`. Visual diff = `aa52082-24_marked_changes.pdf` (22 pp, latexdiff).
+Current = `clean_source/aanda.tex`. Visual diff = `aa52082-24_marked_changes.pdf` (30 pp, latexdiff).
 Status: 19 pp total / **13 pp body+refs** / 0 undefined refs / 0 AI-tells / 0 British spellings except 2 deliberate 'discs' retained from the original submission (diff discipline).
 
 ---
@@ -588,3 +588,46 @@ TRAP AVOIDED: cluster_data.ecsv looks legacy but is the LIVE Sagitta input of
 ngc6383_generate_cds_table.py; kept and documented. Top-level README.md
 rewritten (was stale/misleading about members.csv). Verified after cleanup:
 full build (23/25 pp, 0 errors), regen_king70.py, CDS generator inputs intact.
+
+## 48. Referee-report re-read: three internal contradictions, Fig. D.1 placement, moved-float strip restored (2026-08-16)
+
+Point-by-point re-read of the referee report and of P. Cerulo's 41 annotations, in context
+rather than by keyword. All 17 referee points confirmed addressed; the re-read surfaced four
+things the point-by-point pass had not.
+
+**Three internal contradictions in the revised text.**
+1. Table 1's `\tablefoot` claimed a single exception to the uncertainty convention (the age)
+   while five rows come from the DEMetropolis isochrone ensemble that Sect. 4.4 states is not
+   a converged sample. The note now scopes all five and points at the half-ensemble bootstrap
+   scatter as the conservative guide.
+2. The prior-sensitivity passage offered `1.2 T_max` as an alternative coefficient without
+   noting that, at `T_max = 42.4667 arcmin`, `1.2 T_max = 51.0 arcmin` falls *below* the
+   adopted `R_t = 54 arcmin`: any coefficient under 1.2716 excludes the adopted value from the
+   prior support outright. Stated explicitly, and framed as the same prior limitation seen from
+   the other side rather than a new objection.
+3. R17 element (i) claimed sampled posteriors with convergence diagnostics for a parameter set
+   that includes the isochrone age, contradicting Sect. 4.4. Rewritten to report the ensemble
+   together with the non-convergence statement.
+
+**Appendix D** gained the argument for why `R_t` survives the contamination that biases `R_c`
+(114 of 376 added sources fall inside the 40 arcmin footprint), and a `\clearpage` before the
+section so Fig. D.1 -- the 70 arcmin King fit that is the load-bearing evidence for R11 -- sits
+on the same page as its text (p. 25) instead of five pages later. Measured against fresh builds
+in clean directories: the barrier costs one page (25 -> 26) and moves nothing before the
+appendix; a `[!ht]` specifier on the float adds nothing once the barrier is in place, so the
+change is the single `\clearpage` line.
+
+**strip_moved_floats.py restored.** Sect. 47 above describes this script; it was lost between
+then and now, and the defect had silently returned to the committed marked PDF (10 orphan spans
+in HEAD, so every rebuild since July shipped them). Reimplemented at
+`marked_changes/strip_moved_floats.py` and wired into MANIFEST's rebuild recipe so it cannot be
+lost the same way again. The rule is span-level, not block-level: it removes the commented-out
+float span and its `\DIFdelFL` caption, never the enclosing `\DIFdelbegin...\DIFdelend` block,
+because those blocks carry real deletions alongside the moved float -- one carries a deleted
+`\subsubsection`, another 14.6 kB of restructured prose. Aliveness is tested against the
+*uncommented* text, or a genuinely deleted float would find its own `%DIFDELCMD` corpse and be
+judged alive. Mutation-tested: deleting the MST figure outright from new_revised.tex makes the
+script keep it (`CONSERVADO`) while still stripping the other nine.
+
+Final: clean 26 pp / marked 29 pp / 0 errors / 0 undefined refs / 0 undefined citations;
+21 unique figures live in both, identical multiset; 0 "??" in the marked PDF.

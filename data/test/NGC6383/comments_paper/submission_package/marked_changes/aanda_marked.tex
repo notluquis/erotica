@@ -1,7 +1,7 @@
 
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL old_submitted.tex   Thu Jul 16 17:46:08 2026
-%DIF ADD new_revised.tex     Sun Aug 16 21:04:08 2026
+%DIF ADD new_revised.tex     Sun Aug 16 21:37:47 2026
 \documentclass{aa}  
 \usepackage{graphicx}
 \usepackage{txfonts}
@@ -157,17 +157,7 @@ Relative to the \textit{Gaia}-era survey catalogs \citep{2020AA...640A...1C,2022
 
 This paper is structured as follows: Sect. \DIFdelbegin \DIFdel{\ref{sec:methodology} outlines the methodology, covering data acquisition and processing methods, including the use of the }\DIFdelend \DIFaddbegin \DIFadd{\ref{sec:data} describes the }\DIFaddend \textit{Gaia} DR3 and 2MASS \DIFdelbegin \DIFdel{catalogs, and describes the membership determination using HDBSCAN and the Bayesian analysis for parameter estimation}\DIFdelend \DIFaddbegin \DIFadd{data and their preprocessing}\DIFaddend . Sect. \DIFdelbegin \DIFdel{\ref{sec:results} presents the results, including the determination of the cluster's age, distance, and structural properties, }\DIFdelend \DIFaddbegin \DIFadd{\ref{sec:membership} presents the analysis pipeline, }\DIFaddend the \DIFdelbegin \DIFdel{analysis of }\DIFdelend \DIFaddbegin \DIFadd{HDBSCAN membership determination, and the resulting member catalog. Sections \ref{sec:astrometry} and \ref{subsec:structural} give the astrometric parameters (parallax, distance, proper motions, radial velocities, and center) and the cluster structure, each derived immediately after the corresponding method is described. Sect. \ref{sec:stellar} covers the isochrone-based age, extinction, and metallicity, and the pre-main-sequence content. Sect. \ref{subsec:lum_mass_dyn} presents the luminosity function, stellar masses, }\DIFaddend mass segregation, and the \DIFdelbegin \DIFdel{color-magnitude diagram. It also discusses the findings in the context of }\DIFdelend \DIFaddbegin \DIFadd{dynamical state. Sect. \ref{sec:comparison} compares our results with }\DIFaddend previous studies, \DIFdelbegin \DIFdel{addressing peculiar stars and comparisons with historical data. Finally, }\DIFdelend \DIFaddbegin \DIFadd{and }\DIFaddend Sect. \ref{sec:conclusion} \DIFdelbegin \DIFdel{concludes the study, summarizing the key results and their implications}\DIFdelend \DIFaddbegin \DIFadd{summarizes the conclusions}\DIFaddend . The photometric system adopted includes the \textit{Gaia} DR3 photometric bands ($G, G_{\text{BP}}, G_{\text{RP}}$) and the 2MASS bands ($J, H, K_s$).
 
-\DIFdelbegin %DIFDELCMD < \begin{figure}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/probabilies_post_sigmaclip.pdf}}
-%DIFDELCMD < 		%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Membership pseudo-probability $\tilde{p}$ of potential NGC 6383 members ($\tilde{p}>0.5$) is plotted against their $G$ magnitudes, with colors representing astrometric fidelity. Each data point indicates a star, color-coded by astrometric fidelity (viridis color map; color bar at right) to reflect the varying reliability of the astrometric measurements. The horizontal dashed and dotted lines, at $\tilde{p}=0.6$ and $\tilde{p}=0.8$ respectively, mark the thresholds used to distinguish between probable members ($0.6\leq\tilde{p}<0.8$) and members ($\tilde{p}\geq0.8$) of the cluster. As shown in the figure, stars with fainter magnitudes tend to have lower astrometric fidelity. This becomes more evident at $G>18~\mathrm{mag}$.}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:probabilities}
-%DIFDELCMD < \end{figure}
-%DIFDELCMD < 
+\DIFdelbegin %DIFDELCMD < 
 
 %DIFDELCMD < %%%
 \DIFdelend \section{\DIFdelbegin \DIFdel{Methodology}\DIFdelend \DIFaddbegin \DIFadd{Data}\DIFaddend }\DIFdelbegin %DIFDELCMD < \label{sec:methodology}
@@ -177,50 +167,15 @@ This paper is structured as follows: Sect. \DIFdelbegin \DIFdel{\ref{sec:methodo
 
 To enhance data reliability, we applied the astrometric fidelity parameter from \citet{2022MNRAS.510.2597R}. This parameter, derived from a neural network analysis of 17 \textit{Gaia} catalog metrics, assesses the trustworthiness of the astrometric solution. Sources with an astrometric fidelity above 0.5 were retained, narrowing the selection to 15480 sources, which represent 65\% of the initial dataset.
 
-\DIFdelbegin %DIFDELCMD < \begin{figure}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/center_determination_paper.pdf}}
-%DIFDELCMD < 		%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Spatial distribution of the likely cluster candidates ($\tilde{p}>0.5$) of NGC 6383 in right ascension ($\alpha$) and declination ($\delta$), color-coded according to their membership pseudo-probability $\tilde{p}$ (viridis color map). The gray solid contours are the 1$\sigma$ and 2$\sigma$ iso-density contours (enclosing $39\%$ and $86\%$) of a kernel density estimate of the candidate positions, revealing the density gradient of the points. The central coordinates of the cluster are marked by dark-orange dashed lines at $ \alpha = 263.683^\circ $ and $ \delta = -32.584^\circ $, which approximately coincide with the density peak within the plotted area. A scale bar of 5 parsecs is included at the bottom right to provide a reference for the spatial scale.}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:center}
-%DIFDELCMD < \end{figure}
-%DIFDELCMD < 
+\DIFdelbegin %DIFDELCMD < 
 
 %DIFDELCMD < %%%
 \DIFdelend Subsequent refinement ensured the inclusion of only sources for which all parameters $(\alpha,\delta,\ell,b)$, proper motions $(\mu_{\alpha*},\mu_\delta)$, parallax ($\varpi$), and magnitudes $(G, G_\mathrm{BP}, G_\mathrm{RP})$ were available, reducing the dataset to $15276$ sources. Systematic parallax offsets identified in \citet{2021A&A...649A...4L} were corrected using the \href{https://pypi.org/project/gaiadr3-zeropoint/}{\textsc{Gaiadr3\_zeropoint}} package. Moreover, to address the bias in proper motion for bright sources ($G<13~\mathrm{mag}$), as discussed in \citet{2021A&A...649A.124C}, we applied a magnitude-based correction for sources with $G = 11$--$13\,\mathrm{mag}$, compensating for up to $80~\mathrm{\mu as\,yr^{-1}}$ discrepancy between the frames of reference for bright and faint sources.
 
 We also obtained the $J$, $H$, and $K_s$ magnitudes from the \textsc{Two Micron All Sky Survey} (2MASS) \citep{2006AJ....131.1163S}. A left-join cross-match\footnote{The left join keeps all \textit{Gaia} sources and appends the available 2MASS data for those with a counterpart, preserving the original $15276$ sources.} was performed using the pre-computed \textit{Gaia} DR3 cross-match \citep{2022gdr3.reptE..15M}, with the \texttt{tmass\_psc\_xsc\_best\_neighbour} table and a separation $\leq0.3~\mathrm{arcsec}$, giving $5333$ cross-matched sources.
 
-\DIFdelbegin %DIFDELCMD < \begin{figure}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/proper_motion_2d_paper.pdf}}
-%DIFDELCMD < 	%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Proper motions of the likely cluster candidates ($\tilde{p}>0.5$) of NGC 6383; the symbols are color-coded according to the membership pseudo-probability $\tilde{p}$ of the stars (viridis color map). The gray solid ellipses are the 1$\sigma$, 2$\sigma$, and 3$\sigma$ iso-probability contours of the two-dimensional Gaussian proper-motion model fitted to the reference sample. The center of proper-motion distribution is marked with a blue cross, indicating the inferred mean proper-motion values $(\mu_{\alpha*}, \mu_{\delta}) = (2.542, -1.713)~\mathrm{mas}\,\mathrm{yr^{-1}}$, with corresponding orange dashed lines highlighting these central coordinates.}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:proper_motion}
-%DIFDELCMD < \end{figure}
-%DIFDELCMD < 
+\DIFdelbegin %DIFDELCMD < 
 
-%DIFDELCMD < \begin{figure*}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/parallax_determination_paper.pdf}}
-%DIFDELCMD < 	%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\emph{\DIFdelFL{Left panel:}} %DIFAUXCMD
-\DIFdelFL{Parallax distribution of the 254-source reference sample, split by fractional parallax error: sources with $\delta\varpi/\varpi<0.1$ (blue solid histogram; used for the estimate), all sources (gray dashed), and $\delta\varpi/\varpi>0.1$ (orange dotted; not used). The black curve is a Gaussian fit; the black dash-dotted line and the gray vertical band mark the mean parallax, $\mu_{\varpi}=0.908\,\mathrm{mas}$, and its standard error. }\emph{\DIFdelFL{Middle panel:}} %DIFAUXCMD
-\DIFdelFL{$G$ magnitude versus parallax with the same split (blue circles $<0.1$, orange triangles $>0.1$); gray bars show the parallax uncertainties, especially pronounced at fainter magnitudes; the mean-parallax line is repeated, with a gray band showing the $1\sigma$ parallax dispersion. }\emph{\DIFdelFL{Right panel:}} %DIFAUXCMD
-\DIFdelFL{Bailer-Jones geometric distances \mbox{%DIFAUXCMD
-\citep{2021AJ....161..147B} }\hskip0pt%DIFAUXCMD
-with the same split; the black dash-dotted line marks the adopted distance ($\mu_d=1.11\,\mathrm{kpc}$, the mode of the sampled distances), with a gray band showing its $\pm0.06\,\mathrm{kpc}$ dispersion. For convenience, only the portion of the histogram corresponding to distances within $0.8$ to $1.2$ times the minimum and maximum used distances is displayed.}}
-    %DIFAUXCMD
-%DIFDELCMD < \label{fig:parallax_distance}
-%DIFDELCMD < \end{figure*}
 %DIFDELCMD < 
 
 %DIFDELCMD < %%%
@@ -306,7 +261,7 @@ instead of NUTS. (v) Finally, the pre-main-sequence content of the membership is
 			Minimum segregation time                & $2.38 \pm 1.24$             & $\mathrm{Myr}$                     \\ \hline
 		\end{tabular}%
 	}
-	\tablefoot{The age is the exception to the uncertainty convention above: its interval is not a posterior width but the asymmetric systematic range adopted in Sect.~\ref{subsec:asteca}, dominated by the choice of pre-main-sequence model family. For the astrometric quantities, the proper-motion uncertainties are the observed member dispersions, and the parallax uncertainty is the 1$\sigma$ dispersion of the subsample with $\delta\varpi/\varpi<0.1$; the smaller errors on the mean are given in the text where relevant. The $Y_{\text{frac}}$ uncertainties are the 95\% credible-interval bounds of the Beta posterior.\\
+	\tablefoot{Five rows come from the DEMetropolis isochrone ensemble, which Sect.~\ref{subsec:cosmic} shows is \emph{not} a converged sample from the posterior: the age, the distance modulus, the distance derived from it, the metallicity and the absorption. Their quoted intervals are therefore not posterior credible widths in the sense used elsewhere in this table. For the age we replace the width outright with the asymmetric systematic range of Sect.~\ref{subsec:asteca}, dominated by the choice of pre-main-sequence model family. For the remaining three the quoted $\pm$ is the marginal spread of that ensemble and should be read as an indication of scale rather than as a calibrated uncertainty; the half-ensemble bootstrap scatter quoted in Sect.~\ref{subsec:cosmic} ($0.03\,\mathrm{mag}$ in distance modulus) is the more conservative guide. For the astrometric quantities, the proper-motion uncertainties are the observed member dispersions, and the parallax uncertainty is the 1$\sigma$ dispersion of the subsample with $\delta\varpi/\varpi<0.1$; the smaller errors on the mean are given in the text where relevant. The $Y_{\text{frac}}$ uncertainties are the 95\% credible-interval bounds of the Beta posterior.\\
 	The parallax-based distance is the mode of the hierarchical distance model applied to the \citet{2021AJ....161..147B} geometric distances of the members (Sect.~\ref{subsubsec:parallax}); the distance from the distance modulus is obtained by converting the isochrone-fit distance-modulus posterior (Sect.~\ref{subsec:asteca}), and is not independent of the parallax-based value because the distance-modulus prior was centered on it.\\
 	$R_c$, $k$, and $b$ are from the King fit to the $40\,\mathrm{arcmin}$ reference sample; $R_t$ is from the $70\,\mathrm{arcmin}$-window refit (Appendix~\ref{app:window}), the only extraction whose profile reaches a fitted background annulus beyond the cluster, with all narrower windows giving consistent $R_t$ values. $C$ combines the adopted $R_c$ and $R_t$ posteriors, which come from these two different fits.}
 	\label{tab:ngc6383_results}
@@ -443,51 +398,7 @@ with the same split; the dash-dotted line and shaded band mark the adopted dista
 }
 
 \DIFadd{The dispersions quoted above are those of the observed member sample and therefore still contain the }\textit{\DIFadd{Gaia}} \DIFadd{measurement scatter. Because the per-source proper-motion uncertainties of the members span two orders of magnitude (median $0.104$ }\DIFaddend and \DIFdelbegin \DIFdel{energy-BFMI above $0.79$. For the DEMetropolis isochrone fit ($300$ chains of $1000$ draws after $1500$ tuning steps), to which these per-chain criteria do not directly apply, we verified that the posterior summaries are stable under random half-ensemble bootstraps: the mode scatter is $0.08\,\mathrm{dex}$ }\DIFdelend \DIFaddbegin \DIFadd{$0.074\,\mathrm{mas\,yr^{-1}}$ }\DIFaddend in \DIFdelbegin \DIFdel{$\log(\mathrm{age})$ and $0.03\,\mathrm{mag}$ in distance modulus, well belowthe quoted credible widths.
-}%DIFDELCMD < \begin{table}
-%DIFDELCMD < 		%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Summary of derived parameters for NGC 6383, focusing on sources with at least a 60\% membership pseudo-probability. Unless otherwise stated, the quoted uncertainties correspond to the 1$\sigma$ posterior uncertainty or to the 1$\sigma$ dispersion of the relevant member distribution. For the astrometric quantities, the proper-motion uncertainties are the observed member dispersions, and the parallax uncertainty is the 1$\sigma$ dispersion of the subsample with fractional parallax errors below 0.1; the smaller errors on the mean are given in the text where relevant. The $Y_{\text{frac}}$ uncertainties are the 95\% credible-interval bounds of the Beta posterior, not the 1$\sigma$ default.}}
-	%DIFAUXCMD
-%DIFDELCMD < \centering
-%DIFDELCMD < 	\resizebox{\columnwidth}{!}{%
-%DIFDELCMD < 		\begin{tabular}{llc}
-%DIFDELCMD < 			\hline
-%DIFDELCMD < 			\textbf{Parameter}                      & \textbf{Value}      & \textbf{Unit}                      \\ \hline
-%DIFDELCMD < 			Distance $(\varpi)$                     & $1.11 \pm 0.06$   & $\mathrm{kpc}$                     \\
-%DIFDELCMD < 			Distance (D.M.)                         & $1.15_{-0.13}^{+0.15}$   & $\mathrm{kpc}$                     \\
-%DIFDELCMD < 			Distance modulus                        & $10.30 \pm 0.26$    & $\mathrm{mag}$                     \\
-%DIFDELCMD < 			Age                                     & $3.53^{+1.40}_{-1.00}$           & $\mathrm{Myr}$                     \\
-%DIFDELCMD < 			Star-formation age range (isochrone bracketing) & $1.6$--$6.3$    & $\mathrm{Myr}$                     \\
-%DIFDELCMD < 			Metallicity ($Z$)                       & $0.024 \pm 0.008$   & -                                  \\
-%DIFDELCMD < 			Parallax $(\varpi)$                     & $0.908 \pm 0.046$   & $\mathrm{mas}$                     \\
-%DIFDELCMD < 			Reference sample                        & $254$               & $\mathrm{stars}$                   \\
-%DIFDELCMD < 			Absorption $(A_V)$                      & $1.24 \pm 0.26$   & $\mathrm{mag}$                     \\
-%DIFDELCMD < 			Galactocentric distance $R_\mathrm{GC}$ & $7.19 \pm 0.07$             & $\mathrm{kpc}$                     \\
-%DIFDELCMD < 			Core radius $(R_c)$                     & $1.95 \pm 0.19$  & $\mathrm{arcmin}$                  \\
-%DIFDELCMD < 			Background $(b)$                        & $0.011 \pm 0.006$  & $\mathrm{stars\,arcmin^{-2}}$      \\
-%DIFDELCMD < 			King outer radius $(R_t)$               & $40.4 \pm 14.3$ & $\mathrm{arcmin}$                  \\
-%DIFDELCMD < 			Center density $(k)$                    & $4.91 \pm 0.44$   & $\mathrm{stars\,arcmin^{-2}}$      \\
-%DIFDELCMD < 			Hill radius                             & $28.3 \pm 1.0$            & $\mathrm{arcmin}$                  \\
-%DIFDELCMD < 			Gravitational bound radius              & $42.45 \pm 1.6$            & $\mathrm{arcmin}$                  \\
-%DIFDELCMD < 			Cluster center R.A.                     & $263.683 \pm 0.112$ & $\mathrm{deg}$                     \\
-%DIFDELCMD < 			Cluster center Dec.                     & $-32.584 \pm 0.112$ & $\mathrm{deg}$                     \\
-%DIFDELCMD < 			Proper motion R.A.                      & $2.542 \pm 0.152$  & $\mathrm{mas\,yr^{-1}}$            \\
-%DIFDELCMD < 			Proper motion Dec.                      & $-1.713 \pm 0.138$ & $\mathrm{mas\,yr^{-1}}$            \\
-%DIFDELCMD < 			Half-mass relaxation time               & $30.5 \pm 9.4$             & $\mathrm{Myr}$                     \\
-%DIFDELCMD < 			Radial velocity                         & $-9.4 \pm 32.1$  & $\mathrm{km\,s^{-1}}$              \\
-%DIFDELCMD < 			Concentration parameter $(C)$           & $1.32 \pm 0.16$    & -                                  \\
-%DIFDELCMD < 			Structure parameter $(\mathcal{Q})$     & $1.03 \pm 0.03$    & -                                  \\
-%DIFDELCMD < 			Mean stellar mass $\langle m \rangle$   & $1.31 \pm 0.10$    & $M_\odot$                          \\
-%DIFDELCMD < 			Most massive star                       & $13.56 \pm 3.25$   & $M_\odot$                          \\
-%DIFDELCMD < 			Young stellar objects (YSOs)            & $53/193$            & $\mathrm{stars}$                   \\
-%DIFDELCMD < 			$Y_{\text{frac}}$                       & $0.275^{+0.067}_{-0.058}$          & -                                  \\
-%DIFDELCMD < 			Minimum segregation time                & $2.94 \pm 1.17$             & $\mathrm{Myr}$                     \\ \hline
-%DIFDELCMD < 		\end{tabular}%
-%DIFDELCMD < 	}
-%DIFDELCMD < 	\label{tab:ngc6383_results}
-%DIFDELCMD < \end{table}
-%DIFDELCMD < %%%
+}%DIFDELCMD < %%%
 \DIFdelend \DIFaddbegin \DIFadd{$\mu_{\alpha*}$ and $\mu_\delta$, with $32\%$ and $23\%$ of members having uncertainties larger than the observed scatter itself), subtracting a mean error in quadrature is not defined here: it returns a negative variance in both axes. We therefore estimated the intrinsic dispersion by maximum likelihood, modeling each member as $\mu_i \sim \mathcal{N}(\overline{\mu}, \sigma_{\mathrm{int}}^2 + e_i^2)$ with its own uncertainty $e_i$, which gives $\sigma_{\mathrm{int}} = 0.122$ and $0.121\,\mathrm{mas\,yr^{-1}}$ in $\mu_{\alpha*}$ and $\mu_\delta$, that is a one-dimensional intrinsic dispersion of $0.122\,\mathrm{mas\,yr^{-1}}$, or $0.64\,\mathrm{km\,s^{-1}}$ at the adopted distance. The apparent excess of the R.A. over the Dec. dispersion (a ratio of $1.11$ in the observed values) disappears after this deconvolution (a ratio of $1.00$), showing it to be an artifact of the }\textit{\DIFadd{Gaia}} \DIFadd{error budget, which is larger in $\mu_{\alpha*}$, rather than a kinematic anisotropy. The intrinsic value is more sensitive to the membership selection than to the fit: repeating the estimate at $\tilde{p}\geq0.5$, $0.7$, and $0.8$ gives $0.150$, $0.102$, and $0.089\,\mathrm{mas\,yr^{-1}}$, a monotonic trend that reflects the progressive truncation of the member sample in proper-motion space rather than a symmetric uncertainty, so we treat this quantity as selection-limited. We retain the observed dispersions in Table~\ref{tab:ngc6383_results} and in the individual-star comparisons below, because they are the appropriate width against which to ask whether a single star is an outlier of the observed member population, and quote the intrinsic value here only for comparison with dynamical work.
 }
 
@@ -504,20 +415,7 @@ with the same split; the dash-dotted line and shaded band mark the adopted dista
 %DIFDELCMD < %%%
 \DIFdelendFL \DIFaddbeginFL \label{fig:proper_motion}
 \DIFaddendFL \end{figure}
-\DIFdelbegin %DIFDELCMD < \begin{figure*}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_cmd_various.pdf}}
-%DIFDELCMD < 	%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\emph{\DIFdelFL{Left panel:}} %DIFAUXCMD
-\DIFdelFL{CMD of NGC 6383 showing $G_{\text{mag}}$ against $G_{\text{BP}} - G_{\text{RP}}$ with isochrones for $\log(\mathrm{age}~\mathrm{yr}^{-1})$ ranging from $6.20$ to $7.00$. }\emph{\DIFdelFL{Middle panel:}} %DIFAUXCMD
-\DIFdelFL{CMD using $G_{\text{mag}}$ versus $G_{\text{RP}} - J$. }\emph{\DIFdelFL{Right panel:}} %DIFAUXCMD
-\DIFdelFL{Color-color diagram, $G_{\text{RP}} - J$ against $G_{\text{BP}} - G_{\text{RP}}$, with the equivalent color-color isochrones. The symbol notation follows that of Fig. \ref{fig:cmd}, representing different member classifications and evolutionary states within NGC 6383. The MIST isochrones for $\log(\mathrm{age})=6.2$--$7.0$ (at $Z_{\text{ini}} = 0.024$) are drawn with sequentially ordered colors and distinct line styles, identified in the left-panel legend, highlighting the evolutionary progression of members within NGC 6383.}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:cmd_ngc6383_various}
-%DIFDELCMD < \end{figure*}
-%DIFDELCMD < %%%
+\DIFdelbegin %DIFDELCMD < %%%
 \subsubsection{\DIFdel{Center determination}}
 %DIFAUXCMD
 \addtocounter{subsubsection}{-1}%DIFAUXCMD
@@ -542,10 +440,10 @@ with the same split; the dash-dotted line and shaded band mark the adopted dista
 \section{\DIFadd{Cluster structure}}\label{subsec:structural}
 \DIFaddend To determine the structural parameters of the cluster, we utilized the \citet{1962AJ.....67..471K} density profile. The numerical density $\rho$ \DIFdelbegin \DIFdel{, }\DIFdelend was computed by dividing the cluster area into concentric annuli, each containing an equal number of stars. The number of annuli, $K$, adheres to the equiprobable bin rule ($K = 2n^{2/5}$), where $n$ is the star count within the cluster. The annular densities were fit with a Gaussian likelihood whose scatter is a half-normal nuisance parameter, yielding the posterior distribution of the structural parameters.
 
-Priors for the model parameters were set as follows: $b \sim \mathcal{U}(0, 2\rho_{\mathrm{min}})$, $k \sim \mathcal{U}(b, 2\rho_{\mathrm{max}})$, $R_c \sim \mathcal{U}(0, 0.8\,T_{\mathrm{max}})$, and $R_t \sim \mathcal{U}(R_c, 1.5\,T_{\mathrm{max}})$, where $b$ is the background density, $k$ the central normalization, $\rho_{\mathrm{min}}$ and $\rho_{\mathrm{max}}$ the observed surface-density extrema, and $T_{\mathrm{max}}$ the highest value between the Hill radius and the gravitational bound radius\DIFdelbegin \DIFdel{. This ensures that the chosen parameter space for }\DIFdelend \DIFaddbegin \DIFadd{, both defined below. These coefficients are not tuned values but weakly informative bounds anchored to the largest physically meaningful scale of the system. The upper limit on }\DIFaddend $R_c$ \DIFaddbegin \DIFadd{lies more than an order of magnitude above any realistic open-cluster core radius. The upper limit on $R_t$ allows the fitted outer radius to exceed the nominal gravitational bound radius by up to $50\%$, generous headroom for the uncertainties in the cluster mass and Galactic potential that enter $T_{\mathrm{max}}$.
-}
+Priors for the model parameters were set as follows: $b \sim \mathcal{U}(0, 2\rho_{\mathrm{min}})$, $k \sim \mathcal{U}(b, 2\rho_{\mathrm{max}})$, $R_c \sim \mathcal{U}(0, 0.8\,T_{\mathrm{max}})$, and $R_t \sim \mathcal{U}(R_c, 1.5\,T_{\mathrm{max}})$, where $b$ is the background density, $k$ the central normalization, $\rho_{\mathrm{min}}$ and $\rho_{\mathrm{max}}$ the observed surface-density extrema, and $T_{\mathrm{max}}$ the highest value between the Hill radius and the gravitational bound radius\DIFaddbegin \DIFadd{, both defined below. These coefficients are not tuned values but weakly informative bounds anchored to the largest physically meaningful scale of the system. The upper limit on $R_c$ lies more than an order of magnitude above any realistic open-cluster core radius. The upper limit on $R_t$ allows the fitted outer radius to exceed the nominal gravitational bound radius by up to $50\%$, generous headroom for the uncertainties in the cluster mass and Galactic potential that enter $T_{\mathrm{max}}$}\DIFaddend .
+\DIFdelbegin \DIFdel{This ensures that the chosen parameter space for }\DIFdelend \DIFaddbegin 
 
-\DIFadd{The posterior of $R_c$ is confined well inside its support (97.5th percentile at $\simeq2.5\,\mathrm{arcmin}$, $7\%$ of the prior upper bound), so its bound is immaterial. Refitting the $40\,\mathrm{arcmin}$ profile with alternative coefficients (e.g., $0.9\,T_{\mathrm{max}}$ }\DIFaddend and \DIFaddbegin \DIFadd{$1.2\,T_{\mathrm{max}}$) changes $R_c$, $k$, $b$, and $C$ by less than $0.5\sigma$; only the weakly constrained outer radius responds (median $R_t\simeq33\,\mathrm{arcmin}$ versus $40^{+16}_{-17}\,\mathrm{arcmin}$, consistent within $1\sigma$). The outer radius is the one parameter whose posterior is sensitive to the prior support in all windows: the upper bound $1.5\,T_{\mathrm{max}}=63.7\,\mathrm{arcmin}$ truncates the }\DIFaddend $R_t$ \DIFdelbegin \DIFdel{is within astrophysical valid limits. }\DIFdelend \DIFaddbegin \DIFadd{posterior of every fit. All quoted $R_t$ intervals are therefore conditional on this physically motivated prior (Appendix~\ref{app:window}), reinforcing its interpretation as a model-dependent outer scale.
+\DIFadd{The posterior of }\DIFaddend $R_c$ \DIFdelbegin \DIFdel{and }\DIFdelend \DIFaddbegin \DIFadd{is confined well inside its support (97.5th percentile at $\simeq2.5\,\mathrm{arcmin}$, $7\%$ of the prior upper bound), so its bound is immaterial. Refitting the $40\,\mathrm{arcmin}$ profile with alternative coefficients (e.g., $0.9\,T_{\mathrm{max}}$ and $1.2\,T_{\mathrm{max}}$) changes $R_c$, $k$, $b$, and $C$ by less than $0.5\sigma$; only the weakly constrained outer radius responds (median $R_t\simeq33\,\mathrm{arcmin}$ versus $40^{+16}_{-17}\,\mathrm{arcmin}$, consistent within $1\sigma$). For the adopted $70\,\mathrm{arcmin}$ fit the same coefficients act differently, and the arithmetic is worth stating: with $T_{\mathrm{max}}=42.5\,\mathrm{arcmin}$, a bound of $1.2\,T_{\mathrm{max}}=51.0\,\mathrm{arcmin}$ lies }\emph{\DIFadd{below}} \DIFadd{the adopted $R_t=54\,\mathrm{arcmin}$, so any coefficient smaller than $1.27$ excludes the adopted value from the prior support outright rather than perturbing it. This is not an independent objection to that value but the same prior limitation seen from the opposite side: }\DIFaddend $R_t$ is \DIFdelbegin \DIFdel{within astrophysical valid limits. }\DIFdelend \DIFaddbegin \DIFadd{bounded from above by the prior in every window we fit, which is why we report it as conditional on the bound and quantify the relaxed case below. The outer radius is the one parameter whose posterior is sensitive to the prior support in all windows: the upper bound $1.5\,T_{\mathrm{max}}=63.7\,\mathrm{arcmin}$ truncates the $R_t$ posterior of every fit. All quoted $R_t$ intervals are therefore conditional on this physically motivated prior (Appendix~\ref{app:window}), reinforcing its interpretation as a model-dependent outer scale.
 }\DIFaddend 
 
 The Hill radius \DIFdelbegin \DIFdel{$(R_\mathrm{hill})$}\DIFdelend \DIFaddbegin \DIFadd{$(R_\mathrm{Hill})$}\DIFaddend , which defines the region around a star cluster where its gravitational influence dominates over that of the Galaxy, can be calculated following \citet{2019A&A...627A.119C}:
@@ -664,43 +562,10 @@ scale ($Z_\odot\simeq0.0142$), a single solar-calibrated mixing-length parameter
 \DIFdel{the $40\,\mathrm{arcmin}$ footprint -- the signature of a lowered effective selection threshold rather than of newly resolved outer structure. This behavior is consistent with increasing field contamination, although, as noted above, distinguishing contaminants from genuinely extended populations would require additional photometric, dynamical, or three-dimensional diagnostics. We therefore use the $40\,\mathrm{arcmin}$ catalog as the reference sample for the present analysis, while treating the outer membership and any quantity tied to the cluster boundary as search-window sensitive.
 }%DIFDELCMD < 
 
-%DIFDELCMD < \begin{figure}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_brightness_paper.pdf}}
-%DIFDELCMD < 	%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Normalized cumulative counts of reference-sample stars ($\tilde{p}\geq0.6$) within NGC 6383 are plotted against radial distance from the cluster center for different brightness ranges, segmented into quartiles of $G_{\text{mag}}$: $8.80$--$15.44$ (blue solid), $15.44$--$16.99$ (orange dashed), $16.99$--$17.93$ (teal dotted), and $17.93$--$20.66\,\mathrm{mag}$ (red dash-dotted). The black dash-dotted and black dotted vertical lines mark the core radius $R_c = 1.95\,\mathrm{arcmin}$ and the fitted King outer radius $R_t = 40.4\,\mathrm{arcmin}$.}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:cumulative_luminosity}
-%DIFDELCMD < \end{figure}
 %DIFDELCMD < %%%
 \DIFdel{Regarding membership pseudo-probabilities (Fig. \ref{fig:probabilities}), NGC 6383 has $321$, $254$, $202$, and $161$ candidate members with $\tilde{p}$ above $50$, $60$, $70$, and $80$\%, respectively. Correspondingly, $288$, $236$, $191$, and $153$ of these candidates are brighter than $G=19\,\mathrm{mag}$. Table \ref{tab:cds_members} shows a five-row excerpt of the likely-member catalog; the complete 321-source catalog is available at the CDS (see Data availability), with the full column set listed in the table note and the CDS ReadMe.
 }%DIFDELCMD < 
 
-%DIFDELCMD < \begin{table*}
-%DIFDELCMD < %%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Excerpt of the likely-member catalog for NGC 6383. The complete machine-readable table is available at the CDS. Only selected columns and five rows are printed here for guidance regarding the table form and content.}}
-%DIFAUXCMD
-%DIFDELCMD < \label{tab:cds_members}
-%DIFDELCMD < \centering
-%DIFDELCMD < \resizebox{\hsize}{!}{%
-%DIFDELCMD < \begin{tabular}{llllllll}
-%DIFDELCMD < \hline\hline
-%DIFDELCMD < GaiaDR3 & RAdeg & DEdeg & Gmag & pHDBSCAN & pFreq & pMember & Ref \\
-%DIFDELCMD <  & (deg) & (deg) & (mag) & & & & \\
-%DIFDELCMD < \hline
-%DIFDELCMD < 4053793547964747904 & 264.16939344 & -33.03325935 & 17.9052 & 0.7959 & 0.9793 & 0.7795 & 1 \\
-%DIFDELCMD < 4054500465190725632 & 263.10710918 & -32.96962071 & 20.1954 & 0.6985 & 0.9793 & 0.6840 & 1 \\
-%DIFDELCMD < 4054501599068361216 & 263.08486813 & -32.91805440 & 15.1189 & 0.8585 & 0.9793 & 0.8407 & 1 \\
-%DIFDELCMD < 4054514449600386304 & 263.64147648 & -33.22555846 & 16.3805 & 0.9110 & 0.9828 & 0.8953 & 1 \\
-%DIFDELCMD < 4054518023012382592 & 264.01601176 & -33.15455344 & 14.6423 & 0.6760 & 0.9793 & 0.6620 & 1 \\
-%DIFDELCMD < \hline
-%DIFDELCMD < \end{tabular}}
-%DIFDELCMD < \tablefoot{The complete CDS table contains the following columns: GaiaDR3, RAdeg, DEdeg, Plx, e\_Plx, pmRA, e\_pmRA, pmDE, e\_pmDE, Gmag, BPmag, RPmag, Jmag, Hmag, Ksmag, Fidelity, pHDBSCAN, pFreq, pMember, Ref, PMSProb, AvSag, and logAgeSag. Here pMember is the composite membership pseudo-probability $\tilde{p}=p_{\mathrm{HDBSCAN}}f_i$. The column Ref is equal to one for sources belonging to the $\tilde{p}\geq0.6$ reference sample used for the main cluster parameters, and zero otherwise.}
-%DIFDELCMD < \end{table*}
 %DIFDELCMD < 
 
 %DIFDELCMD < %%%
@@ -723,19 +588,6 @@ and with later determinations \mbox{%DIFAUXCMD
 \DIFdel{Radial velocities are estimated with a median, mean, and standard deviation of $-1.87$, $-9.40$, and $32.1\,\mathrm{km\,s^{-1}}$, respectively, using 16 clustered sources with $\tilde{p}\geq0.6$ and a binary probability lower than $0.6$. The substantial standard deviation primarily stems from the limited availability of radial velocity data, available for only $11.4$\% of the reference sample (29 of 254 sources). Sources with large radial-velocity amplitudes, likely unresolved binaries, can bias the estimate, which is why it is restricted to sources with a binary probability below $0.6$; even so, the small sample makes this only an indicative measure of the cluster's internal dynamics. Figure \ref{fig:radial_velocities} illustrates all the probable members and members with available radial velocities, their magnitudes, and the amplitude of their radial velocities.
 }%DIFDELCMD < 
 
-%DIFDELCMD < \begin{figure*}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_mass_and_type.pdf}}
-%DIFDELCMD <     %%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\emph{\DIFdelFL{Left panel:}} %DIFAUXCMD
-\DIFdelFL{The cumulative distributions of single stars within NGC 6383 are segmented into four mass quartiles ranging from $0.19$--$0.58\,M_\odot$ to $1.44$--$13.56\,M_\odot$, illustrating the spatial distribution across different mass ranges and highlighting the potential influences of mass on the distribution of stars within the cluster. }\emph{\DIFdelFL{Middle panel:}} %DIFAUXCMD
-\DIFdelFL{The same distributions as in the left panel for binary stars only, where binaries are defined as sources with a binary probability of at least $0.6$. }\emph{\DIFdelFL{Right panel:}} %DIFAUXCMD
-\DIFdelFL{The normalized cumulative distributions compare single stars with binary stars, with masses between $0.19\,M_\odot$ and $13.56\,M_\odot$. In all panels the quartiles are drawn as blue solid, orange dashed, teal dotted, and red dash-dotted curves; in the right panel single stars are the blue solid and binaries the orange dashed curve. All plots are based on stars with a membership pseudo-probability of at least $0.6$. Kolmogorov-Smirnov (KS) test results are detailed in Sect. \ref{subsec:lum_mass_dyn}, quantitatively assessing the differences between distributions and underscoring the statistical validity of the observed segregation patterns.}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:mass_seg}
-%DIFDELCMD < \end{figure*}
 %DIFDELCMD < 
 
 %DIFDELCMD < %%%
@@ -900,21 +752,7 @@ where $\langle m \rangle$ is the average \DIFdelbegin \DIFdel{mass of a star }\D
 
 \DIFadd{For all other stars, Eq.~(\ref{eq:tseg}) implies progressively longer segregation times. Setting $t_{\mathrm{seg}}(m)$ equal to the cluster age defines a limiting mass $m_{\mathrm{lim}} = \langle m \rangle\, t_{\mathrm{rh}}/t_{\mathrm{age}}$, which for the mode age $t_{\mathrm{age}} = 3.53\,\mathrm{Myr}$ and $\gamma=0.110$ is $9.1\,M_\odot$ (computed with unrounded posterior values); this is the value that defines the subsample used below. It is not a precise quantity. Across the age range of Sect.~\ref{subsec:asteca} it runs from $14.5\,M_\odot$ at the young edge to $3.6\,M_\odot$ at the old one, and the mass-function $\gamma$ raises it by the factor given above at every age, to $11.6$--$12.4\,M_\odot$ at the mode age. The argument is insensitive to this. Over that whole range the fraction of the reference sample below $m_{\mathrm{lim}}$ stays between $95\%$ and $100\%$; the subsample itself is identical for any $m_{\mathrm{lim}}$ between $8.49$ and $13.13\,M_\odot$, a window that contains both the adopted value and its $\gamma$-corrected counterpart; and at the young edge $m_{\mathrm{lim}}$ exceeds the mass of the most massive member, so at that edge no member of the sample has $t_{\mathrm{seg}}$ shorter than the cluster age. Stars less massive than the adopted $m_{\mathrm{lim}}$ have $t_{\mathrm{seg}}$ longer than the cluster age, so two-body relaxation cannot yet have segregated them: any central concentration they exhibit must be primordial or early dynamical. If HD 159176 were included as a member, $m_{\mathrm{lim}}$ would shift only to $\simeq10.3\,M_\odot$, leaving this subsample unchanged. We therefore repeated the analysis of Fig.~\ref{fig:mass_seg} for the subsample with $m < m_{\mathrm{lim}}$. This subsample comprises $252$ of the $254$ reference stars ($99.2\%$) and spans $0.19$--$8.49\,M_\odot$; only the two most massive members, of $13.13$ and $13.56\,M_\odot$, are excluded. The results (Fig.~\ref{fig:mass_tseg}) closely resemble Fig.~\ref{fig:mass_seg}, as expected for a nearly identical sample. }\DIFaddend Within this subsample the single-star quartile KS results range over $D=0.12$--$0.36$ and $p=0.01$--$0.84$, with the upper mass quartile ($1.41$--$8.49\,M_\odot$) showing the largest separation. In this sample, the average mass is $1.21 \pm 0.08\,M_\odot$. The distributions of single and binary stars are similar up to approximately $5\,\mathrm{arcmin}$, beyond which single stars show less concentration compared to binary stars.
 
-\DIFdelbegin %DIFDELCMD < \begin{figure}
-%DIFDELCMD < 	\centering
-%DIFDELCMD < 	\resizebox{\hsize}{!}{\includegraphics{Figures/mass_segregation_mst.pdf}}
-%DIFDELCMD < 	%%%
-%DIFDELCMD < \caption{%
-{%DIFAUXCMD
-\DIFdelFL{Mass-segregation ratio $\Lambda_{\mathrm{MSR}}$ \mbox{%DIFAUXCMD
-\citep{2009MNRAS.395.1449A} }\hskip0pt%DIFAUXCMD
-of NGC 6383 as a function of the number of most-massive members $N_{\mathrm{MST}}$. Following \mbox{%DIFAUXCMD
-\citet{2009MNRAS.395.1449A}}\hskip0pt%DIFAUXCMD
-, $\Lambda_{\mathrm{MSR}}=\langle l_{\mathrm{norm}}\rangle/l_{\mathrm{massive}}$ is the ratio of the mean minimum-spanning-tree length of $500$ random $N_{\mathrm{MST}}$-star sets to that of the $N_{\mathrm{MST}}$ most massive members (purple circles connected by a solid line); error bars are $\sigma_{\mathrm{norm}}/l_{\mathrm{massive}}$. Values $\Lambda_{\mathrm{MSR}}>1$ indicate that the most massive stars are more centrally concentrated than random members; the gray dashed line marks $\Lambda_{\mathrm{MSR}}=1$ (no segregation).}}
-	%DIFAUXCMD
-%DIFDELCMD < \label{fig:mst}
-%DIFDELCMD < \end{figure}
-%DIFDELCMD < %%%
+\DIFdelbegin %DIFDELCMD < %%%
 \DIFdelend As an independent, bin-free check of mass segregation, we computed the mass-segregation ratio $\Lambda_{\mathrm{MSR}}$ of \citet{2009MNRAS.395.1449A}, which compares the minimum-spanning-tree (MST) length of the $N_{\mathrm{MST}}$ most massive members with that of random sets of the same size. This estimator needs no cluster center, and for smooth, centrally concentrated regions it agrees with the other standard mass-segregation diagnostics \citep{2015MNRAS.449.3381P}. We verified that NGC 6383 belongs to this regime rather than being spatially substructured by computing the structure parameter $\mathcal{Q}$ of \citet{2004MNRAS.348..589C} (the ratio of the normalized mean MST edge length to the normalized mean projected separation, not to be confused with the reddening-free index $Q$ used above to identify YSOs). We obtain $\mathcal{Q}=1.03\pm0.03$ (bootstrap over the 254 members), well above the $\mathcal{Q}\simeq0.8$ boundary separating centrally concentrated from fractal, substructured distributions, and consistent with the King concentration \DIFdelbegin \DIFdel{$C=1.32$}\DIFdelend \DIFaddbegin \DIFadd{$C=1.43$}\DIFaddend ; we note that a proper-motion-selected, parallax-clipped sample is itself biased toward smooth configurations, so $\mathcal{Q}$ serves here as a consistency check rather than an independent morphology measurement. As shown in Fig. \ref{fig:mst}, $\Lambda_{\mathrm{MSR}}$ reaches $\approx2.5$--$3.6$ for the $5$--$15$ most massive members \DIFdelbegin \DIFdel{(up to $\sim3\sigma$ above unity) }\DIFdelend and decreases toward unity for larger samples, \DIFdelbegin \DIFdel{confirming }\DIFdelend \DIFaddbegin \DIFadd{indicating }\DIFaddend that the most massive members are \DIFdelbegin \DIFdel{significantly }\DIFdelend more centrally concentrated than typical members. \DIFdelbegin \DIFdel{The }\DIFdelend \DIFaddbegin \DIFadd{We assessed the significance of this signal against an exact permutation null constructed on the observed member positions themselves, rather than against a null of exactly unity. Under the hypothesis that stellar mass is independent of position, the $N_{\mathrm{MST}}$ most massive stars occupy a uniform random $N_{\mathrm{MST}}$-subset of the observed positions, which is precisely what the $500$ reference sets already sample; the null distribution of $\Lambda_{\mathrm{MSR}}$ therefore follows from the same draws at no additional cost, and requires no assumption about the underlying radial profile. At the geometry of our reference sample the null median is $1.02$ at $N_{\mathrm{MST}}=5$ rather than exactly $1$, falling to unity for larger subsets, so the excess is measured from a slightly displaced origin. The strongest single point reaches a local $p\simeq5\times10^{-4}$; correcting for the eight values of $N_{\mathrm{MST}}$ examined, whose nesting yields a measured trials factor of about $7$ rather than the naive $8$, the scan-level significance is $p\approx0.004$, i.e. $\approx2.7\sigma$. This scan-level significance is unchanged if the members are ranked by primary mass instead of by system mass, which is the ranking cross-check required by the binary interpretation above, although the strongest individual point then falls at a different $N_{\mathrm{MST}}$: the per-point significance is sensitive to the mass ranking, and the scan-level result is not. The }\DIFaddend signal is unchanged \DIFaddbegin \DIFadd{in direction }\DIFaddend if the median \DIFdelbegin \DIFdel{or }\DIFdelend \DIFaddbegin \DIFadd{edge length \mbox{%DIFAUXCMD
 \citep{2011MNRAS.416..541M} }\hskip0pt%DIFAUXCMD
 or the }\DIFaddend geometric mean of the \DIFdelbegin \DIFdel{random MST lengths replaces the arithmetic mean, a variant that is robust against single massive outliers \mbox{%DIFAUXCMD
@@ -1058,7 +896,7 @@ CTTS list.
 \DIFdelend \DIFaddbegin \subsection{\DIFadd{Comparison with published catalogs}}
 \DIFaddend We compared our likely-candidate catalog (see also the historical compilation in Appendix~\ref{app:historical}) with the catalogs from \citet{2020AA...640A...1C}, \citet{2021ApJ...923..129J}, \citet{2022ApJS..262....7H}, \citet{2024arXiv240305143H}, and the members listed in SIMBAD. We find 148 sources in common with \citet{2020AA...640A...1C}, 97 present only in their catalog, and 173 only in ours; 161 in common with \citet{2021ApJ...923..129J} (123 only theirs, 160 only ours); 90 with \citet{2022ApJS..262....7H} (47 only theirs, 231 only ours); 202 with \citet{2024arXiv240305143H} (120 only theirs, 119 only ours); and 168 with SIMBAD (163 only there, 153 only ours). Because all rely at least partly on \textit{Gaia} astrometry, the differences mainly reflect methodological choices, spatial windows, probability thresholds, and whether PMS or photometric information enters the selection. In particular, our selection clusters in the proper-motion plane only, whereas most catalog pipelines cluster in the full three- to five-dimensional astrometric space with their own probability floors and search radii, and SIMBAD aggregates heterogeneous literature memberships.
 
-\DIFaddbegin \DIFadd{These overlaps also delimit the added value of the present analysis. These survey catalogs are homogeneous all-sky compilations optimized for thousands of clusters: for any individual cluster they provide a member list and bulk parameters derived from a single, fixed pipeline configuration. For NGC 6383, this work adds four elements. (i) Posterior distributions, with reported uncertainties, for the mean astrometric parameters, the distance, the King structural parameters, and the isochrone age, rather than pipeline point estimates. (ii) An explicit sensitivity budget for the main configuration choices, which none of the above catalogs quantify on a per-cluster basis: the }\textsc{\DIFadd{HDBSCAN}} \DIFadd{hyperparameter sweep is marginalized into the per-star pseudo-probabilities (Sect.~\ref{subsubsec:membership}, Appendix~\ref{app:hdbscan}), the dependence of the membership and structural parameters on the search window is measured directly (Appendix~\ref{app:window}), and the mass-segregation signal is checked for stability against the binary-classification threshold (Sect.~\ref{subsec:lum_mass_dyn}). (iii) Cluster-specific analyses that survey pipelines do not attempt, namely the PMS census (Sagitta probabilities, ages, and extinctions; the YSO fraction; and the H$\alpha$ cross-match with \mbox{%DIFAUXCMD
+\DIFaddbegin \DIFadd{These overlaps also delimit the added value of the present analysis. These survey catalogs are homogeneous all-sky compilations optimized for thousands of clusters: for any individual cluster they provide a member list and bulk parameters derived from a single, fixed pipeline configuration. For NGC 6383, this work adds four elements. (i) Sampled posterior distributions, with reported uncertainties and convergence diagnostics, for the mean astrometric parameters, the parallax-based distance and the King structural parameters, rather than pipeline point estimates; for the isochrone fit we report the ensemble together with the explicit statement that it has not converged (Sect.~\ref{subsec:cosmic}), and adopt a systematic age range instead of a posterior width, which is itself information a fixed-pipeline catalog does not provide. (ii) An explicit sensitivity budget for the main configuration choices, which none of the above catalogs quantify on a per-cluster basis: the }\textsc{\DIFadd{HDBSCAN}} \DIFadd{hyperparameter sweep is marginalized into the per-star pseudo-probabilities (Sect.~\ref{subsubsec:membership}, Appendix~\ref{app:hdbscan}), the dependence of the membership and structural parameters on the search window is measured directly (Appendix~\ref{app:window}), and the mass-segregation signal is checked for stability against the binary-classification threshold (Sect.~\ref{subsec:lum_mass_dyn}). (iii) Cluster-specific analyses that survey pipelines do not attempt, namely the PMS census (Sagitta probabilities, ages, and extinctions; the YSO fraction; and the H$\alpha$ cross-match with \mbox{%DIFAUXCMD
 \citealt{2010AA...511A..25R}}\hskip0pt%DIFAUXCMD
 ), the dynamical-state analysis ($t_{\mathrm{rh}}$, $t_{\mathrm{seg}}$, $\Lambda_{\mathrm{MSR}}$), per-star masses and binary probabilities, and the individual treatment of HD 159176 as a bright-source astrometric special case. (iv) A per-star catalog at the CDS (Table~\ref{tab:cds_members}) together with the open-source pipeline, which make the selection reproducible and its parameter dependence auditable.
 }
@@ -1277,12 +1115,13 @@ This appendix collects the supplementary figures referenced from the main text: 
 	\label{fig:radial_velocities}
 \end{figure}
 
-\section{Search-window sensitivity of the derived parameters}\label{app:window}
+\DIFaddbegin \clearpage
+\DIFaddend \section{Search-window sensitivity of the derived parameters}\label{app:window}
 
 This appendix complements the membership-recovery counts of Table \ref{tab:cone_robustness} by listing, side by side, the astrometric and structural parameters recovered at each input cone-search radius. Only the membership, astrometric, and King-structural quantities were recomputed for the wider fields; the photometric quantities (ages, masses, and the mass-segregation diagnostics) remain tied to the $40\,\mathrm{arcmin}$ reference catalog and are not repeated per radius. As discussed in Sect.\DIFdelbegin \DIFdel{\ref{sec:results}}\DIFdelend \DIFaddbegin \DIFadd{~\ref{subsec:member_results}}\DIFaddend , the catalog-level astrometry is stable across radii, whereas the structural parameters and the outer-membership counts drift once the automated branch selection becomes field-window dependent (at $60$ and $70\,\mathrm{arcmin}$)\DIFdelbegin \DIFdel{, reinforcing the search-window-sensitive interpretation of any quantity tied to the cluster boundary. }\DIFdelend \DIFaddbegin \DIFadd{.
 }\DIFaddend 
 
-\DIFaddbegin \DIFadd{The $70\,\mathrm{arcmin}$ window provides the adopted King outer radius (Sect.~\ref{subsec:structural}). The probability that $R_t$ exceeds the extraction window decreases from $51\%$ at $40\,\mathrm{arcmin}$ to $40\%$ and $13\%$ at $50$ and $60\,\mathrm{arcmin}$ (at $70\,\mathrm{arcmin}$ it vanishes by construction, since the prior support ends at $1.5\,T_{\mathrm{max}}=63.7\,\mathrm{arcmin}$), and Fig.~\ref{fig:king70} shows that only this window reaches a well-defined background annulus beyond the cluster, with fitted background $b=0.020^{+0.006}_{-0.010}$ and central density $k=8.42\pm0.17$ stars per square arcminute. All $R_t$ posteriors, including the adopted one, are truncated from above by the physically motivated $1.5\,T_{\mathrm{max}}$ prior bound and remain conditional on it; the shift under a relaxed bound is quantified in Sect.~\ref{subsec:structural}. The background of this membership-selected sample measures the residual contamination level of the selection, not the raw field density. The core radius and central density of the $70\,\mathrm{arcmin}$ fit are contamination-biased (Sect.~\ref{subsec:member_results}) and are not adopted.
+\DIFaddbegin \DIFadd{The $70\,\mathrm{arcmin}$ window provides the adopted King outer radius (Sect.~\ref{subsec:structural}). The probability that $R_t$ exceeds the extraction window decreases from $51\%$ at $40\,\mathrm{arcmin}$ to $40\%$ and $13\%$ at $50$ and $60\,\mathrm{arcmin}$ (at $70\,\mathrm{arcmin}$ it vanishes by construction, since the prior support ends at $1.5\,T_{\mathrm{max}}=63.7\,\mathrm{arcmin}$), and Fig.~\ref{fig:king70} shows that only this window reaches a well-defined background annulus beyond the cluster, with fitted background $b=0.020^{+0.006}_{-0.010}$ and central density $k=8.42\pm0.17$ stars per square arcminute. All $R_t$ posteriors, including the adopted one, are truncated from above by the physically motivated $1.5\,T_{\mathrm{max}}$ prior bound and remain conditional on it; the shift under a relaxed bound is quantified in Sect.~\ref{subsec:structural}. The background of this membership-selected sample measures the residual contamination level of the selection, not the raw field density. The core radius and central density of the $70\,\mathrm{arcmin}$ fit are contamination-biased (Sect.~\ref{subsec:member_results}) and are not adopted. Adopting $R_t$ from a fit whose $R_c$ we reject requires an argument, and it is one of sensitivity rather than of trust: the additional sources admitted at $70\,\mathrm{arcmin}$ are concentrated at small radii ($114$ of the $376$ added lie inside the $40\,\mathrm{arcmin}$ footprint), where they raise the central density and pull $R_c$ down, whereas $R_t$ is set by where the profile meets the fitted background annulus, which those inner additions do not move. The two parameters are therefore not equally exposed to the same contamination. This does not make $R_t$ immune, and we note the consequence explicitly: the concentration parameter $C$ combines posteriors from two fits on two samples and should be read as such.
 }
 
 \begin{figure}
