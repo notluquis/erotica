@@ -1,7 +1,7 @@
 
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL old_submitted.tex   Thu Jul 16 17:46:08 2026
-%DIF ADD new_revised.tex     Sun Aug 16 22:16:15 2026
+%DIF ADD new_revised.tex     Sun Aug 16 22:36:59 2026
 \documentclass{aa}  
 \usepackage{graphicx}
 \usepackage{txfonts}
@@ -1066,7 +1066,7 @@ Figure \ref{fig:plot_pair_trace} shows the joint and marginal \DIFdelbegin \DIFd
 
 \begin{figure*}
 \resizebox{\hsize}{!}{\includegraphics{Figures/plot_pair_trace.pdf}}
-\caption{\DIFdelbeginFL \DIFdelFL{Posterior }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{Marginal and joint }\DIFaddendFL distributions of the parameters $A_V$ (visual extinction), $dm$ (distance modulus), $loga$ (logarithmic age), $met$ (metallicity), and the nuisance likelihood-scatter parameter $\sigma$\DIFaddbeginFL \DIFaddFL{, as sampled by the DEMetropolis ensemble}\DIFaddendFL . \DIFaddbeginFL \DIFaddFL{As stated in the text, this ensemble does not meet the convergence criteria of Sect.~\ref{subsec:cosmic}, so the distributions shown are a consistency check rather than sampled posteriors. }\DIFaddendFL The $\sigma$ parameter is the likelihood-scatter term used in the PyMC diagnostic implementation that generated this figure and should not be interpreted as a physical cluster dispersion. The diagonals display the marginal distributions for each parameter (blue curves). The off-diagonal hexbin plots illustrate the joint distributions, highlighting correlations between parameters. Black lines mark the mode of each distribution in all panels; in the off-diagonal panels, the joint mode is additionally marked by a black square.}
+\caption{\DIFdelbeginFL \DIFdelFL{Posterior }\DIFdelendFL \DIFaddbeginFL \DIFaddFL{Marginal and joint }\DIFaddendFL distributions of the parameters $A_V$ (visual extinction), $dm$ (distance modulus), $loga$ (logarithmic age), $met$ (metallicity), and the nuisance likelihood-scatter parameter $\sigma$\DIFaddbeginFL \DIFaddFL{, sampled with the DEMetropolis ensemble}\DIFaddendFL . The \DIFaddbeginFL \DIFaddFL{ensemble does not meet the convergence criteria of Sect.~\ref{subsec:cosmic}, so these are a consistency check, not sampled posteriors. The }\DIFaddendFL $\sigma$ parameter is the likelihood-scatter term used in the PyMC diagnostic implementation that generated this figure and should not be interpreted as a physical cluster dispersion. The diagonals display the marginal distributions for each parameter (blue curves). The off-diagonal hexbin plots illustrate the joint distributions, highlighting correlations between parameters. Black lines mark the mode of each distribution in all panels; in the off-diagonal panels, the joint mode is additionally marked by a black square.}
 \label{fig:plot_pair_trace}
 \end{figure*}
 
