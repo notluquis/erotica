@@ -13,7 +13,7 @@ Fuentes:
 - PDF anotado: `~/Downloads/aanda_revised_clean-1.pdf` (23 pp., **41 anotaciones**)
 - Cover letter devuelta: `~/Downloads/cover_letter_round2.txt`
 - Manuscrito: `submission_package/clean_source/aanda.tex` (607 líneas, commit `80adcc6`, 2026-07-19)
-- Respuesta: `submission_package/letters/response_to_referee_round2.md` (R1–R17)
+- Respuesta: `submission_package/letters/response_to_referee_round2.txt` (R1–R17)
 
 ---
 
@@ -290,7 +290,7 @@ los tres.
 Cada punto comprobado **en contexto** sobre `clean_source/aanda.tex`, no por presencia de palabra.
 
 📁 **Las cartas que se envían viven en `submission_package/letters/`.** Las copias de este
-directorio (`cover_letter_round2.txt`, `response_letter.md`) son de trabajo y llegaron a divergir
+directorio (`cover_letter_round2.txt`, `response_letter.txt`) son de trabajo y llegaron a divergir
 de las buenas; se resincronizaron el 2026-08-16. Ante duda, manda `submission_package/letters/`.
 
 ### Los 11 comentarios: 10 aplicados + 1 ya satisfecho

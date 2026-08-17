@@ -44,7 +44,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 TARGETS = [
     HERE / "clean_source" / "aanda.tex",
-    HERE / "letters" / "response_to_referee_round2.md",
+    HERE / "letters" / "response_to_referee_round2.txt",
     HERE / "letters" / "cover_letter_round2.txt",
 ]
 

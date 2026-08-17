@@ -12,7 +12,7 @@ PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it
 |---|---|---|
 | **Updated source files** (mandatory) | `aa52082-24_source.zip` | aanda.tex (the only .tex), aanda.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 26 pp, 0 errors, 0 undefined. |
 | Latexdiff or bold pdf (optional) | `aa52082-24_marked_changes.pdf` | 30 pp. latexdiff against the round-1 submitted version, so it shows round-2 changes only. |
-| Reply to the referee(s) (optional; .pdf or .txt) | `letters/response_to_referee_round2.txt` | Plain text, generated from the .md master. **NESTOR does not accept .md.** |
+| Reply to the referee(s) (optional; .pdf or .txt) | `letters/response_to_referee_round2.txt` | Plain text, and now the master: the Markdown version was deleted on 2026-08-16, since NESTOR accepts only .pdf or .txt and keeping two formats had already let them drift apart once. Edit this file directly. |
 | Cover letter for the Editor (optional; .pdf or .txt) | `letters/cover_letter_round2.txt` | Lists the changes, states that the author list is unchanged, and reports the editor's three pre-submission checks. |
 | Datasets | `aa52082-24_cds_members.zip` | ⚠ **The dataset currently uploaded is the wrong one.** NESTOR shows `cds.zip`, 81.74 Kb, which is `_legacy/cds_superseded/cds.zip` (2026-05-18): it nests everything under a `cds/` folder, carries `__MACOSX/` resource forks, and ships two files CDS does not want. The `.dat` is byte-identical to ours, so no science differs, but its ReadMe is the older one. Replace it with `aa52082-24_cds_members.zip` (ReadMe + ngc6383_members.dat at top level, 321 rows). |
 
@@ -30,7 +30,7 @@ PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it
 
 ## Before rebuilding anything: the consistency check
 ok     aanda.tex: 0
-ok     response_to_referee_round2.md: 0
+ok     response_to_referee_round2.txt: 0
 ok     cover_letter_round2.txt: 0
 
 OK - ningun documento contradice la no-convergencia del ensemble.

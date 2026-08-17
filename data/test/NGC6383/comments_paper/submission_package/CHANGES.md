@@ -881,3 +881,31 @@ upload -- it is our local proof. The zip contains exactly one `.tex`, as the pag
 
 Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; source zip compiles
 standalone in an empty directory with exactly one .tex.
+
+## 56. The rename declared to the editor, and the Markdown master retired (2026-08-16)
+
+**The COSMIC to EROTICA rename was nowhere in the cover letter.** The manuscript states it at first
+mention (Sect. 3.1) and the response letter's R1 now explains it, but the editor's letter asks the
+cover letter to list all the changes, and the referee's report names the software by its old name
+directly -- R1 opens "Sect. 2.1 provides an enumeration of tools (COSMIC, NUTS, DEMetropolis,
+etc.)". A referee opening the revised paper looking for COSMIC finds EROTICA everywhere and no
+explanation in the letter that introduces the revision. The cover letter now states the former
+name, the reason (the import-name collision with `cosmic-popsynth`), that it is a rename and not a
+change of code or of results, and that the software is cited by its archived Zenodo DOI.
+
+**The Markdown response letter is deleted; the plain text is the master.** NESTOR accepts only
+`.pdf` or `.txt` in that slot, and keeping two formats had already let the two copies of this letter
+drift apart once (Sect. 52). Editing now happens in
+`letters/response_to_referee_round2.txt` directly.
+
+Converting it exposed defects in the conversion itself, all fixed before the master was removed:
+`\texttt{min\_cluster\_size}` and `\emph{below}` had lost their braces and fused into
+`\textttmin_cluster_size` and `\emphbelow`; `\mathrm` and `\rm` survived inside subscripts
+(`p_mathrmHDBSCAN`, `T_rm max`); and a blanket strip of `\\[a-zA-Z]+` had swallowed the operators,
+turning `T_{max}=\max(R_{Hill}, r_{bound})` into `T_max=(R_Hill, r_bound)`. The final text has zero
+LaTeX residue, all seventeen R1-R17 replies, and every numeric claim intact.
+
+`check_posterior_claims.py` targeted the deleted `.md` and returned exit 2. Retargeted to the
+`.txt` and mutation-tested again on the new target: appending the original R17 sentence makes it
+fail, removing it makes it pass.
+
