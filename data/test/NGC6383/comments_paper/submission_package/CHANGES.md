@@ -631,3 +631,37 @@ script keep it (`CONSERVADO`) while still stripping the other nine.
 
 Final: clean 26 pp / marked 29 pp / 0 errors / 0 undefined refs / 0 undefined citations;
 21 unique figures live in both, identical multiset; 0 "??" in the marked PDF.
+
+## 49. The letters realigned with the manuscript they describe (2026-08-16)
+
+The two letters were last written at 21:02, before the Sect. 48 edits, so they promised the
+referee things the revised manuscript no longer says. Cross-checking every numeric claim in both
+letters against `clean_source/aanda.tex` found six sites.
+
+**A fourth internal contradiction, in the manuscript, that Sect. 48 missed.** Appendix B closes
+its description of the isochrone corner plot with "the credible intervals quoted in the main text
+and in Table 1 correspond to these marginal posteriors" -- three sentences after stating that the
+ensemble does not meet the convergence criteria and should be read as a consistency check rather
+than as sampled posteriors, and in direct conflict with the new `\tablefoot`. Rewritten to call
+them marginal spreads of the ensemble and point at the table notes. The looser "the posterior
+distribution of the inferred parameters can be seen as a plot pair" in Sect. 6.1 was aligned in
+the same pass. It was missed because Sect. 48's sweep read the body and not the appendices.
+
+**Response letter.** R17 carried the same sentence removed from the manuscript ("posterior
+distributions with reported uncertainties for the astrometric, structural, and age parameters");
+rewritten to match. R7 offered 0.9/1.2 T_max as benign alternatives without noting that
+1.2 T_max = 51.0 arcmin falls below the adopted R_t = 54 arcmin, so it now carries the same
+arithmetic as Sect. 5. R7 also quoted T_max = 42.45 arcmin against Table 1's 42.5 -- a third
+rounding of 42.4667 -- now 42.5 in both. R5 called the isochrone-fit distance modulus "the
+posterior"; the word is dropped. The "Corrections made on our own initiative" section listed
+three inherited errors and left the four Kalari corrections to R16 alone, so the summary now
+carries them too, and its "both visible in the marked-up PDF" (of three items) reads "all".
+
+**Cover letter.** Same omission: it disclosed the three inherited errors but not the Kalari set,
+including the withdrawal of the "rather than the data" attribution. Added.
+
+Verified after: no sentence in either letter claims a converged posterior for the age; every
+numeric claim in the letters is present in the manuscript; "rather than the data" survives only
+as a quotation of the withdrawn wording. Clean 26 pp / marked 29 pp, 0 errors, 0 undefined refs
+or citations, 21 figures live, 0 "??"; source zip compiles standalone. CDS package unchanged and
+still consistent (321 rows, 254-source reference sample).
