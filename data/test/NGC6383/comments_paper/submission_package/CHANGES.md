@@ -838,3 +838,46 @@ match rather than the reverse. Say so if the preference is the other way; it is 
 Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; the remaining isolated
 numbers in the extracted text of the appendix pages are axis ticks inside Figs. C.4-C.6, verified
 by rendering.
+
+## 55. The editor's own checklist, and the dataset already sitting on NESTOR (2026-08-16)
+
+The editor's letter asks for three things before resubmitting, none of which had been run, plus a
+cover-letter statement about coauthors. The NESTOR upload page also showed what is already there.
+
+**The uploaded dataset is the superseded package.** NESTOR lists `cds.zip`, 81.74 Kb. That is
+`_legacy/cds_superseded/cds.zip` from 2026-05-18: it nests everything under a `cds/` folder rather
+than at the top level, carries `__MACOSX/` resource forks, and ships `cds_validation_manifest.json`
+and an `.ecsv` that CDS does not want. Its `ngc6383_members.dat` is byte-identical to ours, so no
+number changes, but its ReadMe is the older one -- it lacks the pre-main-sequence keyword line,
+its title is capitalized differently from the paper, and it writes the log-age unit as `log(yr)`
+instead of the CDS convention `[yr]`. It must be replaced by `aa52082-24_cds_members.zip`.
+
+**Spelling (check 1): passes, and the two apparent mixtures are not mixtures.** The manuscript is
+consistently US (color 27, center 53, catalog 35, toward 12, -ize throughout, zero UK forms). The
+four hits for "analyse" are all the plural noun *analyses*, correct in US English, with no
+`analysed`/`analysing` anywhere; the single "catalogue" is inside "the VizieR catalogue access
+tool", the wording CDS requires in the acknowledgement.
+
+**Abbreviations (check 2): eight real defects, now fixed.** Seven were defined after their first
+use or never: PMS (defined 1000 characters late), YSO (12 000 late), CTTS (59 000 late), KS (2 500
+late), HDBSCAN (14 000 late), CMD and MIST (never defined in the body at all -- and the referee's
+R9 is specifically about MIST's assumptions). Each is now expanded where it first appears, and the
+later duplicate definitions were reduced to the bare acronym. The eighth, IMF, appeared exactly
+once, so it is spelled out and the abbreviation dropped.
+
+**References (check 3): passes.** 114 entries, no duplicate author-year pairs, no entry cited as an
+arXiv e-print that has a journal version -- the three arXiv references are works with none
+(Amiri et al. 2026, and Betancourt's two methodological notes).
+
+**Cover letter.** Now states that the author list is unchanged, with no coauthor added or removed,
+which the editor's letter asks for explicitly, and reports the three checks above.
+
+**Response letter converted to plain text.** NESTOR accepts `.pdf` or `.txt` in that slot and not
+`.md`. `letters/response_to_referee_round2.txt` is generated from the Markdown master.
+
+MANIFEST's file table is rewritten against the actual NESTOR slots. One correction it now records:
+NESTOR builds the reviewer PDF from the source zip, so `aanda_revised_clean.pdf` is **not** an
+upload -- it is our local proof. The zip contains exactly one `.tex`, as the page requires.
+
+Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; source zip compiles
+standalone in an empty directory with exactly one .tex.

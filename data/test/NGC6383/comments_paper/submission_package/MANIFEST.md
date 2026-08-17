@@ -2,16 +2,21 @@
 
 A&A ROUND-2 resubmission. Compiles to 26 pp clean / 30 pp marked / 0 errors / 0 undefined refs / 0 undefined citations. (Last full rebuild: 2026-08-16, co-author pass: 41 annotations from P. Cerulo applied - 24 figure-caption cuts, 11 wording fixes, the Table 1 caption moved to \tablefoot per A&A house style - plus four corrections to the Kalari 2019 comparison found while re-checking that source, including the adopted-distance systematic the previous version omitted. A later point-by-point re-read of the referee report found three internal contradictions, now fixed: the Table 1 \tablefoot scoped to the five rows whose intervals are not posterior widths, the 1.2 T_max prior collision stated explicitly, and the R17 element (i) no longer claiming a converged isochrone posterior; Appendix D also gained the argument for why R_t survives the contamination that biases R_c, and a \clearpage so Fig. D.1, the load-bearing evidence for R11, now sits on the same page as its text (p. 25) instead of five pages later. Both letters were then cross-checked against the manuscript and realigned, see CHANGES.md Sect. 49. See referee_round2/PIERLUIGI_REVIEW_TRIAGE.md. Round-2 restructure + R1-R17 fixes are in CHANGES.md §42. latexdiff baseline = round-1 submitted version, so the marked PDF still shows only round-2 changes.)
 
-## FILES TO SEND
+## FILES TO SEND — mapped to the NESTOR upload slots
 (Round-1 letters archived in `letters/round1_archive/`, do NOT send.)
-| File | What | Upload as |
+
+NESTOR asks for a zip **containing exactly one .tex**, plus optional files. It builds the reviewer
+PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it is our local proof.
+
+| NESTOR slot | File | Notes |
 |---|---|---|
-| `aa52082-24_source.zip` | LaTeX source: aanda.tex, cites.bib, aanda.bbl, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used) | Manuscript source (self-contained, test-compiles clean: 26 pp, 0 undefined) |
-| `aanda_revised_clean.pdf` | Clean compiled manuscript | Reviewer PDF |
-| `aa52082-24_marked_changes.pdf` | latexdiff vs ROUND-1 submitted version (blue=add, red=del, citations black) | Marked-changes PDF |
-| `aa52082-24_cds_members.zip` | CDS catalog: ngc6383_members.dat + ReadMe (321 candidates, 254-member reference flagged) | CDS data table |
-| `letters/cover_letter_round2.txt` | Round-2 cover letter (restructure + R_t + self-corrections) | Cover letter |
-| `letters/response_to_referee_round2.md` | Round-2 point-by-point response (R1-R17 + old-to-new section map) | Response to referee |
+| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aanda.tex (the only .tex), aanda.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 26 pp, 0 errors, 0 undefined. |
+| Latexdiff or bold pdf (optional) | `aa52082-24_marked_changes.pdf` | 30 pp. latexdiff against the round-1 submitted version, so it shows round-2 changes only. |
+| Reply to the referee(s) (optional; .pdf or .txt) | `letters/response_to_referee_round2.txt` | Plain text, generated from the .md master. **NESTOR does not accept .md.** |
+| Cover letter for the Editor (optional; .pdf or .txt) | `letters/cover_letter_round2.txt` | Lists the changes, states that the author list is unchanged, and reports the editor's three pre-submission checks. |
+| Datasets | `aa52082-24_cds_members.zip` | ⚠ **The dataset currently uploaded is the wrong one.** NESTOR shows `cds.zip`, 81.74 Kb, which is `_legacy/cds_superseded/cds.zip` (2026-05-18): it nests everything under a `cds/` folder, carries `__MACOSX/` resource forks, and ships two files CDS does not want. The `.dat` is byte-identical to ours, so no science differs, but its ReadMe is the older one. Replace it with `aa52082-24_cds_members.zip` (ReadMe + ngc6383_members.dat at top level, 321 rows). |
+
+`aanda_revised_clean.pdf` (26 pp) and `aanda_revised_marked.pdf` are local copies for checking; only the files in the table above go to NESTOR.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.
