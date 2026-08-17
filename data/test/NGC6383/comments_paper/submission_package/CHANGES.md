@@ -909,3 +909,28 @@ LaTeX residue, all seventeen R1-R17 replies, and every numeric claim intact.
 `.txt` and mutation-tested again on the new target: appending the original R17 sentence makes it
 fail, removing it makes it pass.
 
+
+## 57. The CDS package would have failed validation on format, not on data (2026-08-17)
+
+Checked the ReadMe against its own data file, which is what CDS does on receipt. The data are
+sound -- Lrecl 213 matches every one of the 321 records exactly, the declared byte ranges tile the
+record with single-space separators and no gaps, and every field parses as its declared format.
+Two format defects would still have bounced it.
+
+**The byte-by-byte table was misaligned.** Twenty-two of the twenty-three fields start their Label
+column at character 25; `logAgeSag` started at 22. The cause is visible in the diff against the
+superseded ReadMe: the units cell was corrected from `log(yr)` to the CDS convention `[yr]`, which
+is right, but `[yr]` is three characters shorter and nothing re-padded the cell. A correct edit
+introduced a format error.
+
+**Three nullable columns were not marked.** `Jmag`, `Hmag` and `Ksmag` each carry 88 `...` values
+for sources without a 2MASS counterpart, and CDS marks such columns with a leading `?` in the
+Explanations field. They had none. `PMSProb`, `AvSag` and `logAgeSag` have zero nulls, so the newer
+ReadMe was right to drop "when available" from their descriptions.
+
+**A third divergent copy.** `submission_package/cds/ReadMe` was still the 2026-05-18 version, while
+`cds_final/ReadMe` (2026-06-11) is the master that feeds the zip. Same failure as the two letters in
+Sect. 52: a working copy left behind and forgotten. Resynced. The `.dat` is byte-identical across
+all three, so nothing numerical ever diverged.
+
+Also verified on the shipped PDFs: all 63 fonts are embedded, pages are A4, PDF version 1.7.

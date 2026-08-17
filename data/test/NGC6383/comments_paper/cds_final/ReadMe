@@ -52,9 +52,9 @@ Byte-by-byte Description of file: ngc6383_members.dat
  102-109  F8.4   mag     Gmag      Gaia DR3 G-band magnitude
  111-118  F8.4   mag     BPmag     Gaia DR3 GBP magnitude
  120-127  F8.4   mag     RPmag     Gaia DR3 GRP magnitude
- 129-136  F8.4   mag     Jmag      2MASS J magnitude
- 138-145  F8.4   mag     Hmag      2MASS H magnitude
- 147-154  F8.4   mag     Ksmag     2MASS Ks magnitude
+ 129-136  F8.4   mag     Jmag     ? 2MASS J magnitude
+ 138-145  F8.4   mag     Hmag     ? 2MASS H magnitude
+ 147-154  F8.4   mag     Ksmag    ? 2MASS Ks magnitude
  156-162  F7.4   ---     Fidelity  Rybizki et al. astrometric fidelity v2
  164-170  F7.4   ---     pHDBSCAN  Native HDBSCAN membership probability for the selected branch
  172-178  F7.4   ---     pFreq     Fraction of HDBSCAN sweeps in which the source was recovered
@@ -62,7 +62,7 @@ Byte-by-byte Description of file: ngc6383_members.dat
  188      I1     ---     Ref       Reference-sample flag: 1 if pMember >= 0.6 after clipping
  190-196  F7.4   ---     PMSProb   Sagitta PMS probability
  198-204  F7.4   mag     AvSag     Sagitta visual extinction estimate
- 206-213  F8.4   [yr] logAgeSag Sagitta logarithmic age estimate
+ 206-213  F8.4   [yr]    logAgeSag Sagitta logarithmic age estimate
 --------------------------------------------------------------------------------
 Notes:
   Ref=1 identifies the 254-source reference sample with pMember>=0.6 after

@@ -1,6 +1,6 @@
 J/A+A/xxxx/xxxx     NGC 6383 likely members from Gaia DR3 and 2MASS     Pulgar-Escobar et al.
 ================================================================================
-Characterizing NGC 6383: a study of fundamental properties, pre-main sequence
+Characterizing NGC 6383: A study of fundamental properties, pre-main sequence
 stars, mass segregation, and age using Gaia DR3 and 2MASS.
     Pulgar-Escobar L.M., Henriquez-Salgado N.A., Mennickent R.E., Cerulo P.
     <Astron. Astrophys., in revision, aa52082-24>
@@ -8,12 +8,13 @@ stars, mass segregation, and age using Gaia DR3 and 2MASS.
 ADC_Keywords: Open clusters and associations; Proper motions; Parallaxes;
               Photometry, infrared; Stars, pre-main sequence
 Keywords: open clusters and associations: individual: NGC 6383 -
+          stars: pre-main sequence -
           stars: distances - techniques: photometric - parallaxes -
           proper motions
 
 Abstract:
   This table lists likely NGC 6383 candidates selected from Gaia DR3 and
-  2MASS with the paper-faithful 40 arcmin workflow. HDBSCAN was run in
+  2MASS with the 40 arcmin cone-search workflow described in the paper. HDBSCAN was run in
   the proper-motion plane only. The membership quantity pMember is a
   composite pseudo-probability, pHDBSCAN*pFreq, not a calibrated Bayesian
   posterior membership probability. Rows are post-parallax-clipping
@@ -25,7 +26,7 @@ Description:
   cross-matched to 2MASS where available. Gaia parallaxes were corrected for
   the DR3 zero point, and proper motions for bright-source frame rotation
   where applicable. The preprocessing retained sources with astrometric
-  fidelity_v2>0.5. Missing photometric or Sagitta values are encoded as
+  fidelity_v2>0.5. Missing 2MASS photometric values are encoded as
   '...' in the fixed-width table.
 
 File Summary:
@@ -51,23 +52,23 @@ Byte-by-byte Description of file: ngc6383_members.dat
  102-109  F8.4   mag     Gmag      Gaia DR3 G-band magnitude
  111-118  F8.4   mag     BPmag     Gaia DR3 GBP magnitude
  120-127  F8.4   mag     RPmag     Gaia DR3 GRP magnitude
- 129-136  F8.4   mag     Jmag      2MASS J magnitude
- 138-145  F8.4   mag     Hmag      2MASS H magnitude
- 147-154  F8.4   mag     Ksmag     2MASS Ks magnitude
+ 129-136  F8.4   mag     Jmag     ? 2MASS J magnitude
+ 138-145  F8.4   mag     Hmag     ? 2MASS H magnitude
+ 147-154  F8.4   mag     Ksmag    ? 2MASS Ks magnitude
  156-162  F7.4   ---     Fidelity  Rybizki et al. astrometric fidelity v2
  164-170  F7.4   ---     pHDBSCAN  Native HDBSCAN membership probability for the selected branch
  172-178  F7.4   ---     pFreq     Fraction of HDBSCAN sweeps in which the source was recovered
  180-186  F7.4   ---     pMember   Composite membership pseudo-probability pHDBSCAN*pFreq
  188      I1     ---     Ref       Reference-sample flag: 1 if pMember >= 0.6 after clipping
- 190-196  F7.4   ---     PMSProb   Sagitta PMS probability when available
- 198-204  F7.4   mag     AvSag     Sagitta visual extinction estimate when available
- 206-213  F8.4   log(yr) logAgeSag Sagitta logarithmic age estimate when available
+ 190-196  F7.4   ---     PMSProb   Sagitta PMS probability
+ 198-204  F7.4   mag     AvSag     Sagitta visual extinction estimate
+ 206-213  F8.4   [yr]    logAgeSag Sagitta logarithmic age estimate
 --------------------------------------------------------------------------------
 Notes:
   Ref=1 identifies the 254-source reference sample with pMember>=0.6 after
   parallax-mode sigma clipping. Ref=0 rows are retained likely candidates
   with 0.5<pMember<0.6.
-  PMSProb, AvSag, and logAgeSag are Sagitta outputs when available and are
+  PMSProb, AvSag, and logAgeSag are Sagitta outputs and are
   not used as HDBSCAN clustering coordinates.
 
 Acknowledgements:
