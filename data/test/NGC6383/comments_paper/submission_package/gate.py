@@ -254,6 +254,46 @@ def c_dropped_symbols():
 
 
 
+# US spelling, because the cover letter promises the editor exactly that: "The spelling is
+# consistently US throughout (the single British form, 'catalogue', occurs only inside the
+# CDS-mandated VizieR acknowledgement)." That claim is checkable, and it was true of the manuscript
+# and false of the response letter, which said "Galactic-centre". The list is the ordinary
+# British/US pairs an astronomy paper can hit; "towards", "whilst" and "amongst" are included
+# because A&A house style prefers the shorter forms.
+BRITISH = [
+    "analyse", "analysed", "analysing", "characterise", "characterised", "characterisation",
+    "normalise", "normalised", "normalisation", "minimise", "maximise", "optimise", "optimised",
+    "organise", "organised", "organisation", "recognise", "summarise", "summarised",
+    "emphasise", "emphasised", "parameterise", "parameterised", "marginalise", "marginalised",
+    "utilise", "utilised", "generalise",
+    "colour", "colours", "coloured", "behaviour", "favour", "neighbour", "neighbours",
+    "neighbouring", "labour",
+    "centre", "centres", "centred", "metre", "fibre",
+    "modelling", "modelled", "labelling", "labelled", "travelled", "cancelled", "signalled",
+    "fuelled", "totalled",
+    "catalogue", "catalogues", "catalogued", "dialogue", "analogue", "grey", "programme",
+    "defence", "licence", "ageing", "practise", "artefact", "artefacts", "sulphur", "aluminium",
+    "whilst", "amongst", "towards",
+]
+
+
+@check("ortografia US, como la carta le promete al editor")
+def c_spelling():
+    bad = []
+    for path in [TEX] + LETTERS:
+        text = path.read_text()
+        for word in BRITISH:
+            for m in re.finditer(rf"\b{word}\b", text, re.I):
+                frag = " ".join(text[max(0, m.start() - 70):m.end() + 40].split())
+                # The two licensed exceptions: CDS mandates the wording of the VizieR
+                # acknowledgement, and the cover letter quotes the word to declare it.
+                if "VizieR" in frag or '"catalogue"' in frag:
+                    continue
+                bad.append(f"{path.name}: {word} ...{frag[:70]}")
+    return not bad, ("sin formas britanicas fuera del agradecimiento a VizieR" if not bad
+                     else f"{len(bad)} -> {bad[:3]}")
+
+
 @check("copias de las cartas y del ReadMe sincronizadas")
 def c_copies():
     pairs = [
@@ -907,7 +947,7 @@ def main() -> int:
 
     print("=== consistencia entre el manuscrito y lo que lo describe ===")
     c_posterior(); c_letter_numbers(); c_kb(); c_register(); c_overclaim()
-    c_dropped_symbols(); c_copies(); c_cds_claim(); c_marked_fresh(); c_cds(); c_table1(); c_paraphrase(); c_literature_agreement(); c_literature_span(); c_catalog_numbers()
+    c_dropped_symbols(); c_spelling(); c_copies(); c_cds_claim(); c_marked_fresh(); c_cds(); c_table1(); c_paraphrase(); c_literature_agreement(); c_literature_span(); c_catalog_numbers()
     print("\n=== fuente LaTeX ===")
     c_linters(); c_typos(); c_strip(); c_linenumbers()
     # The slow group is measured, not listed. A second hand-maintained copy of these five names

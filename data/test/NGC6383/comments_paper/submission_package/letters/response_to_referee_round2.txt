@@ -49,7 +49,7 @@ the minimum segregation time, which is (<m>/m) t_rh, follows it to 2.38 +/-
 0.95 Myr (was 2.94 +/- 1.17); the age remains well below t_rh (age/t_rh ~
 0.14), so no conclusion changes; a conservative note on the multi-mass Coulomb
 constant (Giersz & Heggie 1996) was added. (ii) The Galactic mass enclosed
-within the cluster's orbit had been computed from a Galactic-centre scaling
+within the cluster's orbit had been computed from a Galactic-center scaling
 relation not applicable at 7.19 kpc; we now use the McMillan (2017) potential
 (M = (8.8 +/- 0.5) x 10^10 Msun), which moves the Hill radius from 28.3 to
 33.6 +/- 2.2 arcmin (the gravitational bound radius, which sets the King prior

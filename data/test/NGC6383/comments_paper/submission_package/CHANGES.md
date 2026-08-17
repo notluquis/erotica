@@ -1847,3 +1847,28 @@ Mutation-testing each check against the one defect that motivated it is necessar
 not sufficient -- every check above was mutation-tested when written.
 
 gate.py 24/24.
+
+## 79. The US-spelling claim, measured (2026-08-17)
+
+The cover letter tells the editor: "The spelling is consistently US throughout (the single British
+form, 'catalogue', occurs only inside the CDS-mandated VizieR acknowledgement)." That is a
+checkable assertion made to a person who will check it, and it had never been measured -- only the
+word `catalogue` had, which is the half the sentence already names.
+
+Swept the manuscript and both letters against 62 British/US pairs: the -ise and -yse family, -our,
+-re, doubled-l participles, and the odd ones (catalogue, grey, programme, defence, artefact,
+whilst, amongst, towards).
+
+**The manuscript's claim is exactly true**: one hit, `catalogue`, inside the VizieR
+acknowledgement, whose wording CDS mandates. **The response letter's was not**: it said
+"a Galactic-centre scaling relation". Corrected to `Galactic-center`.
+
+→ `c_spelling`, over the manuscript and both letters, with two licensed exceptions: the VizieR
+acknowledgement, and the cover letter quoting `"catalogue"` in order to declare it. Mutation-tested
+in both files -- `cluster centre` in the manuscript and `Galactic-centre` restored in the letter.
+
+Worth noting what this cost: the claim had been in the cover letter since round 2 was drafted, was
+repeated in Sect. 76's audit list as verified, and the verification behind it was a single grep for
+`catalogue`. Checking the word the sentence names is not checking the sentence.
+
+gate.py 25/25.
