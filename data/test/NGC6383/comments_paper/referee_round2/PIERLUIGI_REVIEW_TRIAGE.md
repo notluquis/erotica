@@ -276,3 +276,52 @@ los tres.
 4. **T4 y T5**: decidir si se recortan o se reubican.
 5. El límite de 12 páginas sigue abierto — estos cortes ayudan, y conviene contar cuánto ahorran
    antes de discutir con A&A.
+
+---
+
+## 5. VERIFICACIÓN FINAL — 2026-08-16, releído contra el `.tex` aplicado
+
+Cada punto comprobado **en contexto** sobre `clean_source/aanda.tex`, no por presencia de palabra.
+
+### Los 11 comentarios: 11/11 aplicados
+
+C1 `outer structures` · C2 `posterior distribution` (no *estimate* — ver §2.1) · C3 puntuación KDE ·
+C4 `approximately correspond` · C5 `directly depends` · C6 `early dynamical` **×6** · C7 punto antes
+de `Kalari (2019) notes` · C8 `(0.94 probability…)` comprimido · C9 `consistent` · C10 punto antes
+de `In line with` · C11 `$\delta\varpi/\varpi<0.1$`.
+
+⚠ C10 apareció como fallo en el primer chequeo automático — **falso negativo**: mi patrón usaba
+`~\ref` y el texto tiene ` \ref`. La edición estaba bien; el verificador estaba mal. Es el mismo
+modo de fallo que este documento viene registrando: **un chequeo que falla por su propia forma, no
+por el hecho**.
+
+### Los 30 tachados: 30/30 resueltos
+
+| grupo | n | resultado |
+|---|---|---|
+| verbosidad de captions | 24 | cortados (verificado: sin `viridis`, sin barras de escala, sin "As shown in the figure", sin la enumeración de columnas del CDS) |
+| caption tabla literatura | 1 | `gathered from various studies` cortado |
+| **T1** `not the 1σ default` | 1 | cortado |
+| **T2** no-independencia (**R5**) | 1 | **preservado** en `\tablefoot` |
+| **T3** anillo de fondo (**R11**) | 1 | **preservado** en `\tablefoot` |
+| **T4** offsets de Rauw | 1 | comprimido, números intactos |
+| **T5** lista de radios | 1 | cortado (los 4 valores siguen en `tab:literature`) |
+
+Caption de la Tabla 1: **233 → 32 palabras**, con `\tablefoot` presente.
+
+Comprobado además que las anulaciones del agente **no perdieron identificaciones**: el mapeo de
+símbolos del CMD, el umbral PMS, la distinción de ventana de 40′ (R11), la isócrona de
+`fig:mass_binary` y el nivel de fondo `b` siguen todos en sus captions.
+
+### Kalari: 7/7
+
+mean en vez de median · el ±1.6 declarado como error de la media con σ = 3.4 · masas 0.3–0.9 con
+mediana 0.5 · incertidumbres ±1.7 y ±2.4 · la distancia de 1.34 kpc y el sesgo que implica ·
+Herczeg & Hillenbrand citado (bibcode verificado en ADS) · celda de distancia rellenada en la tabla.
+La cláusula *"rather than the data"* ya no está.
+
+### Cartas: 5/5
+
+Las dos correcciones de Pierluigi en la cover letter; la frase rota eliminada de la respuesta; y la
+respuesta ahora **declara al referee** las cuatro correcciones de Kalari y el sistemático de
+distancia, en vez de callarlas.
