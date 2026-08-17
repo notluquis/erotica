@@ -63,7 +63,15 @@ def enclosing_tabular(lines: list[str], lo: int, hi: int) -> tuple[int, int] | N
         return None
     for j in range(start, len(lines)):
         if "\\end{tabular}" in lines[j] and _is_live(lines[j]):
-            return start, j
+            # The overfull range must fall inside this tabular. Searching backwards from the
+            # reported line finds the nearest preceding tabular whether or not the overflow
+            # belongs to it: while testing an alternative markup, a paragraph overflowing at
+            # line 729 matched a table ending at line 306, shrank a table that was never too
+            # wide, and broke the build. An overflow outside every tabular is not this
+            # script's problem and is left alone.
+            if lo <= j + 1 and hi >= start + 1:
+                return start, j
+            return None
     return None
 
 

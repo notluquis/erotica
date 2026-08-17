@@ -1,6 +1,6 @@
 # NGC 6383 (aa52082-24), Submission package manifest
 
-A&A ROUND-2 resubmission. Compiles to 26 pp clean / 30 pp marked / 0 errors / 0 undefined refs / 0 undefined citations. (Last full rebuild: 2026-08-16, co-author pass: 41 annotations from P. Cerulo applied - 24 figure-caption cuts, 11 wording fixes, the Table 1 caption moved to \tablefoot per A&A house style - plus four corrections to the Kalari 2019 comparison found while re-checking that source, including the adopted-distance systematic the previous version omitted. A later point-by-point re-read of the referee report found three internal contradictions, now fixed: the Table 1 \tablefoot scoped to the five rows whose intervals are not posterior widths, the 1.2 T_max prior collision stated explicitly, and the R17 element (i) no longer claiming a converged isochrone posterior; Appendix D also gained the argument for why R_t survives the contamination that biases R_c, and a \clearpage so Fig. D.1, the load-bearing evidence for R11, now sits on the same page as its text (p. 25) instead of five pages later. Both letters were then cross-checked against the manuscript and realigned, see CHANGES.md Sect. 49. See referee_round2/PIERLUIGI_REVIEW_TRIAGE.md. Round-2 restructure + R1-R17 fixes are in CHANGES.md §42. latexdiff baseline = round-1 submitted version, so the marked PDF still shows only round-2 changes.)
+A&A ROUND-2 resubmission. Compiles to 26 pp clean / 29 pp marked / 0 errors / 0 undefined refs / 0 undefined citations. (Last full rebuild: 2026-08-16, co-author pass: 41 annotations from P. Cerulo applied - 24 figure-caption cuts, 11 wording fixes, the Table 1 caption moved to \tablefoot per A&A house style - plus four corrections to the Kalari 2019 comparison found while re-checking that source, including the adopted-distance systematic the previous version omitted. A later point-by-point re-read of the referee report found three internal contradictions, now fixed: the Table 1 \tablefoot scoped to the five rows whose intervals are not posterior widths, the 1.2 T_max prior collision stated explicitly, and the R17 element (i) no longer claiming a converged isochrone posterior; Appendix D also gained the argument for why R_t survives the contamination that biases R_c, and a \clearpage so Fig. D.1, the load-bearing evidence for R11, now sits on the same page as its text (p. 25) instead of five pages later. Both letters were then cross-checked against the manuscript and realigned, see CHANGES.md Sect. 49. See referee_round2/PIERLUIGI_REVIEW_TRIAGE.md. Round-2 restructure + R1-R17 fixes are in CHANGES.md §42. latexdiff baseline = round-1 submitted version, so the marked PDF still shows only round-2 changes.)
 
 ## FILES TO SEND — mapped to the NESTOR upload slots
 (Round-1 letters archived in `letters/round1_archive/`, do NOT send.)
@@ -44,6 +44,7 @@ docstring records the class it cannot see (a sentence whose subject is "these").
 cp clean_source/aanda.tex marked_changes/new_revised.tex
 cd marked_changes
 latexdiff --type=CFONT old_submitted.tex new_revised.tex > aanda_marked.tex
+python3 set_diff_markup.py aanda_marked.tex        # REQUIRED, see below
 python3 strip_moved_floats.py aanda_marked.tex     # REQUIRED, see below
 python3 fit_marked_tables.py aanda_marked.tex      # REQUIRED, see below
 pdflatex aanda_marked && bibtex aanda_marked && pdflatex aanda_marked && pdflatex aanda_marked
@@ -55,11 +56,23 @@ runs off its column and prints on top of the text beside it. Measured: **12 over
 UNDERLINE, 1 with CFONT**, and the marked PDF was visibly unreadable in places. CFONT marks by
 colour, which is one of the two options the editor's letter allows ("boldface or colored text").
 
-`fit_marked_tables.py` closes the last one. Marking a table whose every cell changed puts the old
+`set_diff_markup.py` fixes CFONT's typography, which changes two different axes at once:
+additions get `\sf`, a different font *family* from the serif body, and deletions get
+`\scriptsize`, small enough to be a struggle to read. It rewrites them to additions in the body
+font in blue and deletions in red at `\footnotesize` -- subordinate, so a paragraph reads as the
+new sentence with the old receding, but legible. Setting both at the same size was tried and
+abandoned: with equal weight the two texts interleave into one unreadable run. The strikeout some
+readers expect is not available: it is ulem's, the very thing that overflowed, and `soul`, whose
+strikeout does break lines, fails to compile against this document's math and macros.
+
+`fit_marked_tables.py` closes the width problem. Marking a table whose every cell changed puts the old
 and the new value in each cell, so Table D.2 came out 93.9pt too wide. The script compiles, reads
 the log, and wraps **only** the tabulars that actually overflowed — wrapping the ones that already
 fit would shrink them for nothing. The clean manuscript is never touched: those tables fit there.
-Result: **0 overfull boxes in both PDFs**, which `gate.py` now enforces.
+Result: the clean PDF has **0** overfull boxes and the marked one has **1**, documented: the
+footnote carrying the old GitHub URL beside the new one, two long unbreakable URLs on one line,
+20.4pt over. `xurl` and `\sloppy` were both tried. `gate.py` enforces those exact counts, so a
+second box still fails.
 `strip_moved_floats.py` is not optional. latexdiff has no move detection (upstream #162), so
 each float relocated by the round-2 restructure leaves a struck-through caption with no image
 at its old position, which reads as "this figure was cut". The script removes such a span only

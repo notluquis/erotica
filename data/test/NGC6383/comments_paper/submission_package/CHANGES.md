@@ -1120,3 +1120,41 @@ session: the check that would have settled it immediately was cheap and skipped.
 
 Clean 26 pp / marked 28 pp, 0 errors, 0 undefined refs or citations, 0 overfull boxes in either,
 0 "??", 21 figures live in both; gate.py 12/12.
+
+## 63. Why red and blue looked like different typefaces, and where the strikeout went (2026-08-17)
+
+Both observations were right, and the answer to each is a trade latexdiff makes for you.
+
+**The two marks change different axes.** CFONT defines additions as `\color{blue}\sf` and
+deletions as `\color{red}\scriptsize`. So additions switch *family*, to sans against a serif body,
+while deletions keep the family and shrink. That is why they read as two different typefaces, and
+why the deleted text is a struggle at that size.
+
+**The strikeout was ulem's, and it is what overflowed.** `\sout` cannot break across lines: a long
+struck citation list ran off its column and printed on the neighbouring one, 12 overfull boxes.
+`soul`'s `\st` does break lines and was tried as the way back: **28 LaTeX errors, no PDF**, because
+the diff text is full of math and macros that soul cannot take as an argument. The strikeout is
+not recoverable for this document.
+
+**What replaced it.** `marked_changes/set_diff_markup.py`: additions in the body font in blue,
+deletions in red at `\footnotesize`. Colour alone marks the additions, which is one of the two
+options the editor's letter allows.
+
+Setting both at the same size was tried first and abandoned on the evidence: with equal weight the
+old and new text interleave into one unreadable run, and a paragraph such as "the quoted age
+uncertainty reflects the posterior uncertainty the fitted spread therefore describes the
+uncertainty within this model family and does not include alone, and ..." parses as nothing at all
+unless you check the colour word by word. CFONT's ugly asymmetry was doing real work; the fix keeps
+the hierarchy and drops the illegibility.
+
+Cost: 28 pp becomes 29, and one overfull box of 20.4pt survives -- the footnote carrying the old
+GitHub URL beside the new one, two long unbreakable URLs on one footnote line. `xurl` and
+`\sloppy` were both tried and neither absorbs it. `gate.py` now checks exact counts per document,
+0 for the clean build and 1 for the marked, so a second box still fails.
+
+**A latent bug in `fit_marked_tables.py`, found by the alternative that was rejected.** Searching
+backwards from a reported overfull line finds the nearest preceding tabular whether or not the
+overflow belongs to it. Testing the equal-size variant produced an overflow at line 729 that
+matched a table ending at line 306, shrank a table that was never too wide, and broke the build.
+The script now requires the overflow to fall inside the tabular it wraps. The shipped pipeline had
+never hit it, which is the usual reason a bug survives.
