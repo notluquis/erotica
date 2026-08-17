@@ -1241,3 +1241,44 @@ above.
 
 Clean 26 pp / marked 29 pp, 0 errors, 0 undefined refs or citations, 0 overfull in the clean build;
 checkcites reports 0 undefined references; gate.py 12/12.
+
+## 67. Auditing my own additions, which nobody had audited (2026-08-17)
+
+Every earlier pass checked the manuscript. None checked the text added to it during these passes.
+Four claims written in Sects. 60-65 were wrong or loose, and one of them was wrong in the way this
+programme has a retired number for.
+
+**The worst, in Appendix D.** The added argument read: *"the additional sources admitted at 70
+arcmin are **concentrated at small radii** (114 of the 376 added lie inside the 40 arcmin
+footprint), where they raise the central density and pull R_c down"*. That inference is backwards.
+114/376 is **30.3%**; the 40 arcmin disc is **32.7%** of the 70 arcmin disc by area. The additions
+are, if anything, *less* centrally concentrated than uniform. This is exactly the error
+`agent-findings/beyond-jacobi-verdict.md` retired for the "43% beyond r_J" figure -- an area
+statistic read as a spatial result -- reintroduced in a paragraph written to defend a different
+claim. The paragraph now argues from what is measured: R_c is constrained by the inner density,
+which the wider windows demonstrably lower to ~1.4 arcmin while the selection-stable 50 arcmin run
+reproduces the adopted value, and R_t by where the profile meets a background annulus that only the
+70 arcmin window provides. Each parameter is taken from the window that constrains it, and both
+consequences are stated.
+
+**In Sect. 4's new lead-in.** *"the quantities that follow from the astrometry alone, before any
+photometric information enters"* -- false twice over two paragraphs later, where Sect. 4.2 covers
+radial velocities, which are spectroscopic, and restricts them using a binary probability that is an
+ASteCA product, which is photometric. Now "the cluster's bulk kinematics and its position on the
+sky".
+
+**In Sect. 8's new lead-in.** *"the two stars whose membership is contested and whose inclusion
+would change the derived parameters directly"* -- true of HD 159176, whose inclusion shortens the
+segregation timescale by a factor of 3-7, and not of NGC 6383 22, a single lambda Boo star more than
+3 sigma off in proper motion. Now names which one is consequential and why.
+
+**In Sect. 6's new lead-in.** *"different assumptions and different data"* -- the two routes use
+largely the same photometry. Now "a single cluster-wide isochrone against a per-star classifier
+trained on known young populations", which is the difference that actually holds.
+
+The response letter's use of 114/376 was checked and left alone: it frames the number as sources
+appearing inside an already-searched footprint, evidence that the effective selection threshold
+loosened, which is what the number supports and what the original text said before these passes
+re-purposed it.
+
+Clean 26 pp / marked 29 pp; gate.py 12/12.
