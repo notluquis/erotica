@@ -37,23 +37,23 @@ While verifying every numerical claim for this revision we found and corrected
 three errors inherited from the originally submitted version (the first two
 detailed here, the third in our reply to R5), all visible in the marked-up
 PDF: (i) the half-mass relaxation time used the coefficient 0.17 where the
-standard form of Spitzer (1987, Eq. 2-63) has 0.138. The two differ only in
-the assumed virial coefficient, and 0.138 is the value consistent with a low-
-concentration cluster; 0.17 would lengthen t_rh by 23%, in the same direction
-as the mass-spectrum correction below, so the adopted value is the
-conservative one for our argument. The reference has been corrected too:
-Spitzer & Hart (1971) is the source of the virial coefficient 0.4 that sets
-the Coulomb-logarithm argument, not of this prefactor. t_rh becomes 24.7 +/-
-7.6 Myr (was 30.5 +/- 9.4), the minimum segregation time 2.38 +/- 1.24 Myr
-(was 2.94 +/- 1.17), and the age remains well below t_rh (age/t_rh ~ 0.14), so
-no conclusion changes; a conservative note on the multi-mass Coulomb constant
-(Giersz & Heggie 1996) was added. (ii) The Galactic mass enclosed within the
-cluster's orbit had been computed from a Galactic-centre scaling relation not
-applicable at 7.19 kpc; we now use the McMillan (2017) potential (M = (8.8 +/-
-0.5) x 10^10 Msun), which moves the Hill radius from 28.3 to 33.6 +/- 2.2
-arcmin (the gravitational bound radius, which sets the King prior scale T_max,
-is unchanged, so no fitted parameter is affected); the count of members
-outside the Hill radius becomes 18. The distance-modulus uncertainty
+standard form of Spitzer (1987, Eq. 2-63) has 0.138. The two prefactors differ
+only in the assumed virial coefficient <v^2> r_hm / GM, for which we adopt the
+0.4 of Spitzer & Hart (1971); 0.17 would lengthen t_rh by 23%, in the same
+direction as the mass-spectrum correction below, so the adopted value is the
+conservative one. The attribution has been corrected as well: Spitzer & Hart
+(1971) is the source of that virial coefficient, and had been cited for the
+computed t_rh itself. t_rh becomes 24.7 +/- 7.6 Myr (was 30.5 +/- 9.4), and
+the minimum segregation time, which is (<m>/m) t_rh, follows it to 2.38 +/-
+0.95 Myr (was 2.94 +/- 1.17); the age remains well below t_rh (age/t_rh ~
+0.14), so no conclusion changes; a conservative note on the multi-mass Coulomb
+constant (Giersz & Heggie 1996) was added. (ii) The Galactic mass enclosed
+within the cluster's orbit had been computed from a Galactic-centre scaling
+relation not applicable at 7.19 kpc; we now use the McMillan (2017) potential
+(M = (8.8 +/- 0.5) x 10^10 Msun), which moves the Hill radius from 28.3 to
+33.6 +/- 2.2 arcmin (the gravitational bound radius, which sets the King prior
+scale T_max, is unchanged, so no fitted parameter is affected); the count of
+members outside the Hill radius becomes 18. The distance-modulus uncertainty
 correction is described in our reply to point R5.
 
 Re-checking Kalari (2019) against its body text rather than its abstract,
@@ -139,15 +139,16 @@ insisting on it. The revised Sect. 2.1.1 now defines both factors of the
 product precisely: f_i is the fraction of the 290 sweep runs in which source i
 is assigned to a cluster rather than to noise, and p_HDBSCAN,i is the soft
 cluster-membership strength that HDBSCAN derives from its condensed tree,
-p_HDBSCAN,i=_i/_max (McInnes et al. 2017), which equals unity for sources
-persisting to the densest core of the proper-motion over-density, tends to
-zero at the cluster boundary, and is zero for noise. We also state explicitly
-that p-tilde_i=f_i p_HDBSCAN,i is an operational ranking statistic rather than
-a calibrated posterior probability, and that the likely candidates are the
-sources of the selected NGC 6383 branch with p-tilde>0.5. While revising this
-passage we additionally corrected the description of f_i to match the
-implementation exactly: it counts assignment to any cluster in a given sweep
-run, branch membership being enforced separately through the adopted run.
+p_HDBSCAN,i = lambda_i/lambda_max (McInnes et al. 2017), which equals unity
+for sources persisting to the densest core of the proper-motion over-density,
+tends to zero at the cluster boundary, and is zero for noise. We also state
+explicitly that p-tilde_i=f_i p_HDBSCAN,i is an operational ranking statistic
+rather than a calibrated posterior probability, and that the likely candidates
+are the sources of the selected NGC 6383 branch with p-tilde>0.5. While
+revising this passage we additionally corrected the description of f_i to
+match the implementation exactly: it counts assignment to any cluster in a
+given sweep run, branch membership being enforced separately through the
+adopted run.
 
 R3. Sect. 2.1.1, the role of the density level lambda
 -----------------------------------------------------
@@ -157,14 +158,14 @@ now introduces lambda once and states its three, and only three, roles
 explicitly: (i) within each sweep run, the NGC 6383 candidate branch is
 identified as the condensed-tree branch containing the highest density level;
 (ii) lambda defines the per-source membership strength p_HDBSCAN,i that enters
-the pseudo-probability (see our reply to the previous point); and (iii) _max
-is a stability diagnostic of the hyperparameter sweep, acting only as a tie-
-breaker in the choice of min_cluster_size and delimiting the stable regime
-displayed in Fig. B.1. The text and the appendix now state explicitly that
-lambda is never treated as a fitted physical parameter and that the _max>=8
-cut is a display criterion that affects neither the adopted configuration,
-which is set by maximizing the recovered branch size, nor the membership
-itself.
+the pseudo-probability (see our reply to the previous point); and (iii)
+lambda_max is a stability diagnostic of the hyperparameter sweep, acting only
+as a tie- breaker in the choice of min_cluster_size and delimiting the stable
+regime displayed in Fig. B.1. The text and the appendix now state explicitly
+that lambda is never treated as a fitted physical parameter and that the
+lambda_max>=8 cut is a display criterion that affects neither the adopted
+configuration, which is set by maximizing the recovered branch size, nor the
+membership itself.
 
 R4. Sect. 2.1.2, notation (U, half-normal, mean parallax)
 ---------------------------------------------------------
@@ -172,9 +173,9 @@ R4. Sect. 2.1.2, notation (U, half-normal, mean parallax)
 We thank the referee for flagging the undefined notation. U(a,b) denotes the
 uniform distribution on [a,b], it is the prior on the mean parallax, while the
 half-normal prior mentioned in our previous response applies to the parallax
-dispersion _parallax; we regret that the letter allowed these two priors to be
-conflated. The revised Sect. 2.1.2 now defines N(mu,sigma), U(a,b), and HN(s)
-(half-normal with scale s) explicitly at first use, and states that this
+dispersion sigma_parallax; we regret that the letter allowed these two priors
+to be conflated. The revised Sect. 2.1.2 now defines N(mu,sigma), U(a,b), and
+HN(s) (half-normal with scale s) explicitly at first use, and states that this
 notation applies to all priors in the paper, including the King-profile priors
 of Sect. 2.1.5. We also now define mean-parallax as the arithmetic mean of the
 observed parallaxes of the sources entering the fit (those with fractional
@@ -239,7 +240,7 @@ two coefficients of ASteCA's parametrization of the multiplicity fraction as a
 function of primary mass, calibrated by ASteCA on the observed multiplicity
 compilation of Offner et al. (2023, Protostars & Planets VII), and they were
 held fixed in our fit. With alpha=0.09, beta=0.94 the function reproduces the
-observed binarity across spectral types, ~0.15 at 0.1 M__sun, ~0.26 for M
+observed binarity across spectral types, ~0.15 at 0.1 Msun, ~0.26 for M
 dwarfs, ~0.5 for solar-type stars, ~0.8 for B stars, and ~0.95 for O stars, in
 agreement with Duchêne & Kraus (2013) and Moe & Di Stefano (2017). The revised
 text now gives the calibration source and this correspondence with the
@@ -250,11 +251,11 @@ R8. Sect. 2.1.5, galactocentric distance of 7.19 kpc
 
 The galactocentric distance follows from the cluster's Galactic coordinates
 and the adopted parallax-based distance (d = 1.11 +/- 0.06 kpc) through the
-law of cosines, R_gc = (R__sun^2 + d^2 - 2 R__sun d cos l cos b)^1/2, adopting
-a solar galactocentric radius of R__sun = 8.3 kpc (de Grijs & Bono 2016),
+law of cosines, R_gc = (R_sun^2 + d^2 - 2 R_sun d cos l cos b)^1/2, adopting
+a solar galactocentric radius of R_sun = 8.3 kpc (de Grijs & Bono 2016),
 which yields 7.19 kpc; the uncertainty is propagated from the distance and
 cluster-center uncertainties. The revised Sect. 2.1.5 now states the formula,
-the adopted R__sun with its reference, and the error propagation explicitly.
+the adopted R_sun with its reference, and the error propagation explicitly.
 
 R9. Sect. 2.2, assumptions behind the MIST isochrones
 -----------------------------------------------------
@@ -262,8 +263,8 @@ R9. Sect. 2.2, assumptions behind the MIST isochrones
 We agree that ages of very young clusters are sensitive to the input physics
 of the adopted evolutionary models, and we now recall the key assumptions
 behind MIST in Sect. 2.2: we used the MIST v1.2 grids, which adopt solar-
-scaled abundances (Asplund et al. 2009; Z__sun~0.0142), a single solar-
-calibrated mixing length (_MLT=1.82), exponentially decaying convective
+scaled abundances (Asplund et al. 2009; Z_sun~0.0142), a single solar-
+calibrated mixing length (alpha_MLT=1.82), exponentially decaying convective
 overshooting (f_ov,core=0.016, f_ov,env=0.0174), and v/v_crit=0.4 with
 rotation initialized at the ZAMS, so the PMS tracks that dominate our fit are
 effectively non-rotating. We note that for a PMS-dominated fit at ~3.5 Myr the
@@ -299,13 +300,13 @@ annulus beyond the cluster, and we now adopt its result, R_t = 54^+7_-11
 arcmin (17.4^+2.3_-3.6 pc), in the abstract, Table 1, Sect. 5 (Cluster
 structure), and the conclusions, consistent within 1 sigma with all narrower
 windows, but properly background-constrained. The core radius is retained from
-the 40 arcmin reference sample because the 60-70 arcmin windows demonstrably
-admit additional field contamination (114 of the 376 sources added at 70
-arcmin lie inside the 40 arcmin footprint, and the R.A. proper-motion
-dispersion nearly doubles), which artificially lowers R_c; the selection-
-stable 50 arcmin run confirms R_c = 1.90^+0.15_-0.13 arcmin against the
-adopted 1.96^+0.19_-0.16. The paragraphs justifying the 40 arcmin choice have
-been shortened accordingly, Table D.2 now reports medians with 16-84%
+the 40 arcmin reference sample because the behavior of the 60-70 arcmin
+windows is consistent with additional field contamination (114 of the 376
+sources added at 70 arcmin lie inside the 40 arcmin footprint, and the R.A.
+proper-motion dispersion nearly doubles), which lowers the fitted R_c; the
+selection-stable 50 arcmin run confirms R_c = 1.90^+0.15_-0.13 arcmin against
+the adopted 1.96^+0.19_-0.16. The paragraphs justifying the 40 arcmin choice
+have been shortened accordingly, Table D.2 now reports medians with 16-84%
 intervals, and a figure of the 70 arcmin profile fit has been added to
 Appendix D. We additionally note, and now state explicitly in Sect. 5 and
 Appendix D, that all R_t posteriors are truncated from above by the physically
@@ -418,8 +419,8 @@ young relative to ours, so the earlier wording attributing the difference to
 evolutionary-code choice 'rather than the data' was too strong and has been
 removed. The literature table now carries Kalari's adopted distance, and its
 caption states that the tabulated ages are not on a common distance scale (the
-adopted distances span 0.83-1.70 kpc, 1.6 mag in distance modulus). See also
-our response to point R9.
+distances adopted by the studies reporting an age span 0.83-1.70 kpc, 1.6 mag
+in distance modulus). See also our response to point R9.
 
 R17. Sect. 3.5.4, added value with respect to published catalogs
 ----------------------------------------------------------------
