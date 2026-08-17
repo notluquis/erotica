@@ -1,7 +1,7 @@
 
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL old_submitted.tex   Thu Jul 16 17:46:08 2026
-%DIF ADD new_revised.tex     Mon Aug 17 00:38:01 2026
+%DIF ADD new_revised.tex     Mon Aug 17 00:53:41 2026
 \documentclass{aa}  
 \usepackage{graphicx}
 \usepackage{txfonts}
@@ -178,15 +178,21 @@ To enhance data reliability, we applied the astrometric fidelity parameter from 
 
 We also obtained the $J$, $H$, and $K_s$ magnitudes from the \textsc{Two Micron All Sky Survey} (2MASS) \citep{2006AJ....131.1163S}. A left-join cross-match\footnote{The left join keeps all \textit{Gaia} sources and appends the available 2MASS data for those with a counterpart, preserving the original $15276$ sources.} was performed using the pre-computed \textit{Gaia} DR3 cross-match \citep{2022gdr3.reptE..15M}, with the \texttt{tmass\_psc\_xsc\_best\_neighbour} table and a separation $\leq0.3~\mathrm{arcsec}$, giving $5333$ cross-matched sources.
 
+\DIFdelbegin %DIFDELCMD < %%%
+\DIFdelend \DIFaddbegin \section{\DIFadd{Analysis framework and cluster membership}}\label{sec:membership}\label{sec:methodology}
+\DIFadd{The member list is the input to every result that follows, so it is derived first and its dependence on the configuration is quantified alongside it rather than afterwards. This section describes the pipeline that produces it and the role each tool plays in it (Sect.~\ref{subsec:cosmic}), how a membership value is assigned to a source and how that assignment is marginalized over the clustering hyperparameters instead of resting on one configuration (Sect.~\ref{subsubsec:membership}), and the catalog that results for NGC 6383 together with how it behaves when the search field is widened (Sect.~\ref{subsec:member_results}).
+}\DIFaddend 
+
 \DIFdelbegin %DIFDELCMD < 
 
-%DIFDELCMD < 
-
 %DIFDELCMD < %%%
-\DIFdelend \DIFaddbegin \section{\DIFadd{Analysis framework and cluster membership}}\label{sec:membership}\label{sec:methodology}
-\DIFaddend \subsection{\DIFdelbegin \textsc{\DIFdel{COSMIC}}%DIFAUXCMD
-\DIFdelend \DIFaddbegin \DIFadd{The }\textsc{\DIFadd{EROTICA}} \DIFadd{pipeline}\DIFaddend }\DIFdelbegin \DIFdel{The Characterization Of Star clusters using Machine learning Inferenceand Clustering (}\DIFdelend \DIFaddbegin \label{subsec:cosmic}
-\DIFadd{Estimation, Recovery \& Optimization, together with Inference, for Cluster Analysis (}\DIFaddend \textsc{\DIFdelbegin \DIFdel{COSMIC}\DIFdelend \DIFaddbegin \DIFadd{EROTICA}\DIFaddend })\DIFdelbegin \DIFdel{is an }\DIFdelend \DIFaddbegin \footnote{\url{https://doi.org/10.5281/zenodo.21769959}} \DIFadd{is the }\DIFaddend open-source \textsc{Python} suite \DIFdelbegin \DIFdel{that applies unsupervised machine learning and Bayesian estimation to identify open-cluster parameters from large surveys such as }\textit{\DIFdel{Gaia}}%DIFAUXCMD
+\subsection{\textsc{\DIFdel{COSMIC}}%DIFAUXCMD
+}
+%DIFAUXCMD
+\addtocounter{subsection}{-1}%DIFAUXCMD
+\DIFdel{The Characterization Of Star clusters using Machine learning Inference and Clustering (}\textsc{\DIFdel{COSMIC}}%DIFAUXCMD
+\DIFdel{)is an }\DIFdelend \DIFaddbegin \subsection{\DIFadd{The }\textsc{\DIFadd{EROTICA}} \DIFadd{pipeline}}\label{subsec:cosmic}
+\DIFadd{Estimation, Recovery \& Optimization, together with Inference, for Cluster Analysis (}\textsc{\DIFadd{EROTICA}}\DIFadd{)}\footnote{\url{https://doi.org/10.5281/zenodo.21769959}} \DIFadd{is the }\DIFaddend open-source \textsc{Python} suite \DIFdelbegin \DIFdel{that applies unsupervised machine learning and Bayesian estimation to identify open-cluster parameters from large surveys such as }\textit{\DIFdel{Gaia}}%DIFAUXCMD
 \DIFdelend \DIFaddbegin \DIFadd{developed for this work. The version used here was released under the earlier name }\textsc{\DIFadd{COSMIC}}\DIFadd{, and was renamed to avoid a collision with the }\texttt{\DIFadd{cosmic-popsynth}} \DIFadd{binary-population code. It chains the membership determination and the Bayesian parameter estimation described below into a single reproducible pipeline}\DIFaddend , using \textsc{PyMC}\footnote{\url{https://www.pymc.io}} \DIFdelbegin \DIFdel{for the Bayesian modeling}\DIFdelend \DIFaddbegin \DIFadd{\mbox{%DIFAUXCMD
 \citep{pymc2023} }\hskip0pt%DIFAUXCMD
 for all Bayesian models}\DIFaddend .
@@ -350,6 +356,9 @@ GaiaDR3 & RAdeg & DEdeg & Gmag & pHDBSCAN & pFreq & pMember & Ref \\
 \end{table*}
 
 \section{\DIFadd{Astrometric parameters}}\label{sec:astrometry}
+\DIFadd{With the membership fixed, we derive the quantities that follow from the astrometry alone, before any photometric information enters. Each is needed downstream: the distance sets the conversion from angular to physical scales used throughout the paper, the mean proper motion is the reference against which the wider-field runs of Appendix~\ref{app:window} are judged, and the center defines the origin of the radial profile fitted in Sect.~\ref{subsec:structural}.
+}
+
 \subsection{\DIFadd{Parallax and distance}}\label{subsubsec:parallax}
 \DIFaddend Distance estimation from parallax is challenging due to measurement errors, making the conversion from parallax to distance via the simple inverse method unreliable \citep{2015PASP..127..994B,2021AJ....161..147B}. Choosing an appropriate prior distribution is crucial. \DIFaddbegin \DIFadd{To address this challenge, we obtained photo-geometric and geometric distances from \mbox{%DIFAUXCMD
 \citet{2021AJ....161..147B}}\hskip0pt%DIFAUXCMD
@@ -496,6 +505,9 @@ where $G$ is the gravitational constant, and $A$ and $B$ are the Oort constants,
 \end{figure}
 
 \section{\DIFadd{Age, extinction, and stellar content}}\label{sec:stellar}
+\DIFadd{The membership and the spatial structure are now fixed, and we turn to what the photometry adds. Two independent routes are used and deliberately kept apart: an isochrone fit to the cluster as a whole, which returns an age, a metallicity, an extinction and a distance modulus (Sect.~\ref{subsec:asteca}), and a per-star neural-network classification that identifies the pre-main-sequence population and estimates individual ages and extinctions (Sect.~\ref{subsec:sagitta}). They rest on different assumptions and different data, so they are compared against each other rather than combined.
+}
+
 \DIFaddend \subsection{\DIFaddbegin \DIFadd{Isochrone fitting with }\DIFaddend ASteCA}\DIFaddbegin \label{subsec:asteca}
 \DIFaddend Automated Stellar Cluster Analysis (ASteCA) \citep{2015A&A...576A...6P}, is an open-source Python tool designed to automate standard tests for determining basic parameters of stellar clusters. For accurate estimation of a cluster's metallicity, age, and extinction values, we employed ASteCA's isochrone fitting process. We utilized the \DIFaddbegin \DIFadd{MESA Isochrones and Stellar Tracks (}\DIFaddend \textsc{MIST}\DIFaddbegin \DIFadd{) }\DIFaddend isochrones \citep{2016ApJS..222....8D, 2016ApJ...823..102C} along with the photometric systems of \textit{Gaia} EDR3 and \textsc{2MASS}. The Initial Mass Function followed \citet{2014ApJ...796...75C}. Synthetic binaries were generated with the mass-dependent binary fraction adopted in ASteCA, $b(m)=\alpha+\beta/(1+1.4/m)$ with \DIFdelbegin \DIFdel{$\alpha = 0.090$ and $\beta = 0.940$ (rising from $\simeq0.09$ at low masses toward unity for the most massive stars ), and }\DIFdelend \DIFaddbegin \DIFadd{$\alpha=0.090$ and $\beta=0.940$ held fixed; this parametrization is ASteCA's analytic fit to the observed multiplicity fraction as a function of primary mass compiled by \mbox{%DIFAUXCMD
 \citet{2023ASPC..534..275O}}\hskip0pt%DIFAUXCMD
@@ -791,11 +803,10 @@ Simulations show that this configuration can be inherited if the cluster assembl
 \citep{2007MNRAS.380.1589B}}\hskip0pt%DIFAUXCMD
 . A comparable primordial or near-primordial segregation is seen in other young clusters of similar age \mbox{%DIFAUXCMD
 \citep{2007AJ....134.1368C,2008AJ....135..173S}}\hskip0pt%DIFAUXCMD
-.
 }\DIFdelend \DIFaddbegin \DIFadd{early dynamical.
-}\DIFaddend 
+}
 
-\DIFaddbegin \begin{figure}
+\begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/mass_segregation_mst.pdf}}
 	\caption{\DIFaddFL{Mass-segregation ratio $\Lambda_{\mathrm{MSR}}$ \mbox{%DIFAUXCMD
@@ -809,7 +820,9 @@ of NGC 6383 as a function of the number of most-massive members $N_{\mathrm{MST}
 \end{figure}
 
 \section{\DIFadd{Comparison with previous studies}}\label{sec:comparison}
-\DIFaddend \subsection{\DIFdelbegin \DIFdel{Comparative analysis with cluster members and PMS study}\DIFdelend \DIFaddbegin \DIFadd{HD 159176}\DIFaddend }\DIFdelbegin \subsubsection{\DIFdel{HD 159176}}
+\DIFadd{Having derived the membership, structure, age and dynamical state, we place them against previous work, moving from individual objects to catalogs. We begin with the two stars whose membership is contested and whose inclusion would change the derived parameters directly, then compare with the studies targeting the same pre-main-sequence population, and finally with the }\textit{\DIFadd{Gaia}}\DIFadd{-era survey catalogs, where the question is what a single-cluster analysis adds to a homogeneous all-sky pipeline}\DIFaddend .
+
+\subsection{\DIFdelbegin \DIFdel{Comparative analysis with cluster members and PMS study}\DIFdelend \DIFaddbegin \DIFadd{HD 159176}\DIFaddend }\DIFdelbegin \subsubsection{\DIFdel{HD 159176}}
 %DIFAUXCMD
 \addtocounter{subsubsection}{-1}%DIFAUXCMD
 \DIFdelend \DIFaddbegin \label{subsubsec:hd159176}
@@ -881,7 +894,7 @@ adopts $1.34\,\mathrm{kpc}$, from }\textit{\DIFadd{Gaia}} \DIFadd{DR2 parallaxes
 \citet{2019MNRAS.484.5102K} }\hskip0pt%DIFAUXCMD
 selected CTTS primarily from photometric H$\alpha$ equivalent widths and then refined membership with a double-peaked Gaussian fit to the }\textit{\DIFadd{Gaia}} \DIFadd{proper motions, whereas our selection rests on proper-motion clustering. Only one T-Tauri source}\footnote{\DIFadd{Cataloged as Gaia DR3 4054567805963940352.}} \DIFadd{is likely a binary ($0.94$ probability according to our analysis); this source belongs to both our $\tilde{p}\geq0.6$ reference sample and the \mbox{%DIFAUXCMD
 \citet{2019MNRAS.484.5102K} }\hskip0pt%DIFAUXCMD
-CTTS list.
+CTTS list.  %DIF >  chktex 8
 }
 
 \DIFaddend We also cross-matched our 321 likely candidates with the UBVRI H$\alpha$ photometric catalog of \citet{2010AA...511A..25R}. Using a $1.0\,\mathrm{arcsec}$ matching radius, we found 141 counterparts, including 124 sources from the $\tilde{p}\geq0.6$ reference sample. Their CDS table provides the $R_C-$H$\alpha$ index but not a published source-by-source H$\alpha$ emitter flag. We therefore do not treat the match as a recovery of the original Rauw et al.\DIFaddbegin \DIFadd{\ }\DIFaddend emitter list. Instead, we used their published $R_C-$H$\alpha$ color offsets \DIFdelbegin \DIFdel{, }\DIFdelend \DIFaddbegin \DIFadd{(}\DIFaddend $0.12$--$0.24\,\mathrm{mag}$ above the main-sequence \DIFdelbegin \DIFdel{$R_C-$H$\alpha$ }\DIFdelend relation for candidates\DIFdelbegin \DIFdel{and }\DIFdelend \DIFaddbegin \DIFadd{, }\DIFaddend $>0.24\,\mathrm{mag}$ for emitters\DIFdelbegin \DIFdel{, }\DIFdelend \DIFaddbegin \DIFadd{) }\DIFaddend as a diagnostic relative to an empirical non-emitter locus derived from their catalog. Under this diagnostic classification, 51 of the 141 matched sources show H$\alpha$ excesses, including 28 of the 57 matched Sagitta PMS candidates. For the reference sample alone, 23 of the 51 matched Sagitta PMS candidates show such an excess. These matches support the presence of an emission-line subset among the PMS candidates, but the absence of diagnostic H$\alpha$ excess for the remaining PMS candidates is not decisive because \citet{2010AA...511A..25R} emphasized that H$\alpha$ emission is variable, can be weak for part of the PMS population, and that H$\alpha$-selected samples can be contaminated by foreground and background objects.
@@ -1060,7 +1073,7 @@ The condensed cluster tree (Fig.\DIFaddbegin \DIFadd{~}\DIFaddend \ref{fig:conde
 
 \begin{figure}
 \resizebox{\hsize}{!}{\includegraphics{Figures/condensed_cluster_tree_NGC6383.pdf}}
-\caption{Condensed cluster tree (dendrogram) from the HDBSCAN analysis: NGC 6383 cluster sources on the left, HDBSCAN-identified field sources on the right. Branch width and color give the number of sources at each level (color bar); $\lambda=1/d_{\mathrm{mreach}}$ is the inverse mutual-reachability distance. Colored ellipses mark the leaf clusters selected by HDBSCAN; the tall blue ellipse on the left, persisting over the widest $\lambda$ range, is the branch adopted as NGC 6383.}%DIF > 
+\caption{Condensed cluster tree (dendrogram) from the HDBSCAN analysis: NGC 6383 cluster sources on the left, HDBSCAN-identified field sources on the right. Branch width and color give the number of sources at each level (color bar); $\lambda=1/d_{\mathrm{mreach}}$ is the inverse mutual-reachability distance. Colored ellipses mark the leaf clusters selected by HDBSCAN; the tall blue ellipse on the left, persisting over the widest $\lambda$ range, is the branch adopted as NGC 6383.}%DIF >  chktex 13
 \label{fig:condensed_cluster_tree}
 \end{figure}
 
@@ -1108,7 +1121,7 @@ This appendix collects the supplementary figures referenced from the main text: 
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/pms_stats.pdf}}
-	\caption{Histograms of the parameters obtained with Sagitta for the NGC 6383 reference sample ($\tilde{p}\geq0.6$), including all data (gray solid), sources with a PMS probability of at least $60\%$ (orange solid), sources with a PMS probability under $60\%$ (blue dashed), and stars with missing 2MASS data (green dotted); the legend in the middle panel applies to all panels. The upper panel shows the distribution of PMS probability values, indicating the likelihood of stars being PMS; the middle panel presents the distribution of logarithmic age values, illustrating the range and frequency of stellar ages within the cluster; and the lower panel displays the distribution of visual extinction values ($A_V$), representing the amount of dust extinction affecting the observed stars.}%DIF > 
+	\caption{Histograms of the parameters obtained with Sagitta for the NGC 6383 reference sample ($\tilde{p}\geq0.6$), including all data (gray solid), sources with a PMS probability of at least $60\%$ (orange solid), sources with a PMS probability under $60\%$ (blue dashed), and stars with missing 2MASS data (green dotted); the legend in the middle panel applies to all panels. The upper panel shows the distribution of PMS probability values, indicating the likelihood of stars being PMS; the middle panel presents the distribution of logarithmic age values, illustrating the range and frequency of stellar ages within the cluster; and the lower panel displays the distribution of visual extinction values ($A_V$), representing the amount of dust extinction affecting the observed stars.}%DIF >  chktex 13
 	\label{fig:pms_sagitta_stats}
 \end{figure}
 

@@ -81,6 +81,14 @@ dynamical state (Sect. 7); and Comparison with previous studies (Sect. 8).
 Every figure and Table 1 were relocated next to the text that discusses them.
 A mapping between the old and new section numbers is given below.
 
+Following the same criticism, the four sections that previously opened
+directly on a subsection (Sects. 3, 4, 6 and 8) now begin with a short
+paragraph stating what the section derives, why it follows from the preceding
+step, and what each of its subsections contributes. These are the places where
+the referee's question -- for what purpose a tool is used, and why its use is
+a logical consequence of the previous steps -- had no answer in the running
+text.
+
 Figure placement. The referee is right that in the previous version the
 figures appeared several pages before the text that discusses them (e.g., Fig.
 1 on page 2 versus its discussion on page 7). All figure environments and

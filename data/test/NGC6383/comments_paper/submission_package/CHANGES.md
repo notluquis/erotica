@@ -1040,3 +1040,32 @@ by TeXtidote's detector. This is the shape the referee's opening criticism is ab
 
 Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; chktex at its 2 documented
 residuals, lacheck and typos clean.
+
+## 60. The four sections that opened on a subsection (2026-08-17)
+
+The referee's opening criticism was that "the logical flow of the overall methodology is unclear
+or even lacking", and asked for "a paragraph explaining FOR WHAT PURPOSE some of the tools are used
+and why their use is a logical consequence of the previous steps". Four sections still opened
+directly on a subsection with no text in between -- Sects. 3, 4, 6 and 8 -- which is precisely
+where that answer was missing from the running text. Found by walking the heading sequence, after
+TeXtidote flagged them as stacked headings.
+
+Each now begins with a short paragraph that says what the section derives, why it follows from the
+step before it, and what each subsection contributes:
+
+- **Sect. 3** states that the member list is the input to everything downstream, so it is derived
+  first and its configuration dependence quantified alongside it rather than afterwards.
+- **Sect. 4** states that the astrometric quantities are derived before any photometry enters, and
+  names where each is used later: the distance sets the angular-to-physical conversion, the mean
+  proper motion is the reference for the wider-field runs, the center is the origin of the radial
+  profile.
+- **Sect. 6** states that the isochrone fit and the neural-network PMS classification are two
+  independent routes, kept apart deliberately because they rest on different assumptions and
+  different data, and compared rather than combined.
+- **Sect. 8** states the order of the comparison, from the individual contested objects through the
+  overlapping studies to the survey catalogs.
+
+No page was added: 26 pp before and after. The response letter's General remarks now records this
+under the structure heading.
+
+Clean 26 pp / marked 30 pp; gate.py 11/11.
