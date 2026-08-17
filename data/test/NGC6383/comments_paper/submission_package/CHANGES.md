@@ -1191,3 +1191,31 @@ section itself. The manuscript therefore says the two normalizations "differ onl
 virial coefficient" without naming a number we have not read in its source.
 
 Clean 26 pp / marked 29 pp; gate.py 12/12.
+
+## 65. The background sentence asserted the one reading the group's own data excludes (2026-08-17)
+
+Appendix D said the fitted background "measures the residual contamination level of the selection,
+not the raw field density". The second half is right. The first half is the reading this programme
+has already excluded by measurement.
+
+`agent-findings/beyond-jacobi-verdict.md` ran a decoy false-discovery experiment on this exact
+sample -- the 70 arcmin production run, N = 628, the one the adopted R_t comes from. FDP by 4 arcmin
+annulus from 37.9 to 70 arcmin: 0.050, 0.034, 0.031, 0.045, 0.000, 0.042, 0.012, 0.024, a median of
+**0.038 beyond the Jacobi radius, flat to falling with radius**, against the 0.20 at which
+Pang et al. (2022) report an artificial halo. Contamination does not explain the outer population.
+Two other readings survive: an extended corona -- the `phd-kb` note on the additive background finds
+that on a membership-selected sample `b` absorbs the corona, and that the fraction it claims grows
+with footprint, 23.5% at 40 arcmin to 59.5% at 70 -- and overlapping comoving neighbours, which the
+same finding measures at 179 of 271 outer members inside the catalogued footprints of Antalova 2 and
+Theia 1645, binomial p = 4.6e-28, photometrically indistinguishable from the inner sequence.
+
+The sentence now names all three and chooses none, pointing at the diagnostics that would separate
+them. Nothing else changed: the numbers stand, and the three neighbouring statements about
+contamination are about a different radial zone -- the inner additions that bias `R_c`, which the
+FDP experiment does not cover -- so they remain as written.
+
+This was found by asking whether the session's scientific edits had been checked against the
+knowledge graph. Of six such edits, one had been. Both graph consultations then made this session
+found something, which is the argument for the habit rather than for the graph.
+
+Clean 26 pp / marked 29 pp; gate.py 12/12.
