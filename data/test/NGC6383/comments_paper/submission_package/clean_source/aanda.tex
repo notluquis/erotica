@@ -141,7 +141,7 @@ Applying the HDBSCAN algorithm in the proper-motion plane returned several clust
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/probabilies_post_sigmaclip.pdf}}
-		\caption{Membership pseudo-probability $\tilde{p}$ of potential NGC 6383 members ($\tilde{p}>0.5$) against their $G$ magnitudes; each point is a star, color-coded by astrometric fidelity (viridis color map; color bar at right). The horizontal dashed and dotted lines, at $\tilde{p}=0.6$ and $\tilde{p}=0.8$ respectively, mark the thresholds used to distinguish between probable members ($0.6\leq\tilde{p}<0.8$) and members ($\tilde{p}\geq0.8$) of the cluster. As shown in the figure, stars with fainter magnitudes tend to have lower astrometric fidelity. This becomes more evident at $G>18~\mathrm{mag}$.}
+		\caption{Membership pseudo-probability $\tilde{p}$ of potential NGC 6383 members ($\tilde{p}>0.5$) against their $G$ magnitudes; each point is a star, color-coded by astrometric fidelity. The horizontal dashed and dotted lines, at $\tilde{p}=0.6$ and $\tilde{p}=0.8$ respectively, mark the thresholds used to distinguish between probable members ($0.6\leq\tilde{p}<0.8$) and members ($\tilde{p}\geq0.8$) of the cluster.}
 	\label{fig:probabilities}
 \end{figure}
 
@@ -154,7 +154,7 @@ At the catalog level the solution is stable: the $50\,\mathrm{arcmin}$ run, in w
 At the source level, the runs agree well: the wider fields recover $203$ ($80\%$), $242$ ($95\%$), and $252$ ($99\%$) of the adopted $254$ at $50$, $60$, and $70\,\mathrm{arcmin}$, and $192$ sources ($76\%$) appear in all four runs. The $50\,\mathrm{arcmin}$ run adds only $33$ sources, all but one beyond the $40\,\mathrm{arcmin}$ footprint. The $60$ and $70\,\mathrm{arcmin}$ runs, by contrast, add $201$ and $376$ sources, of which $83$ and $114$ lie \emph{inside} the $40\,\mathrm{arcmin}$ footprint, the signature of a lowered effective selection threshold rather than of newly resolved outer structures. This behavior is consistent with increasing field contamination, although distinguishing contaminants from genuinely extended populations would require additional photometric, dynamical, or three-dimensional diagnostics (Sect.~\ref{subsec:structural}). We therefore use the $40\,\mathrm{arcmin}$ catalog as the reference membership sample, and the wider extractions to constrain the outer structure (Sect.~\ref{subsec:structural}), while treating the outer membership and any quantity tied to the cluster boundary as search-window sensitive.
 
 \begin{table*}
-\caption{Excerpt of the likely-member catalog for NGC 6383. The complete machine-readable table is available at the CDS. Only selected columns and five rows are printed here for guidance regarding the table form and content.}
+\caption{Excerpt of the likely-member catalog for NGC 6383. The complete machine-readable table is available at the CDS.}
 \label{tab:cds_members}
 \centering
 \resizebox{\hsize}{!}{%
@@ -186,7 +186,7 @@ The mean parallax of the subsample used for the distance estimate is $0.908\,\ma
 \begin{figure*}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/parallax_determination_paper.pdf}}
-	\caption{\emph{Left panel:} Parallax distribution of the 254-source reference sample, split by fractional parallax error: sources with $\delta\varpi/\varpi<0.1$ (blue solid histogram; used for the estimate), all sources (gray dashed), and $\delta\varpi/\varpi>0.1$ (orange dotted; not used). The black curve is a Gaussian fit; the black dash-dotted line and the gray vertical band mark the mean parallax, $\mu_{\varpi}=0.908\,\mathrm{mas}$, and its standard error. \emph{Middle panel:} $G$ magnitude versus parallax with the same split (blue circles $<0.1$, orange triangles $>0.1$); gray bars show the parallax uncertainties, especially pronounced at fainter magnitudes; the mean-parallax line is repeated, with a gray band showing the $1\sigma$ parallax dispersion. \emph{Right panel:} Bailer-Jones geometric distances \citep{2021AJ....161..147B} with the same split; the black dash-dotted line marks the adopted distance ($\mu_d=1.11\,\mathrm{kpc}$, the mode of the sampled distances), with a gray band showing its $\pm0.06\,\mathrm{kpc}$ dispersion. For convenience, only the portion of the histogram corresponding to distances within $0.8$ to $1.2$ times the minimum and maximum used distances is displayed.}
+	\caption{\emph{Left panel:} Parallax distribution of the 254-source reference sample, split by fractional parallax error into the subsample used for the estimate ($\delta\varpi/\varpi<0.1$), all sources, and the discarded $\delta\varpi/\varpi>0.1$ sources; the smooth curve is a Gaussian fit, and the dash-dotted line and shaded band mark the mean parallax and its standard error. \emph{Middle panel:} $G$ magnitude versus parallax with the same split; horizontal bars are the individual parallax uncertainties and the shaded band the $1\sigma$ parallax dispersion. \emph{Right panel:} Bailer-Jones geometric distances \citep{2021AJ....161..147B} with the same split; the dash-dotted line and shaded band mark the adopted distance (the mode of the sampled distances) and its dispersion. Values are given in the panel legends. For convenience, only the portion of the histogram corresponding to distances within $0.8$ to $1.2$ times the minimum and maximum used distances is displayed.}
     \label{fig:parallax_distance}
 \end{figure*}
 
@@ -202,7 +202,7 @@ The dispersions quoted above are those of the observed member sample and therefo
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/proper_motion_2d_paper.pdf}}
-	\caption{Proper motions of the likely cluster candidates ($\tilde{p}>0.5$) of NGC 6383; the symbols are color-coded according to the membership pseudo-probability $\tilde{p}$ of the stars (viridis color map). The gray solid ellipses are the 1$\sigma$, 2$\sigma$, and 3$\sigma$ iso-probability contours of the two-dimensional Gaussian proper-motion model fitted to the reference sample. The center of the proper-motion distribution is marked with a blue cross, indicating the inferred mean proper-motion values $(\mu_{\alpha*}, \mu_{\delta}) = (2.542, -1.713)~\mathrm{mas}\,\mathrm{yr^{-1}}$, with corresponding orange dashed lines highlighting these central coordinates.}
+	\caption{Proper motions of the likely cluster candidates ($\tilde{p}>0.5$) of NGC 6383; the symbols are color-coded according to the membership pseudo-probability $\tilde{p}$ of the stars. The gray solid ellipses are the 1$\sigma$, 2$\sigma$, and 3$\sigma$ iso-probability contours of the two-dimensional Gaussian proper-motion model fitted to the reference sample. The inferred mean proper motion is marked with a blue cross and with the orange dashed lines through it.}
 	\label{fig:proper_motion}
 \end{figure}
 
@@ -214,7 +214,7 @@ The central position of the cluster in equatorial coordinates is $263.683 \pm 0.
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/center_determination_paper.pdf}}
-		\caption{Spatial distribution of the likely cluster candidates ($\tilde{p}>0.5$) of NGC 6383 in right ascension ($\alpha$) and declination ($\delta$), color-coded according to their membership pseudo-probability $\tilde{p}$ (viridis color map). The gray solid contours are the 1$\sigma$ and 2$\sigma$ iso-density contours (enclosing $39\%$ and $86\%$) of a kernel density estimate of the candidate positions, revealing the density gradient of the points. The central coordinates of the cluster are marked by dark-orange dashed lines at $ \alpha = 263.683^\circ $ and $ \delta = -32.584^\circ $, which approximately coincide with the density peak within the plotted area. A scale bar of 5 parsecs is included at the bottom right to provide a reference for the spatial scale.}
+		\caption{Spatial distribution of the likely cluster candidates ($\tilde{p}>0.5$) of NGC 6383 in right ascension ($\alpha$) and declination ($\delta$), color-coded according to their membership pseudo-probability $\tilde{p}$. The gray solid contours are the 1$\sigma$ and 2$\sigma$ iso-density contours (enclosing $39\%$ and $86\%$) of a kernel density estimate of the candidate positions, revealing the density gradient of the points. The central coordinates of the cluster are marked by dark-orange dashed lines, which approximately coincide with the density peak within the plotted area.}
 	\label{fig:center}
 \end{figure}
 
@@ -249,7 +249,7 @@ Measuring the outer structure on a field substantially larger than the cluster i
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/king_profile_logscale.pdf}}
-	\caption{Radial density profile of NGC 6383 in logarithmic scale: annular number densities of the reference sample (black points) with the King model at the posterior median (blue solid line) and its 16--84\% posterior band (blue shading). The black dashed and dotted vertical lines mark the core radius ($R_c = 1.96\,\mathrm{arcmin}$) and the outer radius preferred by this $40\,\mathrm{arcmin}$-window fit ($R_t = 40\,\mathrm{arcmin}$), and the gray dash-dotted horizontal line marks the fitted background level $b$. The posterior band is narrow near the core, where the profile is set by the well-constrained central density, and broadens markedly at large radii, where this window contains almost no background annulus; the adopted outer radius, $R_t = 54^{+7}_{-11}\,\mathrm{arcmin}$, is measured on the $70\,\mathrm{arcmin}$ extraction (Appendix~\ref{app:window}, Fig.~\ref{fig:king70}).}
+	\caption{Radial density profile of NGC 6383 in logarithmic scale: annular number densities of the reference sample with the King model at the posterior median and its 16--84\% posterior band. The vertical lines mark the core radius and the outer radius preferred by this $40\,\mathrm{arcmin}$-window fit, and the horizontal line the fitted background level $b$. The posterior band is narrow near the core, where the profile is set by the well-constrained central density, and broadens markedly at large radii, where this window contains almost no background annulus; the adopted outer radius, $R_t = 54^{+7}_{-11}\,\mathrm{arcmin}$, is measured on the $70\,\mathrm{arcmin}$ extraction (Appendix~\ref{app:window}, Fig.~\ref{fig:king70}).}
 	\label{fig:king}
 \end{figure}
 
@@ -272,7 +272,7 @@ Figure \ref{fig:cmd_ngc6383_various} also includes color-color diagrams $(G_\mat
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_cmd.pdf}}
-		\caption{CMD of NGC 6383 ($G_{\text{mag}}$ versus $G_{\text{BP}} - G_{\text{RP}}$) with the Sagitta-based PMS classification. Orange filled symbols are PMS candidates (Sagitta PMS probability $\geq0.6$), blue filled symbols are non-PMS sources, and open black symbols are sources without 2MASS photometry, which we exclude from the Sagitta-based classification; star markers denote members ($\tilde{p}\geq0.8$) and diamonds probable members ($0.6\leq\tilde{p}<0.8$). The black solid, dashed, and dotted curves show the synthetic single-star sequences at the mode, mean, and median of the isochrone-fit posterior, and the light-gray curves are 150 single-star sequences drawn from the isochrone-fit posterior, visualizing the fit uncertainty.}
+		\caption{CMD of NGC 6383 ($G_{\text{mag}}$ versus $G_{\text{BP}} - G_{\text{RP}}$) with the Sagitta-based PMS classification: orange filled symbols are PMS candidates (Sagitta PMS probability $\geq0.6$), blue filled symbols are non-PMS sources, and open black symbols are sources without 2MASS photometry, which are left unclassified; stars denote members ($\tilde{p}\geq0.8$) and diamonds probable members ($0.6\leq\tilde{p}<0.8$). The black solid, dashed, and dotted curves are the synthetic single-star sequences at the mode, mean, and median of the isochrone-fit posterior, and the light-gray curves are 150 single-star sequences drawn from that posterior.}
 	\label{fig:cmd}
 \end{figure}
 
@@ -318,7 +318,7 @@ Having established the cluster's membership, structure, and stellar content, we 
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_brightness_paper.pdf}}
-	\caption{Normalized cumulative counts of reference-sample stars ($\tilde{p}\geq0.6$) within NGC 6383 are plotted against radial distance from the cluster center for different brightness ranges, segmented into quartiles of $G_{\text{mag}}$: $8.80$--$15.44$ (blue solid), $15.44$--$16.99$ (orange dashed), $16.99$--$17.93$ (teal dotted), and $17.93$--$20.66\,\mathrm{mag}$ (red dash-dotted). The black dash-dotted and black dotted vertical lines mark the core radius $R_c = 1.96\,\mathrm{arcmin}$ and the Hill radius $R_{\mathrm{Hill}} = 33.6\,\mathrm{arcmin}$; the adopted King outer radius, $R_t = 54^{+7}_{-11}\,\mathrm{arcmin}$ (Appendix~\ref{app:window}), lies beyond the plotted range of this $40\,\mathrm{arcmin}$ sample.}
+	\caption{Normalized cumulative counts of reference-sample stars ($\tilde{p}\geq0.6$) within NGC 6383 are plotted against radial distance from the cluster center for different brightness ranges, segmented into quartiles of $G_{\text{mag}}$, whose ranges are given in the legend. The black dash-dotted and black dotted vertical lines mark the core radius $R_c = 1.96\,\mathrm{arcmin}$ and the Hill radius $R_{\mathrm{Hill}} = 33.6\,\mathrm{arcmin}$; the adopted King outer radius, $R_t = 54^{+7}_{-11}\,\mathrm{arcmin}$ (Appendix~\ref{app:window}), lies beyond the plotted range of this $40\,\mathrm{arcmin}$ sample.}
 	\label{fig:cumulative_luminosity}
 \end{figure}
 
@@ -333,7 +333,7 @@ To investigate mass segregation, we constructed radial normalized cumulative mas
 \begin{figure*}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_mass_and_type.pdf}}
-    \caption{\emph{Left panel:} The cumulative distributions of single stars within NGC 6383 are segmented into four mass quartiles ranging from $0.19$--$0.58\,M_\odot$ to $1.44$--$13.56\,M_\odot$, illustrating the spatial distribution across different mass ranges and highlighting the potential influences of mass on the distribution of stars within the cluster. \emph{Middle panel:} The same distributions as in the left panel for binary stars only, where binaries are defined as sources with a binary probability of at least $0.6$. \emph{Right panel:} The normalized cumulative distributions compare single stars with binary stars, with masses between $0.19\,M_\odot$ and $13.56\,M_\odot$. In all panels the quartiles are drawn as blue solid, orange dashed, teal dotted, and red dash-dotted curves; in the right panel single stars are the blue solid and binaries the orange dashed curve. All plots are based on stars with a membership pseudo-probability of at least $0.6$. The corresponding Kolmogorov-Smirnov (KS) test results are given in Sect. \ref{subsec:lum_mass_dyn}.}
+    \caption{\emph{Left panel:} The cumulative distributions of single stars within NGC 6383 are segmented into four mass quartiles ranging from $0.19$--$0.58\,M_\odot$ to $1.44$--$13.56\,M_\odot$, illustrating the spatial distribution across different mass ranges and highlighting the potential influences of mass on the distribution of stars within the cluster. \emph{Middle panel:} The same distributions as in the left panel for binary stars only, where binaries are defined as sources with a binary probability of at least $0.6$. \emph{Right panel:} The normalized cumulative distributions compare single stars with binary stars, with masses between $0.19\,M_\odot$ and $13.56\,M_\odot$. All plots are based on stars with a membership pseudo-probability of at least $0.6$. The corresponding Kolmogorov-Smirnov (KS) test results are given in Sect. \ref{subsec:lum_mass_dyn}.}
 	\label{fig:mass_seg}
 \end{figure*}
 
@@ -521,7 +521,7 @@ This appendix collects the supplementary figures referenced from the main text: 
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_mass_binary.pdf}}
-	\caption{\emph{Upper panel:} CMD displaying probable members and members of NGC 6383, color-coded by total mass, ranging from lower (yellow) to higher mass (purple). The dark-gray dashed line represents the best mode-fit isochrone, illustrating the evolutionary track inferred for the cluster. The total mass is calculated as the sum of the two components if the binary probability is greater than $0.7$. \emph{Lower panel:} The same stars as in the upper panel, color-coded by binary probability, from low (yellow) to high (purple). The dark-gray dashed line again represents the best mode-fit isochrone.}
+	\caption{\emph{Upper panel:} CMD displaying probable members and members of NGC 6383, color-coded by total mass, ranging from lower (yellow) to higher mass (purple). The total mass is calculated as the sum of the two components if the binary probability is greater than $0.7$. \emph{Lower panel:} The same stars as in the upper panel, color-coded by binary probability, from low (yellow) to high (purple). The dark-gray dashed line in both panels is the best mode-fit isochrone.}
 	\label{fig:cmd_mass_binary}
 \end{figure}
 
@@ -534,7 +534,7 @@ This appendix collects the supplementary figures referenced from the main text: 
 \begin{figure*}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/real_sky.pdf}}
-	\caption{Spatial distribution of probable members and members (dark-red dots) overlaid on a DSS2-red background image (shown in false color), centered on the derived cluster center marked by a blue marker; the red dashed circle is the $40\,\mathrm{arcmin}$ cone-search radius. The image shows several fitted or derived scale radii: the core radius $ R_c $ with a solid dark-blue line, the half-light radius $ R_{\mathrm{hl}} $ with a dash-dotted burgundy line, the half-mass radius $ R_{\mathrm{hm}} $ with a solid magenta line, the Hill radius $ R_{\mathrm{Hill}} $ with a dash-dotted yellow line, and the gravitational bound radius $ R_{\mathrm{bound}}$ with a solid orange line. The adopted King outer radius ($R_t = 54\,\mathrm{arcmin}$, Appendix~\ref{app:window}, Fig.~\ref{fig:king70}) lies just outside the displayed field and is not drawn. A scale bar indicating $5\,\mathrm{pc}$ is positioned at the bottom right to provide spatial reference relative to the cluster scale.}
+	\caption{Spatial distribution of probable members and members (dark-red dots) overlaid on a DSS2-red background image (shown in false color), centered on the derived cluster center marked by a blue marker. The circles are the $40\,\mathrm{arcmin}$ cone-search radius and, in increasing order of size, the fitted or derived scale radii $R_c$, $R_{\mathrm{hl}}$, $R_{\mathrm{hm}}$, $R_{\mathrm{Hill}}$, and $R_{\mathrm{bound}}$, whose values are given in the legend. The adopted King outer radius ($R_t = 54\,\mathrm{arcmin}$, Appendix~\ref{app:window}, Fig.~\ref{fig:king70}) lies just outside the displayed field and is not drawn.}
 	\label{fig:real_sky}
 \end{figure*}
 
