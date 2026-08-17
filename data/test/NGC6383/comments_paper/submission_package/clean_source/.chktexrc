@@ -39,6 +39,12 @@ DashExcpt
 #  1: \abstract and \nolinenumbers take no argument; the following space is discarded.
 CmdLine { -n35 -n44 -n3 -n36 -n1 }
 
+# Warning 13 on lines 497 and 545 is an uppercase letter before a semicolon (HDBSCAN;, PMS;).
+# It was briefly "fixed" with \@; until the effect was measured: typesetting the phrase with and
+# without it gives 138.94467pt both times. TeX adds extra space only from spacefactor 2000 and a
+# semicolon sets 1500, so \@ there moves the stretch and not the natural width. Suppressed per
+# line with the measurement as the reason, rather than carrying markup that does nothing.
+#
 # Two known residuals, left in place on purpose.
 #
 # Warning 8 on lines 31 and 48 is "Sh 2-012", the Sharpless designation. DashExcpt does not

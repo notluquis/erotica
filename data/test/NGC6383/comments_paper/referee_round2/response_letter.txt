@@ -43,7 +43,7 @@ the standard 0.138 (Spitzer & Hart 1971); t_rh becomes 24.7 +/- 7.6 Myr (was
 changes; a conservative note on the multi-mass Coulomb constant (Giersz &
 Heggie 1996) was added. (ii) The Galactic mass enclosed within the cluster's
 orbit had been computed from a Galactic-centre scaling relation not applicable
-at 7.2 kpc; we now use the McMillan (2017) potential (M = (8.8 +/- 0.5) x
+at 7.19 kpc; we now use the McMillan (2017) potential (M = (8.8 +/- 0.5) x
 10^10 Msun), which moves the Hill radius from 28.3 to 33.6 +/- 2.2 arcmin (the
 gravitational bound radius, which sets the King prior scale T_max, is
 unchanged, so no fitted parameter is affected); the count of members outside

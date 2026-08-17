@@ -1,0 +1,72 @@
+# The NGC 6383 manuscript (aa52082-24) had no CI at all until 2026-08-17.
+#
+# Not by decision. The paper lives under `data/` inside this package repository, and
+# `.pre-commit-config.yaml` excludes `^(data/...)` because data is data — so the manuscript
+# inherited that exclusion and received no hook and no job. Every consistency check it has
+# was run by hand, which is how a lost script let ten moved figures render as deleted ones
+# for a month, and how the knowledge-graph note kept quoting a superseded R_t.
+#
+# The real fix is structural and is written down in the hub's ARCHITECTURE.md: one
+# showyourwork repository per paper, deferred until after P01 is accepted because 42 scripts
+# hardcode absolute paths into this directory. This job is the interim owner.
+name: Manuscript
+
+on:
+  push:
+    paths:
+      - 'data/test/NGC6383/comments_paper/**'
+      - '.github/workflows/manuscript.yml'
+  pull_request:
+    paths:
+      - 'data/test/NGC6383/comments_paper/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install TeX Live, the checkers and latexdiff
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended \
+            texlive-science latexmk latexdiff chktex poppler-utils
+
+      - name: Install typos
+        uses: crate-ci/typos@master
+        with:
+          files: data/test/NGC6383/comments_paper/submission_package
+          config: data/test/NGC6383/comments_paper/submission_package/_typos.toml
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # The quick half needs no LaTeX run and is what catches the drift class: a letter, a
+      # ReadMe or a knowledge-graph note saying something the manuscript no longer says.
+      - name: Consistency gate
+        working-directory: data/test/NGC6383/comments_paper/submission_package
+        run: python3 gate.py --quick
+
+      - name: Full gate, including both builds and the standalone zip
+        working-directory: data/test/NGC6383/comments_paper/submission_package
+        run: python3 gate.py
+
+      - name: Keep the built PDFs for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-pdfs
+          path: |
+            data/test/NGC6383/comments_paper/submission_package/clean_source/aanda.pdf
+            data/test/NGC6383/comments_paper/submission_package/marked_changes/aanda_marked.pdf
+          if-no-files-found: warn
