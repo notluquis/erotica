@@ -41,19 +41,64 @@ def overfull_line_ranges(log: str) -> list[tuple[int, int]]:
     return [(a, b) for _, a, b in hits]
 
 
+def _is_live(line: str) -> bool:
+    """A tabular that latexdiff commented out is not the one being typeset.
+
+    The deleted version of a changed table survives in the diff as `%DIFDELCMD < \\begin{tabular}`
+    lines. Wrapping *those* puts the \\resizebox between the commented opening and the live one,
+    which is how the first version of this script produced a table whose header read
+    "heightRadius": the box was opened in the wrong place and swallowed the row.
+    """
+    return "%DIFDELCMD" not in line
+
+
 def enclosing_tabular(lines: list[str], lo: int, hi: int) -> tuple[int, int] | None:
-    """Index range of the \\begin{tabular}...\\end{tabular} covering the given 1-based lines."""
+    """Index range of the live \\begin{tabular}...\\end{tabular} covering the given 1-based lines."""
     start = None
     for i in range(min(hi, len(lines)) - 1, -1, -1):
-        if "\\begin{tabular}" in lines[i]:
+        if "\\begin{tabular}" in lines[i] and _is_live(lines[i]):
             start = i
             break
     if start is None:
         return None
     for j in range(start, len(lines)):
-        if "\\end{tabular}" in lines[j]:
+        if "\\end{tabular}" in lines[j] and _is_live(lines[j]):
             return start, j
     return None
+
+
+DIFMARK = re.compile(r"\\DIF(?:add|del)(?:begin|end)FL\s*")
+
+
+def unstraddle_tabular(lines: list[str]) -> int:
+    """Drop diff markers that straddle a \\begin{tabular}, and the one closing them after it.
+
+    When the column specification changes -- here `{cccccccc}` gained a ninth column --
+    latexdiff wraps the `\\begin{tabular}` command itself:
+
+        \\DIFdelendFL \\DIFaddbeginFL \\begin{tabular}{ccccccccc}
+                \\DIFaddendFL \\hline
+
+    In CFONT the begin marker opens a group and the end marker closes it, so the group opens
+    outside the tabular and closes inside its first cell. The visible result was a header
+    reading "heightRadius": TeX internals leaking into the first column. A column-count change
+    cannot be usefully marked anyway -- the reader sees the new column and its added heading --
+    so the markers are removed and the table typesets normally.
+    """
+    removed = 0
+    for i, line in enumerate(lines):
+        if "\\begin{tabular}" not in line or "%DIFDELCMD" in line:
+            continue
+        cleaned = DIFMARK.sub("", line)
+        if cleaned != line:
+            lines[i] = cleaned.lstrip() or cleaned
+            removed += 1
+            for j in range(i + 1, min(i + 3, len(lines))):
+                stripped = DIFMARK.sub("", lines[j])
+                if stripped != lines[j]:
+                    lines[j] = stripped
+                    break
+    return removed
 
 
 def main(argv: list[str]) -> int:
@@ -79,6 +124,10 @@ def main(argv: list[str]) -> int:
         return 0
 
     lines = target.read_text().split("\n")
+    unstraddled = unstraddle_tabular(lines)
+    if unstraddled:
+        target.write_text("\n".join(lines))
+        print(f"  marcadores retirados del \\begin{{tabular}} en {unstraddled} tabla(s)")
     wrapped = 0
     for lo, hi in ranges:
         span = enclosing_tabular(lines, lo, hi)
@@ -88,8 +137,14 @@ def main(argv: list[str]) -> int:
         a, b = span
         if any(MARK in lines[k] for k in (max(0, a - 1), a)):
             continue  # already wrapped on an earlier pass
-        lines[a] = WRAP_OPEN.rstrip("\n") + MARK + "\n" + lines[a]
-        lines[b] = lines[b] + "\n" + WRAP_CLOSE.rstrip("\n") + MARK
+        # The box must open immediately before \\begin{tabular} and close immediately after
+        # \\end{tabular}, inside the same line. Putting it on its own line lands it *inside*
+        # latexdiff's \\DIFdelbeginFL...\\DIFdelendFL group, which is a different scope: the box
+        # then opened in the wrong place and the table header came out reading "heightRadius".
+        lines[a] = lines[a].replace("\\begin{tabular}",
+                                    WRAP_OPEN.rstrip("\n") + " " + MARK + "\n\\begin{tabular}", 1)
+        lines[b] = lines[b].replace("\\end{tabular}",
+                                    "\\end{tabular}\n" + WRAP_CLOSE.rstrip("\n") + " " + MARK, 1)
         wrapped += 1
         print(f"  tabla en lineas {a + 1}--{b + 1} envuelta en resizebox (desborde en {lo}--{hi})")
 

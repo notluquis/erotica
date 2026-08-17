@@ -1096,3 +1096,27 @@ fails on any, which is check number twelve.
 
 Recorded as an open thread in the hub: all of this tooling is hardcoded to aa52082-24 and needs to
 become a configurable package before P02 copies it.
+
+## 62. Both documents read page by page (2026-08-17)
+
+Clean, 26 pp: correct throughout. The four new section lead-ins read as intended, the abstract's
+conditionality clause sits well, the acronym expansions land at first use, Fig. B.4's caption
+carries the non-convergence statement, Appendix D keeps Fig. D.1 with its text, and no appendix
+page shows a line number over the body.
+
+Marked, 28 pp: one real defect, in Table D.2. Its header read **"heightRadius"**. The cause is a
+latexdiff pathology, not the manuscript: when a table's column specification changes -- here eight
+columns became nine -- latexdiff wraps the `\begin{tabular}` command itself in `\DIFaddbeginFL` ...
+`\DIFaddendFL`. In CFONT those open and close a group, so the group opened outside the tabular and
+closed inside its first cell, and TeX internals leaked into the header. `fit_marked_tables.py` now
+drops the markers that straddle a `\begin{tabular}`; a column-count change cannot be usefully
+marked anyway, since the reader sees the new column and its added heading regardless.
+
+Worth recording honestly: finding the cause took four wrong attempts, three of them spent assuming
+the defect was in the `\resizebox` this script had just added. The discriminating test -- generate
+the marked PDF *without* the script and see whether the word is still there -- takes thirty seconds
+and was the fourth thing tried rather than the first. It is the same shape as the rest of this
+session: the check that would have settled it immediately was cheap and skipped.
+
+Clean 26 pp / marked 28 pp, 0 errors, 0 undefined refs or citations, 0 overfull boxes in either,
+0 "??", 21 figures live in both; gate.py 12/12.
