@@ -47,7 +47,8 @@ LETTERS = [HERE / "letters" / "cover_letter_round2.txt",
            HERE / "letters" / "response_to_referee_round2.txt"]
 CDS_DAT = HERE.parent / "cds_final" / "ngc6383_members.dat"
 CDS_README = HERE.parent / "cds_final" / "ReadMe"
-KB_NOTE = Path.home() / "phd" / "kb" / "papers" / "2024arXiv240509145P.md"
+KB_NOTES = [Path.home() / "phd" / "kb" / "papers" / "2024arXiv240509145P.md",
+            Path.home() / "phd" / "kb" / "objects" / "ngc-6383.md"]
 
 results: list[tuple[str, bool, str]] = []
 
@@ -122,12 +123,15 @@ def c_kb():
     month after the manuscript adopted 54 arcmin. Consulting it would have been worse than
     not consulting it, which is the reason it went unconsulted.
     """
-    if not KB_NOTE.exists():
-        return False, f"nota no encontrada: {KB_NOTE}"
-    note, tex = KB_NOTE.read_text(), TEX.read_text()
+    missing = [p for p in KB_NOTES if not p.exists()]
+    if missing:
+        return False, f"notas no encontradas: {[p.name for p in missing]}"
+    note = "\n".join(p.read_text() for p in KB_NOTES)
+    tex = TEX.read_text()
     anchors = {
         "R_t": (r"R_t = 54\^\{\+7\}_\{-11\}", r"R_t\s*40\.4"),
         "R_c": (r"1\.96\^\{\+0\.19\}_\{-0\.16\}", r"R_c\s*1\.95"),
+        "age/t_rh": (r"0\.14", r"t_rh\s*~\s*0\.19"),
     }
     stale = []
     for label, (in_tex, in_note) in anchors.items():
