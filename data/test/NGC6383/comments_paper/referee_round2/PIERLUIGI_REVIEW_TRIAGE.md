@@ -1,7 +1,13 @@
 # Revisión de Pierluigi (round 2) — inventario y triaje
 
-_Preparado 2026-08-16. **Nada aplicado todavía.** Este documento sólo organiza qué llegó,
-qué colisiona con las respuestas al referee, y qué hay que verificar antes de tocar el `.tex`._
+_Preparado 2026-08-16 como triaje previo. **TODO APLICADO Y VERIFICADO — ver §5 al final.**
+Las secciones 1–4 se conservan tal como se escribieron, incluidas las decisiones que después
+cambiaron (T2/T3 pasaron de "rechazar" a "mover a `\tablefoot`" al leer la guía de A&A), porque el
+razonamiento descartado es parte del registro. §5 dice qué quedó realmente en el `.tex`._
+
+⚠ Este encabezado decía "Nada aplicado todavía" hasta después de aplicarlo todo. Se corrige aquí
+porque es exactamente el modo de fallo que este documento registra: **una aserción que fue cierta
+cuando se escribió y dejó de serlo sin que nadie la revisara.**
 
 Fuentes:
 - PDF anotado: `~/Downloads/aanda_revised_clean-1.pdf` (23 pp., **41 anotaciones**)
