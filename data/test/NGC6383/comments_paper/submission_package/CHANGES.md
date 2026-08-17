@@ -995,3 +995,48 @@ shouting, and the two-consecutive-dots hit is inside a bibcode.
 main criticism about readability, but adding lead-in paragraphs is a writing decision.
 
 Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations.
+
+## 59. Measuring the checker output instead of adjudicating it by eye (2026-08-17)
+
+Sect. 58 dismissed 247 of TeXtidote's 275 findings as "software and technical names" without
+listing them, and applied `\@` before two semicolons on the theory that it restored a wider space.
+Both were assertions, not measurements. Redone.
+
+**The 247 spelling hits are 96 distinct words, and one was real.** `AstroPy` and `Astropy` both
+appear; the project's own name is `Astropy`. Now `\textsc{Astropy} sigma-clipping`, matching the
+citation and the URL in the same sentence. The other 95 are genuine names and terms
+(HDBSCAN 23, Sagitta 18, ASteCA 15, astrometric 14, isochrone, subsample, binarity, Collinder,
+Herbig, Haversine, equiprobable, the Spanish affiliation words, LaTeX fragments).
+
+Two that looked wrong and are not:
+- `neighbour`, the only British spelling in a document that is otherwise consistently US, sits
+  inside `\texttt{tmass\_psc\_xsc\_best\_neighbour}` -- the literal name of the Gaia archive
+  cross-match table. Changing it would break a reference to a real database table. This is also
+  why the earlier US/UK sweep reported zero: it strips `\texttt` arguments, correctly.
+- `arcminute` appears twice against 97 `arcmin`, but the two registers do not overlap: `arcmin` is
+  only ever a unit symbol, in math or in a table column header, and `arcminute` is only ever the
+  spelled-out noun in prose ("stars per square arcminute"). Consistent as it stands.
+
+**`\@` before a semicolon does nothing, and the fix was reverted.** Measured by typesetting the
+same phrase twice into boxes and comparing widths:
+
+| construct | without | with | delta |
+|---|---|---|---|
+| `ASteCA\@. The nuisance` | 113.66684pt | 114.77795pt | **+1.11pt** |
+| `i.e.\ a demonstration` | 88.41685pt | 87.30574pt | **-1.11pt** |
+| `HDBSCAN\@; the tall` | 138.94467pt | 138.94467pt | **0** |
+
+The period and the abbreviation fixes do what Sect. 58 claimed. The semicolon one does not: `;` has
+sfcode 1500, and TeX only adds extra space at 2000 or above, so `\@` there changes the stretch and
+shrink but not the natural width. Unusual markup for no effect; both sites reverted.
+
+The five `\@.` sites are unaffected by this and stay. The question is not whether ASteCA, 2MASS and
+NUTS are abbreviations -- they are -- but whether the period ends a sentence, which is what LaTeX
+cannot tell and what `\@` asserts. In all five it does.
+
+**Still open, a writing decision rather than a defect**: four sections open with zero text before
+their first subsection (Sects. 3, 4, 6 and 8), verified by walking the heading sequence rather than
+by TeXtidote's detector. This is the shape the referee's opening criticism is about.
+
+Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; chktex at its 2 documented
+residuals, lacheck and typos clean.

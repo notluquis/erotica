@@ -1,7 +1,7 @@
 
 %DIF LATEXDIFF DIFFERENCE FILE
 %DIF DEL old_submitted.tex   Thu Jul 16 17:46:08 2026
-%DIF ADD new_revised.tex     Mon Aug 17 00:27:20 2026
+%DIF ADD new_revised.tex     Mon Aug 17 00:38:01 2026
 \documentclass{aa}  
 \usepackage{graphicx}
 \usepackage{txfonts}
@@ -291,7 +291,7 @@ Because a single \textsc{HDBSCAN} run can overstate the significance of dense fl
 . This strength equals $1$ for sources that persist to the densest core of the over-density, decreases toward $0$ for sources at the cluster boundary, and is $0$ for noise. The membership pseudo-probability is the product }\DIFaddend $\tilde{p}_i=f_i\,p_{\mathrm{HDBSCAN},i}$\DIFaddbegin \DIFadd{, so that a high value requires a source to be both stably recovered across the sweep and located close to the density core of the adopted clustering}\DIFaddend . This quantity is an operational ranking statistic and not a calibrated posterior membership probability. Sources \DIFaddbegin \DIFadd{of the selected NGC 6383 branch }\DIFaddend with $\tilde{p}>0.5$ were retained as likely cluster candidates. The reference sample used for most cluster parameters adopts $\tilde{p}\geq0.6$; sources with $0.6\leq\tilde{p}<0.8$ are referred to as probable members, while sources with $\tilde{p}\geq0.8$ are referred to as members. \DIFaddbegin \DIFadd{These tiers are a priori round-number conventions rather than tuned values; the stability of the derived parameters against the threshold choice is verified for the mass-segregation analysis (Sect.~\ref{subsec:lum_mass_dyn}) and for the membership itself through the sweep-marginalized pseudo-probabilities.
 }\DIFaddend 
 
-Finally, we used the \textsc{AstroPy Sigma Clipping} \citep{astropy:2013,astropy:2018,astropy:2022} utility to apply a $2\sigma$ outlier rejection around the mode of the parallax distribution\DIFaddbegin \DIFadd{, a conventional rejection level chosen a priori}\DIFaddend . This step provided the sample of likely cluster candidates from which the $\tilde{p}\geq0.6$ reference sample used for the cluster characterization was drawn.
+Finally, we used the \textsc{\DIFdelbegin \DIFdel{AstroPy Sigma Clipping}\DIFdelend \DIFaddbegin \DIFadd{Astropy}\DIFaddend } \DIFaddbegin \DIFadd{sigma-clipping }\DIFaddend \citep{astropy:2013,astropy:2018,astropy:2022} utility to apply a $2\sigma$ outlier rejection around the mode of the parallax distribution\DIFaddbegin \DIFadd{, a conventional rejection level chosen a priori}\DIFaddend . This step provided the sample of likely cluster candidates from which the $\tilde{p}\geq0.6$ reference sample used for the cluster characterization was drawn.
 
 The $40\,\mathrm{arcmin}$ run defines the production catalog used throughout this paper. To test whether the membership recovery was limited by this original search field, we repeated the complete preprocessing, HDBSCAN sweep, pseudo-probability calculation, and parallax clipping using input radii of $50$, $60$, and $70\,\mathrm{arcmin}$. \DIFdelbegin \DIFdel{These wider-field runs are diagnostic checks only; the }\DIFdelend \DIFaddbegin \DIFadd{The }\DIFaddend adopted cluster parameters remain tied to the $40\,\mathrm{arcmin}$ reference catalog\DIFdelbegin \DIFdel{unless explicitly stated.The }\DIFdelend \DIFaddbegin \DIFadd{, except the King outer radius, which is measured on the widest extraction (Sect.~\ref{subsec:structural}); the }\DIFaddend setup and source counts of the robustness runs are reported in Sect.\DIFdelbegin \DIFdel{\ref{sec:results}.
 }\DIFdelend \DIFaddbegin \DIFadd{~\ref{subsec:member_results}.
@@ -1060,7 +1060,7 @@ The condensed cluster tree (Fig.\DIFaddbegin \DIFadd{~}\DIFaddend \ref{fig:conde
 
 \begin{figure}
 \resizebox{\hsize}{!}{\includegraphics{Figures/condensed_cluster_tree_NGC6383.pdf}}
-\caption{Condensed cluster tree (dendrogram) from the HDBSCAN analysis: NGC 6383 cluster sources on the left, HDBSCAN-identified field sources on the right. Branch width and color give the number of sources at each level (color bar); $\lambda=1/d_{\mathrm{mreach}}$ is the inverse mutual-reachability distance. Colored ellipses mark the leaf clusters selected by HDBSCAN\DIFaddbeginFL \@\DIFaddendFL ; the tall blue ellipse on the left, persisting over the widest $\lambda$ range, is the branch adopted as NGC 6383.}%DIF > 
+\caption{Condensed cluster tree (dendrogram) from the HDBSCAN analysis: NGC 6383 cluster sources on the left, HDBSCAN-identified field sources on the right. Branch width and color give the number of sources at each level (color bar); $\lambda=1/d_{\mathrm{mreach}}$ is the inverse mutual-reachability distance. Colored ellipses mark the leaf clusters selected by HDBSCAN; the tall blue ellipse on the left, persisting over the widest $\lambda$ range, is the branch adopted as NGC 6383.}%DIF > 
 \label{fig:condensed_cluster_tree}
 \end{figure}
 
@@ -1108,7 +1108,7 @@ This appendix collects the supplementary figures referenced from the main text: 
 \begin{figure}
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/pms_stats.pdf}}
-	\caption{Histograms of the parameters obtained with Sagitta for the NGC 6383 reference sample ($\tilde{p}\geq0.6$), including all data (gray solid), sources with a PMS probability of at least $60\%$ (orange solid), sources with a PMS probability under $60\%$ (blue dashed), and stars with missing 2MASS data (green dotted); the legend in the middle panel applies to all panels. The upper panel shows the distribution of PMS probability values, indicating the likelihood of stars being PMS\DIFaddbeginFL \@\DIFaddendFL ; the middle panel presents the distribution of logarithmic age values, illustrating the range and frequency of stellar ages within the cluster; and the lower panel displays the distribution of visual extinction values ($A_V$), representing the amount of dust extinction affecting the observed stars.}%DIF > 
+	\caption{Histograms of the parameters obtained with Sagitta for the NGC 6383 reference sample ($\tilde{p}\geq0.6$), including all data (gray solid), sources with a PMS probability of at least $60\%$ (orange solid), sources with a PMS probability under $60\%$ (blue dashed), and stars with missing 2MASS data (green dotted); the legend in the middle panel applies to all panels. The upper panel shows the distribution of PMS probability values, indicating the likelihood of stars being PMS; the middle panel presents the distribution of logarithmic age values, illustrating the range and frequency of stellar ages within the cluster; and the lower panel displays the distribution of visual extinction values ($A_V$), representing the amount of dust extinction affecting the observed stars.}%DIF > 
 	\label{fig:pms_sagitta_stats}
 \end{figure}
 
