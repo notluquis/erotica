@@ -47,6 +47,18 @@ CFONT_DEL = r"\providecommand{\DIFdeltex}[1]{{\protect\color{red} \scriptsize #1
 OURS_ADD = r"\providecommand{\DIFaddtex}[1]{{\protect\color[rgb]{0,0,0.7}#1}}"
 OURS_DEL = r"\providecommand{\DIFdeltex}[1]{{\protect\color[rgb]{0.65,0,0}\footnotesize #1}}"
 
+# Colour is the entire notation here: deletions are not struck through, because ulem's \sout
+# cannot break across a line and ran off the column (see above). Without a key the referee has to
+# infer which colour means what from the fact that one of them is smaller. The clean manuscript
+# never sees this line; it is injected into the marked file only.
+LEGEND_MARK = "% set_diff_markup legend"
+LEGEND = (LEGEND_MARK + "\n"
+          r"\noindent{\small\textit{Marked-up version.} "
+          r"{\color[rgb]{0,0,0.7}Text added in this revision is shown in blue}; "
+          r"{\color[rgb]{0.65,0,0}text removed is shown in red, at a smaller size}. "
+          r"The comparison is against the previously submitted revision, so only round-2 "
+          r"changes are marked.}\medskip" + "\n")
+
 
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
@@ -68,7 +80,10 @@ def main(argv: list[str]) -> int:
               "corre latexdiff con --type=CFONT")
         return 1
 
-    target.write_text(text.replace(CFONT_ADD, OURS_ADD).replace(CFONT_DEL, OURS_DEL))
+    text = text.replace(CFONT_ADD, OURS_ADD).replace(CFONT_DEL, OURS_DEL)
+    if LEGEND_MARK not in text:
+        text = text.replace(r"\maketitle", "\\maketitle\n\n" + LEGEND, 1)
+    target.write_text(text)
     print("marcado ajustado: adiciones en la letra del cuerpo (azul), borrados en rojo footnotesize")
     return 0
 

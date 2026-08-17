@@ -5,7 +5,8 @@ We thank the referee for the careful second reading. We agree with the
 structural criticism and have reorganized the manuscript; every specific point
 has been addressed as detailed below. Changes are visible in the marked-up PDF
 (latexdiff against the previously submitted revision, so only round-2 changes
-are highlighted).
+are highlighted; text added in this revision is shown in blue, text removed in
+red at a smaller size).
 
 OLD -> NEW SECTION MAPPING
 ==========================

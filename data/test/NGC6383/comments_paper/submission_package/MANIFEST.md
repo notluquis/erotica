@@ -56,6 +56,8 @@ runs off its column and prints on top of the text beside it. Measured: **12 over
 UNDERLINE, 1 with CFONT**, and the marked PDF was visibly unreadable in places. CFONT marks by
 colour, which is one of the two options the editor's letter allows ("boldface or colored text").
 
+`set_diff_markup.py` also injects a colour key after `\maketitle` in the marked file only: colour is the entire notation in this build, since deletions are not struck through, and without a key the referee has to infer which colour means what from the fact that one is smaller. `gate.py` fails if the key is missing, because two later scripts rewrite that file.
+
 `set_diff_markup.py` fixes CFONT's typography, which changes two different axes at once:
 additions get `\sf`, a different font *family* from the serif body, and deletions get
 `\scriptsize`, small enough to be a struggle to read. It rewrites them to additions in the body

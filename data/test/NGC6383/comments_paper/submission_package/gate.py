@@ -311,7 +311,12 @@ def c_marked_fresh():
         return False, "new_revised.tex != clean_source/aanda.tex; falta el cp del MANIFEST"
     if MARKED.stat().st_mtime < revised.stat().st_mtime:
         return False, "aanda_marked.tex mas viejo que new_revised.tex; falta correr latexdiff"
-    return True, "al dia con clean_source"
+    # Colour is the whole notation in this build -- deletions are not struck through -- so the key
+    # set_diff_markup.py injects after \maketitle is load-bearing, and it is injected into a file
+    # that two later scripts rewrite.
+    if "set_diff_markup legend" not in MARKED.read_text():
+        return False, "falta la leyenda de colores; corre set_diff_markup.py"
+    return True, "al dia con clean_source, con leyenda de colores"
 
 
 @check("Table 1 es internamente consistente")

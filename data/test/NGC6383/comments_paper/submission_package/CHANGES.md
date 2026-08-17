@@ -1705,7 +1705,7 @@ passes -- "fully encloses the fitted profile" (Sect. 71), "genuine background an
 now "the field background" -- so `PARAPHRASE` gained it and the canonical count rose to seven.
 
 **2. The introduction and Table A.1 disagreed on a literature distance.** The introduction gave
-Angelo et al. (2018) 0.840 kpc; Table A.1's row for the same paper says 0.83 +/- 0.16, and both the
+Aidelman et al. (2018) 0.840 kpc; Table A.1's row for the same paper says 0.83 +/- 0.16, and both the
 table caption's argument and the response letter use 0.83. Neither is the value implied by that
 row's own distance modulus (9.61 gives 0.836 kpc), so the paper was quoting one quantity three
 ways. Aligned on the table, which is the compiled record and what the letter already told the
@@ -1730,5 +1730,46 @@ kpc match Table A.1, and R_GC = 7.19 kpc follows from the cited Galactic coordin
 from our own. Appendices B and C: `min_cluster_size` = 43 with the peak branch of 701 sources, the
 same 701 that Sect. 3.3 clips to 321; 29 of 254 members with DR3 radial velocities; and the
 truncated-sample figure quotes `t_seg > 3.53 Myr`, `M < 9.1 Msun`, the same pair as Sect. 7.
+
+gate.py 24/24.
+
+## 77. Reading the rendered pages, and a colour key the referee should not have to infer (2026-08-17)
+
+Sect. 76 finished reading the source. This pass read the *output*: the 26 rendered pages of the
+clean build, the reference list, and page 1 of the marked build. The `heightRadius` leak of
+Sect. 47 produced no LaTeX error and no overfull box and was caught only by a human looking at a
+page, which is the whole reason for doing this.
+
+**Nothing was broken in the rendering.** Table A.1, Table D.1, Table D.2, the reference list and
+the title block all typeset correctly, and reading them turned up three confirmations worth
+keeping. Fig. B.3's legend counts 13871 field + 704 other branches + 701 selected = **15276**,
+exactly the preprocessed sample of Sect. 2. Table D.1 reproduces every number Sect. 3.3 quotes from
+it: 203/254 = 80%, 242/254 = 95%, 252/254 = 99%, the additions 236-203 = 33, 443-242 = 201 and
+628-252 = 376, and the algorithm-versus-NGC-like label columns show the branch selection diverging
+at exactly 60 and 70 arcmin and agreeing at 40 and 50. And the cover letter's claim that "the three
+arXiv entries are works that have no journal version" is exact: of six arXiv-keyed citations, four
+render with their published journal (Hunt & Reffert 2024 as A&A 686, A42; Pulgar-Escobar &
+Henríquez-Salgado 2024 in the Boletín AAA), and the three that render as "arXiv e-prints" are
+Betancourt (2016), Betancourt (2017) and Amiri et al. (2026).
+
+**One change, to a deliverable.** The marked PDF marks by colour alone -- deletions are not struck
+through, because ulem's `\sout` cannot break across a line and ran off the column (Sect. 47) -- so
+a referee had to infer which colour meant what from the fact that one of them is smaller.
+`set_diff_markup.py` now injects a colour key after `\maketitle`, in the marked file only, itself
+colour-coded so it demonstrates the notation it describes. Both letters say the same thing in
+words, since they are plain text and are read beside the PDF: the response letter's opening
+paragraph and the cover letter's file list now state that added text is blue and removed text is
+red at a smaller size. 29 pp, 0 errors and 1 documented overfull box, all unchanged. `c_marked_fresh` fails if the key is absent, because two later scripts
+rewrite that file after it is injected; mutation-tested by deleting it.
+
+**One cosmetic consequence of Sect. 76 fixed.** Aligning the introduction's Aidelman distance to
+Table A.1's 0.83 left it beside a 0.760 quoted to three decimals. All three historical distances in
+that sentence now read as Table A.1 prints them: 2.13, 0.76, 0.83.
+
+**A correction to this file, not to the paper.** Sects. 74 and 76 called `2018AA...610A..30A`
+"Angelo et al. (2018)". It is **Aidelman** et al. (2018); Angelo et al. (2025) is a different paper,
+cited in the conclusions. The confusion never reached the manuscript, the letters or the ReadMe,
+which cite by key and render correctly -- it existed only in this record and in one commit message.
+Corrected here.
 
 gate.py 24/24.
