@@ -1,12 +1,12 @@
 # NGC 6383 (aa52082-24), Submission package manifest
 
-A&A ROUND-2 resubmission. Compiles to 23 pp clean / 27 pp marked / 0 errors / 0 undefined refs. (Last full rebuild: 2026-07-17; thematic restructure + R1-R17 point fixes, see CHANGES.md §42 and referee_round2/. latexdiff baseline = round-1 submitted version, so the marked PDF shows only round-2 changes.)
+A&A ROUND-2 resubmission. Compiles to 24 pp clean / 28 pp marked / 0 errors / 0 undefined refs / 0 undefined citations. (Last full rebuild: 2026-08-16, co-author pass: 41 annotations from P. Cerulo applied - 24 figure-caption cuts, 11 wording fixes, the Table 1 caption moved to \tablefoot per A&A house style - plus four corrections to the Kalari 2019 comparison found while re-checking that source, including the adopted-distance systematic the previous version omitted. See referee_round2/PIERLUIGI_REVIEW_TRIAGE.md. Round-2 restructure + R1-R17 fixes are in CHANGES.md §42. latexdiff baseline = round-1 submitted version, so the marked PDF still shows only round-2 changes.)
 
 ## FILES TO SEND
 (Round-1 letters archived in `letters/round1_archive/`, do NOT send.)
 | File | What | Upload as |
 |---|---|---|
-| `aa52082-24_source.zip` | LaTeX source: aanda.tex, cites.bib, aanda.bbl, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used) | Manuscript source (self-contained, test-compiles clean: 23 pp, 0 undefined) |
+| `aa52082-24_source.zip` | LaTeX source: aanda.tex, cites.bib, aanda.bbl, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used) | Manuscript source (self-contained, test-compiles clean: 24 pp, 0 undefined) |
 | `aanda_revised_clean.pdf` | Clean compiled manuscript | Reviewer PDF |
 | `aa52082-24_marked_changes.pdf` | latexdiff vs ROUND-1 submitted version (blue=add, red=del, citations black) | Marked-changes PDF |
 | `aa52082-24_cds_members.zip` | CDS catalog: ngc6383_members.dat + ReadMe (321 candidates, 254-member reference flagged) | CDS data table |
