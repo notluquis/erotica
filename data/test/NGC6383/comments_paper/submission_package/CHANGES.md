@@ -1329,3 +1329,406 @@ here, where each quantity is used -- rather than as a defence of the revision.
 
 Clean 26 pp / marked 29 pp, 0 errors, 0 undefined refs or citations, 0 overfull; chktex at its two
 documented residuals, lacheck and typos clean; gate.py 12/12.
+
+## 70. Five defects the gate could not see, and the five checks that now see them (2026-08-17)
+
+The pass of Sect. 69 rewrote prose; this one asked what the twelve checks were still blind to.
+Every defect below was live in the package at the start of the session and green on `gate.py`.
+
+**1. The letter argued more strongly than the manuscript.** R11 told the referee that the 60-70
+arcmin windows "demonstrably admit additional field contamination ... which artificially lowers
+R_c". Sect. 3.3 says the behaviour "is consistent with increasing field contamination", and adds
+that separating contaminants from a genuinely extended population "would require additional
+photometric, dynamical, or three-dimensional diagnostics". The hedge is deliberate: the outer
+population overlaps catalogued comoving clusters, which no contamination metric distinguishes. A
+referee reads both documents, and the letter sent them to a section that does not support it.
+Softened to the manuscript's own framing; the evidence (114 of 376, the doubled R.A. dispersion)
+is unchanged. → new check, `OVERCLAIM`: eight words of proof that may not appear in a letter
+unless the manuscript uses them too.
+
+**2. The same letter got the physics of its own correction backwards.** It credited Spitzer &
+Hart (1971) with "the virial coefficient 0.4 that sets the Coulomb-logarithm argument, not this
+prefactor". The Coulomb-logarithm argument is gamma*N; the virial coefficient is exactly what sets
+the prefactor, 0.138 against 0.17. The manuscript (Sect. 7) had it right. It also claimed 0.138 is
+"the value consistent with a low-concentration cluster", which the manuscript never says and which
+sits awkwardly beside the measured C = 1.43. Both rewritten to follow Sect. 7.
+
+**3. A lead-in written in Sect. 69 inverted a conclusion.** The Sect. 8 opening said HD 159176
+"would shorten the segregation timescale by a factor of several if retained", framing it as a
+threat. Sect. 7 measures the same effect -- a factor of 3-7 -- and says it "would only reinforce
+this conclusion". The clause was removed rather than fixed: the claim belongs where it is measured.
+
+**4. The marked document was stale, then broken.** Editing `clean_source/aanda.tex` leaves
+`marked_changes/new_revised.tex` behind, so the referee's diff shows the previous revision. Worse,
+`marked_changes/` keeps its own `cites.bib`, and the Spitzer (1987) entry added in Sect. 67 was
+never copied across: the marked PDF printed an undefined citation on p. 13, and its log carried
+four TeX errors ("Misplaced \noalign", "Illegal unit of measure") -- while `gate.py` reported a
+clean build, because it only ever compiled `clean_source`. → `c_build` now builds **both** and
+counts `^!` errors in each; `c_copies` covers `cites.bib`, `aa.cls`, `aa.bst`; and a new
+`c_marked_fresh` requires `new_revised.tex` to be byte-identical to the manuscript and
+`aanda_marked.tex` no older than it.
+
+**5. The uploaded PDFs were copies of an earlier build**, 24 minutes behind, still carrying the
+undefined citation. → `c_deliverables` compares the extracted text of each sent PDF against the
+build it came from (bytes cannot be compared: every run stamps a new timestamp and /ID).
+
+**6. `c_zip` compiled the mandatory upload without ever comparing it to the manuscript.** A zip
+built before the last edit compiles perfectly, to the same page count, with zero undefined
+references -- and the gate printed `26 pp aislado, 0 indefinidas` on exactly such a zip, 24
+minutes stale and missing the Sect. 8 edit above. This is the slot NESTOR builds the referee's PDF
+from, so it is the one artefact here whose staleness reaches print. It now byte-compares
+`aanda.tex`, `cites.bib`, `aanda.bbl`, `aa.cls` and `aa.bst` against `clean_source/` before
+compiling. The optional PDFs had been guarded first and the mandatory upload left open, which is
+worth recording as the error it was.
+
+Two further guards came out of writing these. `@check` only registers a name when the function is
+*called*, so `c_overclaim` was written, never wired into `main()`, and the gate happily reported
+10/10 -- a check that does not run is indistinguishable from one that passes. Names are now
+recorded at import and `main()` fails if it did not call one. And `MANIFEST.md` asserted "29 pp
+marked" in its header and "30 pp" in its file table, three lines apart; `c_manifest_pages` reads
+every "NN pp" in it and compares against the two builds.
+
+Every new check was mutation-tested **one branch at a time**: the defect reintroduced, the check
+confirmed red, the file restored from a `/tmp` copy. `c_marked_fresh` has two branches and the
+first attempt exercised only one -- the copy had already desynced, so the mtime path
+short-circuited unseen and had to be retested on its own. That desync came from undoing a mutation
+with `git checkout --` on a tracked file, which discarded a real edit along with it. Mutations are
+reverted from a `/tmp` backup, never from git.
+
+The rendered output was read rather than counted, because the worst defect in this package's
+history did not show up in any log: the `heightRadius` leak of Sect. 47 produced zero LaTeX errors
+and zero overfull boxes and was caught only by a human looking at the page. Table D.2's header row
+in the marked PDF reads its real column names, and `heightRadius`, `DIFadd`, `DIFdel` and `??`
+appear zero times in the extracted text of either PDF.
+
+Clean 26 pp / marked 29 pp, 0 errors and 0 undefined in **both**, 0 overfull clean and 1
+documented in the marked build; gate.py 17/17.
+
+## 71. What the conclusions and the cover letter said that the paper did not (2026-08-17)
+
+Sect. 70 compared the response letter with the manuscript. This pass compared the *other* two
+documents a referee and an editor read: the conclusions, and the cover letter.
+
+**1. The conclusions described the adopted window differently from everywhere else.** They said
+`R_t` was measured on "the 70 arcmin extraction that fully encloses the fitted profile". The
+abstract, Sect. 5, Appendix D and Sect. 8.4 all say instead that it is the only extraction whose
+profile reaches a fitted background annulus beyond the cluster. The difference is not stylistic:
+"fully encloses the fitted profile" claims the data determine `R_t`, and the same sentence goes on
+to say the posterior is truncated from above by the prior. R11 is precisely this point. Aligned to
+the wording used in the other four places.
+
+**2. The conclusions omitted the branch divergence that Sect. 3.3 makes central.** They said the
+50, 60 and 70 arcmin cones "recover an NGC 6383-like proper-motion branch ... in all cases". True
+as written, but Sect. 3.3 reports that at 60 and 70 arcmin the *automated* sweep no longer selects
+that branch -- which is the reason the reference sample stays at 40 arcmin. The conclusions now
+say so.
+
+**3. The cover letter told the editor the CDS package was "unchanged from the previous
+submission".** It was not: the ReadMe was corrected on 2026-08-17 (commit 9e3b093) -- the null
+marker was missing on Jmag, Hmag and Ksmag, each of which carries 88 null entries, and one column
+label sat at character 22 instead of 25. The data file is byte-identical, but the ReadMe is not,
+and the upload plan is to *replace* the archive on NESTOR. An editor reading "unchanged" has no
+reason to process a replacement, and CDS would then receive the ReadMe with undeclared nulls --
+the defect that would have bounced the package. The letter now states what changed and that a
+replacement archive is enclosed. → `c_cds_claim` compares `cds_final/ReadMe` against the ReadMe
+inside `_legacy/cds_superseded/cds.zip`, the archive actually sitting on NESTOR, and requires the
+cover letter to disclose the change when they differ. Asserted positively rather than by banning
+the word "unchanged", since a letter can mislead without using it -- the first version banned the
+word and immediately false-positived on the honest sentence "the CDS data file is byte-identical
+to the previous submission".
+
+All three of its branches were exercised separately, because a check with an untested branch is
+what Sect. 70 already had to walk back once: ReadMe changed with the letter silent (red), ReadMe
+identical to the uploaded one (green, "nothing to declare", tested against a scratch archive built
+from the current ReadMe), and baseline archive missing (red, with the message naming the file to
+restore). That last case fails rather than skips on purpose, so
+`_legacy/cds_superseded/cds.zip` is load-bearing until this paper is accepted: it is the only
+local record of what NESTOR holds. MANIFEST.md calls it superseded, which is true of its contents
+and false of its role.
+
+**4. The cover letter carried the same over-claim as R11.** It said membership quantities stay on
+the 40 arcmin catalogue "whose lower field contamination the wider runs do not match" -- asserting
+the contamination as established where Sect. 3.3 says the behaviour is *consistent with* it. Same
+correction as Sect. 70 item 1. The `OVERCLAIM` list does not catch this one, because it is a
+claim without a claim-word; it was found by reading the cover letter against the manuscript, which
+remains the only way to catch that half of the class.
+
+Checked and found sound, recorded so the next pass does not redo them: all seventeen referee points
+are answered and the old-to-new section map matches the thirteen real sections; 21 figures, all
+included, all used, all referenced, none orphaned; Table 1 reproduces from the body (`C =
+log10(54/1.96) = 1.44`, `M = 254 x 1.31 = 332`, `10^6.55 = 3.55 Myr` with `+5.4/-1.3`), and its
+`\tablefoot` already declares that `R_c`, `k` and `b` come from the 40 arcmin fit while `R_t` comes
+from the 70 arcmin refit; the CDS ReadMe documents 23 columns against 23 fields in the `.dat` and
+23 names in the Table 2 note; the letter's promises resolve in the manuscript, including the
+Stickland (1993) classification, the De Becker (2004) reference, the six tool footnotes, and the
+"bounded from above by the prior in every window we fit" sentence quoted verbatim from Sect. 5;
+"catalogue" appears once, inside the VizieR acknowledgement, as the cover letter states.
+
+gate.py 18/18.
+
+## 72. The catalogue as an oracle, and one caption that overstated its own table (2026-08-17)
+
+Sects. 70 and 71 compared documents with documents. This pass looked for something outside the
+prose to check the prose against, and found it: the delivered CDS catalogue is *data*, produced by
+the pipeline rather than by the sentence describing it.
+
+**The one defect.** Table A.1's caption said "the adopted distances in this table span
+0.83--1.70 kpc, a range of 1.6 mag in distance modulus", supporting the argument that the
+tabulated literature ages are not on a common distance scale. The table contains 2.13 kpc
+(Trumpler 1930) and 0.76 kpc (Shapley 1949). Splitting the rows shows where the number came from:
+0.83--1.70 kpc is exactly the range of the fifteen studies that *report an age*, which is the set
+the argument is about, and the two outliers report none. The argument was right and the sentence
+was wrong about its own table. Corrected in the caption and in the response letter, which repeated
+the figure.
+
+**The oracle.** Eighteen published quantities were recomputed from `ngc6383_members.dat` and all
+eighteen reproduce exactly: the four membership thresholds (321, 254, 202, 161) and their G < 19
+subsets (288, 236, 191, 153); the reference-sample proper-motion means and dispersions
+(2.542 +/- 0.152, -1.713 +/- 0.138); the parallax mean and dispersion over the
+delta_plx/plx < 0.1 subsample (0.908 +/- 0.046); the brightest and median member (G = 8.80, 17.0 --
+the value is identical, the string is not: the computation prints 8.8); both Sagitta PMS counts
+(116 of 254, 133 of 321); and the YSO denominator (193 of the 254 carry 2MASS JHKs, so
+Y_frac = 53/193). → `c_catalog_numbers` guards twelve of them, and the six it does not are named
+in its docstring, those being the four G < 19 subsets and the two G values whose printed form
+differs from their computed one. Matching those on a string would be a check that passes for the
+wrong reason, and a recorded gap beats assumed coverage.
+
+The eight decimals are compared by asking whether the manuscript contains the recomputed value,
+rather than against a hardcoded list, because a hardcoded expectation drifts exactly like the
+prose it guards. The four integer counts are *not* handled that way, and the reason is a measured
+one. Mutation A changed 2.542 to 2.549 in all three places it appears: red, quantity named.
+Mutation B deleted one catalogue row, which is the failure the check actually exists for: the
+reference sample becomes 253 and the loose form does catch it, because "253" appears nowhere --
+but the total becomes 320, and it does **not**, because "320" happens to occur elsewhere in 26
+pages. An integer check that depends on the new value being absent by luck is decoration. The four
+thresholds are therefore parsed out of the one sentence that declares them ("NGC 6383 has 321,
+254, 202, and 161 candidate members with p above 50, 60, 70, and 80%") and compared in order;
+re-run, mutation B now reports `el texto dice [321, 254, 202, 161], el catalogo da [320, 253, 201,
+161]`.
+
+**Also re-derived from scratch, all matching**: `t_rh` = 24.7 Myr straight from
+0.138 N / ln(gamma N) sqrt(r_hm^3/GM) with N = 254, gamma = 0.110, r_hm = 2.02 pc, M = 332 Msun;
+the 23% the prefactor 0.17 would add; age/`t_rh` = 0.142; the multi-mass Coulomb factors (2.05 for
+gamma = 0.02, "roughly double"; 1.31 for gamma = 0.05, inside the quoted 1.27--1.35, giving 32 Myr
+inside "31--33"); the four angular-to-physical conversions at 1.11 kpc (17.4, 0.63, 1.94, 2.02 pc);
+and 1.5 T_max = 63.7 arcmin. `C` = log10(54/1.96) = 1.440 against the published 1.43 is not a
+discrepancy: the manuscript obtains it by combining the two posteriors, not by dividing medians,
+and says so.
+
+**Checked clean, recorded so it is not redone**: all 115 cited keys resolve, and every bibcode's
+encoded year and first-author initial agree with its own entry (the two apparent mismatches are
+"ter Braak" and "de Grijs", where ADS capitalises the particle); Table A.1's tidal radii do span
+15--29.7 arcmin as Sect. 8.4 says, and the largest of them sits 1.8 sigma from the adopted `R_t`,
+which "~2 sigma" describes fairly.
+
+Table A.1's caption changed, so float placement was re-checked against the pre-edit PDF: 26 pp
+unchanged, and Table A.1 (p. 19), Appendix D (p. 25), Table D.2 (p. 26), Fig. D.1 beside its text
+(p. 25) and the conclusions (p. 15) all land where they did before.
+
+gate.py 19/19.
+
+## 73. An uncertainty that did not follow its own correction (2026-08-17)
+
+The `t_rh` fix of Sect. 67 (prefactor 0.17 -> 0.138, 30.5 -> 24.7 Myr) propagated into the minimum
+segregation time's **central value** and not into its **error**.
+
+`t_seg = (<m>/m) t_rh` (Eq. 5), and the text states the recipe: "propagating the uncertainties in
+<m>, m, and t_rh". With `<m>` = 1.31 +/- 0.10, `m` = 13.56 +/- 3.25 and the round-1 `t_rh` =
+30.5 +/- 9.4, that propagation gives **2.95 +/- 1.17** -- and round 1 printed 2.94 +/- 1.17, exact
+to the last digit. The two inputs that changed nothing are the masses; `t_rh`'s *relative* error
+barely moved (0.3082 -> 0.3077), so the new error must scale with the value:
+1.17 x 24.7/30.5 = **0.95**. The manuscript printed **1.24**.
+
+It is not a rounding: 1.24 is 31% wider than the 0.948 the recipe gives, and it is neither the old
+number nor the new one. A sentence written *this round* then leaned on it -- "the 1 sigma range of
+`t_seg` alone, 1.14--3.62 Myr, already reaches the adopted age". 1.14 and 3.62 are exactly
+2.38 -/+ 1.24, and the correct interval, 1.43--3.33 Myr, does **not** reach the 3.5 Myr mode age.
+Corrected in Table 1, in Sect. 7, in the derived interval, and in the response letter, where the
+segregation time is now stated as following `t_rh` rather than as an independent result.
+
+**Does "marginal" survive the fix?** Yes, and it is now quantified rather than asserted. The
+separation from the mode age tightens from 0.90 to 1.2 sigma, so the conclusion that the most
+massive member has had time to segregate is *firmer* than the printed interval implied -- but 1.2
+sigma is textbook marginal, and the two other legs of the hedge never depended on sigma at all: the
+lower edge of the age range (2.24 Myr) still falls below the central `t_seg`, and at gamma = 0.02
+`t_seg` rises to 4.9 Myr, *above* the mode age, so the sign of the comparison flips with the choice
+of Coulomb constant. The vague "reaches to within 0.2 Myr of the adopted age" first written here
+was replaced by the statistical statement, which is what the sentence needs to carry "marginal".
+Everything else
+in the paragraph re-derives: `(1.31/13.56) x 24.7 = 2.386`; the gamma-corrected 3.0--3.2 Myr from
+`t_rh` = 31--33; 4.9 Myr at gamma = 0.02; 0.72 and 0.36 Myr for HD 159176 at 45 and 90 Msun, "a
+factor of 3--7 shorter"; `m_lim` = 1.31 x 24.7/3.5 = 9.2 Msun, which does not depend on the error
+at all, and 10.3 Msun with HD 159176 included.
+
+→ `c_table1`. Table 1 states all four quantities and all four errors, so the equation binding them
+is checkable without leaving the manuscript. It checks both the error and the interval Sect. 7 spells
+out from it, because the endpoints are what a referee reads and they were corrected here by hand.
+Two mutations, each red on its own: restoring 1.24 (`sigma(t_seg): tabla 1.24, propagacion = 0.95`),
+and leaving the interval at 1.14--3.62 while the error is right. The general form of the lesson is the one this file keeps
+relearning in new costumes -- **a correction that propagates into a derived value has to propagate
+into its uncertainty, and nothing here was watching the second half.**
+
+**Also this pass.** Fig. D.1 was rendered and read rather than merely counted, since it is R11's
+load-bearing evidence: the profile flattens onto the fitted background at `b` = 0.020 arcmin^-2
+with points out to ~70 arcmin, and `R_t` = 54 arcmin is marked, all as the caption describes. But
+the caption called it "a genuine background annulus", where the abstract, Sect. 5, Appendix D,
+Sect. 8.4 and the conclusions all say *fitted* -- and Appendix D explicitly refuses to say what `b`
+is ("a fitted constant absorbing whatever lies beyond the profile: residual contamination of the
+selection, an extended corona, or populations overlapping the cluster in projection"). A caption
+should not claim what the appendix declines to. Aligned.
+
+gate.py 20/20.
+
+## 74. Auditing the guards instead of adding them (2026-08-17)
+
+Sects. 70--73 each ended with "→ new check". This one asked the question that ordering invites:
+of everything those passes found, how much is actually guarded, and how much only *looks* guarded.
+
+**Two gaps closed.**
+
+`c_paraphrase`. The 70 arcmin window's virtue is stated in six places, and two of them drifted into
+stronger claims in two different passes: the conclusions said the extraction "fully encloses the
+fitted profile" (Sect. 71) and Fig. D.1's caption called it "a genuine background annulus"
+(Sect. 73). Both assert what Appendix D explicitly declines to assert. Same shape as `REGISTER` and
+`OVERCLAIM`: a closed list of variants actually written and actually removed, plus a floor
+requiring the canonical phrase to survive at all, so the check cannot be satisfied by deleting the
+sentence.
+
+`c_literature_span`. Table A.1's caption summarises its own table, and the summary was recomputed
+by hand once (Sect. 72) and would drift again on any new literature row. The span is now read off
+the table: the fifteen rows that quote an age, which is the set the argument is about.
+
+**One gap left open, deliberately, after building the check and throwing it away.** The obvious
+missing guard was an intra-manuscript `c_letter_numbers`: Table 1 restates ~56 values the body also
+quotes, and the round-1 `R_c` = 1.95 against 1.96 is that defect. The first version asked "is every
+Table 1 value present in the body", measured one alarm on 56 values, and looked excellent.
+Mutating the body's `R_c` to 1.95 left it **green** -- because 1.96 still occurs elsewhere, so the
+value was skipped. It could not fail for the reason it existed. The symmetric form, any
+near-but-unequal pair between table and body, does catch that mutation and raises **twelve** alarms
+on the clean manuscript, every one legitimate: Table D.2's other windows quote genuinely different
+means (0.906, 0.911, 1.711, 2.544), `t_seg` = 2.38 sits beside the 70 arcmin row's proper motion
+2.383, and the cluster centre 263.683 falls within 0.5% of six source coordinates in the Table 2
+excerpt. Twelve alarms that are all noise is a check nobody keeps running. Removed, with the
+measurement kept in `gate.py` where the next person will look before rebuilding it.
+
+That episode is the second time in two passes that a check was written, looked convincing, and
+could not fail -- `c_overclaim` was never called at all (Sect. 70), and `c_catalog_numbers`'
+integer half passed on a coincidence (Sect. 72). **The pattern is now explicit: a new check is
+worth nothing until the specific defect it names has been reintroduced and seen red, and "it found
+almost nothing on arrival" is as often a broken check as a clean manuscript.**
+
+**Still human-only, stated so it is not mistaken for coverage.** Four of this session's findings
+have no guard and are not cheaply guardable, all of them semantic rather than numeric: a lead-in
+that inverted a conclusion the body draws (Sect. 70); conclusions that omitted the branch
+divergence Sect. 3.3 makes central (Sect. 71); a letter that credited the virial coefficient with
+setting the Coulomb-logarithm argument instead of the prefactor (Sect. 70); and a cover-letter
+over-claim carrying no claim-word for `OVERCLAIM` to match (Sect. 71). Each was found by reading
+one document against another. The gate makes that reading cheaper by removing everything mechanical
+from it; it does not replace it.
+
+gate.py 22/22.
+
+## 75. Reading the seventeen replies against the paper (2026-08-17)
+
+Sect. 74 concluded that four defect classes were human-only. This pass did that reading: every
+referee point against what the manuscript now says. Two findings, both in the response letter,
+which is the one uploaded artefact nothing had audited character by character.
+
+**1. Eleven symbols were lost converting the letter to plain text.** NESTOR accepts only .pdf or
+.txt for the response, so the letter transliterates every symbol by hand -- "lambda", "p-tilde",
+"R-hat". Five did not survive at all, and six survived doubled:
+
+    R2   p_HDBSCAN,i=_i/_max            ->  p_HDBSCAN,i = lambda_i/lambda_max
+    R3   (iii) _max is a stability...   ->  lambda_max
+    R3   the _max>=8 cut                ->  lambda_max>=8
+    R4   the parallax dispersion _parallax  ->  sigma_parallax
+    R9   mixing length (_MLT=1.82)      ->  alpha_MLT
+    R7, R8, R9   M__sun, R__sun (x4), Z__sun  ->  Msun, R_sun, Z_sun
+
+Every one of them sits in a passage answering a question the referee asked *because the notation
+was undefined*. R2 is the worst: the referee's complaint was that the HDBSCAN membership
+probability was never defined, and the reply defines it as `_i/_max`. → `c_dropped_symbols`. An
+underscore opening a subscript after whitespace, "=" or "(" cannot occur legitimately here, since
+every real identifier in these letters starts with a letter (t_rh, T_max, R_t). A doubled
+underscore is the second signature -- the symbol collapsing into the underscore that introduced it
+-- and is equally impossible, since no identifier here has an empty subscript level.
+
+Worth recording how close this came to being a half-check: the first version matched only the
+first signature, and this file asserted it "covers both" while a mutation restoring `R__sun` stayed
+**green**. The claim was written before the test. Both signatures are now matched and each was
+mutation-tested on its own.
+
+**2. R8 promised a formula the manuscript did not contain.** It told the referee "the revised
+Sect. 2.1.5 now states **the formula**, the adopted R_sun with its reference, and the error
+propagation explicitly". The manuscript stated the inputs, `R_odot` = 8.3 kpc with its reference,
+and the propagation -- but not the equation. Verified first, then added inline:
+`R_GC = (R_odot^2 + d^2 - 2 R_odot d cos l cos b)^{1/2}` reproduces 7.194 kpc at l = 355.667,
+b = 0.044, d = 1.11 kpc, and the +/-0.06 follows from the distance range.
+
+**Verified sound across the other sixteen replies**, recorded so the next pass does not repeat it.
+R2: `f_i` over 290 sweep runs, `p_HDBSCAN,i = lambda_i/lambda_max`, and the explicit statement that
+`p-tilde` is an operational ranking statistic and not a calibrated probability. R3: lambda's three
+roles and the `lambda_max >= 8` display cut. R4: `N`, `U` and `HN` each defined at first use. R6:
+R-hat <= 1.005 against a 1.01 recommendation, ESS > 1200 against 400, E-BFMI > 0.79 against ~0.3,
+with Betancourt (2016) added. R12: the quartile boundaries 8.80--15.44--16.99--17.93--20.66, the
+three p-values 0.010, 0.052 and 0.42, the Holm correction, and the inverted-expectation argument.
+R13: 51 stars above binary probability 0.7, q = 0.26--0.73 with median 0.60, from 200 synthetic
+realizations. R14: `m_lim` = 9.1 Msun at the mode age 3.53 Myr -- and the manuscript already
+carries the parenthetical "(computed with unrounded posterior values)" that reconciles it with the
+9.17 a reader gets from the rounded inputs, while 3.53 is the unrounded age whose logarithm rounds
+to the 6.55 quoted everywhere else. R16: Kalari's 1.34 kpc against our 1.11 is 1.61 sigma and
+0.41 mag, and Meynet & Maeder (2003) is cited exactly where the letter says.
+
+**Finding 2 has no guard and is not getting one.** "The letter promises the manuscript states X"
+is guardable when X is a number (`c_letter_numbers`) and not when X is "the formula", "the
+rationale" or "the provenance". It joins the four classes of Sect. 74 as human-only, now five.
+
+The four classes Sect. 74 called human-only stayed human-only, and this is what reading them costs:
+two real defects in seventeen replies, both of which every mechanical check in the file passed
+over -- and the guard built from the first of them was itself half-blind until it was mutated.
+
+gate.py 23/23.
+
+## 76. The front matter, the introduction, and the two appendices nobody had read (2026-08-17)
+
+Sects. 70--75 worked outward from the referee's points. This pass read what no referee point
+touched: the title block, Sect. 1, Sect. 2, and Appendices B and C.
+
+**1. The abstract contradicted Appendix D, in the sentence R11 is about.** It said `R_t` was
+measured on an extraction "wide enough to constrain **the field background** beyond the cluster".
+Appendix D says, in as many words, that "the background of this membership-selected sample is *not*
+the raw field density but a fitted constant absorbing whatever lies beyond the profile: residual
+contamination of the selection, an extended corona, or populations overlapping the cluster in
+projection". The abstract asserted the one reading the appendix exists to refuse, and it is the
+first thing anyone reads. This is the third variant of the same claim found in three consecutive
+passes -- "fully encloses the fitted profile" (Sect. 71), "genuine background annulus" (Sect. 73),
+now "the field background" -- so `PARAPHRASE` gained it and the canonical count rose to seven.
+
+**2. The introduction and Table A.1 disagreed on a literature distance.** The introduction gave
+Angelo et al. (2018) 0.840 kpc; Table A.1's row for the same paper says 0.83 +/- 0.16, and both the
+table caption's argument and the response letter use 0.83. Neither is the value implied by that
+row's own distance modulus (9.61 gives 0.836 kpc), so the paper was quoting one quantity three
+ways. Aligned on the table, which is the compiled record and what the letter already told the
+referee. → `c_literature_agreement`. The general intra-manuscript rounding check failed on noise in
+Sect. 74 because nothing said *which* two numbers were meant to be the same; here the citation key
+says exactly that, so the check is precise and silent: 19 tabulated references, no guesswork.
+Mutation-tested by restoring 0.840.
+
+**3. Flagged, not changed: the author list is formatted inconsistently.** Three authors appear as
+initials (`L. M. Pulgar-Escobar`, `N. A. Henríquez-Salgado`, `R. E. Mennickent`) and the fourth as
+a full first name (`Pierluigi Cerulo`), while the cover letter lists all four with initials
+(`P. Cerulo`). Round 1 had the same mix, plus two missing periods that this round already fixed.
+How a co-author is listed is that co-author's decision, so this is recorded for a human and left
+alone.
+
+**Read and found sound.** Sect. 2: 23740 sources to 15480 at fidelity > 0.5 is the stated 65%, then
+15276 with complete astrometry and photometry, 5333 with a 2MASS counterpart; the preprocessing
+parallax window 0.750--1.10 mas is the one Sect. 8.1 says excludes HD 159176 at 1.167 mas; and the
+cone-search centre (263.6715, -32.5773) is deliberately not the derived centre (263.683, -32.584),
+with which it agrees inside the quoted 0.112 deg. Sect. 1: the historical distances 2.13 and 0.760
+kpc match Table A.1, and R_GC = 7.19 kpc follows from the cited Galactic coordinates as well as
+from our own. Appendices B and C: `min_cluster_size` = 43 with the peak branch of 701 sources, the
+same 701 that Sect. 3.3 clips to 321; 29 of 254 members with DR3 radial velocities; and the
+truncated-sample figure quotes `t_seg > 3.53 Myr`, `M < 9.1 Msun`, the same pair as Sect. 7.
+
+gate.py 24/24.
