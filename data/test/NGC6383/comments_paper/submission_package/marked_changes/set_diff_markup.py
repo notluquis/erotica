@@ -56,8 +56,8 @@ LEGEND = (LEGEND_MARK + "\n"
           r"\noindent{\small\textit{Marked-up version.} "
           r"{\color[rgb]{0,0,0.7}Text added in this revision is shown in blue}; "
           r"{\color[rgb]{0.65,0,0}text removed is shown in red, at a smaller size}. "
-          r"The comparison is against the previously submitted revision, so only round-2 "
-          r"changes are marked.}\medskip" + "\n")
+          r"The comparison is against the previously submitted revision, so only the changes "
+          r"made in this revision are marked.}\medskip" + "\n")
 
 
 def main(argv: list[str]) -> int:
@@ -70,21 +70,34 @@ def main(argv: list[str]) -> int:
         return 1
 
     text = target.read_text()
-    if OURS_ADD in text:
-        print("ya tiene el marcado ajustado; nada que hacer")
-        return 0
-    missing = [name for name, needle in (("DIFaddtex", CFONT_ADD), ("DIFdeltex", CFONT_DEL))
-               if text.count(needle) != 1]
-    if missing:
-        print(f"no encontre las definiciones de CFONT para {missing}; "
-              "corre latexdiff con --type=CFONT")
-        return 1
+    done = []
 
-    text = text.replace(CFONT_ADD, OURS_ADD).replace(CFONT_DEL, OURS_DEL)
-    if LEGEND_MARK not in text:
+    # Two independent concerns, each checked on its own. An early "already processed" exit keyed on
+    # the markup alone made the legend unreachable on every file the previous version of this
+    # script had produced: gate.py then failed asking for a run that provably did nothing.
+    if OURS_ADD in text:
+        done.append("marcado ya ajustado")
+    else:
+        missing = [name for name, needle in (("DIFaddtex", CFONT_ADD), ("DIFdeltex", CFONT_DEL))
+                   if text.count(needle) != 1]
+        if missing:
+            print(f"no encontre las definiciones de CFONT para {missing}; "
+                  "corre latexdiff con --type=CFONT")
+            return 1
+        text = text.replace(CFONT_ADD, OURS_ADD).replace(CFONT_DEL, OURS_DEL)
+        done.append("adiciones en la letra del cuerpo (azul), borrados en rojo footnotesize")
+
+    if LEGEND_MARK in text:
+        done.append("leyenda ya presente")
+    elif r"\maketitle" not in text:
+        print("no encuentro \\maketitle; no puedo insertar la leyenda de colores")
+        return 1
+    else:
         text = text.replace(r"\maketitle", "\\maketitle\n\n" + LEGEND, 1)
+        done.append("leyenda de colores insertada")
+
     target.write_text(text)
-    print("marcado ajustado: adiciones en la letra del cuerpo (azul), borrados en rojo footnotesize")
+    print("; ".join(done))
     return 0
 
 

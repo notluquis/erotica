@@ -57,11 +57,17 @@ results: list[tuple[str, bool, str]] = []
 # nothing, and left the gate reporting 10/10. Declared names are recorded at import; main() checks
 # every one of them ran.
 declared: list[str] = []
+slow_checks: set[str] = set()
 
 
-def check(name: str):
+def check(name: str, slow: bool = False):
+    """Register a check. `slow` marks the ones that need a LaTeX run, at the single place that
+    knows: the declaration. A second hand-kept list in main() drifts the moment a name is edited,
+    which is the failure the `declared` list itself was added to remove."""
     def deco(fn):
         declared.append(name)
+        if slow:
+            slow_checks.add(name)
 
         def wrapper(*a, **kw):
             try:
@@ -199,11 +205,16 @@ OVERCLAIM = ["demonstrably", "conclusively", "definitively", "unambiguously", "a
 
 @check("la carta no afirma mas fuerte que el manuscrito")
 def c_overclaim():
-    tex = TEX.read_text().lower()
+    # No manuscript-wide exemption. The first version allowed a word in the letters as soon as it
+    # occurred anywhere in the paper, in any sense: "unambiguously" is in Sect. 3.2 about branch
+    # selection, which would have exempted it from an R11 contamination claim -- the exact
+    # assertion this list exists to stop. Presence in the manuscript is not assertion of the same
+    # claim. None of these words is needed in a letter; if one ever is, it goes on the list's
+    # exception with the sentence that earns it.
     found = []
     for path in LETTERS:
         text = path.read_text().lower()
-        found += [f"{path.name}:{w}" for w in OVERCLAIM if w in text and w not in tex]
+        found += [f"{path.name}:{w}" for w in OVERCLAIM if w in text]
     return not found, "sin sobre-afirmacion" if not found else f"{len(found)} -> {found}"
 
 
@@ -231,6 +242,14 @@ def c_dropped_symbols():
         text = path.read_text()
         for m in re.finditer(r"(?<=[\s=(/])_[A-Za-z]|__", text):
             bad.append(f"{path.name}: ...{' '.join(text[max(0, m.start()-30):m.start()+14].split())}")
+        # Third signature, from re-wrapping rather than from symbol loss: a line-end hyphen whose
+        # two halves were merged onto one line without dropping it ("a tie- breaker"). Suspended
+        # hyphens are legitimate and are the only exception ("window- or model-dependent").
+        for m in re.finditer(r"[a-z]- [a-z]", text):
+            frag = text[max(0, m.start() - 12):m.end() + 10]
+            if re.search(r"- (or|and|to|nor)\b", frag):
+                continue
+            bad.append(f"{path.name}: guion partido ...{' '.join(frag.split())}")
     return not bad, ("sin subindices sin simbolo" if not bad else f"{len(bad)} -> {bad[:4]}")
 
 
@@ -368,6 +387,17 @@ def c_table1():
         lo, hi = float(m.group(1)), float(m.group(2))
         if abs(lo - (tseg - e_tseg)) > 0.02 or abs(hi - (tseg + e_tseg)) > 0.02:
             bad.append(f"intervalo en Sect. 7 {lo}--{hi} != tabla {tseg-e_tseg:.2f}--{tseg+e_tseg:.2f}")
+    # The same sentence states the separation in sigma, which is the third thing derived from this
+    # row. Guarding the interval and not the sigma would strand it on the next refit, which is the
+    # partial propagation this whole check exists for.
+    s = re.search(r"places the adopted age only \$([\d.]+)\\sigma\$ above", tex)
+    age = re.search(r"mode age \$t_\{\\mathrm\{age\}\} = ([\d.]+)\\,\\mathrm\{Myr\}\$", tex)
+    if s is None or age is None:
+        bad.append("no encuentro la separacion en sigma o la edad modal en Sect. 7")
+    else:
+        want = (float(age.group(1)) - tseg) / e_tseg
+        if abs(float(s.group(1)) - want) > 0.05:
+            bad.append(f"separacion: el texto dice {s.group(1)} sigma, la tabla da {want:.2f}")
     return not bad, (f"t_seg = ({mm}/{mx})*{trh} = {val:.2f} +/- {err:.2f} y el intervalo "
                      f"{tseg-e_tseg:.2f}--{tseg+e_tseg:.2f} de Sect. 7 concuerdan con la tabla"
                      if not bad else "; ".join(bad))
@@ -428,8 +458,11 @@ def c_literature_agreement():
     tex = TEX.read_text()
     i = tex.find(r"\label{tab:literature}")
     a, b = tex.rfind(r"\begin{table", 0, i), tex.find(r"\end{table", i)
-    if i < 0 or a < 0:
-        return False, "no encuentro Table A.1"
+    # b is guarded too: find() returns -1 for a missing terminator, and tex[b:] is then the last
+    # character of the file, which made the text-side scan run over a truncated document and pass
+    # vacuously instead of reporting a malformed table.
+    if i < 0 or a < 0 or b < 0:
+        return False, "no encuentro Table A.1 completa (falta \\begin o \\end)"
     rows = {}
     for ln in tex[a:b].split("\n"):
         m = re.match(r"\s*\\citet\{([^}]+)\}", ln)
@@ -441,18 +474,23 @@ def c_literature_agreement():
             if d:
                 rows[m.group(1)] = d.group(1)
     body = tex[:a] + tex[b:]
-    bad = []
+    bad, compared = [], 0
     for m in re.finditer(r"\$(\d+\.\d+)\s*~?\\?,?\\mathrm\{kpc\}\$\s*\\citep\{([^},]+)\}", body):
         val, key = m.group(1), m.group(2)
         tab = rows.get(key)
         if tab is None:
             continue
+        compared += 1
         if abs(float(val) - float(tab)) > 1e-9:
             bad.append(f"{key}: texto {val} vs Table A.1 {tab}")
     if not rows:
         return False, "no pude leer distancias de Table A.1"
-    return not bad, (f"{len(rows)} referencias tabuladas, sin desacuerdo con el texto" if not bad
-                     else f"{len(bad)} -> {bad}")
+    # Report comparisons made, not rows available. "19 referencias tabuladas" read as 19 verified
+    # pairs when the text-side regex matches 3 -- the introduction's one sentence. The rest are
+    # never quoted with a distance in the running text, and a value inside a multi-key \citep is
+    # skipped outright. Saying so is what stops a maintainer assuming the coverage is complete.
+    return not bad, (f"{compared} de {len(rows)} referencias tabuladas se citan con distancia en "
+                     "el texto; sin desacuerdo" if not bad else f"{len(bad)} -> {bad}")
 
 
 @check("el pie de Table A.1 declara el rango real de su propia columna")
@@ -469,9 +507,9 @@ def c_literature_span():
     i = tex.find(r"\label{tab:literature}")
     a = tex.rfind(r"\begin{table", 0, i)
     b = tex.find(r"\end{table", i)
-    if i < 0 or a < 0:
+    if i < 0 or a < 0 or b < 0:
         return False, "no encuentro Table A.1"
-    dists = []
+    dists, aged = [], 0
     for ln in tex[a:b].split("\n"):
         if r"\citet{" not in ln:
             continue
@@ -481,6 +519,7 @@ def c_literature_span():
         age = cells[8].replace(r"\\", "").strip()
         if age in (r"$\cdots$", ""):
             continue  # no age quoted, so it is not on the axis the caption argues about
+        aged += 1
         m = re.search(r"(\d+\.\d+)", cells[5])
         if m:
             dists.append(float(m.group(1)))
@@ -491,9 +530,12 @@ def c_literature_span():
         return False, "el pie de Table A.1 ya no declara un rango de distancias"
     lo, hi = float(claimed.group(1)), float(claimed.group(2))
     ok = abs(lo - min(dists)) < 0.005 and abs(hi - max(dists)) < 0.005
-    return ok, (f"{lo}--{hi} kpc sobre las {len(dists)} filas con edad" if ok
-                else f"el pie dice {lo}--{hi} y las filas con edad dan "
-                     f"{min(dists)}--{max(dists)}")
+    # `dists` holds the rows that quote an age *and* a parseable distance; three rows quote an age
+    # with no distance and never reach it. Saying "filas con edad" hid that, and the count printed
+    # (12) contradicted the docstring's fifteen.
+    return ok, (f"{lo}--{hi} kpc sobre las {len(dists)} de {aged} filas con edad que ademas citan "
+                "distancia" if ok else f"el pie dice {lo}--{hi} y esas filas dan "
+                f"{min(dists)}--{max(dists)}")
 
 
 @check("las cifras del manuscrito se rederivan del catalogo entregado")
@@ -545,7 +587,15 @@ def c_catalog_numbers():
     # loose form does catch because "253" appears nowhere -- but the total becomes 320, which it
     # does NOT catch, because "320" happens to occur elsewhere in 26 pages. An integer check that
     # depends on the new value being absent by luck is decoration.
-    counts = [len([r for r in rows if r["pMember"] > 0.5]), len(ref),
+    # The Ref flag is documented as "1 if pMember >= 0.6 after clipping", so it is validated
+    # against its own definition rather than trusted: every quantity below is computed over `ref`,
+    # and a mis-set flag would otherwise agree with the manuscript while disagreeing with the
+    # column it encodes.
+    by_p = [r for r in rows if r["pMember"] >= 0.6]
+    if len(ref) != len(by_p):
+        return False, (f"la columna Ref marca {len(ref)} fuentes y pMember>=0.6 da {len(by_p)}; "
+                       "el flag no cumple su propia definicion en el ReadMe")
+    counts = [len([r for r in rows if r["pMember"] > 0.5]), len(by_p),
               len([r for r in rows if r["pMember"] >= 0.7]),
               len([r for r in rows if r["pMember"] >= 0.8])]
     sentence = re.search(r"NGC 6383 has [^.]*candidate members[^.]*\.", TEX.read_text())
@@ -555,24 +605,44 @@ def c_catalog_numbers():
     if stated != counts:
         return False, f"umbrales: el texto dice {stated}, el catalogo da {counts}"
 
-    derived = {
-        "con 2MASS en la referencia": len([r for r in ref if has2m(r)]),
-        "PMS>=0.6 en la referencia": len([r for r in ref if r["PMSProb"] is not None
-                                          and r["PMSProb"] >= 0.6]),
-        "media pmRA": round(st.mean(r["pmRA"] for r in ref), 3),
-        "media pmDE": round(st.mean(r["pmDE"] for r in ref), 3),
-        "dispersion pmRA": round(st.stdev(r["pmRA"] for r in ref), 3),
-        "dispersion pmDE": round(st.stdev(r["pmDE"] for r in ref), 3),
-    }
     sub = [r for r in ref if r["e_Plx"] / abs(r["Plx"]) < 0.1]
-    derived["media de paralaje"] = round(st.mean(r["Plx"] for r in sub), 3)
-    derived["dispersion de paralaje"] = round(st.stdev(r["Plx"] for r in sub), 3)
-
     tex = TEX.read_text()
-    missing = [f"{k}={v}" for k, v in derived.items() if str(v).lstrip("-") not in tex]
-    return not missing, (f"4 umbrales anclados a su frase + {len(derived)} cantidades "
-                         "rederivadas del .dat y presentes en el texto"
-                         if not missing else f"el texto no dice: {missing}")
+    # Each quantity is compared against the sentence that *states* it, not looked for anywhere in
+    # the manuscript. Boundary-anchored containment is still not enough: with plain containment a
+    # recomputed 193 matched inside the bibcode 1930LicOB..14..154T and 116 inside
+    # 2005AA...438.1163K; with boundaries added, a recomputed 0.14 still matched the age/t_rh ratio
+    # and 0.045 the metallicity prior. A number that lands on an unrelated quantity is a check
+    # passing by coincidence, which is the rule the four thresholds above already follow.
+    anchored = [
+        ("con 2MASS en la referencia",
+         len([r for r in ref if has2m(r)]),
+         r"N_\{\\text\{cl\}\}=(\d+)\s*\$ is the number of reference-sample sources"),
+        ("PMS>=0.6 en la referencia",
+         len([r for r in ref if r["PMSProb"] is not None and r["PMSProb"] >= 0.6]),
+         r"Applying Sagitta to the membership yields \$(\d+)\$"),
+        ("media pmRA", round(st.mean(r["pmRA"] for r in ref), 3),
+         r"The mean proper-motion values are \$([\d.]+)\\,"),
+        ("media pmDE", round(st.mean(r["pmDE"] for r in ref), 3),
+         r"in R\.A\. and \$(-[\d.]+)\\,"),
+        ("dispersion pmRA", round(st.stdev(r["pmRA"] for r in ref), 3),
+         r"with member dispersions of \$([\d.]+)\$"),
+        ("dispersion pmDE", round(st.stdev(r["pmDE"] for r in ref), 3),
+         r"with member dispersions of \$[\d.]+\$ and \$([\d.]+)\\,"),
+        ("media de paralaje", round(st.mean(r["Plx"] for r in sub), 3),
+         r"The mean parallax of the subsample used for the distance estimate is \$([\d.]+)\\,"),
+        ("dispersion de paralaje", round(st.stdev(r["Plx"] for r in sub), 3),
+         r"with a 1\$\\sigma\$ dispersion of \$([\d.]+)\\,\\mathrm\{mas\}\$"),
+    ]
+    missing = []
+    for label, value, pattern in anchored:
+        m = re.search(pattern, tex)
+        if m is None:
+            missing.append(f"{label}: no encuentro la frase que lo declara")
+        elif abs(float(m.group(1)) - value) > 1e-9:
+            missing.append(f"{label}: el texto dice {m.group(1)}, el catalogo da {value}")
+
+    return not missing, (f"12 cantidades rederivadas del .dat y comparadas contra la frase que "
+                         "las declara" if not missing else f"{len(missing)} -> {missing[:4]}")
 
 
 # --------------------------------------------------------------------------------- CDS
@@ -654,7 +724,7 @@ def c_linenumbers():
 
 # ------------------------------------------------------------------------- build (slow)
 
-@check("ambos documentos compilan sin errores")
+@check("ambos documentos compilan sin errores", slow=True)
 def c_build():
     """Build both, because both are uploaded and only one was ever audited.
 
@@ -678,13 +748,19 @@ def c_build():
             "citas indef": len(re.findall(r"Citation .* undefined", log)),
         }
         if any(bad.values()) or pages is None:
-            return False, f"{tag}: {pages.group(1) if pages else '?'} pp, " + \
-                          ", ".join(f"{k} {v}" for k, v in bad.items())
-        out.append(f"{tag} {pages.group(1)} pp")
-    return True, ", ".join(out) + ", 0 errores y 0 indefinidas en ambos"
+            # Recorded, not returned: returning here skipped the marked rebuild, leaving its log
+            # from a previous run for c_overfull and c_manifest_pages to read -- the exact stale-log
+            # state this check was written to end.
+            out.append(f"FALLA {tag}: {pages.group(1) if pages else '?'} pp, "
+                       + ", ".join(f"{k} {v}" for k, v in bad.items()))
+        else:
+            out.append(f"{tag} {pages.group(1)} pp")
+    failed = [o for o in out if o.startswith("FALLA")]
+    return not failed, ("; ".join(out) + ", 0 errores y 0 indefinidas en ambos" if not failed
+                        else "; ".join(out))
 
 
-@check("los PDF que se suben son los recien construidos")
+@check("los PDF que se suben son los recien construidos", slow=True)
 def c_deliverables():
     """The uploaded files are *copies*, and a copy is exactly as stale as you let it be.
 
@@ -705,12 +781,18 @@ def c_deliverables():
     for built, sent in pairs:
         if not sent.exists():
             stale.append(f"{sent.name} no existe")
-        elif text(built) != text(sent):
+            continue
+        a, b = text(built), text(sent)
+        # None != None is False, so a pair of unreadable PDFs used to report "identical". A check
+        # whose whole purpose is to break silence about stale uploads cannot have a silent pass.
+        if a is None or b is None:
+            stale.append(f"{sent.name}: pdftotext no pudo leer uno de los dos")
+        elif a != b:
             stale.append(sent.name)
     return not stale, "identicos al build" if not stale else f"desactualizados: {stale}"
 
 
-@check("el MANIFEST declara el numero de paginas real")
+@check("el MANIFEST declara el numero de paginas real", slow=True)
 def c_manifest_pages():
     """MANIFEST.md is the upload instructions, and it states page counts as fact.
 
@@ -731,12 +813,18 @@ def c_manifest_pages():
             return False, f"no se pudo leer las paginas del build {tag}"
         real[tag] = int(m.group(1))
     claimed = {int(n) for n in re.findall(r"(\d+)\s*pp", manifest.read_text())}
+    # Both directions. Checking only "no claimed count is wrong" passes on a MANIFEST that swaps
+    # the two labels, drops one count, or states none at all -- and a missing or swapped count is
+    # exactly the hand-maintenance error the check exists to stop.
     wrong = sorted(claimed - set(real.values()))
-    return not wrong, (f"limpio {real['limpio']} pp, marcado {real['marcado']} pp"
-                       if not wrong else f"el MANIFEST afirma {wrong} y los builds dan {real}")
+    absent = sorted(v for v in real.values() if v not in claimed)
+    if wrong or absent:
+        return False, (f"el MANIFEST afirma {wrong} que los builds no dan; " if wrong else "") + \
+                      (f"y no declara {absent}" if absent else "")
+    return True, f"limpio {real['limpio']} pp, marcado {real['marcado']} pp, ambos declarados"
 
 
-@check("sin texto fuera de columna en ninguno de los dos PDF")
+@check("sin texto fuera de columna en ninguno de los dos PDF", slow=True)
 def c_overfull():
     """An Overfull \\hbox is text sticking out of the column, and in two-column A&A it lands
     on top of the neighbouring column.
@@ -768,7 +856,7 @@ def c_overfull():
                      else f"cajas desbordadas: {bad}")
 
 
-@check("el zip enviado compila solo")
+@check("el zip enviado compila solo", slow=True)
 def c_zip():
     import tempfile, zipfile
     zp = HERE / "aa52082-24_source.zip"
@@ -784,10 +872,21 @@ def c_zip():
         # zip 24 minutes stale, missing the Sect. 8 edit, while every other check was green. This
         # is the *mandatory* slot: NESTOR builds the referee's PDF from it, so a stale zip is the
         # one defect here that reaches print.
-        stale = [n for n in ("aanda.tex", "cites.bib", "aanda.bbl", "aa.cls", "aa.bst")
-                 if n in names and z.read(n) != (TEX.parent / n).read_bytes()]
+        # Every entry, not a named handful. The first version listed five files and skipped the
+        # 21 figures, so regenerating a figure without rebuilding the zip left the check green --
+        # and NESTOR builds the referee's PDF from this zip, so the referee would read the new text
+        # against the old figure. Figure regeneration is routine in this tree.
+        stale = []
+        for n in names:
+            if n.endswith("/"):
+                continue
+            src = TEX.parent / n
+            if not src.exists():
+                stale.append(f"{n} no existe en clean_source")
+            elif z.read(n) != src.read_bytes():
+                stale.append(n)
         if stale:
-            return False, f"el zip no coincide con clean_source: {stale}"
+            return False, f"el zip no coincide con clean_source ({len(stale)}): {stale[:5]}"
         with tempfile.TemporaryDirectory() as td:
             z.extractall(td)
             run(["latexmk", "-pdf", "-bibtex", "-interaction=nonstopmode", "aanda.tex"], cwd=Path(td))
@@ -811,14 +910,16 @@ def main() -> int:
     c_dropped_symbols(); c_copies(); c_cds_claim(); c_marked_fresh(); c_cds(); c_table1(); c_paraphrase(); c_literature_agreement(); c_literature_span(); c_catalog_numbers()
     print("\n=== fuente LaTeX ===")
     c_linters(); c_typos(); c_strip(); c_linenumbers()
+    # The slow group is measured, not listed. A second hand-maintained copy of these five names
+    # is the drift the `declared`/`forgotten` guard exists to remove: renaming a @check string, or
+    # adding a sixth slow check, would make --quick fail while naming a check that did run.
     if not args.quick:
         print("\n=== compilacion ===")
         c_build(); c_zip(); c_deliverables(); c_manifest_pages(); c_overfull()
 
     ran = {n for n, _, _ in results}
-    slow = {"ambos documentos compilan sin errores", "el zip enviado compila solo", "los PDF que se suben son los recien construidos", "el MANIFEST declara el numero de paginas real",
-            "sin texto fuera de columna en ninguno de los dos PDF"}
-    forgotten = [n for n in declared if n not in ran and not (args.quick and n in slow)]
+    forgotten = [n for n in declared
+                 if n not in ran and not (args.quick and n in slow_checks)]
     if forgotten:
         print(f"\nFALLA  checks declarados que main() no llama: {forgotten}")
         return 1

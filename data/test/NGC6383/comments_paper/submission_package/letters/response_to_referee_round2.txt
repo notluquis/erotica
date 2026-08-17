@@ -161,7 +161,7 @@ identified as the condensed-tree branch containing the highest density level;
 (ii) lambda defines the per-source membership strength p_HDBSCAN,i that enters
 the pseudo-probability (see our reply to the previous point); and (iii)
 lambda_max is a stability diagnostic of the hyperparameter sweep, acting only
-as a tie- breaker in the choice of min_cluster_size and delimiting the stable
+as a tie-breaker in the choice of min_cluster_size and delimiting the stable
 regime displayed in Fig. B.1. The text and the appendix now state explicitly
 that lambda is never treated as a fitted physical parameter and that the
 lambda_max>=8 cut is a display criterion that affects neither the adopted

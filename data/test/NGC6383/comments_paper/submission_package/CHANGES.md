@@ -1658,12 +1658,20 @@ first signature, and this file asserted it "covers both" while a mutation restor
 **green**. The claim was written before the test. Both signatures are now matched and each was
 mutation-tested on its own.
 
-**2. R8 promised a formula the manuscript did not contain.** It told the referee "the revised
-Sect. 2.1.5 now states **the formula**, the adopted R_sun with its reference, and the error
-propagation explicitly". The manuscript stated the inputs, `R_odot` = 8.3 kpc with its reference,
-and the propagation -- but not the equation. Verified first, then added inline:
-`R_GC = (R_odot^2 + d^2 - 2 R_odot d cos l cos b)^{1/2}` reproduces 7.194 kpc at l = 355.667,
-b = 0.044, d = 1.11 kpc, and the +/-0.06 follows from the distance range.
+**2. R8 was read as promising a formula the manuscript lacked. It did not, and the "fix" was a
+defect.** The reply says "the revised Sect. 2.1.5 now states **the formula**, the adopted R_sun
+with its reference, and the error propagation explicitly". Searching for "law of cosines" and
+reading a fragment that began mid-clause produced the conclusion that only the inputs were stated,
+and an inline equation was added. Sect. 7 already opened the clause with it:
+`R_{gc} = (R_odot^2 + d^2 - 2 R_odot d cos l cos b)^{1/2} = 7.19 +/- 0.06 kpc`. The addition
+therefore printed the same expression twice in one sentence, the second time as `R_{GC}` against
+the `R_{gc}` used in the other five places -- caught by a code review (Sect. 78) and reverted.
+
+The arithmetic done to justify it stands and is worth keeping: the expression returns 7.194 kpc at
+l = 355.667, b = 0.044, d = 1.11 kpc, and the +/-0.06 follows from the distance range. The lesson
+is the reading, not the algebra: a fragment beginning mid-clause is not evidence about what the
+clause says, and "the manuscript does not contain X" needs the whole sentence, not a grep for the
+phrasing X happens to use in the letter.
 
 **Verified sound across the other sixteen replies**, recorded so the next pass does not repeat it.
 R2: `f_i` over 290 sweep runs, `p_HDBSCAN,i = lambda_i/lambda_max`, and the explicit statement that
@@ -1771,5 +1779,71 @@ that sentence now read as Table A.1 prints them: 2.13, 0.76, 0.83.
 cited in the conclusions. The confusion never reached the manuscript, the letters or the ReadMe,
 which cite by key and render correctly -- it existed only in this record and in one commit message.
 Corrected here.
+
+gate.py 24/24.
+
+## 78. What a code review found in the checks written to catch everything else (2026-08-17)
+
+Sects. 70--77 built 24 gate checks and called the package ready. An `xhigh` code review over the
+five commits found **fifteen** defects, two of them in the manuscript and one that made the gate
+unpassable. The distribution is the finding: three in the artefacts, twelve in the machinery
+written to protect them.
+
+**In the manuscript, both mine, both from this session.**
+
+1. **Sect. 7 printed the galactocentric formula twice in one sentence, the second time under a
+   different symbol.** Sect. 75 concluded that R8 promised a formula the paper lacked and added
+   one. It did not lack it: the clause already opens
+   `R_{gc} = (R_odot^2 + d^2 - 2 R_odot d cos l cos b)^{1/2} = 7.19 +/- 0.06 kpc`. The conclusion
+   came from grepping for "law of cosines" and reading a fragment that began mid-clause. The
+   addition also wrote `R_{GC}` against the `R_{gc}` used in the other five places. Reverted --
+   and Table 1's row label, which said `R_\mathrm{GC}`, is aligned to the five, a pre-existing
+   split this exposed.
+2. **`a tie- breaker` in the response letter.** Restoring the lost `lambda_max` in R3 (Sect. 75)
+   required re-wrapping the paragraph, and the rewrap merged a line-end hyphen without dropping
+   it. NESTOR delivers that .txt verbatim. → `c_dropped_symbols` gained a third signature,
+   `[a-z]- [a-z]`, with suspended hyphens exempted ("window- or model-dependent").
+
+**The one that made the gate unpassable.** `set_diff_markup.py` returns early on
+`if OURS_ADD in text`, which precedes the new legend injection. Every marked file the previous
+version produced is in exactly that state -- markup applied, legend absent -- so the script printed
+"nada que hacer" while `c_marked_fresh` demanded the legend and told the operator to run it. The
+two concerns are now checked independently, and the previously dead path was exercised.
+
+**Checks that could not fail for what they claimed.** This is the third pass in a row to find this,
+and the count is now high enough to be the finding rather than an anecdote.
+
+| check | how it passed |
+|---|---|
+| `c_catalog_numbers` | plain substring: 193 matched inside the bibcode 1930LicOB..14..154T, 116 inside 2005AA...438.1163K, a recomputed 0.15 inside the printed 0.152. Boundary anchoring fixed two of the four; a recomputed 0.14 still matched the age/`t_rh` ratio and 0.045 the metallicity prior, so all eight are now compared against the sentence that *states* them, as the four thresholds already were |
+| `c_manifest_pages` | one-directional: swapping the two labels, dropping a count, or removing every "NN pp" all passed |
+| `c_zip` | compared 5 of the 27 archive entries; the 21 figures were unguarded, in the slot NESTOR builds the referee's PDF from |
+| `c_build` | returned from inside its loop, so a clean-document failure skipped the marked rebuild and left its log stale for the two checks that read it -- the exact state it was written to end |
+| `c_deliverables` | `None != None` is False, so a pair of unreadable PDFs reported "identicos al build" |
+| `c_catalog_numbers` | took the reference sample from the `.dat`'s Ref flag, the column whose own definition it should have been validating |
+| `c_overclaim` | exempted a word from the letters as soon as it occurred anywhere in the manuscript in any sense: "unambiguously" is in Sect. 3.2 about branch selection, which would have exempted it from an R11 contamination claim |
+| both Table A.1 checks | validated the `\begin{table}` index and not the `\end{table}` one, so a missing terminator passed vacuously instead of failing |
+
+**Checks that overstated what they had done.** `c_literature_agreement` printed "19 referencias
+tabuladas" where it compares 3 -- the introduction's one sentence -- and `c_literature_span` called
+12 rows "filas con edad" where 15 have ages and three quote no distance. Both messages now report
+comparisons made against comparisons available. A maintainer who reads "19, no disagreement" does
+not go looking for the missing sixteen.
+
+**One structural repeat.** The `slow` set in `main()` hand-duplicated five check names, which is
+the drift the `declared` list was added to remove. Slowness is now declared at the `@check` that
+knows it, and the forgotten-check guard runs in both modes -- verified by removing one fast check
+under `--quick` and one slow check under the full gate.
+
+**And one number the review found uncovered.** Sect. 7's `1.2 sigma` is derived from the same
+Table 1 row as the interval `c_table1` guards, and was not itself guarded: the next `t_rh`
+correction would move the interval (caught) and strand the sigma (not caught), which is precisely
+the partial propagation that check exists for. Now derived and compared; mutation-tested at
+0.9 sigma.
+
+The lesson this file has been circling since Sect. 70 is now explicit and measured: **checks are
+code, they rot exactly like the prose they guard, and nothing in this package was reviewing them.**
+Mutation-testing each check against the one defect that motivated it is necessary and demonstrably
+not sufficient -- every check above was mutation-tested when written.
 
 gate.py 24/24.
