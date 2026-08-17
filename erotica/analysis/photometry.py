@@ -297,8 +297,12 @@ def assign_masses(isochrones, mag_column, color_column, source_id, *, k: int = 5
     return table
 
 
-def _classify_isochrone_form(isochrones) -> str:
+def _classify_isochrone_form(isochrones) -> tuple[str, list]:
     """Decide which of the two isochrone layouts was supplied, or refuse.
+
+    Returns ``(form, items)``. The materialised ``items`` list is part of the contract, not a
+    convenience: this function consumes the input with ``list(...)`` in order to inspect it, so a
+    caller that stores the ORIGINAL object keeps an exhausted iterator.
 
     The two layouts this module accepts are not distinguishable once you are
     inside a KDTree query, which is where the mistake used to surface:
@@ -357,7 +361,7 @@ def _classify_isochrone_form(isochrones) -> str:
                 f"the three isochrone arrays (mag, color, mass) have lengths {sorted(lengths)}; "
                 "they must describe the same points."
             )
-        return "single"
+        return "single", items
 
     usable = [entry for entry in items if hasattr(entry, "__len__") and len(entry) >= 4]
     if not usable:
@@ -367,7 +371,7 @@ def _classify_isochrone_form(isochrones) -> str:
             "the single-isochrone form of exactly three numeric arrays "
             "(mag, color, mass)."
         )
-    return "samples"
+    return "samples", items
 
 
 class PhotometricMassEstimator:
@@ -445,8 +449,12 @@ class PhotometricMassEstimator:
         concatenated. ``assign_nearest`` had no callers and no tests, so it was
         moved onto ``assign_from_samples``' contract rather than the reverse.
         """
-        self.isochrone_form = _classify_isochrone_form(isochrones)
-        self.isochrones = isochrones
+        # Take the MATERIALISED list back from the classifier. It already does `list(...)` to
+        # inspect the input, so storing the original object left any generator or iterator
+        # exhausted on the instance: `assign_masses` then iterated nothing, `points` stayed
+        # empty, and the call died with "No finite isochrone points with masses were supplied"
+        # -- an error that blames the data for a defect in the constructor.
+        self.isochrone_form, self.isochrones = _classify_isochrone_form(isochrones)
         self.k = k
 
     def _require_form(self, form: str, method: str) -> None:

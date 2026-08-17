@@ -347,3 +347,31 @@ def test_cmd_nearest_point_assignment_is_not_scale_invariant():
 
     median_shift = abs(np.median(doubled) / np.median(baseline) - 1)
     assert median_shift < 0.05, f"population median moved {median_shift:.1%}; it should be robust"
+
+
+def test_estimator_accepts_a_generator_of_isochrones():
+    """A generator must survive the constructor.
+
+    `_classify_isochrone_form` consumes its input with `list(...)` to inspect it, and `__init__`
+    used to store the ORIGINAL object afterwards -- so any iterator arrived at `assign_masses`
+    already exhausted, `points` stayed empty, and the call failed with "No finite isochrone
+    points with masses were supplied", blaming the data for a constructor defect.
+    """
+    import numpy as np
+
+    from erotica.analysis.photometry import PhotometricMassEstimator
+
+    def _iso(offset):
+        mag = np.linspace(10.0, 16.0, 25) + offset
+        color = np.linspace(0.2, 1.8, 25)
+        extra = np.zeros(25)
+        mass = np.linspace(2.5, 0.4, 25)
+        return (mag, color, extra, mass)
+
+    est = PhotometricMassEstimator((_iso(o) for o in (0.0, 0.05, -0.05)), k=2)
+    assert est.isochrone_form == "samples"
+    assert len(list(est.isochrones)) == 3, "the generator was stored exhausted"
+
+    out = est.assign_from_samples(np.array([12.0, 13.5]), np.array([0.6, 1.1]), np.array([1, 2]))
+    assert len(out) == 2
+    assert np.all(np.isfinite(np.asarray(out["mass"], dtype=float)))

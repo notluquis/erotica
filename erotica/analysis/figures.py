@@ -723,6 +723,15 @@ def graph_king(
     )
     all_results = {}
     traces = []
+    if len(center_coords) != len(thresholds):
+        # strict=True turned a silent truncation into a bare "zip() argument 2 is shorter than
+        # argument 1", which names neither count -- on the path that regenerates the published
+        # figures, where `centers` comes from a separate graph_center_determination call and the
+        # two lengths are supplied independently. Say what did not line up.
+        raise ValueError(
+            f"graph_king got {len(center_coords)} centre(s) for {len(thresholds)} threshold(s). "
+            "Pass one centre per threshold, or a single centre to be used for all of them."
+        )
     for threshold, center in zip(thresholds, center_coords, strict=True):
         profile = analyzer.radial_density_profile(
             center,

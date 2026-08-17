@@ -127,6 +127,22 @@ class ClusterAnalyzer:
         self.output_dir = Path(result["output_dir"])
         self.source = result["source"]
 
+    @property
+    def dill_path(self):
+        """Removed with the write-only ``dill_cache``. Raises with an explanation.
+
+        The ``dill_cache`` keyword kept a deprecation shim because this is a released v0.1.0
+        class; the attribute beside it was deleted outright, so the same call gave a courteous
+        warning for the keyword and a bare ``AttributeError`` for the attribute. This equalises
+        that: still an ``AttributeError``, but one that says what happened and what to do.
+        """
+        raise AttributeError(
+            "ClusterAnalyzer.dill_path was removed together with the dill_cache sidecar, which "
+            "was written on every load and never read back. Nothing consumed this attribute. "
+            "If you need a cached copy of the loaded table, write it yourself from "
+            "`analyzer.data`."
+        )
+
     # ------------------------------------------------------------------
     # Summaries
     # ------------------------------------------------------------------

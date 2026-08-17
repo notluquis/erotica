@@ -223,9 +223,10 @@ class Clustering:
             maximum Jaccard overlap with the finally selected member set. See
             :meth:`_target_recovery_frequency`.
 
-            ``probability_times`` is written on both paths and always means "any"; the
-            target-aware vector is written as ``probability_times_target``, so a caller can
-            recover either product from a single run.
+            ``probability_times`` is written on both paths and always means "any". The
+            target-aware vector is written as ``probability_times_target`` **only** when
+            ``recovery_frequency="target"``, so recovering both products means running the
+            sweep once per setting; a default run leaves the target column absent.
         match_reference_implementation
             Match the original Java HDBSCAN* reference implementation. Default ``True``, which
             is what this package has always used — but it was hardcoded and unexplained until
@@ -396,6 +397,16 @@ class Clustering:
             raise ValueError("probability_method must be 'hdbscan' or 'soft'.")
         if recovery_frequency not in ("any", "target"):
             raise ValueError("recovery_frequency must be 'any' or 'target'.")
+        if recovery_frequency == "target" and not select_cluster:
+            # The target-aware term is defined RELATIVE to the selected cluster, so with no
+            # selection there is no target to match sweep steps against. Accepting the argument
+            # and quietly computing the "any" product instead left the caller no way to tell it
+            # had been ignored, and produced a `probability` column indistinguishable from a
+            # genuine target-aware run.
+            raise ValueError(
+                "recovery_frequency='target' requires select_cluster=True: the target-aware "
+                "sweep term is defined relative to the selected cluster."
+            )
         self._probability_method = probability_method
 
         # MST not needed during sweep — skip to save ~20% per iteration

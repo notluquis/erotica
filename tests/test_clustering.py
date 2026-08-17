@@ -937,3 +937,66 @@ class TestEffectiveHyperparameters:
             "match_reference_implementation no longer changes the labelling; the measured "
             "justification for keeping it on is stale and must be re-run"
         )
+
+
+# ---------------------------------------------------------------------------
+# recovery_frequency="target" -- the NON-default branch
+#
+# CLAUDE.md §29: an optional parameter whose default disables the new branch means the whole
+# existing suite stays green without ever exercising it. These tests exist because
+# `recovery_frequency="target"` shipped with ~90 lines of matching logic and ZERO collected
+# tests -- only uncollected scripts under tools/validation/. Each one below passes the
+# NON-default value.
+# ---------------------------------------------------------------------------
+
+
+class TestTargetRecoveryFrequency:
+    def _run(self, data, bad, **kw):
+        from erotica.core.clustering import Clustering
+
+        # `Clustering` keeps a REFERENCE to the input table and writes its output columns into
+        # it, so two instances built from one table share state: without this copy the second
+        # run's `probability_times_target` column is visible through the first run's `.data`.
+        # Copy so the two arms compared below are genuinely independent.
+        clust = Clustering(data.copy(), bad.copy())
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 40),
+            min_samples=5,
+            probability_threshold=0.5,
+            **kw,
+        )
+        return clust
+
+    def test_target_writes_its_own_column_and_rescales_probability(self, good_data, bad_data):
+        """The non-default branch must actually run and be distinguishable from the default."""
+        base = self._run(good_data, bad_data)
+        tgt = self._run(good_data, bad_data, recovery_frequency="target")
+
+        assert "probability_times_target" in tgt.data.colnames, (
+            "recovery_frequency='target' produced no target column; the branch did not run"
+        )
+        assert "probability_times_target" not in base.data.colnames
+
+        f_any = np.asarray(tgt.data["probability_times"], dtype=float)
+        f_tgt = np.asarray(tgt.data["probability_times_target"], dtype=float)
+        # Recovery into the target is a SUBSET of recovery into anything, by construction.
+        assert np.all(f_tgt <= f_any + 1e-12), "f_target exceeded f_any somewhere"
+        assert np.any(f_tgt < f_any), "f_target never differed from f_any; matching is inert"
+
+    def test_target_without_a_selected_cluster_raises_instead_of_being_ignored(
+        self, good_data, bad_data
+    ):
+        """Silently computing the 'any' product would be indistinguishable from a real run.
+
+        The target term is defined relative to the selected cluster, so `select_cluster=False`
+        leaves nothing to match against. Previously the argument was validated and then dropped:
+        the branch sits inside `if select_cluster:`, so the caller got the ordinary product back
+        with no warning and no way to tell.
+        """
+        with pytest.raises(ValueError, match="requires select_cluster=True"):
+            self._run(good_data, bad_data, recovery_frequency="target", select_cluster=False)
+
+    def test_invalid_recovery_frequency_is_rejected(self, good_data, bad_data):
+        with pytest.raises(ValueError, match="recovery_frequency must be"):
+            self._run(good_data, bad_data, recovery_frequency="anything")

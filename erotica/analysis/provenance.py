@@ -287,9 +287,21 @@ def _allocate_trace_index(path: Path, trace) -> int:
     try:
         import arviz as az
 
+        # Cheap discriminators first. Deserialising every archived trace and comparing full
+        # posterior arrays on every store is O(N^2) in netCDF reads over a loop of N fits -- and
+        # `store_trace_results`' own docstring names "storing several fits in a loop" as the
+        # motivating case. Variable names and per-variable shapes are readable from the netCDF
+        # header without materialising any values, and a mismatch in either rules the slot out.
+        want_vars = set(trace.posterior.data_vars)
+        want_shapes = {v: tuple(trace.posterior[v].shape) for v in want_vars}
         for existing_path in sorted(path.parent.glob(f"{path.stem}_trace_*.nc")):
             try:
-                if _same_posterior(az.from_netcdf(existing_path), trace):
+                candidate = az.from_netcdf(existing_path)
+                if set(candidate.posterior.data_vars) != want_vars:
+                    continue
+                if {v: tuple(candidate.posterior[v].shape) for v in want_vars} != want_shapes:
+                    continue
+                if _same_posterior(candidate, trace):
                     # Recover the index this trace already owns, so the CSV rows point at it.
                     return int(existing_path.stem.rsplit("_trace_", 1)[1])
             except Exception:  # noqa: BLE001 - one unreadable neighbour must not abort the scan
@@ -349,11 +361,13 @@ def store_trace_results(
 
     Notes
     -----
-    ``Trace_Index`` is the UTC Unix time **truncated to whole seconds**, and it
-    is what names the NetCDF and the sidecar. Two calls inside the same second
-    therefore land on the same index and the second silently overwrites the
-    first's trace file, while both sets of summary rows remain in the CSV. This
-    matters when storing several fits in a loop.
+    ``Trace_Index`` names the NetCDF and the sidecar, and is an *allocated*
+    identifier rather than a clock reading: see :func:`_allocate_trace_index`.
+    It is seeded from the UTC Unix second so the archive stays sortable, then
+    resolved against what is already on disk -- an identical trace reuses its
+    slot, and a different one steps forward past occupied slots. Storing several
+    fits in a loop is therefore safe; ``Date_Time`` is the column that records
+    *when*, and one call stamps one value across all of its rows.
     """
     path = Path(file_path)
     summaries = summarize_trace(trace, excluded_parameters=excluded_parameters)
@@ -436,17 +450,17 @@ def load_results(file_path="fit_parameters.csv", *, load_trace=False, only_last=
     ImportError
         If `load_trace` is set and ArviZ is not installed.
 
-    Warnings
-    --------
-    ``load_trace=True`` with ``only_last=False`` **always raises**
-    ``FileNotFoundError: No trace file found for summarized results: None``,
-    however many valid traces sit next to the CSV. ``trace_path`` is only ever
-    assigned inside the ``only_last`` branch, so on the other branch it is still
-    ``None`` when the existence check runs. This is behaviour as it stands, not
-    a design: a CSV holding several fits has several ``Trace_Index`` values and
-    the function has no rule for choosing among them. To load a trace, leave
-    `only_last` at its default; to inspect every stored fit, load with
-    ``load_trace=False`` and open the ``.nc`` files by ``Trace_Index`` yourself.
+    Notes
+    -----
+    The trace is located from the ``Trace_Index`` of the surviving rows, on both
+    branches. ``load_trace=True`` therefore works with ``only_last=False`` too,
+    provided those rows reference exactly ONE trace -- which holds whenever the
+    CSV contains a single fit. When they reference several, this raises and says
+    how many it found, because there is no rule for choosing among them.
+
+    (Until 2026-08-04 ``trace_path`` was assigned only inside the ``only_last``
+    branch, so ``load_trace=True, only_last=False`` raised unconditionally with
+    ``... : None`` however many valid traces sat beside the CSV.)
     """
     az = _require_arviz() if load_trace else None
     path = Path(file_path)
@@ -471,13 +485,10 @@ def load_results(file_path="fit_parameters.csv", *, load_trace=False, only_last=
     # ambiguous.
     trace = None
     if load_trace:
-        try:
-            import arviz as az
-        except ImportError as exc:
-            raise ImportError(
-                "arviz is required to load a stored trace. Install the 'bayes' extra."
-            ) from exc
-
+        # `az` is already bound above by `_require_arviz()`, which runs whenever `load_trace` is
+        # truthy and raises with its own message. A second `try: import arviz` here could never
+        # reach its `except`, so it was dead code carrying a competing error string for one
+        # condition -- two messages to keep in sync, and no way to tell which users would see.
         if "Trace_Index" not in results.columns:
             raise FileNotFoundError(
                 f"{path} has no Trace_Index column, so no trace can be located. It was probably "
@@ -692,8 +703,7 @@ def build_metadata(
     >>> sorted(meta)[:3]
     ['cluster', 'created_at', 'dependencies']
     >>> import json
-    ...
-    ... isinstance(json.dumps(meta), str)
+    >>> isinstance(json.dumps(meta), str)
     True
     """
     if inputs is None:
