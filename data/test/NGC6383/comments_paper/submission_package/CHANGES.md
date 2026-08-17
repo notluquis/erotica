@@ -1219,3 +1219,25 @@ knowledge graph. Of six such edits, one had been. Both graph consultations then 
 found something, which is the argument for the habit rather than for the graph.
 
 Clean 26 pp / marked 29 pp; gate.py 12/12.
+
+## 66. A citation that credited us to somebody else (2026-08-17)
+
+Last pass over the manuscript, cross-checking the printed values rather than the source. Everything
+agreed: distance, R_c, R_t, the member counts and log(age) are identical in the abstract, Table 1,
+the body and the conclusions, and no superseded value survives anywhere in the PDF -- no 1.95, no
+40.4, no 30.5, no 2.94, no 28.3, no 1.17.
+
+One defect, left over from the original and missed by every earlier pass because it reads as
+ordinary prose: **"The calculated half-mass relaxation time for NGC 6383 is 24.7 +/- 7.6 Myr
+(Spitzer & Hart 1971)."** That value is our computation. The citation makes it look like theirs, and
+after Sect. 64 it is doubly wrong, since Spitzer & Hart are the source of the virial coefficient
+0.4 while the manuscript takes its Coulomb-logarithm constant from Giersz & Heggie.
+
+The citation is removed from the computed value and attached where the reference genuinely belongs:
+the new sentence about the alternative 0.17 normalization, which now reads "it differs only in the
+assumed virial coefficient <v^2> r_hm / GM (the value 0.4 adopted here follows Spitzer & Hart 1971)".
+The quantity is named explicitly so it cannot be misread as the gamma = 0.110 sitting two lines
+above.
+
+Clean 26 pp / marked 29 pp, 0 errors, 0 undefined refs or citations, 0 overfull in the clean build;
+checkcites reports 0 undefined references; gate.py 12/12.
