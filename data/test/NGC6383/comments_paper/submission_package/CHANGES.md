@@ -1305,3 +1305,27 @@ Sect. 6's description of what Sagitta returns against its own three networks for
 age and extinction.
 
 Clean 26 pp / marked 29 pp; gate.py 12/12.
+
+## 69. Editorial pass over the prose added during this review (2026-08-17)
+
+The text added in Sects. 60-68 was verified for truth and never read for register. Two habits ran
+through all of it and neither belongs in A&A.
+
+**Commentary on our own reasoning.** *"Adopting R_t from a fit whose R_c we reject requires an
+argument, and we make it from what is measured rather than from a mechanism"* -- a sentence about
+how the paper argues rather than about the cluster. Gone; the paragraph now opens on the physics.
+Likewise *"so the value adopted here is the conservative one for our argument"*, *"the quoted b
+should be read accordingly"*, *"we note two consequences explicitly"*, and *"should be read as
+such"*: instructions to the reader standing in for statements.
+
+**Defensive padding.** *"rather than afterwards"*, *"deliberately kept apart"*, *"demonstrably
+lower"*, *"which only the 70 arcmin window provides at all"*, and a Sect. 6 sentence that restated
+the contrast its own preceding sentence had already drawn. The four section lead-ins were also
+enumerating their subsections in full clauses where a list serves.
+
+Net effect: **169 words removed**, no claim dropped, and every cross-reference and number
+unchanged. The section openings now read as A&A section openings -- what is derived, why it comes
+here, where each quantity is used -- rather than as a defence of the revision.
+
+Clean 26 pp / marked 29 pp, 0 errors, 0 undefined refs or citations, 0 overfull; chktex at its two
+documented residuals, lacheck and typos clean; gate.py 12/12.
