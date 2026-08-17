@@ -93,3 +93,28 @@ the row that replaced it.
   the dual-label exports.
 - Notebook 25′ figures are stale producers; `comments_paper/members.csv`-style
   short sweeps ≠ the paper reference run.
+
+## CodeGraph — cableado 2026-08-17, con una trampa medida
+
+`codegraph init` indexa este repo en 445 ms (314 ficheros, 5110 nodos, 10963 aristas) y salta los
+3.1 GB de `data/`. Está registrado como servidor MCP en `.mcp.json` y sus permisos en
+`.claude/settings.json`.
+
+**Lo que sirve:** `codegraph impact <simbolo>` y `codegraph callers <simbolo>` resuelven bien —
+`impact search_pseudoprobability` devuelve 49 símbolos con los tests reales de
+`tests/test_clustering.py`, que es exactamente la pregunta de la lección 34 del CLAUDE.md global
+("correr sólo el test que tocaste no es correr los tests").
+
+⚠ **`codegraph affected` NO sirve en este repo, y falla en las dos direcciones.** Su clasificador
+de "test file" es por ruta, y el paper vive en `data/**test**/NGC6383/`. Medido sobre
+`erotica/analysis/provenance.py`:
+
+| | |
+|---|---|
+| tests reales que reporta | **0** — omite `tests/test_provenance.py`, que existe y menciona provenance 32 veces |
+| falsos positivos | **14** — scripts de regeneración de figuras, `COSMIC_aux.py`, `gate.py` |
+
+El grafo sí conoce el fichero (`codegraph callers write_metadata` lo encuentra en
+`tests/test_provenance.py:292`), así que el defecto está en el clasificador, no en el índice. Usa
+`callers`/`impact` y no `affected` hasta que el paper salga de `data/test/` (paso 5 de
+`ARCHITECTURE.md` en el hub).
