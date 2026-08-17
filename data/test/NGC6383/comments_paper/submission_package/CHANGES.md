@@ -770,3 +770,41 @@ cap. Measured across this session's commits the body has been 15 pages throughou
 added in Sects. 48-51 landed in the appendices, so the 24 -> 26 page growth does not touch the cap.
 `AANDA_GUIDELINES_AUDIT.md` judges the policy likely not to apply to this manuscript, submitted
 before its 2025-04-02 trigger; that judgement is unchanged and untested.
+
+## 53. Fourth pass: the abstract and the conclusions were quoting R_t unconditionally (2026-08-16)
+
+Checked in places the earlier passes had not opened.
+
+**Section numbers in the response letter: not a defect, and worth recording so nobody "fixes" it.**
+Twenty references in the letter point at sections that do not exist in the revised manuscript
+(2.1.1, 2.1.5, 3.5.4 and so on). They are deliberate: the letter opens with an old-to-new mapping
+table and a note stating that replies use the referee's round-1 numbering. Rewriting them to the
+new numbers would break the correspondence with the report the referee wrote. The one exception,
+"added to Sect. 8.4", uses the new numbering, and 8.4 does exist -- Comparison with published
+catalogs -- and does carry the promised comparison of the adopted R_t with the 15-30 arcmin
+literature radii. Three of the four subsections of Sect. 8 carry no `\label`, which is why an
+earlier check could not see 8.4 at all.
+
+**All 41 co-author annotations re-checked mechanically.** Two struck passages survive, both by
+adjudication: the non-independence clause of Table 1, preserved in `\tablefoot` because R5 asked
+for exactly that (T2 in the triage), and, on p. 6, a strike whose span covers
+"$\varpi$ with the same split (blue circles < 0.1, orange triangles > 0.1);". The parenthetical
+symbol legend is gone, as asked; "with the same split" stays, because it is the identification that
+tells the reader the middle and right panels of Fig. 2 use the coding defined in the left one.
+Cutting it would leave two panels unexplained. That is a sixth judgement call, and the triage's
+T-list recorded five.
+
+**The real find.** The body, Appendix D and the response letter all state that every quoted R_t is
+conditional on the prior bound that truncates its posterior from above; R11's answer says the value
+"is therefore presented as conditional on this prior". The abstract and the conclusions quoted
+$54^{+7}_{-11}$ arcmin flat, with no such clause -- the two places a referee reads first, on the
+round's single largest scientific change. Both now carry it, and R11's answer says "throughout,
+including in the abstract and the conclusions".
+
+Also verified in this pass: every number in the abstract appears in the body; the only conclusions
+numbers absent from the body are the CDS ftp address, a grant number and a project number; every
+figure, table and equation is referenced at least once; no `\ref` points at a missing label; the
+abstract frames the age uncertainty as PMS-model systematics rather than as a posterior width.
+
+Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations; 21 figures live, 0 "??";
+source zip compiles standalone.
