@@ -1,0 +1,20 @@
+# typos (crate-ci) configuration for aa52082-24.
+#
+# Four hits, all false positives, adjudicated once here so a rerun is signal-only.
+#
+# AAS  appears only inside ADS bibcodes such as 1971AAS....4..241B, where it is the journal
+#      code for Astronomy and Astrophysics Supplement. typos reads it as a misspelling of
+#      "AS"/"ASS".
+# ANID Agencia Nacional de Investigacion y Desarrollo, the Chilean funding agency named in
+#      the acknowledgements. typos reads it as "AND".
+
+[default.extend-words]
+AAS = "AAS"
+ANID = "ANID"
+
+# Scope: only what is uploaded. The working notes, changelog and helper scripts are written
+# partly in Spanish, which an English spell checker reads as a wall of errors.
+[files]
+# aa.cls, aa.bst and linenoaa.sty are vendored A&A files that must stay byte-identical, and
+# they contain LaTeX internals (the cuted package, \@Alph) that read as misspellings.
+extend-exclude = ["*.bbl", "*.bib", "Figures/", "aa.cls", "aa.bst", "linenoaa.sty", "*.log", "*.aux", "*.md", "*.py", "cds/", "marked_changes/", "round1_archive/"]

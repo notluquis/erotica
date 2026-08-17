@@ -934,3 +934,64 @@ Sect. 52: a working copy left behind and forgotten. Resynced. The `.dat` is byte
 all three, so nothing numerical ever diverged.
 
 Also verified on the shipped PDFs: all 63 fonts are embedded, pages are A4, PDF version 1.7.
+
+## 58. The checkers TeX Live already shipped, and two that were installed (2026-08-17)
+
+Ran the standard LaTeX checkers, which had never been run on this manuscript, and installed a
+spell/grammar checker. The point of the pass was not the tools but the adjudication: each was
+driven to a state where a rerun prints only new problems, with the reasoning written down beside
+the config, because a checker whose output is mostly known noise stops being read -- which is how
+the line-number defect of Sect. 54 survived four review passes.
+
+**checkcites** (TeX Live): 0 undefined references. 13 unused entries in `cites.bib`, harmless.
+
+**lacheck** (TeX Live): clean after fixing what it found.
+- `i.e.` x6 and `et al.` x1 unprotected. LaTeX decides sentence spacing from the character before
+  the period; a lowercase letter means "sentence ends", so these got sentence spacing mid-sentence.
+  Now `i.e.\ `, `et al.\ `.
+- `SIMBAD.`, `ASteCA.`, `2MASS.`, `NUTS.`, `INI.` at sentence end, and `HDBSCAN;`, `PMS;`. Here the
+  rule runs the other way: an uppercase letter means "abbreviation", so the wider space that ends a
+  sentence was suppressed. Semicolon and colon take an intermediate space and are affected too.
+  Now `\@.` and `\@;`.
+- `Dr. Robert` -- `Dr.` is in ChkTeX's own abbreviation list. Now `Dr.\ `.
+
+**chktex** (TeX Live): 129 warnings down to 2 documented residuals.
+- **Warning 24, 26 sites, the largest real class and the one this pass nearly dismissed**: a space
+  before `\label`. If a page break falls in that space the label attaches to the wrong page and
+  `\pageref` lies. Fixed by commenting the newline with `%`.
+- Warning 2: a missing `~` before a citation, plus one bare `\cite` among 181 `\citep`/`\citet`.
+- Warning 8: five table cells using a bare `-` as the unit of a dimensionless quantity, now
+  `\ldots`.
+- The rest were adjudicated in `clean_source/.chktexrc`, which uses both mechanisms the ChkTeX
+  manual describes for what each is for: `CmdLine { -n35 -n44 -n3 -n36 -n1 }` for classes that do
+  not apply anywhere (`\mathrm{max}` inside a subscript is not `\max`; booktabs is a style
+  preference aa.cls does not share; `O7V((f))` and `E(B-V)` are standard notation), `DashExcpt` for
+  `age--metallicity--extinction` and `wind--wind`, and per-line `% chktex NN` comments for the 11
+  individual intentional lines, so the check stays live everywhere else.
+- Two residuals are left and explained rather than silenced: `Sh 2-012` on lines 31 and 48.
+  `DashExcpt` does not cover the digit-digit case, and a line comment cannot be used there because
+  line 31 is the first block of the structured `\abstract` and the `%` would eat the newline and
+  fuse two arguments. Relaxing `NumDash` would silence them at the cost of no longer catching a
+  real `1-10` written for `1--10`.
+
+**typos** (installed via brew): clean. Its four hits were the ADS bibcode fragment `AAS` and the
+Chilean funding agency `ANID`; both are recorded in `_typos.toml`, which is scoped to the files
+that are actually uploaded. Mutation-tested: it catches `sentance`.
+
+**TeXtidote** (installed via brew; LanguageTool with LaTeX awareness): 275 findings, of which 247
+are spelling hits on software and technical names (HDBSCAN, ASteCA, DEMetropolis, Sagitta,
+degeneracies, binarity). Of the 28 grammar findings, four were real:
+- `\citep[e.g.][]` x2 -- the second period needs a comma, `\citep[e.g.,][]`, or LaTeX reads it as
+  ending a sentence.
+- `\authorrunning{L. M. Pulgar-Escobar et al.}` -- initials now bound with `~`.
+- `MSc` -> `M.Sc.\ `.
+- `sub-groups` -> `subgroups`.
+The remainder are LaTeX artefacts: "a $2\sigma$" and "a $70\,\mathrm{arcmin}$" are correct English
+read aloud, `source $i$` is a variable and not the pronoun, `HD 159176` is an object name and not
+shouting, and the two-consecutive-dots hit is inside a bibcode.
+
+**Not fixed, flagged instead**: four sections open directly on a subsection with no lead-in text
+(Sects. 3, 4, 6 and 8). TeXtidote calls these stacked headings, and they bear on the referee's
+main criticism about readability, but adding lead-in paragraphs is a writing decision.
+
+Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs or citations.

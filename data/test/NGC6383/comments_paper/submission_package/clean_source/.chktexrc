@@ -1,0 +1,51 @@
+# chktex configuration for aa52082-24.
+#
+# Adjudicated against the ChkTeX manual's own definitions (texmf-dist/doc/chktex/ChkTeX.pdf)
+# and against the real sites in aanda.tex. The manual distinguishes two mechanisms and this
+# file uses both for what each is for: a resource file for policy that holds document-wide,
+# and "% chktex NN" line comments for individual intentional constructs, so that a genuine
+# instance elsewhere is still caught.
+#
+# Fixed in the source rather than suppressed, because they were real:
+#   n24  space before \label, 26 sites. A page break inside that space can send \pageref to
+#        the wrong page. Newline commented out with %.
+#   n13  \@ after an uppercase letter that ends a sentence (ASteCA., 2MASS., NUTS., INI.) or
+#        precedes a semicolon (HDBSCAN;, PMS;). LaTeX decides spacing from the character
+#        before the punctuation and reads uppercase as an abbreviation, suppressing the
+#        wider space that period, colon and semicolon should get.
+#   n12  "Dr. Robert" -- Dr. is in ChkTeX's own Abbrev list.
+#   n2   a missing ~ before a citation, and one bare \cite among 181 \citep/\citet.
+#   n8   five table cells using a bare "-" for a dimensionless unit, now \ldots.
+
+# Dashes that are correct as written. DashExcpt matches the dashed string itself.
+# 2-012: the Sharpless catalogue designation, Sh 2-012.
+# age--metallicity--extinction and wind--wind: coordinate nouns take an n-dash, the
+# Birch--Swinnerton-Dyer case the manual gives as the reason this variable exists.
+DashExcpt
+{
+    age--metallicity--extinction
+    wind--wind
+}
+
+# Warnings that do not apply anywhere in this document.
+#
+# 35: 37 hits, all $\lambda_{\mathrm{max}}$, $T_{\mathrm{max}}$, $m_{\mathrm{lim}}$,
+#     $\mathrm{deg}$. \max is an operator carrying operator spacing; inside a subscript the
+#     upright text is what is meant and \max would typeset it wrongly.
+# 44: a user regex inherited from the system chktexrc asking for booktabs rules. aa.cls
+#     tables use \hline and A&A does not require booktabs.
+#  3: the manual itself calls this one optional, "for maximum aestethic pleasure".
+# 36: the hits are O7V((f))+O7V((f)), the standard spectral classification, and E(B-V).
+#  1: \abstract and \nolinenumbers take no argument; the following space is discarded.
+CmdLine { -n35 -n44 -n3 -n36 -n1 }
+
+# Two known residuals, left in place on purpose.
+#
+# Warning 8 on lines 31 and 48 is "Sh 2-012", the Sharpless designation. DashExcpt does not
+# cover it: the manual's examples are all alphabetic, and the digit-digit case falls under
+# NumDash, which wants -- for a numeric range. The line-comment mechanism cannot be used
+# either: line 31 is the first block of the structured \abstract and line 48 ends a
+# paragraph whose next line continues the argument, so a % would eat the newline and fuse
+# two arguments together. Relaxing NumDash to { 1 2 } would silence them but would also stop
+# catching a genuine "1-10" written for "1--10", which is the more valuable check.
+# Two explained warnings are cheaper than a weakened rule.
