@@ -85,7 +85,7 @@ We agree that ages of very young clusters are sensitive to the input physics of 
 
 ### R10. Sect. 2.2, which figure shows the nuisance parameter
 
-The referee's inference is correct: the plot in question is the ASteCA posterior corner plot, Fig. B.4 (Appendix B), which shows the joint and marginal posteriors of the four isochrone-fit parameters together with the likelihood-scatter nuisance term $\sigma$. The sentence in Sect. 2.2 now cites the figure explicitly, and we have simplified its wording.
+The referee's inference is correct: the plot in question is the ASteCA corner plot, Fig. B.4 (Appendix B), which shows the joint and marginal distributions of the four isochrone-fit parameters together with the likelihood-scatter nuisance term $\sigma$, and whose caption now records that this DEMetropolis ensemble does not meet our convergence criteria. The sentence in Sect. 2.2 now cites the figure explicitly, and we have simplified its wording.
 
 ### R11. Sect. 3, extraction radius vs King outer radius
 

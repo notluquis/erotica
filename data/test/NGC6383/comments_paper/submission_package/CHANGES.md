@@ -665,3 +665,35 @@ numeric claim in the letters is present in the manuscript; "rather than the data
 as a quotation of the withdrawn wording. Clean 26 pp / marked 29 pp, 0 errors, 0 undefined refs
 or citations, 21 figures live, 0 "??"; source zip compiles standalone. CDS package unchanged and
 still consistent (321 rows, 254-source reference sample).
+
+## 50. The same sweep, run where it had just proved it was needed (2026-08-16)
+
+Sect. 49 found its fourth contradiction in Appendix B by accident, while tracing a claim in the
+referee letter back to its source. The sweep that produced Sect. 48 had read the body text only.
+Re-running it over every `\caption`, every `\tablefoot` and the whole appendix block found five
+more sites of the same family, all of them describing the DEMetropolis isochrone ensemble as a
+posterior:
+
+| site | was | now |
+|---|---|---|
+| Fig. B.4 caption | "Posterior distributions of the parameters $A_V$, $dm$, $loga$, $met$" | "Marginal and joint distributions ... as sampled by the DEMetropolis ensemble", plus the non-convergence statement |
+| Appendix B title | "HDBSCAN diagnostic and ASteCA posterior corner plots" | "... ASteCA isochrone-fit corner plots" |
+| Appendix B intro | "the isochrone-fit posterior that underpin"; "the joint posterior of the ASteCA isochrone fit" | ensemble / joint distribution |
+| Sect. 6.1 | "the mode of the posterior distribution"; "the posterior therefore describes"; "the posterior corner plot" | fitted distribution / fitted spread / corner plot |
+| Fig. 6 caption | draws "from that posterior" | "from that ensemble" |
+| Table 1 `\tablefoot` | "converting the isochrone-fit distance-modulus posterior" | "... distance-modulus marginal" |
+
+The Fig. B.4 caption is the one that mattered most: it sat one paragraph below the text stating
+the ensemble is not a sampled posterior, and captions are read before body text. The King-fit
+posteriors (Figs. 2 and D.1, Tables D.1 and D.2) are left alone -- those samplers do converge and
+the word is correct there.
+
+Response letter R10 was aligned in the same pass ("the ASteCA corner plot ... whose caption now
+records that this DEMetropolis ensemble does not meet our convergence criteria").
+
+Machine check for the future: a sentence in `aanda.tex` or either letter that ties `posterior` to
+`isochrone|ASteCA|DEMetropolis|loga` without an adjacent qualifier is a defect. That regex now
+returns zero on all three documents; it returned nine before this pass and three before Sect. 49.
+
+Clean 26 pp / marked 30 pp / 0 errors / 0 undefined refs / 0 undefined citations; 21 figures live,
+0 "??"; source zip compiles standalone.
