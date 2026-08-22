@@ -854,7 +854,12 @@ def c_deliverables():
     """
     def text(p: Path) -> str | None:
         r = run(["pdftotext", str(p), "-"])
-        return r.stdout if r.returncode == 0 else None
+        if r.returncode != 0:
+            return None
+        # aa.cls stamps \today into the running head, so a rebuild on a later day differs from the
+        # copy in the date and nothing else. That is not a stale deliverable, and treating it as one
+        # makes the check cry wolf every time the clock rolls over.
+        return re.sub(r"\b[A-Z][a-z]+ \d{1,2}, \d{4}\b", "<fecha>", r.stdout)
 
     pairs = [(TEX.parent / "aanda.pdf", HERE / "aanda_revised_clean.pdf"),
              (MARKED.parent / "aanda_marked.pdf", HERE / "aanda_revised_marked.pdf"),
