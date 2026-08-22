@@ -27,9 +27,12 @@ OLD -> NEW SECTION MAPPING
     3.5 Comparative analysis  |  8 Comparison with previous studies
     4 Conclusions  |  9 Conclusions
 
-Note: in the point-by-point replies below, section references of the form
-"Sect. 2.x/3.x" refer to the referee's (round-1) numbering as used in the
-report; the mapping above translates them to the reorganized manuscript.
+Note on numbering. Each reply below is headed as "Sect. <round-1 number> ->
+<number in the revised manuscript>", e.g. "Sect. 2.1.1 -> 3.2". Everywhere
+else in this letter, section numbers are those of the revised manuscript. The
+restructuring also removed all third-level headings: the revised paper has no
+Sect. X.Y.Z at all, and the nine round-1 subsubsections are now second-level
+sections (2.1.1 -> 3.2, 2.1.2 -> 4.1, 2.1.5 -> 5, 3.5.1 -> 8.1, and so on).
 
 CORRECTIONS MADE ON OUR OWN INITIATIVE
 ======================================
@@ -108,16 +111,16 @@ analysis.
 Numerical parameters. Every numerical parameter flagged by the referee is now
 justified in place, with its calibration source and, where relevant, a
 quantified sensitivity test (see the replies to the specific points, in
-particular Sect. 2.1.5 priors, the ASteCA binarity coefficients, and the
+particular the Sect. 5 priors, the ASteCA binarity coefficients, and the
 extraction-radius question).
 
 SPECIFIC POINTS
 ===============
 
-R1. Sect. 2.1, tool enumeration, purposes, and references
----------------------------------------------------------
+R1. Sect. 2.1 -> 3.1, tool enumeration, purposes, references
+------------------------------------------------------------
 
-We agree and have restructured the opening of Sect. 2.1. A new paragraph now
+We agree and have restructured the opening of Sect. 3.1. A new paragraph now
 walks through the five steps of the analysis and states explicitly, for each
 tool, the task it performs in this work and why it follows from the previous
 step: HDBSCAN identifies the members as a proper-motion over-density;
@@ -132,11 +135,11 @@ learn, ASteCA, and Sagitta). The pipeline is the same code the round-1 version
 called COSMIC; it was renamed to avoid a collision with the cosmic-popsynth
 binary-population code, and the revised Sect. 3.1 says so at first mention.
 
-R2. Sect. 2.1.1, the native HDBSCAN membership probability
-----------------------------------------------------------
+R2. Sect. 2.1.1 -> 3.2, the native HDBSCAN membership probability
+-----------------------------------------------------------------
 
 We agree that this quantity was not defined, and we thank the referee for
-insisting on it. The revised Sect. 2.1.1 now defines both factors of the
+insisting on it. The revised Sect. 3.2 now defines both factors of the
 product precisely: f_i is the fraction of the 290 sweep runs in which source i
 is assigned to a cluster rather than to noise, and p_HDBSCAN,i is the soft
 cluster-membership strength that HDBSCAN derives from its condensed tree,
@@ -151,10 +154,10 @@ match the implementation exactly: it counts assignment to any cluster in a
 given sweep run, branch membership being enforced separately through the
 adopted run.
 
-R3. Sect. 2.1.1, the role of the density level lambda
------------------------------------------------------
+R3. Sect. 2.1.1 -> 3.2, the role of the density level lambda
+------------------------------------------------------------
 
-We agree that the role of lambda was left ambiguous. The revised Sect. 2.1.1
+We agree that the role of lambda was left ambiguous. The revised Sect. 3.2
 now introduces lambda once and states its three, and only three, roles
 explicitly: (i) within each sweep run, the NGC 6383 candidate branch is
 identified as the condensed-tree branch containing the highest density level;
@@ -168,17 +171,17 @@ lambda_max>=8 cut is a display criterion that affects neither the adopted
 configuration, which is set by maximizing the recovered branch size, nor the
 membership itself.
 
-R4. Sect. 2.1.2, notation (U, half-normal, mean parallax)
----------------------------------------------------------
+R4. Sect. 2.1.2 -> 4.1, notation (U, half-normal, mean parallax)
+----------------------------------------------------------------
 
 We thank the referee for flagging the undefined notation. U(a,b) denotes the
 uniform distribution on [a,b], it is the prior on the mean parallax, while the
 half-normal prior mentioned in our previous response applies to the parallax
 dispersion sigma_parallax; we regret that the letter allowed these two priors
-to be conflated. The revised Sect. 2.1.2 now defines N(mu,sigma), U(a,b), and
+to be conflated. The revised Sect. 4.1 now defines N(mu,sigma), U(a,b), and
 HN(s) (half-normal with scale s) explicitly at first use, and states that this
 notation applies to all priors in the paper, including the King-profile priors
-of Sect. 2.1.5. We also now define mean-parallax as the arithmetic mean of the
+of Sect. 5. We also now define mean-parallax as the arithmetic mean of the
 observed parallaxes of the sources entering the fit (those with fractional
 parallax error below 0.1), matching the implementation in the published code.
 
@@ -192,17 +195,17 @@ distances. (While revising this point we also corrected the distance-modulus
 uncertainty, which had inadvertently duplicated the extinction uncertainty: it
 is +/-0.09 mag, and the derived distance 1.15 +/- 0.05 kpc.) The Bailer-Jones
 geometric distances enter only the first line, through the hierarchical
-distance model of Sect. 2.1.2. We have renamed both rows ("Distance (parallax-
+distance model of Sect. 4.1. We have renamed both rows ("Distance (parallax-
 based)" and "Distance (from distance modulus)") and extended the table caption
 to state the origin of each value, including the fact that the two estimates
 are not independent because the distance-modulus prior was centered on the
 parallax-based distance, as already noted in Sect. 3.2.
 
-R6. Sect. 2.1.3, sampler diagnostics (R-hat, ESS, divergences, E-BFMI)
-----------------------------------------------------------------------
+R6. Sect. 2.1.3 -> 3.1, sampler diagnostics (R-hat, ESS, E-BFMI)
+----------------------------------------------------------------
 
 We agree that these diagnostics were listed without explanation. The revised
-Sect. 2.1.3 now introduces each quantity in plain language: the rank-
+Sect. 3.1 now introduces each quantity in plain language: the rank-
 normalized R-hat (agreement between independent chains), the bulk and tail
 effective sample sizes (number of effectively independent posterior draws),
 divergent transitions (numerical failures of the Hamiltonian integrator), and
@@ -212,10 +215,10 @@ appropriate reference for the E-BFMI diagnostic (Betancourt 2016) alongside
 Vehtari et al. (2021), and state the recommended thresholds (R-hat<1.01, ESS
 >400, E-BFMI >0.3) that all our NUTS-based fits comfortably satisfy.
 
-R7. Sect. 2.1.5 / 2.2, prior coefficients (0.8/1.5 Tmax) and the binarity alpha/beta
-------------------------------------------------------------------------------------
+R7. Sect. 2.1.5 / 2.2 -> 5 / 6.1, prior coefficients and binarity alpha/beta
+----------------------------------------------------------------------------
 
-The coefficients in Sect. 2.1.5 are not tuned values but weakly informative
+The coefficients in Sect. 5 are not tuned values but weakly informative
 bounds anchored to the largest physically meaningful scale of the system,
 T_max=max(R_Hill, r_bound)=42.5' (Table 1): 0.8 T_max places the core-radius
 bound more than an order of magnitude above any realistic open-cluster core
@@ -227,7 +230,7 @@ leaves R_c, k, b, and C unchanged to within 0.5sigma (R_c=2.00+/-0.20 versus
 the adopted 1.96^+0.19_-0.16 arcmin) and shifts only the outer radius (median
 R_t~33 versus 40^+16_-17 arcmin, consistent within 1sigma), which the text
 already characterizes as weakly constrained and model dependent; the revised
-Sect. 2.1.5 now states this rationale and sensitivity test explicitly. We
+Sect. 5 now states this rationale and sensitivity test explicitly. We
 should be explicit that these alternative coefficients are not neutral for the
 fit we finally adopt: with T_max=42.5', a bound of 1.2 T_max=51.0' falls below
 the adopted R_t=54' of the 70 arcmin refit, so any coefficient smaller than
@@ -236,7 +239,7 @@ than perturb it. This is not a second, independent limitation but the same one
 seen from the other side, and the revised Sect. 5 now states the arithmetic:
 R_t is bounded from above by the prior in every window we fit, which is why we
 report it as conditional on that bound and quantify the relaxed-bound case
-(see our reply to R11). Concerning alpha and beta in Sect. 2.2: these are the
+(see our reply to R11). Concerning alpha and beta in Sect. 6.1: these are the
 two coefficients of ASteCA's parametrization of the multiplicity fraction as a
 function of primary mass, calibrated by ASteCA on the observed multiplicity
 compilation of Offner et al. (2023, Protostars & Planets VII), and they were
@@ -247,23 +250,23 @@ agreement with Duchêne & Kraus (2013) and Moe & Di Stefano (2017). The revised
 text now gives the calibration source and this correspondence with the
 observed binarity-mass relation.
 
-R8. Sect. 2.1.5, galactocentric distance of 7.19 kpc
-----------------------------------------------------
+R8. Sect. 2.1.5 -> 7, galactocentric distance of 7.19 kpc
+---------------------------------------------------------
 
 The galactocentric distance follows from the cluster's Galactic coordinates
 and the adopted parallax-based distance (d = 1.11 +/- 0.06 kpc) through the
 law of cosines, R_gc = (R_sun^2 + d^2 - 2 R_sun d cos l cos b)^1/2, adopting
 a solar galactocentric radius of R_sun = 8.3 kpc (de Grijs & Bono 2016),
 which yields 7.19 kpc; the uncertainty is propagated from the distance and
-cluster-center uncertainties. The revised Sect. 2.1.5 now states the formula,
+cluster-center uncertainties. The revised Sect. 7 now states the formula,
 the adopted R_sun with its reference, and the error propagation explicitly.
 
-R9. Sect. 2.2, assumptions behind the MIST isochrones
------------------------------------------------------
+R9. Sect. 2.2 -> 6.1, assumptions behind the MIST isochrones
+------------------------------------------------------------
 
 We agree that ages of very young clusters are sensitive to the input physics
 of the adopted evolutionary models, and we now recall the key assumptions
-behind MIST in Sect. 2.2: we used the MIST v1.2 grids, which adopt solar-
+behind MIST in Sect. 6.1: we used the MIST v1.2 grids, which adopt solar-
 scaled abundances (Asplund et al. 2009; Z_sun~0.0142), a single solar-
 calibrated mixing length (alpha_MLT=1.82), exponentially decaying convective
 overshooting (f_ov,core=0.016, f_ov,env=0.0174), and v/v_crit=0.4 with
@@ -279,18 +282,18 @@ our quoted uncertainty is the posterior spread within the MIST family only,
 and the cross-comparison with alternative PMS families (PARSEC, Baraffe)
 remains deferred to a dedicated follow-up as noted in our previous response.
 
-R10. Sect. 2.2, which figure shows the nuisance parameter
----------------------------------------------------------
+R10. Sect. 2.2 -> 6.1, which figure shows the nuisance parameter
+----------------------------------------------------------------
 
 The referee's inference is correct: the plot in question is the ASteCA corner
 plot, Fig. B.4 (Appendix B), which shows the joint and marginal distributions
 of the four isochrone-fit parameters together with the likelihood-scatter
 nuisance term sigma, and whose caption now records that this DEMetropolis
-ensemble does not meet our convergence criteria. The sentence in Sect. 2.2 now
+ensemble does not meet our convergence criteria. The sentence in Sect. 6.1 now
 cites the figure explicitly, and we have simplified its wording.
 
-R11. Sect. 3, extraction radius vs King outer radius
-----------------------------------------------------
+R11. Sect. 3 -> 3.3 + 5, extraction radius vs King outer radius
+---------------------------------------------------------------
 
 We have followed the referee's suggestion: the King outer radius is now
 measured from, rather than merely checked against, the wider extractions. At
@@ -321,8 +324,8 @@ now covers the adopted fit as well. A comparison of the adopted R_t with the
 smaller literature tidal radii (15-30 arcmin), and the reason for the
 difference (window and background treatment), has been added to Sect. 8.4.
 
-R12. Sect. 3.4, the incomprehensible KS sentence
-------------------------------------------------
+R12. Sect. 3.4 -> 7, the incomprehensible KS sentence
+-----------------------------------------------------
 
 We agree that this sentence was too compressed and have rewritten it in full.
 The revised text states explicitly what is compared: the radial distribution
@@ -338,25 +341,25 @@ instead matches Gaia incompleteness at G >~ 18 mag in the crowded cluster
 center, consistent with the completeness limit at ~1 kpc cited in the same
 paragraph.
 
-R13. Sect. 3.4, how secondary masses enter the system mass
-----------------------------------------------------------
+R13. Sect. 3.4 -> 7, how secondary masses enter the system mass
+---------------------------------------------------------------
 
 The secondary masses are not derived from an assumed universal mass ratio;
 they are per-star estimates provided by ASteCA's synthetic-population
-analysis, and we have added an explanation of the mechanism to Sect. 3.4. For
+analysis, and we have added an explanation of the mechanism to Sect. 7. For
 each of the 200 synthetic-cluster realizations drawn from the posterior of the
 fitted parameters, each observed star is matched to the photometrically
 closest synthetic star; the medians over the realizations give the per-star
 primary and secondary masses, and the fraction of realizations in which the
 match is a binary gives the binary probability. The mass ratios of the
 synthetic binaries follow the Duchêne & Kraus (2013) distribution already
-specified in Sect. 2.2, to which the new text now explicitly refers. For the
+specified in Sect. 6.1, to which the new text now explicitly refers. For the
 51 stars whose secondary is added to the system mass (binary probability >
 0.7), the resulting effective mass ratios span q = 0.26-0.73 with a median of
 0.60; this is now stated in the text.
 
-R14. Sect. 3.4, segregation time, HD 159176, and the 99.2% subsample
---------------------------------------------------------------------
+R14. Sect. 3.4 -> 7, segregation time, HD 159176, the 99.2% subsample
+---------------------------------------------------------------------
 
 We agree on both points. First, we now state explicitly that t_seg scales
 inversely with the mass of the most massive member: if HD 159176 (O7V + O7V;
@@ -378,8 +381,8 @@ relaxation, so any segregation within this subsample must be primordial or
 early-dynamical. The caption of the corresponding appendix figure has been
 aligned with this wording.
 
-R15. Sect. 3.5.1, the "accreting Be-binary scenario"
-----------------------------------------------------
+R15. Sect. 3.5.1 -> 8.1, the "accreting Be-binary scenario"
+-----------------------------------------------------------
 
 We agree and have removed the ambiguous wording. No accreting Be-binary
 scenario has ever been proposed for HD 159176 in the literature; the clause
@@ -393,8 +396,8 @@ their wind-wind interaction, and we now cite the dedicated XMM-Newton study of
 the system (De Becker et al. 2004, A&A 416, 221), which has been added to the
 reference list.
 
-R16. Sect. 3.5.3, organization and provenance of literature ages
-----------------------------------------------------------------
+R16. Sect. 3.5.3 -> 8.3, organization and provenance of literature ages
+-----------------------------------------------------------------------
 
 We reorganized this subsection so that the discussion of Kalari (2019), sample
 description, age provenance, and the member-by-member comparison with our
@@ -423,10 +426,10 @@ caption states that the tabulated ages are not on a common distance scale (the
 distances adopted by the studies reporting an age span 0.83-1.70 kpc, 1.6 mag
 in distance modulus). See also our response to point R9.
 
-R17. Sect. 3.5.4, added value with respect to published catalogs
-----------------------------------------------------------------
+R17. Sect. 3.5.4 -> 8.4, added value with respect to published catalogs
+-----------------------------------------------------------------------
 
-We have added a closing paragraph to Sect. 3.5.4 stating explicitly what the
+We have added a closing paragraph to Sect. 8.4 stating explicitly what the
 present study adds relative to the published catalogs. In brief, those
 catalogs are homogeneous all-sky compilations in which each cluster is
 processed with a single fixed pipeline configuration, whereas for NGC 6383 we
@@ -434,7 +437,7 @@ provide sampled posterior distributions, with reported uncertainties and
 convergence diagnostics, for the astrometric and King structural parameters
 and for the parallax-based distance; for the isochrone fit we report the
 ensemble together with the explicit statement that it does not meet our
-convergence criteria (Sect. 2.1.3, Appendix B), and adopt a systematic age
+convergence criteria (Sect. 3.1, Appendix B), and adopt a systematic age
 range in place of a posterior width, which is itself information a fixed-
 pipeline catalog does not supply. We also provide a per-star CDS catalog with
 membership pseudo-probabilities, masses, binary probabilities, and PMS
@@ -447,7 +450,7 @@ dependence rather than adopting one configuration, the HDBSCAN hyperparameter
 sweep is marginalized into the per-star pseudo-probabilities (Appendix B), the
 search-window dependence is measured directly with the 50-70 arcmin re-runs
 (Appendix D), and the mass-segregation signal is checked for stability against
-the classification threshold (Sect. 3.4); this per-cluster sensitivity budget
+the classification threshold (Sect. 7); this per-cluster sensitivity budget
 is not available in the compared catalogs. Where a quantity is found to be
 configuration-sensitive (the outer membership and the King outer radius), we
 say so explicitly and label it as window- or model-dependent. We have

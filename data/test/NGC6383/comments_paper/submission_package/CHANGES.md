@@ -1872,3 +1872,43 @@ repeated in Sect. 76's audit list as verified, and the verification behind it wa
 `catalogue`. Checking the word the sentence names is not checking the sentence.
 
 gate.py 25/25.
+
+## 80. The editor could not find a section, and was right to look (2026-08-17)
+
+The A&A editorial office, on resubmission: *"It looks like the compiled PDF is not the revised
+version: there is for instance no Sect. 3.1.1."*
+
+**The PDF is the revised version.** Verified from the uploaded archive itself, not from the working
+copy: `aa52082-24_source.zip` compiles to the round-2 structure (Analysis framework and cluster
+membership 3.1-3.3, Astrometric parameters 4.1-4.3, Cluster structure 5, ...), against round 1's
+Methodology/Results with COSMIC, ASteCA and Sagitta subsections.
+
+**And there is no Sect. 3.1.1, in this or any other numbering of the revised paper.** Round 1 had
+nine `\subsubsection`s; the restructuring the referee asked for flattened every one of them into a
+second-level section. The revised manuscript has **zero** third-level headings.
+
+**What sent the editor looking for one was our response letter.** Its reply headers carried the
+referee's round-1 numbers, and four replies said "**The revised** Sect. 2.1.x now ...", attaching
+*revised* to a number that exists only in the superseded version -- while the letter's own mapping
+sends 2.1 to 3.1. Read together, "the revised Sect. 2.1.1" resolves to 3.1.1, which is not there.
+The letter was also already inconsistent with itself: it said "the revised Sect. 3.1" and "the
+revised Sect. 5" in the new numbering and "the revised Sect. 2.1.1" in the old, in the same
+document.
+
+Rewritten throughout. Every reply is now headed `Sect. <round-1> -> <revised>`, e.g.
+`R2. Sect. 2.1.1 -> 3.2`, so the referee finds their own point and the editor finds the section.
+Every other section number in the letter is the revised one: 13 references renumbered. The note
+under the mapping now states outright that the revised paper has no Sect. X.Y.Z at all, which is
+the fact whose absence caused this.
+
+→ `c_section_refs`. Every "Sect. N" in either letter must exist in the manuscript, where the set of
+real numbers is walked out of the sectioning commands rather than listed. Lines using the arrow
+form present both numbers on purpose and are skipped, as is the mapping table. Mutation-tested
+twice: restoring "the revised Sect. 2.1.1", and citing the "Sect. 3.1.1" the editor actually
+looked for.
+
+The class is one this file has recorded five times and had not yet caught in this form: **an
+artefact describing the manuscript in terms the manuscript no longer uses.** Every previous
+instance was a value or a phrase. This one was a coordinate system.
+
+gate.py 21/21 quick.

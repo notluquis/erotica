@@ -294,6 +294,48 @@ def c_spelling():
                      else f"{len(bad)} -> {bad[:3]}")
 
 
+@check("las cartas no citan secciones que el manuscrito no tiene")
+def c_section_refs():
+    """A reply that points at a section number the PDF does not contain reads as a stale PDF.
+
+    The A&A editorial office wrote on 2026-08-17: "It looks like the compiled PDF is not the
+    revised version: there is for instance no Sect. 3.1.1." The PDF was correct. The response
+    letter said "The revised Sect. 2.1.1 now defines...", attaching *revised* to a round-1 number,
+    while its own mapping sends 2.1 to 3.1 -- so a reader looking for the revised counterpart hunts
+    for 3.1.1. The restructuring removed all nine subsubsections, so no Sect. X.Y.Z exists at all.
+
+    Only numbers presented as belonging to the revised manuscript are checked. The reply headers
+    deliberately carry both ("Sect. 2.1.1 -> 3.2") and the mapping table lists every round-1
+    number, so both are skipped; what must resolve is any other "Sect. N" in the prose.
+    """
+    tex = TEX.read_text()
+    body = tex[:tex.find(r"\begin{appendix}")] if r"\begin{appendix}" in tex else tex
+    have, sec, sub = set(), 0, 0
+    for m in re.finditer(r"\\(subsection|section)\{", body):
+        if m.group(1) == "section":
+            sec, sub = sec + 1, 0
+            have.add(str(sec))
+        else:
+            sub += 1
+            have.add(f"{sec}.{sub}")
+    bad = []
+    for path in LETTERS:
+        text = path.read_text()
+        for m in re.finditer(r"Sects?\.\s+(\d+(?:\.\d+)*)", text):
+            # The arrow form presents both numbers on purpose -- reply headers and the note that
+            # explains them -- and the mapping table lists every round-1 number by design.
+            line = text[text.rfind("\n", 0, m.start()) + 1:text.find("\n", m.end())]
+            # A line using the arrow form is presenting both numbers on purpose: the reply
+            # headers, the note that explains them, and R7's compound "2.1.5 / 2.2 -> 5 / 6.1".
+            # The mapping table lists every round-1 number by design.
+            if "->" in line or "|" in line:
+                continue
+            if m.group(1) not in have:
+                bad.append(f"{path.name}: Sect. {m.group(1)} no existe en el manuscrito")
+    return not bad, (f"todas las secciones citadas existen ({len(have)} en el manuscrito)"
+                     if not bad else f"{len(bad)} -> {sorted(set(bad))[:4]}")
+
+
 @check("copias de las cartas y del ReadMe sincronizadas")
 def c_copies():
     pairs = [
@@ -947,7 +989,7 @@ def main() -> int:
 
     print("=== consistencia entre el manuscrito y lo que lo describe ===")
     c_posterior(); c_letter_numbers(); c_kb(); c_register(); c_overclaim()
-    c_dropped_symbols(); c_spelling(); c_copies(); c_cds_claim(); c_marked_fresh(); c_cds(); c_table1(); c_paraphrase(); c_literature_agreement(); c_literature_span(); c_catalog_numbers()
+    c_dropped_symbols(); c_spelling(); c_section_refs(); c_copies(); c_cds_claim(); c_marked_fresh(); c_cds(); c_table1(); c_paraphrase(); c_literature_agreement(); c_literature_span(); c_catalog_numbers()
     print("\n=== fuente LaTeX ===")
     c_linters(); c_typos(); c_strip(); c_linenumbers()
     # The slow group is measured, not listed. A second hand-maintained copy of these five names
