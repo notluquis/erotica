@@ -804,12 +804,25 @@ def c_linters():
     # .chktexrc; cualquier otro numero falla y se imprime.
     a = run(["chktex", "-q", "-f", "%n|%l|%m\n", "aanda.tex"], cwd=TEX.parent)
     warns = [w for w in a.stdout.replace("\\n", "\n").split("\n") if w.strip()]
-    unexpected = [w for w in warns if not w.startswith("8|")]
+    accept = ["8|"]  # nº8: largo de guion, ver DashExcpt en .chktexrc
+    # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$). \textsc{`:
+    # no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La clase que el 12
+    # vigila es real aca -- 113 abreviaturas en el manuscrito -- asi que NO se desactiva: se acepta
+    # solo bajo la version vieja, que es la que trae el runner de Ubuntu. La version se imprime, para
+    # que la divergencia entre los dos entornos quede a la vista en ambos registros en vez de
+    # convertirse en la clase de silencio que este gate existe para sacar.
+    ver = run(["chktex", "--version"]).stdout
+    m = re.search(r"v(\d+)\.(\d+)\.(\d+)", ver)
+    old_chktex = tuple(map(int, m.groups())) < (1, 7, 9) if m else True
+    if old_chktex:
+        accept.append("12|")
+    unexpected = [w for w in warns if not any(w.startswith(k) for k in accept)]
     b = run(["lacheck", "aanda.tex"], cwd=TEX.parent)
     lacheck = [l for l in b.stdout.split("\n")
                if l.strip() and "Dots should be ellipsis" not in l]
     ok = not unexpected and not lacheck
-    detail = f"chktex {len(warns)} avisos, todos del nº8 (guion); lacheck 0"
+    vtag = (m.group(0) if m else "version desconocida") + (", nº12 aceptado" if old_chktex else "")
+    detail = f"chktex {vtag}: {len(warns)} avisos, todos aceptados; lacheck 0"
     if not ok:
         detail = ("chktex inesperados: " + "; ".join(unexpected[:3]) if unexpected else "") + \
                  ("  lacheck: " + "; ".join(lacheck[:3]) if lacheck else "")
