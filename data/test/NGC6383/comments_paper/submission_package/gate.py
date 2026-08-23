@@ -805,10 +805,13 @@ def c_linters():
     a = run(["chktex", "-q", "-f", "%n|%l|%m\n", "aanda.tex"], cwd=TEX.parent)
     warns = [w for w in a.stdout.replace("\\n", "\n").split("\n") if w.strip()]
     accept = ["8|"]  # nº8: largo de guion, ver DashExcpt en .chktexrc
-    # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$). \textsc{`:
-    # no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La clase que el 12
+    # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$).
+    # \textsc{`:
+    # no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La clase que el
+    # 12
     # vigila es real aca -- 113 abreviaturas en el manuscrito -- asi que NO se desactiva: se acepta
-    # solo bajo la version vieja, que es la que trae el runner de Ubuntu. La version se imprime, para
+    # solo bajo la version vieja, que es la que trae el runner de Ubuntu. La version se imprime,
+    # para
     # que la divergencia entre los dos entornos quede a la vista en ambos registros en vez de
     # convertirse en la clase de silencio que este gate existe para sacar.
     ver = run(["chktex", "--version"]).stdout
