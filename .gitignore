@@ -121,6 +121,11 @@ Thumbs.db
 
 # --- slimmed 2026-07-19: bulky/regenerable paper artifacts kept out of git ---
 data/test/NGC6383/comments_paper/_legacy/
+# `cds_superseded/cds.zip` es la excepción y está trackeado a la fuerza (`git add -f`), no por
+# una negación: git no desciende a un directorio ignorado, así que un `!` sobre un fichero de
+# adentro no hace nada y sólo aparenta hacerlo. Es la línea base de lo que NESTOR tiene hoy;
+# gate.py la usa para comprobar que la carta declara los cambios del paquete CDS, y MANIFEST.md
+# dice que no se borre. Declararlo indispensable y no versionarlo era una contradicción.
 data/test/NGC6383/comments_paper/6383_old_paper/
 data/test/NGC6383/Tex_File/aanda.pdf
 data/test/NGC6383/comments_paper/submission_package/clean_source.zip

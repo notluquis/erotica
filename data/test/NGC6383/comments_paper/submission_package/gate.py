@@ -36,7 +36,9 @@ from __future__ import annotations
 
 import argparse
 import math
+import hashlib
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -48,8 +50,9 @@ LETTERS = [HERE / "letters" / "cover_letter_round2.txt",
            HERE / "letters" / "response_to_referee_round2.txt"]
 CDS_DAT = HERE.parent / "cds_final" / "ngc6383_members.dat"
 CDS_README = HERE.parent / "cds_final" / "ReadMe"
-KB_NOTES = [Path.home() / "phd" / "kb" / "papers" / "2024arXiv240509145P.md",
-            Path.home() / "phd" / "kb" / "objects" / "ngc-6383.md"]
+KB_ROOT = Path.home() / "phd" / "kb"
+KB_NOTES = [KB_ROOT / "papers" / "2024arXiv240509145P.md",
+            KB_ROOT / "objects" / "ngc-6383.md"]
 
 results: list[tuple[str, bool, str]] = []
 # @check registers a name only when the function is *called*, so a check that main() forgets to
@@ -58,6 +61,21 @@ results: list[tuple[str, bool, str]] = []
 # every one of them ran.
 declared: list[str] = []
 slow_checks: set[str] = set()
+skipped: list[tuple[str, str]] = []
+
+
+class Skipped(Exception):
+    """Un check cuyo insumo vive fuera de este repo y no esta presente aca.
+
+    Existe porque el gate se declaro "el duenio interino del manuscrito" y se cableo a CI, donde
+    dos checks no podian pasar jamas: uno lee `~/phd/kb`, que es OTRO repo, y el runner no lo
+    tiene. El resultado fue el peor de los dos mundos -- el gate local leia 26/26 mientras el
+    workflow fallaba en las cinco corridas seguidas desde el 2026-08-17, y nadie miraba.
+
+    La salida no es saltar en silencio: eso es exactamente el modo de falla que este repo
+    persigue en todo lo demas. Un salto se imprime, se cuenta aparte en el resumen, y nombra su
+    motivo. Y la condicion es angosta a proposito: se salta cuando falta el REPO entero, no
+    cuando falta el fichero -- si el repo esta y la nota no, eso es un borrado y falla."""
 
 
 def check(name: str, slow: bool = False):
@@ -72,6 +90,11 @@ def check(name: str, slow: bool = False):
         def wrapper(*a, **kw):
             try:
                 ok, detail = fn(*a, **kw)
+            except Skipped as exc:
+                skipped.append((name, str(exc)))
+                results.append((name, True, f"omitido: {exc}"))
+                print(f"omite  {name}: {exc}")
+                return True
             except Exception as exc:  # a check that crashes is a failed check
                 ok, detail = False, f"{type(exc).__name__}: {exc}"
             results.append((name, ok, detail))
@@ -137,6 +160,8 @@ def c_kb():
     month after the manuscript adopted 54 arcmin. Consulting it would have been worse than
     not consulting it, which is the reason it went unconsulted.
     """
+    if not KB_ROOT.is_dir():
+        raise Skipped(f"{KB_ROOT} no esta (es otro repo); el check corre en local, no en CI")
     missing = [p for p in KB_NOTES if not p.exists()]
     if missing:
         return False, f"notas no encontradas: {[p.name for p in missing]}"
@@ -410,8 +435,18 @@ def c_marked_fresh():
         return False, "falta marked_changes/new_revised.tex"
     if revised.read_bytes() != TEX.read_bytes():
         return False, "new_revised.tex != clean_source/aanda.tex; falta el cp del MANIFEST"
-    if MARKED.stat().st_mtime < revised.stat().st_mtime:
-        return False, "aanda_marked.tex mas viejo que new_revised.tex; falta correr latexdiff"
+    # Esto comparaba mtimes. git no preserva mtimes, asi que en un checkout limpio el orden es
+    # arbitrario: el check no podia fallar en CI por la razon correcta ni pasar por ella. El sello
+    # lo escribe set_diff_markup.py, que es obligatorio en la receta y corre justo despues de
+    # latexdiff, sobre la misma fuente -- es de contenido y sobrevive a un clone.
+    seal = MARKED.parent / "new_revised.sha256"
+    if not seal.exists():
+        return False, "falta new_revised.sha256; corre set_diff_markup.py tras latexdiff"
+    want = hashlib.sha256(revised.read_bytes()).hexdigest()
+    got = seal.read_text().strip()
+    if got != want:
+        return False, (f"el diff salio de otra fuente (sello {got[:12]}, actual {want[:12]}); "
+                       "falta correr latexdiff + set_diff_markup.py")
     # Colour is the whole notation in this build -- deletions are not struck through -- so the key
     # set_diff_markup.py injects after \maketitle is load-bearing, and it is injected into a file
     # that two later scripts rewrite.
@@ -773,6 +808,13 @@ def c_linters():
 
 @check("typos")
 def c_typos():
+    # En CI la cobertura existe pero por otra via: `crate-ci/typos@master` corre como paso propio
+    # del workflow, sobre ESTE directorio y con ESTE _typos.toml, y falla el job por su cuenta.
+    # Lo que esa accion no hace es dejar el binario en PATH, asi que invocarlo aca reventaba con
+    # FileNotFoundError y contaba como check fallado. Se omite nombrando quien cubre el hueco --
+    # no es una excepcion, es la misma revision corriendo un escalon mas arriba.
+    if shutil.which("typos") is None:
+        raise Skipped("binario ausente; lo corre el paso crate-ci/typos del workflow")
     r = run(["typos", str(HERE)])
     return r.returncode == 0, "limpio" if r.returncode == 0 else r.stdout.strip()[:160]
 
@@ -1012,7 +1054,10 @@ def main() -> int:
         return 1
 
     failed = [n for n, ok, _ in results if not ok]
-    print(f"\n{len(results) - len(failed)}/{len(results)} pasan")
+    print(f"\n{len(results) - len(failed) - len(skipped)}/{len(results)} pasan"
+          + (f", {len(skipped)} omitidos" if skipped else ""))
+    for n, why in skipped:
+        print(f"  omitido  {n}: {why}")
     if failed:
         print("FALLAN: " + ", ".join(failed))
         return 1

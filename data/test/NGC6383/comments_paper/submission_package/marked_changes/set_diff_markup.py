@@ -38,6 +38,7 @@ Usage, on the output of `latexdiff --type=CFONT` (see MANIFEST.md):
 
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -97,6 +98,18 @@ def main(argv: list[str]) -> int:
         done.append("leyenda de colores insertada")
 
     target.write_text(text)
+
+    # Sello de procedencia: de que fuente salio este diff. gate.py lo compara con el sha actual de
+    # new_revised.tex. Antes comparaba mtimes, y git no preserva mtimes: en un checkout limpio el
+    # orden es arbitrario, asi que el check no podia fallar en CI ni por la razon correcta ni por
+    # ninguna otra. Se escribe aca porque este script es obligatorio en la receta y corre justo
+    # despues de latexdiff -- nada queda a que alguien se acuerde de un paso extra.
+    src = target.parent / "new_revised.tex"
+    if src.exists():
+        sha = hashlib.sha256(src.read_bytes()).hexdigest()
+        (target.parent / "new_revised.sha256").write_text(sha + "\n")
+        done.append(f"sello de new_revised.tex {sha[:12]}")
+
     print("; ".join(done))
     return 0
 
