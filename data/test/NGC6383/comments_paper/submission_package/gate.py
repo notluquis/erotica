@@ -1100,6 +1100,16 @@ def main() -> int:
     if failed:
         print("FALLAN: " + ", ".join(failed))
         return 1
+    # La bendicion es lo unico sobre lo que alguien actua, asi que no puede sobrevivir a una
+    # omision. `c_zip` paso de fallar a omitirse cuando el zip no esta: en el runner eso es
+    # correcto, pero en la maquina que sube significa que la ranura obligatoria de NESTOR no
+    # existe -- y el gate igual imprimia "puede subirse". Una omision aca abajo es informacion
+    # que se pierde justo donde se toma la decision.
+    if skipped:
+        print(f"REVISADO PARCIAL - {len(skipped)} no corrieron: "
+              + ", ".join(n for n, _ in skipped)
+              + ". En la maquina que sube no deberia omitirse ninguno.")
+        return 0
     print("OK - el paquete puede subirse.")
     return 0
 
