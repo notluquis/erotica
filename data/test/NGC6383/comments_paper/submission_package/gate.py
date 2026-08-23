@@ -796,14 +796,24 @@ def c_cds():
 
 @check("chktex y lacheck")
 def c_linters():
-    a = run(["chktex", "-q", "-f", "%n\n", "aanda.tex"], cwd=TEX.parent)
-    n_chktex = len([x for x in a.stdout.strip().split("\n") if x.strip()])
+    # Esto contaba avisos y aceptaba "hasta 2". Un umbral no dice CUALES: si el aviso de guion se
+    # arreglara y apareciera otro distinto, la cuenta seguiria en 2 y el check verde -- pasa sin
+    # ver nada. Y cuando fallo en CI (3 en vez de 2) no habia forma de saber cual era el tercero,
+    # porque imprimia una cifra. Ahora acepta por NUMERO de aviso, no por cantidad: el 8 es el
+    # largo de guion, una regla de estilo sobre prosa cuyos casos reales ya cubre DashExcpt en
+    # .chktexrc; cualquier otro numero falla y se imprime.
+    a = run(["chktex", "-q", "-f", "%n|%l|%m\n", "aanda.tex"], cwd=TEX.parent)
+    warns = [w for w in a.stdout.replace("\\n", "\n").split("\n") if w.strip()]
+    unexpected = [w for w in warns if not w.startswith("8|")]
     b = run(["lacheck", "aanda.tex"], cwd=TEX.parent)
-    n_lacheck = len([l for l in b.stdout.split("\n")
-                     if l.strip() and "Dots should be ellipsis" not in l])
-    # 2 documented chktex residuals: "Sh 2-012" on lines 31 and 48, see .chktexrc
-    return (n_chktex <= 2 and n_lacheck == 0,
-            f"chktex {n_chktex} (2 residuos documentados), lacheck {n_lacheck}")
+    lacheck = [l for l in b.stdout.split("\n")
+               if l.strip() and "Dots should be ellipsis" not in l]
+    ok = not unexpected and not lacheck
+    detail = f"chktex {len(warns)} avisos, todos del nº8 (guion); lacheck 0"
+    if not ok:
+        detail = ("chktex inesperados: " + "; ".join(unexpected[:3]) if unexpected else "") + \
+                 ("  lacheck: " + "; ".join(lacheck[:3]) if lacheck else "")
+    return ok, detail
 
 
 @check("typos")
