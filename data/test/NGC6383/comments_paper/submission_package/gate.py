@@ -37,6 +37,7 @@ from __future__ import annotations
 import argparse
 import math
 import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -74,8 +75,15 @@ class Skipped(Exception):
 
     La salida no es saltar en silencio: eso es exactamente el modo de falla que este repo
     persigue en todo lo demas. Un salto se imprime, se cuenta aparte en el resumen, y nombra su
-    motivo. Y la condicion es angosta a proposito: se salta cuando falta el REPO entero, no
-    cuando falta el fichero -- si el repo esta y la nota no, eso es un borrado y falla."""
+    motivo, y desde 2026-08-24 **una omision no sale 0** salvo con `--allow-skips`, que solo pasa
+    CI -- asi que en la maquina que sube una omision impide bendecir el paquete.
+
+    La regla, corregida: **se omite cuando el insumo no puede existir en este entorno, y se falla
+    cuando podria existir y no esta.** El repo `kb` en un runner y el binario `typos` fuera de CI
+    no pueden estar; una nota borrada teniendo el repo, o un fichero que el MANIFEST declara
+    indispensable, si podrian. El docstring decia antes "se salta cuando falta el REPO entero, no
+    cuando falta el fichero", y tres de las cuatro omisiones que existen omiten por fichero o
+    binario ausente: una regla que el codigo contradice tres veces deja de restringir nada."""
 
 
 def check(name: str, slow: bool = False):
@@ -160,8 +168,14 @@ def c_kb():
     month after the manuscript adopted 54 arcmin. Consulting it would have been worse than
     not consulting it, which is the reason it went unconsulted.
     """
+    # La condicion es el ENTORNO, no la ruta. Antes bastaba con que `~/phd/kb` no estuviera, asi
+    # que un `git worktree`, un clon en otro sitio o una reorganizacion apagaban en silencio el
+    # unico check que existe porque la nota cargo el R_t superado durante un mes -- y lo apagaban
+    # justo en la maquina donde es load-bearing. En CI no puede estar; en local, si no esta, falta.
+    if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
+        raise Skipped("CI no clona el repo hermano `kb`; este check corre en local")
     if not KB_ROOT.is_dir():
-        raise Skipped(f"{KB_ROOT} no esta (es otro repo); el check corre en local, no en CI")
+        return False, f"{KB_ROOT} no esta: el grafo no se pudo comprobar (fetch de phd-kb?)"
     missing = [p for p in KB_NOTES if not p.exists()]
     if missing:
         return False, f"notas no encontradas: {[p.name for p in missing]}"
@@ -810,7 +824,25 @@ def c_linters():
     if "Unable to open" in a.stderr or "unable to open" in a.stderr.lower():
         return False, f"chktex no pudo leer aanda.tex: {a.stderr.strip()[:90]}"
     warns = [w for w in a.stdout.replace("\\n", "\n").split("\n") if w.strip()]
-    accept = ["8|"]  # nº8: largo de guion, ver DashExcpt en .chktexrc
+    # `.chktexrc` argumenta EXACTAMENTE lo contrario de aceptar el nº8 entero: "Relaxing NumDash
+    # would silence them but would also stop catching a genuine 1-10 written for 1--10, which is
+    # the more valuable check. Two explained warnings are cheaper than a weakened rule." Aceptar
+    # todos los guiones del documento era la regla debilitada que ese comentario rechaza -- medido,
+    # con `1-10 Myr` y `pp. 100-110` insertados, cuatro defectos tipograficos reales pasaban verdes.
+    # Se acepta el TEXTO documentado, "Sh 2-012", que es lo que ambos avisos marcan y sobrevive a
+    # que las lineas se muevan.
+    ACCEPTED_DASH = "Sh 2-012"
+    tex_lines = TEX.read_text().split("\n")
+
+    def dash_ok(w: str) -> bool:
+        parts = w.split("|")
+        if len(parts) < 2 or parts[0] != "8":
+            return False
+        try:
+            src = tex_lines[int(parts[1]) - 1]
+        except (ValueError, IndexError):
+            return False
+        return ACCEPTED_DASH in src
     # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$).
     # \textsc{`:
     # no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La clase que el
@@ -820,6 +852,7 @@ def c_linters():
     # para
     # que la divergencia entre los dos entornos quede a la vista en ambos registros en vez de
     # convertirse en la clase de silencio que este gate existe para sacar.
+    accept: list[str] = []
     ver = run(["chktex", "--version"]).stdout
     m = re.search(r"v(\d+)\.(\d+)\.(\d+)", ver)
     # Fallaba ABIERTO: sin `m`, `old_chktex` era True y la exencion del nº12 se concedia para
@@ -829,7 +862,8 @@ def c_linters():
     old_chktex = tuple(map(int, m.groups())) < (1, 7, 9) if m else False
     if old_chktex:
         accept.append("12|")
-    unexpected = [w for w in warns if not any(w.startswith(k) for k in accept)]
+    unexpected = [w for w in warns
+                  if not dash_ok(w) and not any(w.startswith(k) for k in accept)]
     b = run(["lacheck", "aanda.tex"], cwd=TEX.parent)
     if "not open" in b.stderr.lower() or "no such file" in b.stderr.lower():
         return False, f"lacheck no pudo leer aanda.tex: {b.stderr.strip()[:90]}"
