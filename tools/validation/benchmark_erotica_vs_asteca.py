@@ -1184,6 +1184,28 @@ def out_of_sample_recalibration(cells: list[dict], *, method: str) -> dict:
     return res
 
 
+def _sin_nan(o):
+    """`json.dumps` emite `NaN` como token desnudo, y eso NO es JSON.
+
+    Python lo relee, asi que el defecto es invisible desde aca; `jq`, `JSON.parse`, Go y cualquier
+    validador de esquema rechazan el fichero ENTERO. De estos sidecars salen las cifras que cita el
+    paper, asi que uno invalido no es "un valor raro en una fila": es un fichero que ningun lector
+    ajeno puede abrir. `null` es valido y significa lo mismo -- la metrica no esta definida para esa
+    celda (un Jaccard entre conjuntos vacios, un AUC con una sola clase).
+
+    Lo cazo `tools/check_json_strict.py` antes de commitear los brazos de B6.
+    """
+    import math
+
+    if isinstance(o, float):
+        return o if math.isfinite(o) else None
+    if isinstance(o, dict):
+        return {k: _sin_nan(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_sin_nan(v) for v in o]
+    return o
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
@@ -1329,7 +1351,7 @@ def main(argv=None) -> int:
                     )
                     cells.append(cell)
                     with ckpt.open("a") as fh:
-                        fh.write(json.dumps(cell) + "\n")
+                        fh.write(json.dumps(_sin_nan(cell)) + "\n")
 
     control = None
     if not args.skip_control:
@@ -1408,7 +1430,7 @@ def main(argv=None) -> int:
         "sweep_sensitivity": sensitivity,
         "out_of_sample_recalibration": recal,
     }
-    Path(args.out).write_text(json.dumps(payload, indent=2))
+    Path(args.out).write_text(json.dumps(_sin_nan(payload), indent=2))
     print(
         f"wrote {args.out} ({len(cells)} cells, {payload['wall_clock_s']:.1f} s)", file=sys.stderr
     )

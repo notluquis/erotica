@@ -1,0 +1,6400 @@
+{
+ "thread": "B6",
+ "question": "does a comoving neighbour change the benchmark's answer, and is the relative ordering preserved",
+ "finding": "agent-findings/benchmark-generator-has-no-neighbours.md (hub repo)",
+ "arms": {
+  "A": {
+   "neighbour_fraction": 0.0,
+   "delta_pm": null,
+   "delta_plx": null,
+   "neighbour_over_primary": 0.0
+  },
+  "B": {
+   "neighbour_fraction": 0.661,
+   "delta_pm": 12.0,
+   "delta_plx": 0.8,
+   "neighbour_over_primary": 2.64
+  },
+  "C": {
+   "neighbour_fraction": 0.661,
+   "delta_pm": 1.25,
+   "delta_plx": 0.8,
+   "neighbour_over_primary": 2.64
+  },
+  "Bp": {
+   "neighbour_fraction": 0.175,
+   "delta_pm": 12.0,
+   "delta_plx": 0.8,
+   "neighbour_over_primary": 0.7
+  },
+  "Cp": {
+   "neighbour_fraction": 0.175,
+   "delta_pm": 1.25,
+   "delta_plx": 0.8,
+   "neighbour_over_primary": 0.7
+  }
+ },
+ "note": "Compact by design: the full per-cell output is 5.5 MB across five files and trips the 500 KB pre-commit guard, which exists because an sdist once shipped 342 MB. Every number the finding quotes is here; the rest is regenerable from the flags in `arms`.",
+ "cells": [
+  {
+   "arm": "A",
+   "seed": 8000,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.7,
+     "recall": 0.5737704918032787,
+     "pmra_c": -1.2995611134394667,
+     "pmdec_c": -1.2221538277615873
+    },
+    "erotica_3d": {
+     "purity": 0.36,
+     "recall": 0.29508196721311475,
+     "pmra_c": -3.1094323544591926,
+     "pmdec_c": -2.4468000622621635
+    },
+    "erotica_5d": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.9350175507277232,
+     "pmdec_c": -1.6238480765197898
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.7,
+     "recall": 0.5737704918032787,
+     "pmra_c": -1.2995611134394667,
+     "pmdec_c": -1.2221538277615873
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.34,
+     "recall": 0.2786885245901639,
+     "pmra_c": -3.1024908076793474,
+     "pmdec_c": -2.4122265595338823
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.78,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.7248293513083406,
+     "pmdec_c": -1.427527323378206
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.7,
+     "recall": 0.5737704918032787,
+     "pmra_c": -1.3011553772249713,
+     "pmdec_c": -1.212947841304017
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.4262295081967213,
+     "pmra_c": -2.658401036310309,
+     "pmdec_c": -2.0565748392649366
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.9214102335625656,
+     "pmdec_c": -1.613324779742648
+    },
+    "erotica_pm_soft": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.2135786326448845,
+     "pmdec_c": -1.1815459201509695
+    },
+    "erotica_3d_soft": {
+     "purity": 0.58,
+     "recall": 0.47540983606557374,
+     "pmra_c": -2.1539782058508705,
+     "pmdec_c": -1.9043524946944004
+    },
+    "erotica_5d_soft": {
+     "purity": 0.78,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.6240137421260963,
+     "pmdec_c": -1.3716371233462843
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.84,
+     "recall": 0.6885245901639344,
+     "pmra_c": -1.6339754305543952,
+     "pmdec_c": -1.2286822985761936
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.84,
+     "recall": 0.6885245901639344,
+     "pmra_c": -1.4914546335721035,
+     "pmdec_c": -1.0869609389139914
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.7,
+     "recall": 0.5737704918032787,
+     "pmra_c": -1.9850807969024726,
+     "pmdec_c": -1.6647689549353026
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.1904041158428442,
+     "pmdec_c": -0.5136331863889579
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8001,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.22331639257556649,
+     "pmdec_c": -2.266798117195356
+    },
+    "erotica_3d": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.7343785093399657,
+     "pmdec_c": -1.6013671477747047
+    },
+    "erotica_5d": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2467095012432825,
+     "pmdec_c": -0.5552173417143356
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.29492950881044,
+     "pmdec_c": -3.448643855119968
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.8011509580482916,
+     "pmdec_c": -2.6465265598463548
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2467095012432825,
+     "pmdec_c": -0.5552173417143356
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.932392589319319,
+     "pmdec_c": -3.0601150187344563
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.7449356331625,
+     "pmdec_c": -1.5842603347834319
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2467095012432825,
+     "pmdec_c": -0.5552173417143356
+    },
+    "erotica_pm_soft": {
+     "purity": 0.92,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.248126713484382,
+     "pmdec_c": -0.949606966559983
+    },
+    "erotica_3d_soft": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.7800761639487177,
+     "pmdec_c": -2.1172612481075883
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.222975598432165,
+     "pmdec_c": -0.5361238993551853
+    },
+    "erotica_5d_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2390770091058967,
+     "pmdec_c": -0.5334170055122407
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.1473702607346696,
+     "pmdec_c": -0.5180227832843367
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.5823787138483425,
+     "pmdec_c": -1.5464907388262683
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2010792015930232,
+     "pmdec_c": -0.6024374468343587
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8002,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.7,
+     "recall": 0.5737704918032787,
+     "pmra_c": -1.923740698149559,
+     "pmdec_c": -1.3338514188420065
+    },
+    "erotica_3d": {
+     "purity": 0.38,
+     "recall": 0.3114754098360656,
+     "pmra_c": -2.565624954604743,
+     "pmdec_c": -2.007257787528752
+    },
+    "erotica_5d": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.049849178979797,
+     "pmdec_c": -0.7511239235264793
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.7,
+     "recall": 0.5737704918032787,
+     "pmra_c": -1.923740698149559,
+     "pmdec_c": -1.3338514188420065
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.38,
+     "recall": 0.3114754098360656,
+     "pmra_c": -2.565624954604743,
+     "pmdec_c": -2.007257787528752
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.0352906914699718,
+     "pmdec_c": -0.7539769763949757
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.68,
+     "recall": 0.5573770491803278,
+     "pmra_c": -1.9609418708192075,
+     "pmdec_c": -1.3988429773075322
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5,
+     "recall": 0.4098360655737705,
+     "pmra_c": -2.1229100507879886,
+     "pmdec_c": -1.7011364881055004
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.049849178979797,
+     "pmdec_c": -0.7511239235264793
+    },
+    "erotica_pm_soft": {
+     "purity": 0.8,
+     "recall": 0.6557377049180327,
+     "pmra_c": -1.6406902762352835,
+     "pmdec_c": -1.045642197151657
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.8546725147215364,
+     "pmdec_c": -1.3922825862519637
+    },
+    "erotica_5d_soft": {
+     "purity": 0.8,
+     "recall": 0.6557377049180327,
+     "pmra_c": -1.7828281012767326,
+     "pmdec_c": -0.6409909690451624
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.8,
+     "recall": 0.6557377049180327,
+     "pmra_c": -1.7926011323796902,
+     "pmdec_c": -0.6617461223925802
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.82,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.7250840696523084,
+     "pmdec_c": -0.669727464886495
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.049849178979797,
+     "pmdec_c": -0.7511239235264793
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.2478211401335921,
+     "pmdec_c": -0.4488483536631203
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8003,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.27586206896551724,
+     "recall": 0.13114754098360656,
+     "pmra_c": -2.196883232488047,
+     "pmdec_c": -3.239434516793608
+    },
+    "erotica_3d": {
+     "purity": 0.5172413793103449,
+     "recall": 0.2459016393442623,
+     "pmra_c": -2.003163050561355,
+     "pmdec_c": -1.3989687919045197
+    },
+    "erotica_5d": {
+     "purity": 0.5172413793103449,
+     "recall": 0.2459016393442623,
+     "pmra_c": -2.2382369599357412,
+     "pmdec_c": -1.5796808637094009
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.27586206896551724,
+     "recall": 0.13114754098360656,
+     "pmra_c": -2.196883232488047,
+     "pmdec_c": -3.239434516793608
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.4827586206896552,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.292647546666242,
+     "pmdec_c": -1.517366029951484
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.5172413793103449,
+     "recall": 0.2459016393442623,
+     "pmra_c": -2.2382369599357412,
+     "pmdec_c": -1.5796808637094009
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.27586206896551724,
+     "recall": 0.13114754098360656,
+     "pmra_c": -2.196883232488047,
+     "pmdec_c": -3.239434516793608
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5517241379310345,
+     "recall": 0.26229508196721313,
+     "pmra_c": -2.0353379682435273,
+     "pmdec_c": -1.2385318378760706
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.5172413793103449,
+     "recall": 0.2459016393442623,
+     "pmra_c": -2.2382369599357412,
+     "pmdec_c": -1.5796808637094009
+    },
+    "erotica_pm_soft": {
+     "purity": 0.8275862068965517,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2348041894451174,
+     "pmdec_c": -1.1868658367137406
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6551724137931034,
+     "recall": 0.3114754098360656,
+     "pmra_c": -2.0243097864544404,
+     "pmdec_c": -0.8326148765988334
+    },
+    "erotica_5d_soft": {
+     "purity": 0.7586206896551724,
+     "recall": 0.36065573770491804,
+     "pmra_c": -1.8245078651726152,
+     "pmdec_c": -1.028808549126208
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.7586206896551724,
+     "recall": 0.36065573770491804,
+     "pmra_c": -1.6747976061758627,
+     "pmdec_c": -1.1430126311079145
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.8620689655172413,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.497228514088499,
+     "pmdec_c": -0.9773443796944585
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.5172413793103449,
+     "recall": 0.2459016393442623,
+     "pmra_c": -2.069752757274906,
+     "pmdec_c": -1.6549634345387758
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.47540983606557374,
+     "pmra_c": -1.199162701194039,
+     "pmdec_c": -0.5059165247684455
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8004,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.7083333333333334,
+     "recall": 0.8360655737704918,
+     "pmra_c": -3.0972309705589165,
+     "pmdec_c": -1.360468056072404
+    },
+    "erotica_3d": {
+     "purity": 0.4583333333333333,
+     "recall": 0.5409836065573771,
+     "pmra_c": -2.4225626881118862,
+     "pmdec_c": -1.8574380629793845
+    },
+    "erotica_5d": {
+     "purity": 0.7222222222222222,
+     "recall": 0.8524590163934426,
+     "pmra_c": -1.961743625160614,
+     "pmdec_c": -1.7071061527053744
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.75,
+     "recall": 0.8852459016393442,
+     "pmra_c": -2.8231726805938138,
+     "pmdec_c": -1.2790448418997602
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3472222222222222,
+     "recall": 0.4098360655737705,
+     "pmra_c": -2.6986204568656214,
+     "pmdec_c": -2.1333498792457926
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.6527777777777778,
+     "recall": 0.7704918032786885,
+     "pmra_c": -2.2719334630749213,
+     "pmdec_c": -1.9928423940744517
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.7638888888888888,
+     "recall": 0.9016393442622951,
+     "pmra_c": -2.6260728874002575,
+     "pmdec_c": -1.2257135223137827
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.2974013270631537,
+     "pmdec_c": -1.7246176405458127
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.7083333333333334,
+     "recall": 0.8360655737704918,
+     "pmra_c": -2.0674250139257726,
+     "pmdec_c": -1.738704065546773
+    },
+    "erotica_pm_soft": {
+     "purity": 0.8472222222222222,
+     "recall": 1.0,
+     "pmra_c": -1.726735221048317,
+     "pmdec_c": -1.0193362917316269
+    },
+    "erotica_3d_soft": {
+     "purity": 0.5,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.4190299093246903,
+     "pmdec_c": -1.7453114560159646
+    },
+    "erotica_5d_soft": {
+     "purity": 0.6805555555555556,
+     "recall": 0.8032786885245902,
+     "pmra_c": -2.238097031825446,
+     "pmdec_c": -1.7112306735512763
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.7638888888888888,
+     "recall": 0.9016393442622951,
+     "pmra_c": -1.9489658053895584,
+     "pmdec_c": -1.5939534545771699
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.7083333333333334,
+     "recall": 0.8360655737704918,
+     "pmra_c": -2.13206432115733,
+     "pmdec_c": -1.7240226712794036
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.7222222222222222,
+     "recall": 0.8524590163934426,
+     "pmra_c": -1.961743625160614,
+     "pmdec_c": -1.7071061527053744
+    },
+    "asteca_fastmp": {
+     "purity": 0.8472222222222222,
+     "recall": 1.0,
+     "pmra_c": -1.1749136958215316,
+     "pmdec_c": -0.5468535481833625
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8005,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.7402597402597403,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.6377851416565323,
+     "pmdec_c": -1.2961003605607726
+    },
+    "erotica_3d": {
+     "purity": 0.38961038961038963,
+     "recall": 0.4918032786885246,
+     "pmra_c": -2.2151700660771314,
+     "pmdec_c": -2.247548036006229
+    },
+    "erotica_5d": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.7272727272727273,
+     "recall": 0.9180327868852459,
+     "pmra_c": -1.6401901065999889,
+     "pmdec_c": -1.3318614989711577
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3116883116883117,
+     "recall": 0.39344262295081966,
+     "pmra_c": -2.3980712043880286,
+     "pmdec_c": -2.38397549005225
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.7402597402597403,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.6377851416565323,
+     "pmdec_c": -1.2961003605607726
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.4675324675324675,
+     "recall": 0.5901639344262295,
+     "pmra_c": -2.095505492684514,
+     "pmdec_c": -2.0992786026384187
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "erotica_pm_soft": {
+     "purity": 0.7142857142857143,
+     "recall": 0.9016393442622951,
+     "pmra_c": -1.5319061115253776,
+     "pmdec_c": -1.130426541962706
+    },
+    "erotica_3d_soft": {
+     "purity": 0.42857142857142855,
+     "recall": 0.5409836065573771,
+     "pmra_c": -2.0019357074846207,
+     "pmdec_c": -1.861187450856638
+    },
+    "erotica_5d_soft": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.18181818181818182,
+     "recall": 0.22950819672131148,
+     "pmra_c": -2.823862913239305,
+     "pmdec_c": -2.768353157122542
+    },
+    "asteca_fastmp": {
+     "purity": 0.7922077922077922,
+     "recall": 1.0,
+     "pmra_c": -1.1552291691507925,
+     "pmdec_c": -0.5233163299488627
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8006,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 1.0,
+     "recall": 0.47540983606557374,
+     "pmra_c": -1.198295289099064,
+     "pmdec_c": -0.5270754719164952
+    },
+    "erotica_3d": {
+     "purity": 0.5172413793103449,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.6150406387224323,
+     "pmdec_c": -1.1642682495939796
+    },
+    "erotica_5d": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.9655172413793104,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.1972568955979672,
+     "pmdec_c": -0.5351264658182201
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3448275862068966,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.8209417436421587,
+     "pmdec_c": -1.5164640052767095
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.47540983606557374,
+     "pmra_c": -1.1886302750529965,
+     "pmdec_c": -0.5251179314960247
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.4827586206896552,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.8085349272426414,
+     "pmdec_c": -1.6964362665880797
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "erotica_pm_soft": {
+     "purity": 0.896551724137931,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.2966660792505977,
+     "pmdec_c": -0.9463440149127628
+    },
+    "erotica_3d_soft": {
+     "purity": 0.5862068965517241,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.6602318216690601,
+     "pmdec_c": -1.4377526811780676
+    },
+    "erotica_5d_soft": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.1724137931034483,
+     "recall": 0.08196721311475409,
+     "pmra_c": -3.6472303744340486,
+     "pmdec_c": -3.494717689844931
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.47540983606557374,
+     "pmra_c": -1.2760199823253113,
+     "pmdec_c": -0.5104659529797052
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8007,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.218775943802654,
+     "pmdec_c": -0.4557016181044035
+    },
+    "erotica_3d": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.179465118814726,
+     "pmdec_c": -1.8252879350724873
+    },
+    "erotica_5d": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1985344238679077,
+     "pmdec_c": -0.48843656111718275
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2064917990924287,
+     "pmdec_c": -0.46395099104950155
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.3235877989716684,
+     "pmdec_c": -1.6132812915052637
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1820782309845626,
+     "pmdec_c": -0.5648662054762235
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2194775821462172,
+     "pmdec_c": -0.455421356516158
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1805984957133986,
+     "pmdec_c": -0.49625440623047645
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.200884456760968,
+     "pmdec_c": -0.5234994951075539
+    },
+    "erotica_pm_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2194775821462172,
+     "pmdec_c": -0.455421356516158
+    },
+    "erotica_3d_soft": {
+     "purity": 0.8,
+     "recall": 0.32786885245901637,
+     "pmra_c": -1.4556288157615314,
+     "pmdec_c": -0.9950795452258124
+    },
+    "erotica_5d_soft": {
+     "purity": 0.92,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1719389515958367,
+     "pmdec_c": -0.8190807735466704
+    },
+    "erotica_5d_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2308365334006672,
+     "pmdec_c": -0.4883732657785076
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.133785882173362,
+     "pmdec_c": -0.5576220324305682
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -2.0679473135069664,
+     "pmdec_c": -1.4776874947381469
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2082875014500696,
+     "pmdec_c": -0.5763040467389993
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8008,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.2696668977983636,
+     "pmdec_c": -1.8991812238499484
+    },
+    "erotica_3d": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.5702961997781222,
+     "pmdec_c": -1.8027889909985766
+    },
+    "erotica_5d": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.7220045253346568,
+     "pmdec_c": -2.1074220827739394
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.341415058931911,
+     "pmdec_c": -2.019403015396471
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.3500713289716366,
+     "pmdec_c": -2.2692347773583896
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.76,
+     "recall": 0.3114754098360656,
+     "pmra_c": -1.5807941262355625,
+     "pmdec_c": -1.424988863119279
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.341415058931911,
+     "pmdec_c": -2.019403015396471
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.4921355524478577,
+     "pmdec_c": -1.7737858803452287
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.630921125551974,
+     "pmdec_c": -2.135539626699227
+    },
+    "erotica_pm_soft": {
+     "purity": 0.8,
+     "recall": 0.32786885245901637,
+     "pmra_c": -1.3521573404382408,
+     "pmdec_c": -1.066650381626171
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.5196980913678921,
+     "pmdec_c": -2.047079346791027
+    },
+    "erotica_5d_soft": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.5308100464756549,
+     "pmdec_c": -0.833612328303082
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.4304477260546635,
+     "pmdec_c": -1.030939069329681
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.88,
+     "recall": 0.36065573770491804,
+     "pmra_c": -1.4012963856665832,
+     "pmdec_c": -0.7826753297193362
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -1.833056710597142,
+     "pmdec_c": -3.0857655902962207
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1582112716150894,
+     "pmdec_c": -0.4429824321691958
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8009,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -2.4801511821417375,
+     "pmdec_c": -1.659322660430873
+    },
+    "erotica_3d": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -2.0147270201149956,
+     "pmdec_c": -0.9952301155279666
+    },
+    "erotica_5d": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2292637507739574,
+     "pmdec_c": -0.42615678643960025
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -2.4801511821417375,
+     "pmdec_c": -1.659322660430873
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.36,
+     "recall": 0.14754098360655737,
+     "pmra_c": -2.820590953403554,
+     "pmdec_c": -1.9305471482372454
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2292637507739574,
+     "pmdec_c": -0.42615678643960025
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -2.4949192028911567,
+     "pmdec_c": -1.6571745971165766
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.979052048707486,
+     "pmdec_c": -2.1101337655764545
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2292637507739574,
+     "pmdec_c": -0.42615678643960025
+    },
+    "erotica_pm_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1890960168587965,
+     "pmdec_c": -0.39877989249207596
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.7860698691716095,
+     "pmdec_c": -1.5418334912782845
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2162125489035769,
+     "pmdec_c": -0.4377223330959141
+    },
+    "erotica_5d_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1996226232617146,
+     "pmdec_c": -0.4235084393181059
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2073190433304655,
+     "pmdec_c": -0.4224643591183549
+    },
+    "erotica_5d_coarsef": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2292637507739574,
+     "pmdec_c": -0.42615678643960025
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2403504262532672,
+     "pmdec_c": -0.39132312269375413
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8010,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.72,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.9386358857509731,
+     "pmdec_c": -1.3050524317860037
+    },
+    "erotica_3d": {
+     "purity": 0.52,
+     "recall": 0.4262295081967213,
+     "pmra_c": -2.24691033518631,
+     "pmdec_c": -1.640554786757447
+    },
+    "erotica_5d": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.2286741176981053,
+     "pmdec_c": -0.5579463833449794
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.78,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.7347906164851912,
+     "pmdec_c": -1.1281291148875017
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.39344262295081966,
+     "pmra_c": -2.485547603899452,
+     "pmdec_c": -1.852966960321172
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.96,
+     "recall": 0.7868852459016393,
+     "pmra_c": -1.3424429498269148,
+     "pmdec_c": -0.6384182276024147
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.76,
+     "recall": 0.6229508196721312,
+     "pmra_c": -1.8543793552566519,
+     "pmdec_c": -1.213542410327338
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.4262295081967213,
+     "pmra_c": -2.2333638581614665,
+     "pmdec_c": -1.5831086912423569
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.96,
+     "recall": 0.7868852459016393,
+     "pmra_c": -1.3424429498269148,
+     "pmdec_c": -0.6384182276024147
+    },
+    "erotica_pm_soft": {
+     "purity": 0.78,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.603795124070769,
+     "pmdec_c": -0.9954848087612909
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.7252678472771146,
+     "pmdec_c": -1.7360170410203548
+    },
+    "erotica_5d_soft": {
+     "purity": 0.92,
+     "recall": 0.7540983606557377,
+     "pmra_c": -1.282225355272718,
+     "pmdec_c": -0.8227671577325947
+    },
+    "erotica_5d_erroraware": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.2286741176981053,
+     "pmdec_c": -0.5579463833449794
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.88,
+     "recall": 0.7213114754098361,
+     "pmra_c": -1.3146540863850902,
+     "pmdec_c": -0.9090369206593489
+    },
+    "erotica_5d_coarsef": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.2286741176981053,
+     "pmdec_c": -0.5579463833449794
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.2245809390179605,
+     "pmdec_c": -0.5572567033509322
+    }
+   }
+  },
+  {
+   "arm": "A",
+   "seed": 8011,
+   "n_members": 61,
+   "n_neighbour": 0,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -2.045288510470836,
+     "pmdec_c": -2.843457163497571
+    },
+    "erotica_3d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -2.163211893956184,
+     "pmdec_c": -2.6035741918971467
+    },
+    "erotica_5d": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -2.278314969800488,
+     "pmdec_c": -2.5310377637576114
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -2.045288510470836,
+     "pmdec_c": -2.843457163497571
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -2.3714966269803237,
+     "pmdec_c": -3.4992176315571073
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.8827239931750206,
+     "pmdec_c": -1.4393145734287267
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -2.036876686152235,
+     "pmdec_c": -2.7716238892043656
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.629939042833351,
+     "pmdec_c": -2.435174917186054
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -2.119852645189315,
+     "pmdec_c": -2.410400824110694
+    },
+    "erotica_pm_soft": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2244629090707078,
+     "pmdec_c": -0.7472138258183755
+    },
+    "erotica_3d_soft": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.5184577795899532,
+     "pmdec_c": -2.0530181338765785
+    },
+    "erotica_5d_soft": {
+     "purity": 0.76,
+     "recall": 0.3114754098360656,
+     "pmra_c": -1.2760034392614057,
+     "pmdec_c": -1.2401766643178285
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.60759963779186,
+     "pmdec_c": -1.6241497035404424
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.2637368818027306,
+     "pmdec_c": -1.145804400881184
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -2.1114128543953106,
+     "pmdec_c": -2.5814190780029604
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1701145268503093,
+     "pmdec_c": -0.570031098827966
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8000,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.55,
+     "recall": 0.36065573770491804,
+     "pmra_c": -0.4592526197232799,
+     "pmdec_c": 0.25292444437979666
+    },
+    "erotica_3d": {
+     "purity": 0.45,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.28384523776419124,
+     "pmdec_c": 0.44670841172887654
+    },
+    "erotica_5d": {
+     "purity": 0.45,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.2904678173353693,
+     "pmdec_c": 0.41419233028718094
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.4,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.22410030259933889,
+     "pmdec_c": 0.48631755337015503
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.45,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.28384523776419124,
+     "pmdec_c": 0.44670841172887654
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.2,
+     "recall": 0.13114754098360656,
+     "pmra_c": 0.14607008369957872,
+     "pmdec_c": 0.8243133369718331
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.525,
+     "recall": 0.3442622950819672,
+     "pmra_c": -0.43600473797387157,
+     "pmdec_c": 0.30391085171796345
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5,
+     "recall": 0.32786885245901637,
+     "pmra_c": -0.36925008779951796,
+     "pmdec_c": 0.3472697181769703
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.45,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.2904678173353693,
+     "pmdec_c": 0.41419233028718094
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.48064292318478224,
+     "pmdec_c": 1.201693683712063
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5178500592502439,
+     "pmdec_c": 1.1821989485456397
+    },
+    "erotica_5d_soft": {
+     "purity": 0.1,
+     "recall": 0.06557377049180328,
+     "pmra_c": 0.29914741546005164,
+     "pmdec_c": 1.008301426375058
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.425,
+     "recall": 0.2786885245901639,
+     "pmra_c": -0.24329273859664918,
+     "pmdec_c": 0.46394270657555436
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.1,
+     "recall": 0.06557377049180328,
+     "pmra_c": 0.29914741546005164,
+     "pmdec_c": 1.008301426375058
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.45,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.2904678173353693,
+     "pmdec_c": 0.41419233028718094
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.3845287269265449,
+     "pmdec_c": 1.160105158724916
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8001,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3837046300308809,
+     "pmdec_c": 0.3274317528477506
+    },
+    "erotica_3d": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.41076516326884005,
+     "pmdec_c": 0.2368341215080488
+    },
+    "erotica_5d": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.5263172083085694,
+     "pmdec_c": 0.14244208622209306
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3837046300308809,
+     "pmdec_c": 0.3274317528477506
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.41076516326884005,
+     "pmdec_c": 0.2368341215080488
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.3865052680237847,
+     "pmdec_c": 0.3068961287258523
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.37367280186399127,
+     "pmdec_c": 0.2836627760177776
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.3980240794570586,
+     "pmdec_c": 0.22909076185351931
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.5263172083085694,
+     "pmdec_c": 0.14244208622209306
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5157431303470692,
+     "pmdec_c": 1.1658631250180298
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5381364791603448,
+     "pmdec_c": 1.1423702490183678
+    },
+    "erotica_5d_soft": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.2959254749957989,
+     "pmdec_c": 1.0103205135109954
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.4115339411663947,
+     "pmdec_c": 0.26574036034433646
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.3050151670445132,
+     "pmdec_c": 0.9815101125589766
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.5263172083085694,
+     "pmdec_c": 0.14244208622209306
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.4529169277051146,
+     "pmdec_c": 1.203167826409625
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8002,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.34838709677419355,
+     "recall": 0.8852459016393442,
+     "pmra_c": -0.10426638137093187,
+     "pmdec_c": 0.6085415593675934
+    },
+    "erotica_3d": {
+     "purity": 0.3161290322580645,
+     "recall": 0.8032786885245902,
+     "pmra_c": -0.06118900364239139,
+     "pmdec_c": 0.6542379608809403
+    },
+    "erotica_5d": {
+     "purity": 0.3225806451612903,
+     "recall": 0.819672131147541,
+     "pmra_c": -0.060529749793293244,
+     "pmdec_c": 0.6534346255587171
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.3225806451612903,
+     "recall": 0.819672131147541,
+     "pmra_c": -0.06508900770725023,
+     "pmdec_c": 0.6401712178812642
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3161290322580645,
+     "recall": 0.8032786885245902,
+     "pmra_c": -0.06118900364239139,
+     "pmdec_c": 0.6542379608809403
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.17419354838709677,
+     "recall": 0.4426229508196721,
+     "pmra_c": 0.18630986256506893,
+     "pmdec_c": 0.8942339182576123
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5099644156942407,
+     "pmdec_c": 1.1937328515789085
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.3419354838709677,
+     "recall": 0.8688524590163934,
+     "pmra_c": -0.10409652162057552,
+     "pmdec_c": 0.6090682631696271
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.32903225806451614,
+     "recall": 0.8360655737704918,
+     "pmra_c": -0.07105236051376446,
+     "pmdec_c": 0.6402696303116778
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5099644156942407,
+     "pmdec_c": 1.1937328515789085
+    },
+    "erotica_3d_soft": {
+     "purity": 0.21935483870967742,
+     "recall": 0.5573770491803278,
+     "pmra_c": 0.11939243715805935,
+     "pmdec_c": 0.8198337176765957
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16129032258064516,
+     "recall": 0.4098360655737705,
+     "pmra_c": 0.21212706900460035,
+     "pmdec_c": 0.9207325313509874
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.2967741935483871,
+     "recall": 0.7540983606557377,
+     "pmra_c": -0.014284868645890481,
+     "pmdec_c": 0.696391584387594
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.16774193548387098,
+     "recall": 0.4262295081967213,
+     "pmra_c": 0.2096415842994723,
+     "pmdec_c": 0.9058476586263682
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.32903225806451614,
+     "recall": 0.8360655737704918,
+     "pmra_c": -0.07411180753816377,
+     "pmdec_c": 0.6425936876590173
+    },
+    "asteca_fastmp": {
+     "purity": 0.0064516129032258064,
+     "recall": 0.01639344262295082,
+     "pmra_c": 0.4944906115436731,
+     "pmdec_c": 1.1764919948829218
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8003,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.4244061518848248,
+     "pmdec_c": 0.2331464071051085
+    },
+    "erotica_3d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.319848106452175,
+     "pmdec_c": 0.26281498448923
+    },
+    "erotica_5d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2635938798202751,
+     "pmdec_c": 0.42855029894019503
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.2691310553973088,
+     "pmdec_c": 0.9491841615569356
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.319848106452175,
+     "pmdec_c": 0.26281498448923
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": 0.41510138272491104,
+     "pmdec_c": 1.0938698521828085
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -0.0656762874560279,
+     "pmdec_c": 0.6319939756965456
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.33584381402769625,
+     "pmdec_c": 0.27046356764446344
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2635938798202751,
+     "pmdec_c": 0.42855029894019503
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.4591040052440659,
+     "pmdec_c": 1.190420471777593
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.44925874881426686,
+     "pmdec_c": 1.1933672716325558
+    },
+    "erotica_5d_soft": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": 0.3489462098868251,
+     "pmdec_c": 1.0168961882669465
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3238197513975081,
+     "pmdec_c": 0.35361278492165094
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": 0.3489462098868251,
+     "pmdec_c": 1.0168961882669465
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2635938798202751,
+     "pmdec_c": 0.42855029894019503
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1593016464041728,
+     "pmdec_c": -0.5016787630405479
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8004,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.2542372881355932,
+     "recall": 0.2459016393442623,
+     "pmra_c": 0.04533430787115028,
+     "pmdec_c": 0.7979559774468243
+    },
+    "erotica_3d": {
+     "purity": 0.3050847457627119,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.02672015250478052,
+     "pmdec_c": 0.6934692577144361
+    },
+    "erotica_5d": {
+     "purity": 0.5084745762711864,
+     "recall": 0.4918032786885246,
+     "pmra_c": -0.3727702735852009,
+     "pmdec_c": 0.3885538014460474
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.1864406779661017,
+     "recall": 0.18032786885245902,
+     "pmra_c": 0.15213472636201558,
+     "pmdec_c": 0.9114901547320581
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3050847457627119,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.02672015250478052,
+     "pmdec_c": 0.6934692577144361
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.3220338983050847,
+     "recall": 0.3114754098360656,
+     "pmra_c": -0.03342053774417279,
+     "pmdec_c": 0.6974654806187649
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.4067796610169492,
+     "recall": 0.39344262295081966,
+     "pmra_c": -0.22299991135998926,
+     "pmdec_c": 0.5131078540920389
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.3050847457627119,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.025685285246903347,
+     "pmdec_c": 0.6975218738979537
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.5254237288135594,
+     "recall": 0.5081967213114754,
+     "pmra_c": -0.40689326471235937,
+     "pmdec_c": 0.35265541812884676
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.4924786465081469,
+     "pmdec_c": 1.2095038436174799
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5230525053365379,
+     "pmdec_c": 1.1806774923077343
+    },
+    "erotica_5d_soft": {
+     "purity": 0.05084745762711865,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.3990305022836992,
+     "pmdec_c": 1.1367994980601086
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.4576271186440678,
+     "recall": 0.4426229508196721,
+     "pmra_c": -0.2813336685793191,
+     "pmdec_c": 0.47192557579487304
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.06779661016949153,
+     "recall": 0.06557377049180328,
+     "pmra_c": 0.36959551421369075,
+     "pmdec_c": 1.1052098348904342
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.5084745762711864,
+     "recall": 0.4918032786885246,
+     "pmra_c": -0.3727702735852009,
+     "pmdec_c": 0.3885538014460474
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.44298990837722796,
+     "pmdec_c": 1.243416928735945
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8005,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": 0.1568813193264002,
+     "pmdec_c": 0.8759954183910388
+    },
+    "erotica_3d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3390538738627075,
+     "pmdec_c": 0.42007497753219253
+    },
+    "erotica_5d": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.5477666550001113,
+     "pmdec_c": 0.11154747554211131
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5084664461193903,
+     "pmdec_c": 1.2024232054011847
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3390538738627075,
+     "pmdec_c": 0.42007497753219253
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.31584076942583483,
+     "pmdec_c": 0.9831631362567224
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5194055735306258,
+     "pmdec_c": 1.189000507236765
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2412163041983529,
+     "pmdec_c": 0.48766706078098143
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": 0.09959763612088389,
+     "pmdec_c": 0.7453305934051467
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.4829295002759904,
+     "pmdec_c": 1.2025684680215958
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.49856329779383907,
+     "pmdec_c": 1.2238827060300306
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1932491904664522,
+     "pmdec_c": -0.451862102573439
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -0.492955509441283,
+     "pmdec_c": 0.16068370361927642
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.200417563290558,
+     "pmdec_c": -0.46188232424475895
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.5477666550001113,
+     "pmdec_c": 0.11154747554211131
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5274193602136314,
+     "pmdec_c": 1.1496606983340254
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8006,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.29347826086956524,
+     "recall": 0.4426229508196721,
+     "pmra_c": 0.014948100063172568,
+     "pmdec_c": 0.7186554711753211
+    },
+    "erotica_3d": {
+     "purity": 0.358695652173913,
+     "recall": 0.5409836065573771,
+     "pmra_c": -0.12075231675730022,
+     "pmdec_c": 0.6188286571200373
+    },
+    "erotica_5d": {
+     "purity": 0.391304347826087,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.184028191941603,
+     "pmdec_c": 0.531432187564076
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.29347826086956524,
+     "recall": 0.4426229508196721,
+     "pmra_c": 0.014948100063172568,
+     "pmdec_c": 0.7186554711753211
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.358695652173913,
+     "recall": 0.5409836065573771,
+     "pmra_c": -0.12075231675730022,
+     "pmdec_c": 0.6188286571200373
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.06521739130434782,
+     "recall": 0.09836065573770492,
+     "pmra_c": 0.39721236642666996,
+     "pmdec_c": 1.0844774974033533
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.5108695652173914,
+     "recall": 0.7704918032786885,
+     "pmra_c": -0.3827739000407027,
+     "pmdec_c": 0.3268322402639478
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.4782608695652174,
+     "recall": 0.7213114754098361,
+     "pmra_c": -0.3537451043018242,
+     "pmdec_c": 0.4034411077923584
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.3804347826086957,
+     "recall": 0.5737704918032787,
+     "pmra_c": -0.16832769893506433,
+     "pmdec_c": 0.55035410019409
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.523107898594542,
+     "pmdec_c": 1.2226733735679705
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.507512260179981,
+     "pmdec_c": 1.216098051189713
+    },
+    "erotica_5d_soft": {
+     "purity": 0.09782608695652174,
+     "recall": 0.14754098360655737,
+     "pmra_c": 0.32981763007862097,
+     "pmdec_c": 1.0306348888704127
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.3804347826086957,
+     "recall": 0.5737704918032787,
+     "pmra_c": -0.1620970476335811,
+     "pmdec_c": 0.5484772891874485
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.09782608695652174,
+     "recall": 0.14754098360655737,
+     "pmra_c": 0.32981763007862097,
+     "pmdec_c": 1.0306348888704127
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.391304347826087,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.184028191941603,
+     "pmdec_c": 0.531432187564076
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.45295827982220993,
+     "pmdec_c": 1.2174350143126247
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8007,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -0.005803847118380327,
+     "pmdec_c": 0.6904498834986077
+    },
+    "erotica_3d": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": 0.005949729497815026,
+     "pmdec_c": 0.6875559339992893
+    },
+    "erotica_5d": {
+     "purity": 0.305,
+     "recall": 1.0,
+     "pmra_c": -0.01834143558993866,
+     "pmdec_c": 0.6678242545178472
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -0.005803847118380327,
+     "pmdec_c": 0.6904498834986077
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": 0.005949729497815026,
+     "pmdec_c": 0.6875559339992893
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": 0.0078092269027032965,
+     "pmdec_c": 0.6975716997697341
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.305,
+     "recall": 1.0,
+     "pmra_c": -0.04072453625319253,
+     "pmdec_c": 0.6675983101330791
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": 0.00448498100834158,
+     "pmdec_c": 0.6907477263863794
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.27,
+     "recall": 0.8852459016393442,
+     "pmra_c": 0.043740663323581064,
+     "pmdec_c": 0.7269081058184826
+    },
+    "erotica_pm_soft": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": 0.14694608972477632,
+     "pmdec_c": 0.8130607666910143
+    },
+    "erotica_3d_soft": {
+     "purity": 0.245,
+     "recall": 0.8032786885245902,
+     "pmra_c": 0.0846152731780689,
+     "pmdec_c": 0.7619986029217148
+    },
+    "erotica_5d_soft": {
+     "purity": 0.23,
+     "recall": 0.7540983606557377,
+     "pmra_c": 0.10990160548225633,
+     "pmdec_c": 0.7874554070790899
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.305,
+     "recall": 1.0,
+     "pmra_c": -0.01834143558993866,
+     "pmdec_c": 0.6678242545178472
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.235,
+     "recall": 0.7704918032786885,
+     "pmra_c": 0.1020819380800435,
+     "pmdec_c": 0.7779337269386037
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.305,
+     "recall": 1.0,
+     "pmra_c": -0.01834143558993866,
+     "pmdec_c": 0.6678242545178472
+    },
+    "asteca_fastmp": {
+     "purity": 0.27,
+     "recall": 0.8852459016393442,
+     "pmra_c": 0.04968203611547484,
+     "pmdec_c": 0.7285775744711662
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8008,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.32666666666666666,
+     "recall": 0.8032786885245902,
+     "pmra_c": -0.11183480024847199,
+     "pmdec_c": 0.6427522726051954
+    },
+    "erotica_3d": {
+     "purity": 0.32,
+     "recall": 0.7868852459016393,
+     "pmra_c": -0.09389264187451266,
+     "pmdec_c": 0.6780683794907005
+    },
+    "erotica_5d": {
+     "purity": 0.35333333333333333,
+     "recall": 0.8688524590163934,
+     "pmra_c": -0.14228566228542705,
+     "pmdec_c": 0.6205809696941306
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.32666666666666666,
+     "recall": 0.8032786885245902,
+     "pmra_c": -0.11209390696982773,
+     "pmdec_c": 0.6413919341717298
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.32,
+     "recall": 0.7868852459016393,
+     "pmra_c": -0.09389264187451266,
+     "pmdec_c": 0.6780683794907005
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.2,
+     "recall": 0.4918032786885246,
+     "pmra_c": 0.10943923572989632,
+     "pmdec_c": 0.8684354431947527
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.4,
+     "recall": 0.9836065573770492,
+     "pmra_c": -0.251385439783324,
+     "pmdec_c": 0.5071680554674686
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.34,
+     "recall": 0.8360655737704918,
+     "pmra_c": -0.12136494324361548,
+     "pmdec_c": 0.6348277395773972
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.36666666666666664,
+     "recall": 0.9016393442622951,
+     "pmra_c": -0.16844460532251834,
+     "pmdec_c": 0.6047573495690224
+    },
+    "erotica_pm_soft": {
+     "purity": 0.12666666666666668,
+     "recall": 0.3114754098360656,
+     "pmra_c": 0.2510732099243944,
+     "pmdec_c": 1.0097536132481735
+    },
+    "erotica_3d_soft": {
+     "purity": 0.23333333333333334,
+     "recall": 0.5737704918032787,
+     "pmra_c": 0.055902218546290544,
+     "pmdec_c": 0.8274043348565681
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16666666666666666,
+     "recall": 0.4098360655737705,
+     "pmra_c": 0.1697638242457667,
+     "pmdec_c": 0.935369097263579
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.3466666666666667,
+     "recall": 0.8524590163934426,
+     "pmra_c": -0.1298908978335026,
+     "pmdec_c": 0.6324463503715371
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.16666666666666666,
+     "recall": 0.4098360655737705,
+     "pmra_c": 0.1697638242457667,
+     "pmdec_c": 0.935369097263579
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.35333333333333333,
+     "recall": 0.8688524590163934,
+     "pmra_c": -0.14228566228542705,
+     "pmdec_c": 0.6205809696941306
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.45233675423157593,
+     "pmdec_c": 1.2087767364889472
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8009,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.2777777777777778,
+     "recall": 0.6557377049180327,
+     "pmra_c": 0.05146222130620544,
+     "pmdec_c": 0.7185045240249504
+    },
+    "erotica_3d": {
+     "purity": 0.2638888888888889,
+     "recall": 0.6229508196721312,
+     "pmra_c": 0.07232054572358243,
+     "pmdec_c": 0.7424913467970222
+    },
+    "erotica_5d": {
+     "purity": 0.375,
+     "recall": 0.8852459016393442,
+     "pmra_c": -0.1390231726347776,
+     "pmdec_c": 0.5615823253605711
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.2777777777777778,
+     "recall": 0.6557377049180327,
+     "pmra_c": 0.05146222130620544,
+     "pmdec_c": 0.7185045240249504
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.2569444444444444,
+     "recall": 0.6065573770491803,
+     "pmra_c": 0.08368790694693798,
+     "pmdec_c": 0.7578420417212495
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.3402777777777778,
+     "recall": 0.8032786885245902,
+     "pmra_c": -0.07609628579231696,
+     "pmdec_c": 0.6161038160816498
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5254354862522922,
+     "pmdec_c": 1.1945615327180132
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.2638888888888889,
+     "recall": 0.6229508196721312,
+     "pmra_c": 0.07125090358321662,
+     "pmdec_c": 0.7449011073731072
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.4027777777777778,
+     "recall": 0.9508196721311475,
+     "pmra_c": -0.18822433359836838,
+     "pmdec_c": 0.5129239122945888
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5254354862522922,
+     "pmdec_c": 1.1945615327180132
+    },
+    "erotica_3d_soft": {
+     "purity": 0.18055555555555555,
+     "recall": 0.4262295081967213,
+     "pmra_c": 0.19925290734970286,
+     "pmdec_c": 0.8801118744031159
+    },
+    "erotica_5d_soft": {
+     "purity": 0.14583333333333334,
+     "recall": 0.3442622950819672,
+     "pmra_c": 0.2541393942800351,
+     "pmdec_c": 0.9393417322081269
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.3680555555555556,
+     "recall": 0.8688524590163934,
+     "pmra_c": -0.12480056755048653,
+     "pmdec_c": 0.5732386551906452
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.14583333333333334,
+     "recall": 0.3442622950819672,
+     "pmra_c": 0.25875609786646236,
+     "pmdec_c": 0.9405893987359352
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.375,
+     "recall": 0.8852459016393442,
+     "pmra_c": -0.1390231726347776,
+     "pmdec_c": 0.5615823253605711
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5091143007742338,
+     "pmdec_c": 1.1852489284625747
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8010,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.358974358974359,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.06841334274501447,
+     "pmdec_c": 0.5769898610218517
+    },
+    "erotica_3d": {
+     "purity": 0.358974358974359,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.07714185496842937,
+     "pmdec_c": 0.6004664726172705
+    },
+    "erotica_5d": {
+     "purity": 0.46153846153846156,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.2780560339046196,
+     "pmdec_c": 0.41591830248151934
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.358974358974359,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.06841334274501447,
+     "pmdec_c": 0.5769898610218517
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.358974358974359,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.07714185496842937,
+     "pmdec_c": 0.6004664726172705
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.07692307692307693,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.3873481145410593,
+     "pmdec_c": 1.1064927711087469
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.522386196201439,
+     "pmdec_c": 1.202375564424632
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.358974358974359,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.07714185496842937,
+     "pmdec_c": 0.6004664726172705
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.46153846153846156,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.2672000417605496,
+     "pmdec_c": 0.4137092346953251
+    },
+    "erotica_pm_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.522386196201439,
+     "pmdec_c": 1.202375564424632
+    },
+    "erotica_3d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.5170066494355613,
+     "pmdec_c": 1.20689265138029
+    },
+    "erotica_5d_soft": {
+     "purity": 0.9230769230769231,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.0515237733375575,
+     "pmdec_c": -0.44904070606202534
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.5128205128205128,
+     "recall": 0.32786885245901637,
+     "pmra_c": -0.3625230136499063,
+     "pmdec_c": 0.3137526883806749
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.9230769230769231,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.0515237733375575,
+     "pmdec_c": -0.44904070606202534
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.46153846153846156,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.2780560339046196,
+     "pmdec_c": 0.41591830248151934
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.4796776193741624,
+     "pmdec_c": 1.1629575624003832
+    }
+   }
+  },
+  {
+   "arm": "B",
+   "seed": 8011,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.504950495049505,
+     "recall": 0.8360655737704918,
+     "pmra_c": -0.35996769556312835,
+     "pmdec_c": 0.35309896647882016
+    },
+    "erotica_3d": {
+     "purity": 0.3564356435643564,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.07549471499421997,
+     "pmdec_c": 0.5762063164308042
+    },
+    "erotica_5d": {
+     "purity": 0.5247524752475248,
+     "recall": 0.8688524590163934,
+     "pmra_c": -0.3897933034209345,
+     "pmdec_c": 0.2917120066321385
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.36633663366336633,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.11477675600962806,
+     "pmdec_c": 0.567050225114361
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3564356435643564,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.07549471499421997,
+     "pmdec_c": 0.5762063164308042
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.5247524752475248,
+     "recall": 0.8688524590163934,
+     "pmra_c": -0.3897933034209345,
+     "pmdec_c": 0.2917120066321385
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.45544554455445546,
+     "recall": 0.7540983606557377,
+     "pmra_c": -0.29535402850622483,
+     "pmdec_c": 0.44189363861152275
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.3465346534653465,
+     "recall": 0.5737704918032787,
+     "pmra_c": -0.05963588348614795,
+     "pmdec_c": 0.6134417987730325
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.45544554455445546,
+     "recall": 0.7540983606557377,
+     "pmra_c": -0.27544946060067843,
+     "pmdec_c": 0.4127714617079151
+    },
+    "erotica_pm_soft": {
+     "purity": 0.019801980198019802,
+     "recall": 0.03278688524590164,
+     "pmra_c": 0.4614231982054767,
+     "pmdec_c": 1.1525761024890535
+    },
+    "erotica_3d_soft": {
+     "purity": 0.039603960396039604,
+     "recall": 0.06557377049180328,
+     "pmra_c": 0.43130184629078394,
+     "pmdec_c": 1.13959535292035
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16831683168316833,
+     "recall": 0.2786885245901639,
+     "pmra_c": 0.19809845431888803,
+     "pmdec_c": 0.9306213298148018
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.504950495049505,
+     "recall": 0.8360655737704918,
+     "pmra_c": -0.3546861131186198,
+     "pmdec_c": 0.31368639325275005
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.15841584158415842,
+     "recall": 0.26229508196721313,
+     "pmra_c": 0.21846506558981393,
+     "pmdec_c": 0.9425703987463683
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.42574257425742573,
+     "recall": 0.7049180327868853,
+     "pmra_c": -0.22332532203802044,
+     "pmdec_c": 0.45770720658278974
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.48992994976142795,
+     "pmdec_c": 1.2337585268052984
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8000,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_3d": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_5d": {
+     "purity": 0.35384615384615387,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1072469867154155,
+     "pmdec_c": -0.4215212933766949
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.020912907628714,
+     "pmdec_c": -0.37432938900900864
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.35384615384615387,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1072469867154155,
+     "pmdec_c": -0.4215212933766949
+    },
+    "erotica_pm_soft": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_3d_soft": {
+     "purity": 0.18461538461538463,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.67111958715751,
+     "pmdec_c": -0.8623768581325746
+    },
+    "erotica_5d_soft": {
+     "purity": 0.12307692307692308,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.066582547570141,
+     "pmdec_c": -0.36413234668090433
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.36923076923076925,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.106071372822942,
+     "pmdec_c": -0.425706636045456
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.12307692307692308,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.062398113018987,
+     "pmdec_c": -0.371963654220564
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.35384615384615387,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1072469867154155,
+     "pmdec_c": -0.4215212933766949
+    },
+    "asteca_fastmp": {
+     "purity": 0.015384615384615385,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.1170771868771712,
+     "pmdec_c": -0.36152185609844417
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8001,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.5536086361146664,
+     "pmdec_c": -1.1648790549438253
+    },
+    "erotica_3d": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.6812070008952325,
+     "pmdec_c": -2.1872359010692186
+    },
+    "erotica_5d": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0424313415692632,
+     "pmdec_c": -0.3324923560734734
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.5536086361146664,
+     "pmdec_c": -1.1648790549438253
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.6812070008952325,
+     "pmdec_c": -2.1872359010692186
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0424313415692632,
+     "pmdec_c": -0.3324923560734734
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.5536086361146664,
+     "pmdec_c": -1.1648790549438253
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.7945565121380438,
+     "pmdec_c": -2.397210500781179
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0424313415692632,
+     "pmdec_c": -0.3324923560734734
+    },
+    "erotica_pm_soft": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.5536086361146664,
+     "pmdec_c": -1.1648790549438253
+    },
+    "erotica_3d_soft": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.0643813764406755,
+     "pmdec_c": -0.8590208996951065
+    },
+    "erotica_5d_soft": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.040814266659375,
+     "pmdec_c": -0.3180468117478558
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0424313415692632,
+     "pmdec_c": -0.3324923560734734
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.0299754929312364,
+     "pmdec_c": -0.3101818294022007
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.36,
+     "recall": 0.14754098360655737,
+     "pmra_c": -1.0975707548314668,
+     "pmdec_c": -0.4070425996112362
+    },
+    "asteca_fastmp": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.156485634832154,
+     "pmdec_c": -0.37708756140309174
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8002,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.15862068965517243,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.5779606007538123,
+     "pmdec_c": -0.8499108667988334
+    },
+    "erotica_3d": {
+     "purity": 0.15862068965517243,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.9191319248639267,
+     "pmdec_c": -1.2620215551251865
+    },
+    "erotica_5d": {
+     "purity": 0.296551724137931,
+     "recall": 0.7049180327868853,
+     "pmra_c": -1.0840084501772371,
+     "pmdec_c": -0.3606296798294838
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.1793103448275862,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5013384661708487,
+     "pmdec_c": -0.8693574319536388
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.15862068965517243,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.9191319248639267,
+     "pmdec_c": -1.2620215551251865
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.1310344827586207,
+     "recall": 0.3114754098360656,
+     "pmra_c": -1.051113074180446,
+     "pmdec_c": -0.35028415263584517
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.15862068965517243,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.5779606007538123,
+     "pmdec_c": -0.8499108667988334
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.15862068965517243,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.9191319248639267,
+     "pmdec_c": -1.2620215551251865
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.296551724137931,
+     "recall": 0.7049180327868853,
+     "pmra_c": -1.0856642944408474,
+     "pmdec_c": -0.3618771823409175
+    },
+    "erotica_pm_soft": {
+     "purity": 0.1793103448275862,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5013384661708487,
+     "pmdec_c": -0.8693574319536388
+    },
+    "erotica_3d_soft": {
+     "purity": 0.15862068965517243,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.9191319248639267,
+     "pmdec_c": -1.2620215551251865
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16551724137931034,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.0652798607712213,
+     "pmdec_c": -0.3510342930999581
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.2482758620689655,
+     "recall": 0.5901639344262295,
+     "pmra_c": -1.0732329364214417,
+     "pmdec_c": -0.36350339284687133
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.15172413793103448,
+     "recall": 0.36065573770491804,
+     "pmra_c": -1.0573956383451066,
+     "pmdec_c": -0.3449802218789337
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.31724137931034485,
+     "recall": 0.7540983606557377,
+     "pmra_c": -1.0922436671441538,
+     "pmdec_c": -0.3617097303043469
+    },
+    "asteca_fastmp": {
+     "purity": 0.04827586206896552,
+     "recall": 0.11475409836065574,
+     "pmra_c": -1.0200777813535344,
+     "pmdec_c": -0.3397871284647332
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8003,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.2323943661971831,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.4945150401203393,
+     "pmdec_c": -0.6208222668803213
+    },
+    "erotica_3d": {
+     "purity": 0.22535211267605634,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.3091959318668118,
+     "pmdec_c": -0.752352995116649
+    },
+    "erotica_5d": {
+     "purity": 0.23943661971830985,
+     "recall": 0.5573770491803278,
+     "pmra_c": -1.0545931245600606,
+     "pmdec_c": -0.38265407062501844
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.22535211267605634,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.4516579220024128,
+     "pmdec_c": -0.6211138720736203
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.22535211267605634,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.3091959318668118,
+     "pmdec_c": -0.752352995116649
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.1619718309859155,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.0371992803120178,
+     "pmdec_c": -0.3665105222076124
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.2323943661971831,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.4945150401203393,
+     "pmdec_c": -0.6208222668803213
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.22535211267605634,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.3091959318668118,
+     "pmdec_c": -0.752352995116649
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.23943661971830985,
+     "recall": 0.5573770491803278,
+     "pmra_c": -1.0545931245600606,
+     "pmdec_c": -0.38265407062501844
+    },
+    "erotica_pm_soft": {
+     "purity": 0.22535211267605634,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.4516579220024128,
+     "pmdec_c": -0.6211138720736203
+    },
+    "erotica_3d_soft": {
+     "purity": 0.2112676056338028,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.2237049846918,
+     "pmdec_c": -0.6395157150565252
+    },
+    "erotica_5d_soft": {
+     "purity": 0.19718309859154928,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.0480238332967753,
+     "pmdec_c": -0.369331469667301
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.22535211267605634,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.0564890698150098,
+     "pmdec_c": -0.38133771213789924
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.20422535211267606,
+     "recall": 0.47540983606557374,
+     "pmra_c": -1.0517645745656519,
+     "pmdec_c": -0.37067530324288467
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.2323943661971831,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.055344509886403,
+     "pmdec_c": -0.37786231039001317
+    },
+    "asteca_fastmp": {
+     "purity": 0.23943661971830985,
+     "recall": 0.5573770491803278,
+     "pmra_c": -1.0906173230917173,
+     "pmdec_c": -0.36673421585433474
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8004,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1470655814155384,
+     "pmdec_c": -0.4359673559982764
+    },
+    "erotica_3d": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.5058449428012495,
+     "pmdec_c": -1.683174384621082
+    },
+    "erotica_5d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1332977558998942,
+     "pmdec_c": -0.342253779769048
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.122494857543435,
+     "pmdec_c": -0.36186753724318277
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.5058449428012495,
+     "pmdec_c": -1.683174384621082
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.0236195764463083,
+     "pmdec_c": -0.28846033573503727
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.122494857543435,
+     "pmdec_c": -0.36186753724318277
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.7006236722974513,
+     "pmdec_c": -2.2628584459378835
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.36,
+     "recall": 0.14754098360655737,
+     "pmra_c": -1.0706110892263923,
+     "pmdec_c": -0.3128373294762507
+    },
+    "erotica_pm_soft": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.2118644601626196,
+     "pmdec_c": -0.40203807884693377
+    },
+    "erotica_3d_soft": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.1191071929801268,
+     "pmdec_c": -0.5463832418859933
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.055913502863348,
+     "pmdec_c": -0.2555961071489611
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0205202914497715,
+     "pmdec_c": -0.277576081026917
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0402542219782682,
+     "pmdec_c": -0.27734457755929415
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.1560698570569674,
+     "pmdec_c": -0.35402058655972113
+    },
+    "asteca_fastmp": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2684994529472666,
+     "pmdec_c": -0.5194152403272685
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8005,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_3d": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_5d": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.0968209348725892,
+     "pmdec_c": -0.43261504241541465
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -0.9949294127176409,
+     "pmdec_c": -0.3591441834521646
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.0716318010673576,
+     "pmdec_c": -0.4263646284030456
+    },
+    "erotica_pm_soft": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_3d_soft": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0704890103162197,
+     "pmdec_c": -1.4586558585594227
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1878098312414138,
+     "pmdec_c": -0.4444813829439025
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.0943185357002874,
+     "pmdec_c": -0.44155619239827665
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1689762346269712,
+     "pmdec_c": -0.44460012271898647
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.0968209348725892,
+     "pmdec_c": -0.43261504241541465
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -0.9310846026434341,
+     "pmdec_c": -0.3498406428001183
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8006,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -2.127397129043685,
+     "pmdec_c": -1.648537680777696
+    },
+    "erotica_3d": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.1222674356669982,
+     "pmdec_c": -2.066916996339442
+    },
+    "erotica_5d": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1558580739536495,
+     "pmdec_c": -0.46321401566794834
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -2.127397129043685,
+     "pmdec_c": -1.648537680777696
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.1445573941250802,
+     "pmdec_c": -1.9832421951239976
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.040301084130536,
+     "pmdec_c": -0.3745007979360899
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -2.127397129043685,
+     "pmdec_c": -1.648537680777696
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.1940569626808166,
+     "pmdec_c": -2.6611824271119127
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1647099736800832,
+     "pmdec_c": -0.44769590736732856
+    },
+    "erotica_pm_soft": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -2.127397129043685,
+     "pmdec_c": -1.648537680777696
+    },
+    "erotica_3d_soft": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.0709003281663838,
+     "pmdec_c": -0.5182451599034698
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0637615186609033,
+     "pmdec_c": -0.29394368722450076
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.1306544277255413,
+     "pmdec_c": -0.42173614321979463
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.042988257653002,
+     "pmdec_c": -0.2722535843382186
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1558580739536495,
+     "pmdec_c": -0.46321401566794834
+    },
+    "asteca_fastmp": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.188621145029387,
+     "pmdec_c": -0.5212198654875025
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8007,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.0403437703862577,
+     "pmdec_c": -0.30408928547851005
+    },
+    "erotica_3d": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.4662628790677708,
+     "pmdec_c": -1.6243494127624027
+    },
+    "erotica_5d": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1221317973350176,
+     "pmdec_c": -0.40597370932967225
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.0403437703862577,
+     "pmdec_c": -0.30408928547851005
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.4662628790677708,
+     "pmdec_c": -1.6243494127624027
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.06508007597248,
+     "pmdec_c": -0.34780205867375824
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.0403437703862577,
+     "pmdec_c": -0.30408928547851005
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.4662628790677708,
+     "pmdec_c": -1.6243494127624027
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1221317973350176,
+     "pmdec_c": -0.40597370932967225
+    },
+    "erotica_pm_soft": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.0670936816046541,
+     "pmdec_c": -0.3151869591927323
+    },
+    "erotica_3d_soft": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.097182737563863,
+     "pmdec_c": -0.776735034546938
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0309739206507615,
+     "pmdec_c": -0.30863052592034135
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.1184750346456553,
+     "pmdec_c": -0.38729788949253213
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0309739206507615,
+     "pmdec_c": -0.30863052592034135
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1221317973350176,
+     "pmdec_c": -0.40597370932967225
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.1399124202931221,
+     "pmdec_c": -0.37793675226126594
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8008,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.20279720279720279,
+     "recall": 0.47540983606557374,
+     "pmra_c": -1.5545528913791282,
+     "pmdec_c": -0.6254702241576813
+    },
+    "erotica_3d": {
+     "purity": 0.1958041958041958,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.6058918338753474,
+     "pmdec_c": -0.6034484190780721
+    },
+    "erotica_5d": {
+     "purity": 0.35664335664335667,
+     "recall": 0.8360655737704918,
+     "pmra_c": -1.1207755149343288,
+     "pmdec_c": -0.35272639702008
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.2097902097902098,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.5803369097619775,
+     "pmdec_c": -0.6308126242065414
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.1958041958041958,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.6058918338753474,
+     "pmdec_c": -0.6034484190780721
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.1888111888111888,
+     "recall": 0.4426229508196721,
+     "pmra_c": -1.1120428655275394,
+     "pmdec_c": -0.3421425127391419
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.2097902097902098,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.5803369097619775,
+     "pmdec_c": -0.6308126242065414
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.1958041958041958,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.6058918338753474,
+     "pmdec_c": -0.6034484190780721
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.34965034965034963,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.108923281570813,
+     "pmdec_c": -0.36514148333188184
+    },
+    "erotica_pm_soft": {
+     "purity": 0.1958041958041958,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.5778940631639078,
+     "pmdec_c": -0.6130803735138296
+    },
+    "erotica_3d_soft": {
+     "purity": 0.1958041958041958,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.6058918338753474,
+     "pmdec_c": -0.6034484190780721
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16083916083916083,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1057586086140536,
+     "pmdec_c": -0.3279653896644369
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.34265734265734266,
+     "recall": 0.8032786885245902,
+     "pmra_c": -1.121232902497036,
+     "pmdec_c": -0.35678467976375555
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.14685314685314685,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.103188632923767,
+     "pmdec_c": -0.31990713244622976
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.35664335664335667,
+     "recall": 0.8360655737704918,
+     "pmra_c": -1.1207755149343288,
+     "pmdec_c": -0.35272639702008
+    },
+    "asteca_fastmp": {
+     "purity": 0.013986013986013986,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.0802647859294654,
+     "pmdec_c": -0.3149026396773035
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8009,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.1164568159210366,
+     "pmdec_c": -0.3952226471854422
+    },
+    "erotica_3d": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.4736100946870794,
+     "pmdec_c": -1.5153928795593523
+    },
+    "erotica_5d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1068288309878493,
+     "pmdec_c": -0.37601428656418784
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.1164568159210366,
+     "pmdec_c": -0.3952226471854422
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.4736100946870794,
+     "pmdec_c": -1.5153928795593523
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -1.041560554431796,
+     "pmdec_c": -0.38982709638309876
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1157200714771245,
+     "pmdec_c": -0.4088620718194147
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.4736100946870794,
+     "pmdec_c": -1.5153928795593523
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.0997692015631415,
+     "pmdec_c": -0.3727786159511746
+    },
+    "erotica_pm_soft": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1157200714771245,
+     "pmdec_c": -0.4088620718194147
+    },
+    "erotica_3d_soft": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.4736100946870794,
+     "pmdec_c": -1.5153928795593523
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0896912464762842,
+     "pmdec_c": -0.3222300882415176
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.0871380755320466,
+     "pmdec_c": -0.3558602209705421
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0896912464762842,
+     "pmdec_c": -0.3222300882415176
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1068288309878493,
+     "pmdec_c": -0.37601428656418784
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1678652423116653,
+     "pmdec_c": -0.46144871435526846
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8010,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_3d": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_5d": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.2756571221988218,
+     "pmdec_c": -0.6698052785307225
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.285,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1371022754057436,
+     "pmdec_c": -0.5248706064789196
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.2114795650969776,
+     "pmdec_c": -0.7222712319290967
+    },
+    "erotica_pm_soft": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_3d_soft": {
+     "purity": 0.205,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.6137077661947257,
+     "pmdec_c": -1.0322782704697564
+    },
+    "erotica_5d_soft": {
+     "purity": 0.285,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1371022754057436,
+     "pmdec_c": -0.5248706064789196
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.2756571221988218,
+     "pmdec_c": -0.6698052785307225
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.0730559629607261,
+     "pmdec_c": -0.36767335967817183
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.29,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.2756571221988218,
+     "pmdec_c": -0.6698052785307225
+    },
+    "asteca_fastmp": {
+     "purity": 0.28,
+     "recall": 0.9180327868852459,
+     "pmra_c": -1.0787865823916925,
+     "pmdec_c": -0.36662423573525943
+    }
+   }
+  },
+  {
+   "arm": "C",
+   "seed": 8011,
+   "n_members": 61,
+   "n_neighbour": 161,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_3d": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_5d": {
+     "purity": 0.23622047244094488,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.0600644408056639,
+     "pmdec_c": -0.35622063551664107
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.30708661417322836,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.0794368173602873,
+     "pmdec_c": -0.3618149938765783
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0293731038619636,
+     "pmdec_c": -0.29856281033134036
+    },
+    "erotica_pm_soft": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_3d_soft": {
+     "purity": 0.2047244094488189,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5644712190621548,
+     "pmdec_c": -0.8922678645273506
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0293731038619636,
+     "pmdec_c": -0.29856281033134036
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.2204724409448819,
+     "recall": 0.45901639344262296,
+     "pmra_c": -1.057263934696141,
+     "pmdec_c": -0.35159136638737976
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0279697834258552,
+     "pmdec_c": -0.300832871141771
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.23622047244094488,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.0600644408056639,
+     "pmdec_c": -0.35622063551664107
+    },
+    "asteca_fastmp": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.0308086998324208,
+     "pmdec_c": -0.30281874357074234
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8000,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.5483870967741935,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.4811107213918093,
+     "pmdec_c": 0.19977431156417155
+    },
+    "erotica_3d": {
+     "purity": 0.5483870967741935,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.44625038768652875,
+     "pmdec_c": 0.23464578781792222
+    },
+    "erotica_5d": {
+     "purity": 0.5645161290322581,
+     "recall": 0.5737704918032787,
+     "pmra_c": -0.4611617975578738,
+     "pmdec_c": 0.23432790649096272
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.5483870967741935,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.4811107213918093,
+     "pmdec_c": 0.19977431156417155
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.5483870967741935,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.44625038768652875,
+     "pmdec_c": 0.23464578781792222
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.8064516129032258,
+     "recall": 0.819672131147541,
+     "pmra_c": -0.837491038859855,
+     "pmdec_c": -0.17976344646414183
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.5161290322580645,
+     "recall": 0.5245901639344263,
+     "pmra_c": -0.4421288746027039,
+     "pmdec_c": 0.22718652971934514
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5483870967741935,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.42970299961376707,
+     "pmdec_c": 0.2541374072457218
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.5645161290322581,
+     "recall": 0.5737704918032787,
+     "pmra_c": -0.4611617975578738,
+     "pmdec_c": 0.23432790649096272
+    },
+    "erotica_pm_soft": {
+     "purity": 0.7741935483870968,
+     "recall": 0.7868852459016393,
+     "pmra_c": -0.9418621985029355,
+     "pmdec_c": -0.2669280122110611
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6774193548387096,
+     "recall": 0.6885245901639344,
+     "pmra_c": -0.8345813353482637,
+     "pmdec_c": -0.22549641596589784
+    },
+    "erotica_5d_soft": {
+     "purity": 0.7419354838709677,
+     "recall": 0.7540983606557377,
+     "pmra_c": -0.7359107399590209,
+     "pmdec_c": -0.0687955389255683
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.5967741935483871,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.4972532566535358,
+     "pmdec_c": 0.1842516786826165
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.7419354838709677,
+     "recall": 0.7540983606557377,
+     "pmra_c": -0.7359107399590209,
+     "pmdec_c": -0.0687955389255683
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.5645161290322581,
+     "recall": 0.5737704918032787,
+     "pmra_c": -0.4611617975578738,
+     "pmdec_c": 0.23432790649096272
+    },
+    "asteca_fastmp": {
+     "purity": 0.9838709677419355,
+     "recall": 1.0,
+     "pmra_c": -1.1840292364708982,
+     "pmdec_c": -0.5371102541287962
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8001,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.28086286240157726,
+     "pmdec_c": 0.450557642194295
+    },
+    "erotica_3d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.3905942430025722,
+     "pmdec_c": 0.05369771519446391
+    },
+    "erotica_5d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.22847647050945905,
+     "pmdec_c": 0.4351782249786203
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.4524971943741919,
+     "pmdec_c": 0.3199237240660224
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.3905942430025722,
+     "pmdec_c": 0.05369771519446391
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.337658065814429,
+     "pmdec_c": 0.3465155122183942
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.26624153788738925,
+     "pmdec_c": 0.4172893503579307
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.21408686653304523,
+     "pmdec_c": 0.49545703243062933
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.337658065814429,
+     "pmdec_c": 0.3465155122183942
+    },
+    "erotica_pm_soft": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2303105776279888,
+     "pmdec_c": -0.5286631168866345
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.480508352471899,
+     "pmdec_c": -1.7256912814681047
+    },
+    "erotica_5d_soft": {
+     "purity": 0.76,
+     "recall": 0.3114754098360656,
+     "pmra_c": -0.7774598711746751,
+     "pmdec_c": -0.08180294764546492
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.719479660431422,
+     "pmdec_c": -0.008430958261914867
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.8,
+     "recall": 0.32786885245901637,
+     "pmra_c": -0.8465060153282515,
+     "pmdec_c": -0.15392837547721866
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.22847647050945905,
+     "pmdec_c": 0.4351782249786203
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1902649635182798,
+     "pmdec_c": -0.47461019714159997
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8002,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.5,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.3932560656025215,
+     "pmdec_c": 0.3489968487516785
+    },
+    "erotica_3d": {
+     "purity": 0.5625,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.4968913140850567,
+     "pmdec_c": 0.26837913715497913
+    },
+    "erotica_5d": {
+     "purity": 0.40625,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.21673941717908568,
+     "pmdec_c": 0.5495123146772984
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.5625,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.4738853733071315,
+     "pmdec_c": 0.212533469527126
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.5625,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.4968913140850567,
+     "pmdec_c": 0.26837913715497913
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.65625,
+     "recall": 0.3442622950819672,
+     "pmra_c": -0.7291215231256376,
+     "pmdec_c": 0.10913719937474681
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.5,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.37426795501111754,
+     "pmdec_c": 0.346696118112308
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.53125,
+     "recall": 0.2786885245901639,
+     "pmra_c": -0.4308553569137715,
+     "pmdec_c": 0.3213505226255027
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.65625,
+     "recall": 0.3442622950819672,
+     "pmra_c": -0.7291215231256376,
+     "pmdec_c": 0.10913719937474681
+    },
+    "erotica_pm_soft": {
+     "purity": 1.0,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.29575414786899,
+     "pmdec_c": -0.48634658286931404
+    },
+    "erotica_3d_soft": {
+     "purity": 0.75,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.457048555360338,
+     "pmdec_c": -0.6188236258499371
+    },
+    "erotica_5d_soft": {
+     "purity": 0.09375,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.2442161421118451,
+     "pmdec_c": 1.0702610174582103
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.5,
+     "recall": 0.26229508196721313,
+     "pmra_c": -0.41305777055840315,
+     "pmdec_c": 0.36193275450089196
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.125,
+     "recall": 0.06557377049180328,
+     "pmra_c": 0.2027580756956984,
+     "pmdec_c": 1.0115848298320045
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.40625,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.21673941717908568,
+     "pmdec_c": 0.5495123146772984
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.5245901639344263,
+     "pmra_c": -1.281164990959193,
+     "pmdec_c": -0.4799163415147202
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8003,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.39953184168463224,
+     "pmdec_c": 0.19056241647337363
+    },
+    "erotica_3d": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -2.2501154699728145,
+     "pmdec_c": -1.48009848270674
+    },
+    "erotica_5d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2373779898655202,
+     "pmdec_c": 0.40491185067333313
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.39953184168463224,
+     "pmdec_c": 0.19056241647337363
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.36,
+     "recall": 0.14754098360655737,
+     "pmra_c": -0.9003253315062336,
+     "pmdec_c": -0.6346842863573176
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2373779898655202,
+     "pmdec_c": 0.40491185067333313
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -0.4926517890435086,
+     "pmdec_c": 0.17951215025967376
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.36,
+     "recall": 0.14754098360655737,
+     "pmra_c": -1.0682831279869311,
+     "pmdec_c": -0.7356887241617239
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2373779898655202,
+     "pmdec_c": 0.40491185067333313
+    },
+    "erotica_pm_soft": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2612348507364441,
+     "pmdec_c": -0.5045592298259663
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.1790616561825262,
+     "pmdec_c": -0.9209824064609738
+    },
+    "erotica_5d_soft": {
+     "purity": 0.92,
+     "recall": 0.3770491803278688,
+     "pmra_c": -0.9944737896006665,
+     "pmdec_c": -0.38825004223376824
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.4522154491204031,
+     "pmdec_c": 0.2597950289136461
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.88,
+     "recall": 0.36065573770491804,
+     "pmra_c": -0.9429130653158566,
+     "pmdec_c": -0.3090932471288453
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.23191620955172126,
+     "pmdec_c": 0.41485851749895547
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2351903589001578,
+     "pmdec_c": -0.5062477992868688
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8004,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.41921390938443587,
+     "pmdec_c": 0.36678210320440463
+    },
+    "erotica_3d": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.40867741233436905,
+     "pmdec_c": 0.37897973971003585
+    },
+    "erotica_5d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.4010468423338462,
+     "pmdec_c": 0.4212321354099479
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.41921390938443587,
+     "pmdec_c": 0.36678210320440463
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.40867741233436905,
+     "pmdec_c": 0.37897973971003585
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.4033595035276595,
+     "pmdec_c": 0.36366926084286477
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.4959020470717747,
+     "pmdec_c": 0.2619577919818559
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.45009244075500016,
+     "pmdec_c": 0.33652763013052256
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -0.4723321132372105,
+     "pmdec_c": 0.2619584166794974
+    },
+    "erotica_pm_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2662873547075517,
+     "pmdec_c": -0.48416926766870283
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.4133092088736776,
+     "pmdec_c": -1.372004777354371
+    },
+    "erotica_5d_soft": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": 0.34141162423143073,
+     "pmdec_c": 1.1261554304929133
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -0.9238633574336879,
+     "pmdec_c": -0.20505677013088364
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": 0.26411592737390793,
+     "pmdec_c": 1.0574603092646016
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.4010468423338462,
+     "pmdec_c": 0.4212321354099479
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.236656432427277,
+     "pmdec_c": -0.5026887977812003
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8005,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.5362318840579711,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.4483104651430722,
+     "pmdec_c": 0.2815864314855491
+    },
+    "erotica_3d": {
+     "purity": 0.6231884057971014,
+     "recall": 0.7049180327868853,
+     "pmra_c": -1.8500138902036205,
+     "pmdec_c": -1.0514578037086197
+    },
+    "erotica_5d": {
+     "purity": 0.5217391304347826,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.39996155197539784,
+     "pmdec_c": 0.3208522771678355
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.5362318840579711,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.4483104651430722,
+     "pmdec_c": 0.2815864314855491
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.2753623188405797,
+     "recall": 0.3114754098360656,
+     "pmra_c": -1.2171714425136244,
+     "pmdec_c": -0.14954144845437067
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.5217391304347826,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.39996155197539784,
+     "pmdec_c": 0.3208522771678355
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.5362318840579711,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.438132626320483,
+     "pmdec_c": 0.2804291065936519
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.43478260869565216,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.1598809190894017,
+     "pmdec_c": -0.1991772336281775
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.5362318840579711,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.4181906544329852,
+     "pmdec_c": 0.2906638754322921
+    },
+    "erotica_pm_soft": {
+     "purity": 0.7536231884057971,
+     "recall": 0.8524590163934426,
+     "pmra_c": -0.7989724536853922,
+     "pmdec_c": -0.08302450391717651
+    },
+    "erotica_3d_soft": {
+     "purity": 0.4492753623188406,
+     "recall": 0.5081967213114754,
+     "pmra_c": -1.6852400036342459,
+     "pmdec_c": -0.8698714677088869
+    },
+    "erotica_5d_soft": {
+     "purity": 0.6811594202898551,
+     "recall": 0.7704918032786885,
+     "pmra_c": -0.6521454403569144,
+     "pmdec_c": 0.06647278803511815
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.5217391304347826,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.40173275800436,
+     "pmdec_c": 0.3178789669538515
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.7101449275362319,
+     "recall": 0.8032786885245902,
+     "pmra_c": -0.6988281269798556,
+     "pmdec_c": 0.023216502478100608
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.5217391304347826,
+     "recall": 0.5901639344262295,
+     "pmra_c": -0.4041060054440274,
+     "pmdec_c": 0.3184742910465849
+    },
+    "asteca_fastmp": {
+     "purity": 0.8840579710144928,
+     "recall": 1.0,
+     "pmra_c": -1.049793227979698,
+     "pmdec_c": -0.3130079668301813
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8006,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.33711761081180014,
+     "pmdec_c": 0.28095595577314525
+    },
+    "erotica_3d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3301505517310977,
+     "pmdec_c": 0.23674919213126244
+    },
+    "erotica_5d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2757594207110644,
+     "pmdec_c": 0.34725295461557815
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.41276562711007264,
+     "pmdec_c": 0.21540958806547855
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3301505517310977,
+     "pmdec_c": 0.23674919213126244
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2757594207110644,
+     "pmdec_c": 0.34725295461557815
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.40220630896718945,
+     "pmdec_c": 0.22409765812756346
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -0.41099563494225194,
+     "pmdec_c": 0.2371554604888309
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.3738164661968702,
+     "pmdec_c": 0.2822462896723327
+    },
+    "erotica_pm_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1735597308850854,
+     "pmdec_c": -0.5423229795393127
+    },
+    "erotica_3d_soft": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -0.9858389754694501,
+     "pmdec_c": -0.2902757102649802
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2237151907714117,
+     "pmdec_c": -0.5897851996515188
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2757594207110644,
+     "pmdec_c": 0.34725295461557815
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2237151907714117,
+     "pmdec_c": -0.5897851996515188
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.2757594207110644,
+     "pmdec_c": 0.34725295461557815
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2299708600707557,
+     "pmdec_c": -0.5582338577128784
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8007,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.5208333333333334,
+     "recall": 0.4098360655737705,
+     "pmra_c": -0.39298312283881703,
+     "pmdec_c": 0.297143513888979
+    },
+    "erotica_3d": {
+     "purity": 0.5,
+     "recall": 0.39344262295081966,
+     "pmra_c": -0.5473165631335538,
+     "pmdec_c": 0.01569902699055063
+    },
+    "erotica_5d": {
+     "purity": 0.5625,
+     "recall": 0.4426229508196721,
+     "pmra_c": -0.4419907826092995,
+     "pmdec_c": 0.24610223910251114
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.5208333333333334,
+     "recall": 0.4098360655737705,
+     "pmra_c": -0.39298312283881703,
+     "pmdec_c": 0.297143513888979
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.5,
+     "recall": 0.39344262295081966,
+     "pmra_c": -0.5473165631335538,
+     "pmdec_c": 0.01569902699055063
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.7708333333333334,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.7673339948405496,
+     "pmdec_c": -0.10055976394103855
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.5,
+     "recall": 0.39344262295081966,
+     "pmra_c": -0.3659271154029829,
+     "pmdec_c": 0.3153510268096529
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.625,
+     "recall": 0.4918032786885246,
+     "pmra_c": -0.5325823360219798,
+     "pmdec_c": 0.15569052726863594
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.5625,
+     "recall": 0.4426229508196721,
+     "pmra_c": -0.4419907826092995,
+     "pmdec_c": 0.24610223910251114
+    },
+    "erotica_pm_soft": {
+     "purity": 0.875,
+     "recall": 0.6885245901639344,
+     "pmra_c": -1.0173550044638715,
+     "pmdec_c": -0.3238522620741717
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6041666666666666,
+     "recall": 0.47540983606557374,
+     "pmra_c": -0.9294328352512845,
+     "pmdec_c": -0.6254377584718488
+    },
+    "erotica_5d_soft": {
+     "purity": 0.7916666666666666,
+     "recall": 0.6229508196721312,
+     "pmra_c": -0.8474580397516566,
+     "pmdec_c": -0.18375085584576276
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.5833333333333334,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.4695151019557484,
+     "pmdec_c": 0.21079442206692
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.8125,
+     "recall": 0.639344262295082,
+     "pmra_c": -0.8803647600285589,
+     "pmdec_c": -0.22468268569526453
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.5625,
+     "recall": 0.4426229508196721,
+     "pmra_c": -0.4419907826092995,
+     "pmdec_c": 0.24610223910251114
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.7868852459016393,
+     "pmra_c": -1.1916784738429849,
+     "pmdec_c": -0.5149361601367999
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8008,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.3734676052893128,
+     "pmdec_c": 0.42745878018721184
+    },
+    "erotica_3d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.5031727011974123,
+     "pmdec_c": 0.23038877848572079
+    },
+    "erotica_5d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.24475916468604317,
+     "pmdec_c": 0.46655469606564365
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.3734676052893128,
+     "pmdec_c": 0.42745878018721184
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.5031727011974123,
+     "pmdec_c": 0.23038877848572079
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -0.7587012080991403,
+     "pmdec_c": 0.05344952964193606
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2218146970365005,
+     "pmdec_c": -0.4273383557349472
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.361731568312733,
+     "pmdec_c": 0.36237663171658896
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -0.345542386273887,
+     "pmdec_c": 0.41816383546545105
+    },
+    "erotica_pm_soft": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.1814542635872933,
+     "pmdec_c": -0.44378420987615125
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.5768034157708655,
+     "pmdec_c": -1.2381281740185117
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.48763104274052665,
+     "pmdec_c": 1.1419768383452473
+    },
+    "erotica_5d_erroraware": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2320342209264652,
+     "pmdec_c": -0.4579521633683105
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": 0.48763104274052665,
+     "pmdec_c": 1.1419768383452473
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -0.24475916468604317,
+     "pmdec_c": 0.46655469606564365
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2637014331500367,
+     "pmdec_c": -0.4339582587307611
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8009,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.5666666666666667,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.47736331903646556,
+     "pmdec_c": 0.24332094435931412
+    },
+    "erotica_3d": {
+     "purity": 0.5333333333333333,
+     "recall": 0.5245901639344263,
+     "pmra_c": -0.413290527012932,
+     "pmdec_c": 0.3107013427056315
+    },
+    "erotica_5d": {
+     "purity": 0.4666666666666667,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.3032413245982288,
+     "pmdec_c": 0.4292226504600417
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.5666666666666667,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.47736331903646556,
+     "pmdec_c": 0.24332094435931412
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.5666666666666667,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.46828303629046364,
+     "pmdec_c": 0.26093724170148563
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.8333333333333334,
+     "recall": 0.819672131147541,
+     "pmra_c": -0.9329974506703617,
+     "pmdec_c": -0.19587147868254715
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.55,
+     "recall": 0.5409836065573771,
+     "pmra_c": -0.4415114235821161,
+     "pmdec_c": 0.2805921843850963
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5333333333333333,
+     "recall": 0.5245901639344263,
+     "pmra_c": -0.41143104949606113,
+     "pmdec_c": 0.3008391373363899
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.55,
+     "recall": 0.5409836065573771,
+     "pmra_c": -0.4405343140798508,
+     "pmdec_c": 0.3025656583700696
+    },
+    "erotica_pm_soft": {
+     "purity": 0.7333333333333333,
+     "recall": 0.7213114754098361,
+     "pmra_c": -0.7834502331670335,
+     "pmdec_c": -0.032500236678454954
+    },
+    "erotica_3d_soft": {
+     "purity": 0.7166666666666667,
+     "recall": 0.7049180327868853,
+     "pmra_c": -0.730467350130774,
+     "pmdec_c": 0.014390877138959396
+    },
+    "erotica_5d_soft": {
+     "purity": 0.2833333333333333,
+     "recall": 0.2786885245901639,
+     "pmra_c": 0.030891891333220716,
+     "pmdec_c": 0.7278208226852566
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.4666666666666667,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.3032413245982288,
+     "pmdec_c": 0.4292226504600417
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.2833333333333333,
+     "recall": 0.2786885245901639,
+     "pmra_c": 0.030891891333220716,
+     "pmdec_c": 0.7278208226852566
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.4666666666666667,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.3032413245982288,
+     "pmdec_c": 0.4292226504600417
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.9836065573770492,
+     "pmra_c": -1.212297375535884,
+     "pmdec_c": -0.4600478426933078
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8010,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.56,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.48937751886357744,
+     "pmdec_c": 0.18927358655406665
+    },
+    "erotica_3d": {
+     "purity": 0.6,
+     "recall": 0.4918032786885246,
+     "pmra_c": -0.5486681630959315,
+     "pmdec_c": 0.17695462249020763
+    },
+    "erotica_5d": {
+     "purity": 0.46,
+     "recall": 0.3770491803278688,
+     "pmra_c": -0.2838664010082339,
+     "pmdec_c": 0.41169680156250626
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.56,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.48937751886357744,
+     "pmdec_c": 0.18927358655406665
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.6,
+     "recall": 0.4918032786885246,
+     "pmra_c": -0.5486681630959315,
+     "pmdec_c": 0.17695462249020763
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.56,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.4599880692666871,
+     "pmdec_c": 0.21840204386233847
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.4903427060000225,
+     "pmdec_c": 0.20832067794410722
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.39344262295081966,
+     "pmra_c": -0.3317590017322103,
+     "pmdec_c": 0.36198360024948334
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.45901639344262296,
+     "pmra_c": -0.4599880692666871,
+     "pmdec_c": 0.21840204386233847
+    },
+    "erotica_pm_soft": {
+     "purity": 0.84,
+     "recall": 0.6885245901639344,
+     "pmra_c": -0.9862763305272337,
+     "pmdec_c": -0.3219435230018531
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.5573770491803278,
+     "pmra_c": -0.7317141322865923,
+     "pmdec_c": -0.08413281666300396
+    },
+    "erotica_5d_soft": {
+     "purity": 0.74,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.7631888076043732,
+     "pmdec_c": -0.09972337128289893
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.54,
+     "recall": 0.4426229508196721,
+     "pmra_c": -0.4172718359558648,
+     "pmdec_c": 0.26116983211441797
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.74,
+     "recall": 0.6065573770491803,
+     "pmra_c": -0.7631888076043732,
+     "pmdec_c": -0.09972337128289893
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.46,
+     "recall": 0.3770491803278688,
+     "pmra_c": -0.2838664010082339,
+     "pmdec_c": 0.41169680156250626
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.819672131147541,
+     "pmra_c": -1.2283778827565803,
+     "pmdec_c": -0.5297412757853884
+    }
+   }
+  },
+  {
+   "arm": "Bp",
+   "seed": 8011,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -0.5349631860747318,
+     "pmdec_c": 0.18103324792482137
+    },
+    "erotica_3d": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -0.510701464415956,
+     "pmdec_c": 0.19064442509989976
+    },
+    "erotica_5d": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -0.5007000902722646,
+     "pmdec_c": 0.20446960869501607
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -0.5349631860747318,
+     "pmdec_c": 0.18103324792482137
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -0.510701464415956,
+     "pmdec_c": 0.19064442509989976
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.61,
+     "recall": 1.0,
+     "pmra_c": -0.5552487726735988,
+     "pmdec_c": 0.15761629033250651
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.9180327868852459,
+     "pmra_c": -0.46079469280516483,
+     "pmdec_c": 0.24337070351642393
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -0.510701464415956,
+     "pmdec_c": 0.19064442509989976
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.61,
+     "recall": 1.0,
+     "pmra_c": -0.5551407679835231,
+     "pmdec_c": 0.16041212279028932
+    },
+    "erotica_pm_soft": {
+     "purity": 0.61,
+     "recall": 1.0,
+     "pmra_c": -0.6463581802790641,
+     "pmdec_c": 0.0999206918845515
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6,
+     "recall": 0.9836065573770492,
+     "pmra_c": -0.5526438744636861,
+     "pmdec_c": 0.16224960273100175
+    },
+    "erotica_5d_soft": {
+     "purity": 0.61,
+     "recall": 1.0,
+     "pmra_c": -0.5552487726735988,
+     "pmdec_c": 0.15761629033250651
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.6,
+     "recall": 0.9836065573770492,
+     "pmra_c": -0.5358862595155843,
+     "pmdec_c": 0.17659095701684815
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.61,
+     "recall": 1.0,
+     "pmra_c": -0.5551407679835231,
+     "pmdec_c": 0.16041212279028932
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -0.5013656757440443,
+     "pmdec_c": 0.204093729781225
+    },
+    "asteca_fastmp": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -0.5651358341787707,
+     "pmdec_c": 0.17323096515675296
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8000,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.2,
+     "recall": 0.32786885245901637,
+     "pmra_c": -2.3167065042865334,
+     "pmdec_c": -2.8522776669505605
+    },
+    "erotica_3d": {
+     "purity": 0.44,
+     "recall": 0.7213114754098361,
+     "pmra_c": -1.5086286917029808,
+     "pmdec_c": -1.1538538904467546
+    },
+    "erotica_5d": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.137015144620851,
+     "pmdec_c": -0.5150501133061175
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.2,
+     "recall": 0.32786885245901637,
+     "pmra_c": -2.3167065042865334,
+     "pmdec_c": -2.8522776669505605
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.7213114754098361,
+     "pmra_c": -1.5086286917029808,
+     "pmdec_c": -1.1538538904467546
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.1134949431135248,
+     "pmdec_c": -0.4573807145898432
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.2,
+     "recall": 0.32786885245901637,
+     "pmra_c": -2.3167065042865334,
+     "pmdec_c": -2.8522776669505605
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.46,
+     "recall": 0.7540983606557377,
+     "pmra_c": -1.405691080263254,
+     "pmdec_c": -1.0273321026847662
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.137015144620851,
+     "pmdec_c": -0.5150501133061175
+    },
+    "erotica_pm_soft": {
+     "purity": 0.2,
+     "recall": 0.32786885245901637,
+     "pmra_c": -2.3167065042865334,
+     "pmdec_c": -2.8522776669505605
+    },
+    "erotica_3d_soft": {
+     "purity": 0.48,
+     "recall": 0.7868852459016393,
+     "pmra_c": -1.3367951389536474,
+     "pmdec_c": -0.9027593963143843
+    },
+    "erotica_5d_soft": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.1134949431135248,
+     "pmdec_c": -0.4573807145898432
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.137015144620851,
+     "pmdec_c": -0.5150501133061175
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -1.1400667702344083,
+     "pmdec_c": -0.4257361304345568
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.58,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.137015144620851,
+     "pmdec_c": -0.5150501133061175
+    },
+    "asteca_fastmp": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -1.1446624234545362,
+     "pmdec_c": -0.4240281782114038
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8001,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -3.1702852039234175,
+     "pmdec_c": -2.0849848820265167
+    },
+    "erotica_3d": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.6324112090294332,
+     "pmdec_c": -2.277215497042505
+    },
+    "erotica_5d": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1826744127872137,
+     "pmdec_c": -0.48689636503442346
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -2.0110054068945264,
+     "pmdec_c": -1.081952882397142
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -2.0205430144161407,
+     "pmdec_c": -3.149071774087019
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1826744127872137,
+     "pmdec_c": -0.48689636503442346
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -3.1702852039234175,
+     "pmdec_c": -2.0849848820265167
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.5782188005910287,
+     "pmdec_c": -2.2900641822846493
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1826744127872137,
+     "pmdec_c": -0.48689636503442346
+    },
+    "erotica_pm_soft": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.0919020709440679,
+     "pmdec_c": -0.3328819802499213
+    },
+    "erotica_3d_soft": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.2857905006771828,
+     "pmdec_c": -1.715983731922829
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.178131511198112,
+     "pmdec_c": -0.5341580122428113
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.1065537667470127,
+     "pmdec_c": -0.42200924732804745
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.1628737239530438,
+     "pmdec_c": -0.48063221527951955
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1040436012174815,
+     "pmdec_c": -0.46262160082835246
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2034801233694998,
+     "pmdec_c": -0.4377827920986985
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8002,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -3.918279261236169,
+     "pmdec_c": -2.3422508014085412
+    },
+    "erotica_3d": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -2.654774053202152,
+     "pmdec_c": -0.6731257792278423
+    },
+    "erotica_5d": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.2364946175345128,
+     "pmdec_c": -0.38097003444446614
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -4.017284944349942,
+     "pmdec_c": -1.769117562215794
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -2.654774053202152,
+     "pmdec_c": -0.6731257792278423
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.2364946175345128,
+     "pmdec_c": -0.38097003444446614
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -4.041433627445938,
+     "pmdec_c": -1.7872071899058246
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -2.632938286746374,
+     "pmdec_c": -1.2511259011803626
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.2364946175345128,
+     "pmdec_c": -0.38097003444446614
+    },
+    "erotica_pm_soft": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.2269954230909348,
+     "pmdec_c": -0.4057276566411604
+    },
+    "erotica_3d_soft": {
+     "purity": 0.68,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.482571387241491,
+     "pmdec_c": -0.7442545276512407
+    },
+    "erotica_5d_soft": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.1125455351648188,
+     "pmdec_c": -0.3061967734981013
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.2322381303172265,
+     "pmdec_c": -0.40899388550611787
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.04,
+     "recall": 0.01639344262295082,
+     "pmra_c": -1.1125455351648188,
+     "pmdec_c": -0.3061967734981013
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.2364946175345128,
+     "pmdec_c": -0.38097003444446614
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.3346544568795051,
+     "pmdec_c": -0.5195521788215234
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8003,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1484760484515768,
+     "pmdec_c": -0.4421110725552855
+    },
+    "erotica_3d": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.8749508113360631,
+     "pmdec_c": -1.531045241749914
+    },
+    "erotica_5d": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.1663964993256646,
+     "pmdec_c": -0.442028542585868
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.096319119732117,
+     "pmdec_c": -0.41504761250830646
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -1.689770737237087,
+     "pmdec_c": -1.6121212460413878
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.1663964993256646,
+     "pmdec_c": -0.442028542585868
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.2068970328578321,
+     "pmdec_c": -0.4864376190212458
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -2.0394482763811945,
+     "pmdec_c": -1.1568970991970806
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.1295510808740534,
+     "pmdec_c": -0.4479572624220494
+    },
+    "erotica_pm_soft": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.2068970328578321,
+     "pmdec_c": -0.4864376190212458
+    },
+    "erotica_3d_soft": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.2585285620308813,
+     "pmdec_c": -1.0104581036345721
+    },
+    "erotica_5d_soft": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.1598263704385645,
+     "pmdec_c": -0.5082033843059357
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.1333981201774175,
+     "pmdec_c": -0.5139664837993072
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.164925030868308,
+     "pmdec_c": -0.47525088729868614
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.1646498874143427,
+     "pmdec_c": -0.4483897084908509
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.264805800762978,
+     "pmdec_c": -0.5389205575057935
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8004,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.7790680712776532,
+     "pmdec_c": -1.7832931395326888
+    },
+    "erotica_3d": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1681701514220015,
+     "pmdec_c": -0.4452473461067873
+    },
+    "erotica_5d": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1915922237004064,
+     "pmdec_c": -0.36931324595661225
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.7790680712776532,
+     "pmdec_c": -1.7832931395326888
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.44,
+     "recall": 0.18032786885245902,
+     "pmra_c": -1.0634459240091867,
+     "pmdec_c": -1.4149299620376268
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1331187296684615,
+     "pmdec_c": -0.34506147489220157
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.7790680712776532,
+     "pmdec_c": -1.7832931395326888
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1865520495515542,
+     "pmdec_c": -0.4116791151298926
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1535319785921443,
+     "pmdec_c": -0.34999821091096306
+    },
+    "erotica_pm_soft": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.7790680712776532,
+     "pmdec_c": -1.7832931395326888
+    },
+    "erotica_3d_soft": {
+     "purity": 0.64,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.1865520495515542,
+     "pmdec_c": -0.4116791151298926
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.0396918471901428,
+     "pmdec_c": -0.29364565506304513
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.146309680551448,
+     "pmdec_c": -0.3794003435126967
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -1.0449512973781363,
+     "pmdec_c": -0.3177674662298617
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1915922237004064,
+     "pmdec_c": -0.36931324595661225
+    },
+    "asteca_fastmp": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.2628680144396203,
+     "pmdec_c": -0.48037160057750533
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8005,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.5,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.8390837030474405,
+     "pmdec_c": -0.47560400800361013
+    },
+    "erotica_3d": {
+     "purity": 0.4,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.882648076319423,
+     "pmdec_c": -1.118746371022278
+    },
+    "erotica_5d": {
+     "purity": 0.6333333333333333,
+     "recall": 0.6229508196721312,
+     "pmra_c": -1.1288261568759193,
+     "pmdec_c": -0.4126068544777788
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.5,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.8390837030474405,
+     "pmdec_c": -0.47560400800361013
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.3,
+     "recall": 0.29508196721311475,
+     "pmra_c": -2.024697337689376,
+     "pmdec_c": -1.1389345729397036
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.6166666666666667,
+     "recall": 0.6065573770491803,
+     "pmra_c": -1.1467337656489143,
+     "pmdec_c": -0.4258017309232806
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.5,
+     "recall": 0.4918032786885246,
+     "pmra_c": -1.8390837030474405,
+     "pmdec_c": -0.47560400800361013
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.4,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.882648076319423,
+     "pmdec_c": -1.118746371022278
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.9836065573770492,
+     "pmra_c": -1.1753648355537705,
+     "pmdec_c": -0.4844879807325313
+    },
+    "erotica_pm_soft": {
+     "purity": 0.6166666666666667,
+     "recall": 0.6065573770491803,
+     "pmra_c": -1.1193468929412296,
+     "pmdec_c": -0.42900032042023095
+    },
+    "erotica_3d_soft": {
+     "purity": 0.43333333333333335,
+     "recall": 0.4262295081967213,
+     "pmra_c": -1.5060427232389983,
+     "pmdec_c": -0.9907354317656653
+    },
+    "erotica_5d_soft": {
+     "purity": 1.0,
+     "recall": 0.9836065573770492,
+     "pmra_c": -1.1753648355537705,
+     "pmdec_c": -0.4844879807325313
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.65,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.1445714047166886,
+     "pmdec_c": -0.4288942038872359
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 1.0,
+     "recall": 0.9836065573770492,
+     "pmra_c": -1.1710240636358258,
+     "pmdec_c": -0.48491689348182376
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.6333333333333333,
+     "recall": 0.6229508196721312,
+     "pmra_c": -1.1288261568759193,
+     "pmdec_c": -0.4126068544777788
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.9836065573770492,
+     "pmra_c": -1.1804610906169246,
+     "pmdec_c": -0.4828847115538928
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8006,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.44,
+     "recall": 0.7213114754098361,
+     "pmra_c": -1.9202294461592788,
+     "pmdec_c": -1.7112250262217228
+    },
+    "erotica_3d": {
+     "purity": 0.39,
+     "recall": 0.639344262295082,
+     "pmra_c": -2.043383075484135,
+     "pmdec_c": -1.6151439063185367
+    },
+    "erotica_5d": {
+     "purity": 0.57,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1678548455810303,
+     "pmdec_c": -0.46210036701516294
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.45,
+     "recall": 0.7377049180327869,
+     "pmra_c": -1.9282821995877055,
+     "pmdec_c": -1.7150688242712482
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.38,
+     "recall": 0.6229508196721312,
+     "pmra_c": -2.0980762745779247,
+     "pmdec_c": -1.6235359608525703
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.57,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1678548455810303,
+     "pmdec_c": -0.46210036701516294
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.47,
+     "recall": 0.7704918032786885,
+     "pmra_c": -1.7169120436543293,
+     "pmdec_c": -1.5127962381183324
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.41,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.9235136385830742,
+     "pmdec_c": -1.562741867028677
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.57,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1678548455810303,
+     "pmdec_c": -0.46210036701516294
+    },
+    "erotica_pm_soft": {
+     "purity": 0.47,
+     "recall": 0.7704918032786885,
+     "pmra_c": -1.6157422668628323,
+     "pmdec_c": -1.218649054873942
+    },
+    "erotica_3d_soft": {
+     "purity": 0.4,
+     "recall": 0.6557377049180327,
+     "pmra_c": -1.8373532106424855,
+     "pmdec_c": -1.391348638909879
+    },
+    "erotica_5d_soft": {
+     "purity": 0.57,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1678548455810303,
+     "pmdec_c": -0.46210036701516294
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.57,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1678548455810303,
+     "pmdec_c": -0.46210036701516294
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.57,
+     "recall": 0.9344262295081968,
+     "pmra_c": -1.1678548455810303,
+     "pmdec_c": -0.46210036701516294
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.54,
+     "recall": 0.8852459016393442,
+     "pmra_c": -1.2284821585821386,
+     "pmdec_c": -0.5041584363092506
+    },
+    "asteca_fastmp": {
+     "purity": 0.59,
+     "recall": 0.9672131147540983,
+     "pmra_c": -1.1793423893976145,
+     "pmdec_c": -0.464293350744936
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8007,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.6333333333333333,
+     "recall": 0.6229508196721312,
+     "pmra_c": -1.1254195364290567,
+     "pmdec_c": -0.4189458833292019
+    },
+    "erotica_3d": {
+     "purity": 0.3,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.2946140212207133,
+     "pmdec_c": -1.6403830812359417
+    },
+    "erotica_5d": {
+     "purity": 0.55,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.0867784591245764,
+     "pmdec_c": -0.40874026479955483
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.6333333333333333,
+     "recall": 0.6229508196721312,
+     "pmra_c": -1.1254195364290567,
+     "pmdec_c": -0.4189458833292019
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.38333333333333336,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.2148690967601916,
+     "pmdec_c": -1.6293727547771015
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.6833333333333333,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.1141805371076556,
+     "pmdec_c": -0.42256176920362537
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.65,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.1227620495849557,
+     "pmdec_c": -0.43043833351439637
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.3,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.2946140212207133,
+     "pmdec_c": -1.6403830812359417
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.55,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.0867784591245764,
+     "pmdec_c": -0.40874026479955483
+    },
+    "erotica_pm_soft": {
+     "purity": 0.65,
+     "recall": 0.639344262295082,
+     "pmra_c": -1.1227620495849557,
+     "pmdec_c": -0.43043833351439637
+    },
+    "erotica_3d_soft": {
+     "purity": 0.4166666666666667,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1284718577803938,
+     "pmdec_c": -1.2177861963575127
+    },
+    "erotica_5d_soft": {
+     "purity": 0.7,
+     "recall": 0.6885245901639344,
+     "pmra_c": -1.1231162744408851,
+     "pmdec_c": -0.4683112569303453
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.55,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.0867784591245764,
+     "pmdec_c": -0.40874026479955483
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.6833333333333333,
+     "recall": 0.6721311475409836,
+     "pmra_c": -1.1237591955814754,
+     "pmdec_c": -0.4514591499676527
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.55,
+     "recall": 0.5409836065573771,
+     "pmra_c": -1.0867784591245764,
+     "pmdec_c": -0.40874026479955483
+    },
+    "asteca_fastmp": {
+     "purity": 0.9666666666666667,
+     "recall": 0.9508196721311475,
+     "pmra_c": -1.1684083695291287,
+     "pmdec_c": -0.5115838074353256
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8008,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.3218641181394724,
+     "pmdec_c": -2.1309441034183507
+    },
+    "erotica_3d": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.8369835930669962,
+     "pmdec_c": -0.677548277028738
+    },
+    "erotica_5d": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.184379490373442,
+     "pmdec_c": -0.3722287526323656
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.2728195544158525,
+     "pmdec_c": -2.1062154652208256
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -2.071443835444437,
+     "pmdec_c": -2.4063820301062795
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.184379490373442,
+     "pmdec_c": -0.3722287526323656
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.3218641181394724,
+     "pmdec_c": -2.1309441034183507
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.28,
+     "recall": 0.11475409836065574,
+     "pmra_c": -1.598279793352665,
+     "pmdec_c": -1.6132593943683082
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.1167257160563655,
+     "pmdec_c": -0.4200398743966115
+    },
+    "erotica_pm_soft": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.2045424136049048,
+     "pmdec_c": -1.6051803080230393
+    },
+    "erotica_3d_soft": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.648426871353305,
+     "pmdec_c": -1.3700575838439741
+    },
+    "erotica_5d_soft": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.0789002792786455,
+     "pmdec_c": -0.35238210080484467
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.180846078568795,
+     "pmdec_c": -0.4117318377041688
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.12,
+     "recall": 0.04918032786885246,
+     "pmra_c": -1.0703287885026054,
+     "pmdec_c": -0.3665511358952671
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.72,
+     "recall": 0.29508196721311475,
+     "pmra_c": -1.184379490373442,
+     "pmdec_c": -0.3722287526323656
+    },
+    "asteca_fastmp": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2987060343448287,
+     "pmdec_c": -0.4011020481228774
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8009,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -0.7466655686759366,
+     "pmdec_c": -2.951634338549539
+    },
+    "erotica_3d": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -0.8997576808742945,
+     "pmdec_c": -3.2452210877636243
+    },
+    "erotica_5d": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1224070681310268,
+     "pmdec_c": -0.40886664862203026
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -0.7740884618362911,
+     "pmdec_c": -2.9789505466757737
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.16,
+     "recall": 0.06557377049180328,
+     "pmra_c": -1.2266019289965864,
+     "pmdec_c": -2.815378250618112
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.84,
+     "recall": 0.3442622950819672,
+     "pmra_c": -1.190803585406582,
+     "pmdec_c": -0.48849581038172296
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.32,
+     "recall": 0.13114754098360656,
+     "pmra_c": -1.007819901252087,
+     "pmdec_c": -3.006145465560769
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -1.5840179627902984,
+     "pmdec_c": -2.7963653868598874
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.184283221257451,
+     "pmdec_c": -0.3806359949998977
+    },
+    "erotica_pm_soft": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.063704611782637,
+     "pmdec_c": -1.4568640235999377
+    },
+    "erotica_3d_soft": {
+     "purity": 0.4,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.0412779479100858,
+     "pmdec_c": -1.7859464391811217
+    },
+    "erotica_5d_soft": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.039190244219482,
+     "pmdec_c": -0.27395141880383017
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1224070681310268,
+     "pmdec_c": -0.40886664862203026
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.0,
+     "recall": 0.0,
+     "pmra_c": -1.039190244219482,
+     "pmdec_c": -0.27395141880383017
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.52,
+     "recall": 0.21311475409836064,
+     "pmra_c": -1.1224070681310268,
+     "pmdec_c": -0.40886664862203026
+    },
+    "asteca_fastmp": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.2151887920126716,
+     "pmdec_c": -0.5044154606296141
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8010,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -3.6553263018830746,
+     "pmdec_c": -1.4459683727874744
+    },
+    "erotica_3d": {
+     "purity": 0.2,
+     "recall": 0.08196721311475409,
+     "pmra_c": -2.5072594764641924,
+     "pmdec_c": -1.5358394155961919
+    },
+    "erotica_5d": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1844594860402484,
+     "pmdec_c": -0.5089911192706356
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -3.6553263018830746,
+     "pmdec_c": -1.4459683727874744
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -2.409686535612502,
+     "pmdec_c": -1.224498504398677
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.2214160700492755,
+     "pmdec_c": -0.5432904318645629
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -3.6553263018830746,
+     "pmdec_c": -1.4459683727874744
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -2.4499550065373485,
+     "pmdec_c": -1.5243737413422571
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 1.0,
+     "recall": 0.4098360655737705,
+     "pmra_c": -1.1601627829670422,
+     "pmdec_c": -0.5732406868836094
+    },
+    "erotica_pm_soft": {
+     "purity": 0.24,
+     "recall": 0.09836065573770492,
+     "pmra_c": -3.6553263018830746,
+     "pmdec_c": -1.4459683727874744
+    },
+    "erotica_3d_soft": {
+     "purity": 0.56,
+     "recall": 0.22950819672131148,
+     "pmra_c": -1.5069252984372614,
+     "pmdec_c": -0.834175133157737
+    },
+    "erotica_5d_soft": {
+     "purity": 0.96,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.1518136636219813,
+     "pmdec_c": -0.5315064700668698
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.6,
+     "recall": 0.2459016393442623,
+     "pmra_c": -1.126851384179784,
+     "pmdec_c": -0.4557609773953103
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.8,
+     "recall": 0.32786885245901637,
+     "pmra_c": -1.1504026329103474,
+     "pmdec_c": -0.4774126252311766
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.48,
+     "recall": 0.19672131147540983,
+     "pmra_c": -1.0838008998232744,
+     "pmdec_c": -0.42040254927397214
+    },
+    "asteca_fastmp": {
+     "purity": 0.08,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.0901868004350512,
+     "pmdec_c": -0.3275855615598345
+    }
+   }
+  },
+  {
+   "arm": "Cp",
+   "seed": 8011,
+   "n_members": 61,
+   "n_neighbour": 43,
+   "n_sources": 305,
+   "realised_contamination": 0.8,
+   "methods": {
+    "erotica_pm": {
+     "purity": 0.24324324324324326,
+     "recall": 0.14754098360655737,
+     "pmra_c": -2.743419916213508,
+     "pmdec_c": -1.1051776080806284
+    },
+    "erotica_3d": {
+     "purity": 0.6216216216216216,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1046155414254482,
+     "pmdec_c": -0.44412037254823994
+    },
+    "erotica_5d": {
+     "purity": 0.4594594594594595,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.074212152469749,
+     "pmdec_c": -0.41377911559774155
+    },
+    "erotica_pm_maxlambda": {
+     "purity": 0.24324324324324326,
+     "recall": 0.14754098360655737,
+     "pmra_c": -2.743419916213508,
+     "pmdec_c": -1.1051776080806284
+    },
+    "erotica_3d_maxlambda": {
+     "purity": 0.6216216216216216,
+     "recall": 0.3770491803278688,
+     "pmra_c": -1.1046155414254482,
+     "pmdec_c": -0.44412037254823994
+    },
+    "erotica_5d_maxlambda": {
+     "purity": 0.43243243243243246,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.072054374239023,
+     "pmdec_c": -0.4037876235972933
+    },
+    "erotica_pm_maxpersistence": {
+     "purity": 0.24324324324324326,
+     "recall": 0.14754098360655737,
+     "pmra_c": -2.743419916213508,
+     "pmdec_c": -1.1051776080806284
+    },
+    "erotica_3d_maxpersistence": {
+     "purity": 0.5945945945945946,
+     "recall": 0.36065573770491804,
+     "pmra_c": -1.0920179352994444,
+     "pmdec_c": -0.4403549378701689
+    },
+    "erotica_5d_maxpersistence": {
+     "purity": 0.43243243243243246,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.072054374239023,
+     "pmdec_c": -0.4037876235972933
+    },
+    "erotica_pm_soft": {
+     "purity": 0.24324324324324326,
+     "recall": 0.14754098360655737,
+     "pmra_c": -2.743419916213508,
+     "pmdec_c": -1.1051776080806284
+    },
+    "erotica_3d_soft": {
+     "purity": 0.6486486486486487,
+     "recall": 0.39344262295081966,
+     "pmra_c": -1.1258503394777226,
+     "pmdec_c": -0.4533868811997411
+    },
+    "erotica_5d_soft": {
+     "purity": 0.2702702702702703,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.0596534663596662,
+     "pmdec_c": -0.3542231245129233
+    },
+    "erotica_5d_erroraware": {
+     "purity": 0.43243243243243246,
+     "recall": 0.26229508196721313,
+     "pmra_c": -1.074963900184398,
+     "pmdec_c": -0.40260264221704983
+    },
+    "erotica_5d_soft_erroraware": {
+     "purity": 0.2702702702702703,
+     "recall": 0.16393442622950818,
+     "pmra_c": -1.0494600045454212,
+     "pmdec_c": -0.3548260486720991
+    },
+    "erotica_5d_coarsef": {
+     "purity": 0.4594594594594595,
+     "recall": 0.2786885245901639,
+     "pmra_c": -1.074212152469749,
+     "pmdec_c": -0.41377911559774155
+    },
+    "asteca_fastmp": {
+     "purity": 0.05405405405405406,
+     "recall": 0.03278688524590164,
+     "pmra_c": -1.0518139036490943,
+     "pmdec_c": -0.27967706749935084
+    }
+   }
+  }
+ ]
+}
