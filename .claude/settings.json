@@ -39,6 +39,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "S=\"$HOME/phd/.claude/hooks/programme_state.py\"; if [ -f \"$S\" ]; then python3 \"$S\"; else exit 0; fi",
+            "timeout": 30,
+            "statusMessage": "Leyendo el estado del programa"
+          }
+        ]
+      }
     ]
   }
 }
