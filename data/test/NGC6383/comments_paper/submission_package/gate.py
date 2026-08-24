@@ -823,7 +823,12 @@ def c_linters():
     # corrupto o un build que rechace el `-f` convertian los dos linters en un pase incondicional.
     if "Unable to open" in a.stderr or "unable to open" in a.stderr.lower():
         return False, f"chktex no pudo leer aanda.tex: {a.stderr.strip()[:90]}"
-    warns = [w for w in a.stdout.replace("\\n", "\n").split("\n") if w.strip()]
+    # El `.replace("\\n", "\n")` que habia aqui era un no-op sobre la salida real —Python pasa un
+    # salto real en el `-f`, y chktex emite saltos reales— y solo podia hacer dano: chktex sustituye
+    # nombres de comando en varios mensajes, asi que uno que cite `\newline` o `\noindent` se partia
+    # por la barra-n y producia un fragmento que no empieza por un numero aceptado, o sea un fallo
+    # nombrando un aviso inexistente con el real truncado.
+    warns = [w for w in a.stdout.split("\n") if w.strip()]
     # `.chktexrc` argumenta EXACTAMENTE lo contrario de aceptar el nº8 entero: "Relaxing NumDash
     # would silence them but would also stop catching a genuine 1-10 written for 1--10, which is
     # the more valuable check. Two explained warnings are cheaper than a weakened rule." Aceptar
@@ -927,9 +932,18 @@ def c_build():
     reported a clean build. c_overfull reads these logs, so building here also guarantees
     it is reading logs this run produced rather than a previous state of the manuscript.
     """
+    # Cada corrida borraba y reconstruia dos PDF TRACKEADOS (5,9 y 6,0 MB), asi que `git status`
+    # quedaba con dos binarios modificados y cada commit se llevaba ~11,9 MB de churn sin cambio
+    # semantico -- dos commits de esta misma sesion lo cargan. Se guarda el byte original y, si el
+    # PDF reconstruido es identico en TEXTO al anterior, se restaura el fichero: el build se hizo y
+    # se verifico igual, y el arbol queda como estaba. Si el texto cambio, el nuevo se queda, que es
+    # justo cuando el diff vale algo.
     out = []
     for tag, tex in (("limpio", TEX), ("marcado", MARKED)):
         stem = tex.with_suffix("").name
+        pdf = tex.parent / f"{stem}.pdf"
+        antes = pdf.read_bytes() if pdf.exists() else None
+        texto_antes = run(["pdftotext", str(pdf), "-"]).stdout if antes else None
         run(["latexmk", "-C", stem], cwd=tex.parent)
         run(["latexmk", "-pdf", "-bibtex", "-interaction=nonstopmode", tex.name], cwd=tex.parent)
         log = (tex.parent / f"{stem}.log").read_text(errors="replace")
@@ -948,6 +962,13 @@ def c_build():
                        + ", ".join(f"{k} {v}" for k, v in bad.items()))
         else:
             out.append(f"{tag} {pages.group(1)} pp")
+        if antes is not None and pdf.exists():
+            # aa.cls estampa \today, asi que un rebuild otro dia difiere en la fecha y en nada mas;
+            # se normaliza igual que en c_deliverables antes de decidir si hubo cambio real.
+            import re as _re
+            norm = lambda s: _re.sub(r"\b[A-Z][a-z]+ \d{1,2}, \d{4}\b", "<fecha>", s or "")
+            if norm(run(["pdftotext", str(pdf), "-"]).stdout) == norm(texto_antes):
+                pdf.write_bytes(antes)
     failed = [o for o in out if o.startswith("FALLA")]
     return not failed, ("; ".join(out) + ", 0 errores y 0 indefinidas en ambos" if not failed
                         else "; ".join(out))
@@ -972,10 +993,18 @@ def c_deliverables():
         # makes the check cry wolf every time the clock rolls over.
         return re.sub(r"\b[A-Z][a-z]+ \d{1,2}, \d{4}\b", "<fecha>", r.stdout)
 
+    _prod_cache: dict[Path, str] = {}
+
     def producer(p: Path) -> str:
+        # Memoizado: se llamaba dos veces en la condicion y dos mas dentro del f-string del mensaje,
+        # y `pairs[1]` y `pairs[2]` comparten el mismo fichero construido, asi que un desajuste
+        # costaba seis `pdfinfo` para leer tres ficheros distintos.
+        if p in _prod_cache:
+            return _prod_cache[p]
         r = run(["pdfinfo", str(p)])
         m = re.search(r"^Producer:\s*(.+)$", r.stdout, re.M)
-        return m.group(1).strip() if m else "?"
+        _prod_cache[p] = m.group(1).strip() if m else "?"
+        return _prod_cache[p]
 
     pairs = [(TEX.parent / "aanda.pdf", HERE / "aanda_revised_clean.pdf"),
              (MARKED.parent / "aanda_marked.pdf", HERE / "aanda_revised_marked.pdf"),
