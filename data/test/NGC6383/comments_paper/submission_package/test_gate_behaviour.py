@@ -57,6 +57,29 @@ def main() -> int:
     if code_con != 0:
         bad.append("--allow-skips no perdona una omisión")
 
+    # La rama del nº12 sólo vive bajo un chktex < 1.7.9, y en esta máquina hay 1.7.9 — así que
+    # `accept` queda en cortocircuito y esa rama NUNCA se ejercita en local. Un shim que reporta la
+    # versión vieja y emite un nº12 la despierta sin tocar el manuscrito.
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        shim = Path(d) / "chktex"
+        real = subprocess.run(["command", "-v", "chktex"], capture_output=True, text=True,
+                              shell=False, executable="/bin/sh")
+        ruta = real.stdout.strip() or "/Library/TeX/texbin/chktex"
+        shim.write_text("#!/bin/sh\n"
+                        'if [ "$1" = "--version" ]; then echo "ChkTeX v1.7.8 - shim"; exit 0; fi\n'
+                        f'"{ruta}" "$@"\n'
+                        "printf '12|134|Interword spacing should perhaps be used.\\n'\n")
+        shim.chmod(0o755)
+        env = {**os.environ, "PATH": f"{d}:/Library/TeX/texbin:/usr/bin:/bin"}
+        _, out_viejo = run("--quick", "--allow-skips", env=env)
+        linea = next((l for l in out_viejo.split("\n") if "chktex" in l), "")
+        if "nº12 aceptado" not in linea:
+            bad.append(f"con chktex 1.7.8 el nº12 no se acepta: {linea.strip()[:70]}")
+        if "FALLA" in linea:
+            bad.append("la rama del nº12 falla bajo la versión que la necesita")
+
     for line in bad:
         print(f"  - {line}")
     if bad:
