@@ -2,6 +2,13 @@ name: CI
 
 on: [push, pull_request]
 
+permissions:
+  # Ninguno de los tres jobs escribe nada: instalan, compilan y corren tests. Sin esta
+  # declaración heredaban el token por defecto entero, que es lo que zizmor reportaba como
+  # `excessive-permissions` — seis alertas que llevaban ahí sin mirar porque el workflow que
+  # las reporta corre con `continue-on-error` y su verde sólo decía que había corrido.
+  contents: read
+
 jobs:
   # Core suite on every supported Python, WITHOUT the `bayes` extra. That omission is
   # the point: it is the only thing enforcing that `import erotica` works with pymc,
