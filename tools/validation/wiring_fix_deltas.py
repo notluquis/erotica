@@ -102,16 +102,16 @@ PROBABILITY_CUT = 0.6
 #: against what a reader of the paper actually has. Section references are to
 #: ``submission_package/clean_source/aanda.tex``.
 PUBLISHED = {
-    "n_members_40": 254,          # abstract; reference sample, p >= 0.6
-    "n_candidates_40": 321,       # abstract; candidates, p > 0.5
-    "mean_parallax_mas": 0.908,   # Table 1 and Sect. astrometry
+    "n_members_40": 254,  # abstract; reference sample, p >= 0.6
+    "n_candidates_40": 321,  # abstract; candidates, p > 0.5
+    "mean_parallax_mas": 0.908,  # Table 1 and Sect. astrometry
     "parallax_dispersion_mas": 0.046,
     "parallax_sem_mas": 0.004,
     "distance_kpc": 1.11,
     "distance_err_kpc": 0.06,
-    "R_c_arcmin": 1.96,           # abstract; 40' production fit
+    "R_c_arcmin": 1.96,  # abstract; 40' production fit
     "R_c_err_arcmin": (0.19, 0.16),
-    "R_t_arcmin": 54.0,           # abstract; measured on the 70' extraction
+    "R_t_arcmin": 54.0,  # abstract; measured on the 70' extraction
     "R_t_err_arcmin": (7.0, 11.0),
 }
 
@@ -120,7 +120,11 @@ def sampling(draws, seed):
     from erotica.analysis.inference import SamplingConfig
 
     return SamplingConfig(
-        draws=draws, tune=1000, chains=2, random_seed=seed, progressbar=False,
+        draws=draws,
+        tune=1000,
+        chains=2,
+        random_seed=seed,
+        progressbar=False,
         extra_kwargs={"cores": 1},
     )
 
@@ -151,6 +155,7 @@ def retention_by_magnitude_quartile(gmag_all, keep):
 # Stage A -- the membership clip. No sampling.
 # ---------------------------------------------------------------------------
 
+
 def stage_a(path, field_label):
     from erotica.analysis._clipping import sigma_clip_parallax
 
@@ -160,14 +165,22 @@ def stage_a(path, field_label):
     probability = np.asarray(table["probability"], dtype=float)
     gmag = np.asarray(table["Gmag"], dtype=float)
 
-    work = QTable({
-        "parallax": np.asarray(table["parallax"], dtype=float),
-        "parallax_error": np.asarray(table["parallax_error"], dtype=float),
-        "cluster": np.where(preclip, 0, -1).astype(np.int64),
-    })
+    work = QTable(
+        {
+            "parallax": np.asarray(table["parallax"], dtype=float),
+            "parallax_error": np.asarray(table["parallax_error"], dtype=float),
+            "cluster": np.where(preclip, 0, -1).astype(np.int64),
+        }
+    )
     common = dict(
-        cluster=0, sigma=SIGMA, use_biweight=True, in_place=False, mark_label=-1,
-        print_results=False, return_mask=True, preselector_mask=None,
+        cluster=0,
+        sigma=SIGMA,
+        use_biweight=True,
+        in_place=False,
+        mark_label=-1,
+        print_results=False,
+        return_mask=True,
+        preselector_mask=None,
     )
 
     postclip = np.asarray(table["paper_reference_postclip_p05"], dtype=bool)
@@ -216,9 +229,14 @@ def stage_a(path, field_label):
         "field": field_label,
         "reproduces_published_counts": reproduces,
         "median_e_plx_by_gmag_quartile": [
-            float(np.median(np.asarray(table["parallax_error"], float)[preclip][
-                np.digitize(gmag[preclip], np.quantile(gmag[preclip], [0.25, 0.5, 0.75])) == k
-            ]))
+            float(
+                np.median(
+                    np.asarray(table["parallax_error"], float)[preclip][
+                        np.digitize(gmag[preclip], np.quantile(gmag[preclip], [0.25, 0.5, 0.75]))
+                        == k
+                    ]
+                )
+            )
             for k in range(4)
         ],
         "maxiters_sensitivity_raw_basis": iters,
@@ -272,14 +290,16 @@ def quartile_ks(gmag, radius):
     out = []
     for mask in masks[:3]:
         test = ks_2samp(faint, radius[mask])
-        out.append({
-            "against": f"{gmag[mask].min():.2f}-{gmag[mask].max():.2f}",
-            "n": int(mask.sum()),
-            "D": float(test.statistic),
-            "p": float(test.pvalue),
-        })
+        out.append(
+            {
+                "against": f"{gmag[mask].min():.2f}-{gmag[mask].max():.2f}",
+                "n": int(mask.sum()),
+                "D": float(test.statistic),
+                "p": float(test.pvalue),
+            }
+        )
     adjusted = holm(np.array([c["p"] for c in out]))
-    for comparison, value in zip(out, adjusted):
+    for comparison, value in zip(out, adjusted, strict=True):
         comparison["p_holm"] = float(value)
     return {
         "n_total": int(len(gmag)),
@@ -308,13 +328,25 @@ def stage_a2(table, masks):
 #: That combination is now refused (it is the defect), so the rung is built by
 #: filtering the table here and handing the models a table they may not use.
 B_RUNGS = [
-    ("B0  old defaults (published configuration)",
-     dict(precut=0.1, fractional_parallax_error_max=None, parallax_error_column=None,
-          distance_lo_column=None, distance_hi_column=None, zero_point=False)),
-    ("B1  + per-star errors and Bailer-Jones bounds",
-     dict(precut=0.1, fractional_parallax_error_max=None, zero_point=False)),
-    ("B2  + zero-point nuisance",
-     dict(precut=0.1, fractional_parallax_error_max=None, zero_point=True)),
+    (
+        "B0  old defaults (published configuration)",
+        dict(
+            precut=0.1,
+            fractional_parallax_error_max=None,
+            parallax_error_column=None,
+            distance_lo_column=None,
+            distance_hi_column=None,
+            zero_point=False,
+        ),
+    ),
+    (
+        "B1  + per-star errors and Bailer-Jones bounds",
+        dict(precut=0.1, fractional_parallax_error_max=None, zero_point=False),
+    ),
+    (
+        "B2  + zero-point nuisance",
+        dict(precut=0.1, fractional_parallax_error_max=None, zero_point=True),
+    ),
     ("B3  - the fractional-error pre-cut  [NEW DEFAULT]", dict(precut=None)),
 ]
 
@@ -347,39 +379,51 @@ def stage_b(table, member_mask, *, draws, seed, label):
         # folded into a single pass/fail.
         distance_trace, parallax_trace = res["traces"][0], res["traces"][1]
         diagnostics = {
-            **{f"distance_{k}": v for k, v in
-               _convergence(distance_trace, ["mu_r", "std_r"]).items()},
-            **{f"parallax_{k}": v for k, v in
-               _convergence(parallax_trace, ["mu_parallax", "sigma_parallax"]).items()},
+            **{
+                f"distance_{k}": v
+                for k, v in _convergence(distance_trace, ["mu_r", "std_r"]).items()
+            },
+            **{
+                f"parallax_{k}": v
+                for k, v in _convergence(parallax_trace, ["mu_parallax", "sigma_parallax"]).items()
+            },
             "latent_r_true_r_hat_max": _latent_rhat(distance_trace),
         }
-        out.append({
-            **diagnostics,
-            "sample": label,
-            "rung": rung,
-            "n_selected": int(len(selected)),
-            "n_fitted": n_fitted,
-            "mu_parallax_mas": res["mu_parallax_mean"][0],
-            "mu_parallax_sd_mas": res["mu_parallax_std"][0],
-            "sigma_parallax_mas": res["sigma_parallax_mean"][0],
-            "mu_r_kpc": res["mu_r_mean"][0],
-            "mu_r_sd_kpc": res["mu_r_std"][0],
-            "std_r_kpc": res["std_r_mean"][0],
-            "seconds": round(time.perf_counter() - t0, 1),
-        })
+        out.append(
+            {
+                **diagnostics,
+                "sample": label,
+                "rung": rung,
+                "n_selected": int(len(selected)),
+                "n_fitted": n_fitted,
+                "mu_parallax_mas": res["mu_parallax_mean"][0],
+                "mu_parallax_sd_mas": res["mu_parallax_std"][0],
+                "sigma_parallax_mas": res["sigma_parallax_mean"][0],
+                "mu_r_kpc": res["mu_r_mean"][0],
+                "mu_r_sd_kpc": res["mu_r_std"][0],
+                "std_r_kpc": res["std_r_mean"][0],
+                "seconds": round(time.perf_counter() - t0, 1),
+            }
+        )
         row = out[-1]
         latent = row["latent_r_true_r_hat_max"]
-        flag = "" if max(row["distance_r_hat_max"], row["parallax_r_hat_max"]) < 1.01 else "  R-HAT!"
-        print(f"    {rung:52s} N={n_fitted:4d}  plx={row['mu_parallax_mas']:.4f}"
-              f"+/-{row['mu_parallax_sd_mas']:.4f}  d={row['mu_r_kpc']:.4f}"
-              f"+/-{row['mu_r_sd_kpc']:.4f} kpc  rhat<={max(row['distance_r_hat_max'], row['parallax_r_hat_max']):.4f}"
-              f" (latent {latent:.3f})  ({row['seconds']}s){flag}", flush=True)
+        flag = (
+            "" if max(row["distance_r_hat_max"], row["parallax_r_hat_max"]) < 1.01 else "  R-HAT!"
+        )
+        print(
+            f"    {rung:52s} N={n_fitted:4d}  plx={row['mu_parallax_mas']:.4f}"
+            f"+/-{row['mu_parallax_sd_mas']:.4f}  d={row['mu_r_kpc']:.4f}"
+            f"+/-{row['mu_r_sd_kpc']:.4f} kpc  rhat<={max(row['distance_r_hat_max'], row['parallax_r_hat_max']):.4f}"
+            f" (latent {latent:.3f})  ({row['seconds']}s){flag}",
+            flush=True,
+        )
     return out
 
 
 # ---------------------------------------------------------------------------
 # Stage C -- which King fitter.
 # ---------------------------------------------------------------------------
+
 
 def _convergence(trace, names):
     """PART A floor. ``az.rhat``/``az.ess``, never ``az.summary``.
@@ -400,10 +444,15 @@ def _convergence(trace, names):
 def _latent_rhat(trace):
     """Worst R-hat over the per-star latent distances, if the model has them.
 
-    ``distance_model``'s error-aware branch adds one ``r_true`` per star. Those
-    are nuisance parameters -- each is constrained by a single observation, so a
-    low ESS there is expected and is not evidence about ``mu_r``. Reported
-    separately so a warning from PyMC can be attributed rather than guessed at.
+    ``distance_model``'s error-aware branch **used to** add one ``r_true`` per star. Those were
+    nuisance parameters -- each constrained by a single observation, so a low ESS there was expected
+    and was not evidence about ``mu_r``. Reported separately so a warning from PyMC could be
+    attributed rather than guessed at.
+
+    Desde 2026-08-24 esa rama marginaliza los latentes en forma cerrada, asi que ya no existen y
+    esto devuelve NaN. Se conserva porque una traza guardada de antes del cambio si los trae, y
+    porque la distincion que hace —ESS bajo en un latente no dice nada sobre los parametros de
+    poblacion— es la que separo el ruido esperable del defecto real cuando se diagnostico el embudo.
     """
     import arviz as az
 
@@ -424,10 +473,14 @@ def stage_c(table, member_mask, *, field, draws, seed, label):
 
     out = []
     for fitter_label, kwargs in (
-        ("binned Gaussian, data-derived priors (RDP_bayesian)",
-         dict(method="binned", return_trace=True)),
-        ("unbinned point process (king_unbinned)  [NEW DEFAULT]",
-         dict(method="unbinned", field_radius=field)),
+        (
+            "binned Gaussian, data-derived priors (RDP_bayesian)",
+            dict(method="binned", return_trace=True),
+        ),
+        (
+            "unbinned point process (king_unbinned)  [NEW DEFAULT]",
+            dict(method="unbinned", field_radius=field),
+        ),
     ):
         t0 = time.perf_counter()
         with warnings.catch_warnings():
@@ -447,10 +500,13 @@ def stage_c(table, member_mask, *, field, draws, seed, label):
             row[f"{name}_sd"] = float(getattr(sd, "value", sd))
         row.update(_convergence(res["king_trace"], ["R_c", "R_t"]))
         out.append(row)
-        print(f"    {fitter_label:54s} N={row['n_stars']:4d}  "
-              f"R_c={row['R_c']:.3f}+/-{row['R_c_sd']:.3f}'  "
-              f"R_t={row['R_t']:.1f}+/-{row['R_t_sd']:.1f}'  "
-              f"div={row['divergences']} ({row['seconds']}s)", flush=True)
+        print(
+            f"    {fitter_label:54s} N={row['n_stars']:4d}  "
+            f"R_c={row['R_c']:.3f}+/-{row['R_c_sd']:.3f}'  "
+            f"R_t={row['R_t']:.1f}+/-{row['R_t_sd']:.1f}'  "
+            f"div={row['divergences']} ({row['seconds']}s)",
+            flush=True,
+        )
     return out
 
 
@@ -467,15 +523,23 @@ def main():
     print("STAGE A -- the membership clip (40', the adopted production sample)")
     a40 = stage_a(FLAGS_40, "40 arcmin")
     print(f"  reproduces published counts: {a40['reproduces_published_counts']}")
-    print(f"  median e_Plx by Gmag quartile (mas): "
-          f"{['%.3f' % v for v in a40['median_e_plx_by_gmag_quartile']]}")
-    print(f"  {'clip basis':56s} {'post-clip':>9s} {'p>=0.6':>7s} {'Q1':>6s} {'Q4':>6s} {'grad':>7s}")
+    print(
+        f"  median e_Plx by Gmag quartile (mas): "
+        f"{[f'{v:.3f}' for v in a40['median_e_plx_by_gmag_quartile']]}"
+    )
+    print(
+        f"  {'clip basis':56s} {'post-clip':>9s} {'p>=0.6':>7s} {'Q1':>6s} {'Q4':>6s} {'grad':>7s}"
+    )
     for label, row in a40["rows"].items():
         q = row["by_gmag_quartile"]
-        print(f"  {label:56s} {row['n_after_clip_p05']:9d} {row['n_members_p06']:7d} "
-              f"{q[0]:6.1%} {q[3]:6.1%} {row['bright_to_faint_gradient']:+7.3f}")
-    print(f"  maxiters sensitivity (raw basis, post-clip count): "
-          f"{a40['maxiters_sensitivity_raw_basis']}")
+        print(
+            f"  {label:56s} {row['n_after_clip_p05']:9d} {row['n_members_p06']:7d} "
+            f"{q[0]:6.1%} {q[3]:6.1%} {row['bright_to_faint_gradient']:+7.3f}"
+        )
+    print(
+        f"  maxiters sensitivity (raw basis, post-clip count): "
+        f"{a40['maxiters_sensitivity_raw_basis']}"
+    )
 
     table40 = a40.pop("_table")
     masks = {label: row.pop("member_mask") for label, row in a40["rows"].items()}
@@ -487,14 +551,20 @@ def main():
     print("\nSTAGE A2 -- P01's faint-quartile KS test under each member list")
     ks = stage_a2(table40, masks)
     results["stage_a2"] = ks
-    print(f"  {'member list':56s} {'N':>4s} {'D vs Q1':>8s} {'D vs Q2':>8s} {'D vs Q3':>8s} {'sig':>4s}")
-    print(f"  {'PAPER (Sect. 5)':56s} {254:4d} "
-          f"{PUBLISHED_KS[0]['D']:8.3f} {PUBLISHED_KS[1]['D']:8.3f} "
-          f"{PUBLISHED_KS[2]['D']:8.3f} {1:4d}")
+    print(
+        f"  {'member list':56s} {'N':>4s} {'D vs Q1':>8s} {'D vs Q2':>8s} {'D vs Q3':>8s} {'sig':>4s}"
+    )
+    print(
+        f"  {'PAPER (Sect. 5)':56s} {254:4d} "
+        f"{PUBLISHED_KS[0]['D']:8.3f} {PUBLISHED_KS[1]['D']:8.3f} "
+        f"{PUBLISHED_KS[2]['D']:8.3f} {1:4d}"
+    )
     for label, res in ks.items():
         d = [c["D"] for c in res["comparisons"]]
-        print(f"  {label:56s} {res['n_total']:4d} {d[0]:8.3f} {d[1]:8.3f} {d[2]:8.3f} "
-              f"{res['n_significant_after_holm']:4d}")
+        print(
+            f"  {label:56s} {res['n_total']:4d} {d[0]:8.3f} {d[1]:8.3f} {d[2]:8.3f} "
+            f"{res['n_significant_after_holm']:4d}"
+        )
     for label, res in ks.items():
         p = [c["p"] for c in res["comparisons"]]
         print(f"    p ({label[:34]:34s}): " + "  ".join(f"{v:.4f}" for v in p))
@@ -502,33 +572,55 @@ def main():
     if args.stage in {"B", "all"}:
         print("\nSTAGE B -- parallax and distance, one switch at a time (40', p >= 0.6)")
         print("  on the PUBLISHED member list, so the clip is held fixed:")
-        rows = stage_b(table40, published_mask, draws=args.draws, seed=args.seed,
-                       label="published clip")
+        rows = stage_b(
+            table40, published_mask, draws=args.draws, seed=args.seed, label="published clip"
+        )
         print("  on the NORMALISED-clip member list, new defaults only:")
-        rows += stage_b(table40, normalised_mask, draws=args.draws, seed=args.seed,
-                        label="normalised clip")[-1:]
+        rows += stage_b(
+            table40, normalised_mask, draws=args.draws, seed=args.seed, label="normalised clip"
+        )[-1:]
         results["stage_b"] = rows
 
     if args.stage in {"C", "all"}:
         print("\nSTAGE C -- which King fitter")
         print("  40' production sample, published member list:")
-        rows = stage_c(table40, published_mask, field=FIELD_40, draws=args.draws,
-                       seed=args.seed, label="40' published clip")
+        rows = stage_c(
+            table40,
+            published_mask,
+            field=FIELD_40,
+            draws=args.draws,
+            seed=args.seed,
+            label="40' published clip",
+        )
         print("  40' production sample, normalised-clip member list:")
-        rows += stage_c(table40, normalised_mask, field=FIELD_40, draws=args.draws,
-                        seed=args.seed, label="40' normalised clip")
+        rows += stage_c(
+            table40,
+            normalised_mask,
+            field=FIELD_40,
+            draws=args.draws,
+            seed=args.seed,
+            label="40' normalised clip",
+        )
         print("  70' extraction (the sample R_t was measured on):")
         a70 = stage_a(FLAGS_70, "70 arcmin")
         table70 = a70.pop("_table")
         masks70 = {label: row.pop("member_mask") for label, row in a70["rows"].items()}
         results["stage_a_70"] = a70
-        rows += stage_c(table70, masks70["published (histogram mode + std, raw parallax)"],
-                        field=FIELD_70, draws=args.draws, seed=args.seed,
-                        label="70' published clip")
+        rows += stage_c(
+            table70,
+            masks70["published (histogram mode + std, raw parallax)"],
+            field=FIELD_70,
+            draws=args.draws,
+            seed=args.seed,
+            label="70' published clip",
+        )
         rows += stage_c(
             table70,
             masks70["package normalised clip (biweight, z = (plx - plx0)/err)"],
-            field=FIELD_70, draws=args.draws, seed=args.seed, label="70' normalised clip",
+            field=FIELD_70,
+            draws=args.draws,
+            seed=args.seed,
+            label="70' normalised clip",
         )
         results["stage_c"] = rows
 

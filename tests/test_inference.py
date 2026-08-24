@@ -513,8 +513,11 @@ def test_bailer_jones_bounds_separate_depth_from_catalogue_error():
     from erotica.analysis.inference import distance_model
 
     table, sigma = _distance_table()
+    # 2000 extracciones y no 800: con los latentes marginalizados el ajuste es mas barato —200
+    # parametros menos— y el ESS de `std_r` pasa de 220-432 a 849-992, que es lo que hace falta
+    # para creerle a una media posterior segun el umbral de 400 que este helper exige.
     cfg = SamplingConfig(
-        draws=800, tune=800, chains=2, random_seed=8, progressbar=False, extra_kwargs={"cores": 1}
+        draws=2000, tune=1000, chains=2, random_seed=8, progressbar=False, extra_kwargs={"cores": 1}
     )
 
     naive = distance_model(table, sampling=cfg, return_trace=True)

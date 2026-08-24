@@ -382,8 +382,32 @@ def distance_model(
         if errors is None:
             pm.Gamma("r", mu=mu_r, sigma=std_r, observed=distances)
         else:
-            true_r = pm.Gamma("r_true", mu=mu_r, sigma=std_r, shape=distances.size)
-            pm.Normal("r", mu=true_r, sigma=errors, observed=distances)
+            # Los latentes por estrella, integrados exactamente en vez de muestreados.
+            #
+            # Esto era `r_true ~ Gamma(mu_r, std_r)` con `r ~ Normal(r_true, errors)`, una
+            # parametrizacion CENTRADA con un latente por estrella. Cuando `std_r` es mucho menor
+            # que los errores de catalogo —que es el caso de interes: la profundidad intrinseca es
+            # justo lo que los errores tapan— cada latente queda debilmente informado por su propia
+            # observacion en relacion a la escala del grupo, y al tender `std_r` a cero todos
+            # colapsan sobre `mu_r`. Es el embudo de Neal, y hacia que el parametro que a este
+            # modelo le importa no muestreara.
+            #
+            # Medido 2026-08-24 sobre el test, 200 estrellas con error mediano 5,2x la profundidad
+            # inyectada: `mu_r` convergia (R-hat 1,005) y `std_r` NO (R-hat 1,377, ESS 5; con otra
+            # semilla R-hat 1,817 y 344 divergencias). Subir `target_accept` a 0,95 y 0,99 no
+            # cambiaba nada.
+            #
+            # Con poblacion normal el latente se integra en forma cerrada y sin aproximar:
+            # si r_true ~ N(mu, s) y r | r_true ~ N(r_true, e), entonces r ~ N(mu, sqrt(s^2 + e^2)).
+            # Desaparecen los N parametros y con ellos el embudo. Medido igual: R-hat <= 1,009,
+            # ESS 849-992 con 2000 extracciones, cero divergencias en tres semillas, `std_r` estable
+            # en 0,024 contra 0,0185-0,0262 antes, y mas rapido pese a mas extracciones.
+            #
+            # El cambio de familia se acota a esta rama y no es cosmetico: la rama sin errores
+            # conserva la Gamma sobre las observaciones. Aqui la Normal es lo que hace exacta la
+            # marginalizacion, y con mu/sigma del orden de 50 las dos son indistinguibles en la
+            # region que importa. Que la poblacion sea normal se declara en `metadata`.
+            pm.Normal("r", mu=mu_r, sigma=pm.math.sqrt(std_r**2 + errors**2), observed=distances)
     trace = _sample(pm, model, sampling)
     return DistanceFitResult(
         mu_r_mean=float(trace.posterior["mu_r"].mean()),
@@ -395,6 +419,10 @@ def distance_model(
             "backend": sampling.nuts_sampler,
             "variables": ["mu_r", "std_r"],
             "error_aware": errors is not None,
+            # La familia de la poblacion no es la misma en las dos ramas y quien lea
+            # el resultado tiene derecho a saber cual se uso: Gamma sobre las
+            # observaciones cuando no hay errores, Normal marginalizada cuando los hay.
+            "population": "gamma" if errors is None else "normal-marginalised",
             "prior": "scale-free",
         },
     )
