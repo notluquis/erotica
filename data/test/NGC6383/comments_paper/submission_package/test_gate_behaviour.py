@@ -80,11 +80,40 @@ def main() -> int:
         if "FALLA" in linea:
             bad.append("la rama del nº12 falla bajo la versión que la necesita")
 
+    # El gate no debe escribir encima de un fichero trackeado. Construia el PDF y el log ENCIMA
+    # de clean_source/aanda.pdf y marked_changes/aanda_marked.pdf, y para evitar el churn de ~12 MB
+    # por corrida restauraba los bytes viejos cuando el texto extraido no cambiaba. Eso revertia en
+    # silencio una figura regenerada (una figura no cambia el texto), y devolvia el PDF viejo justo
+    # antes de que c_deliverables leyera su /Producer, tapando el desajuste de motor de TeX. Se
+    # comprueba la propiedad, no la ausencia de la linea: cualquier rescritura que vuelva a apuntar
+    # el build al arbol trackeado falla aca aunque no se parezca al codigo que se quito.
+    sys.path.insert(0, str(HERE))
+    import gate
+
+    rastreados = subprocess.run(["git", "ls-files"], cwd=HERE, capture_output=True, text=True).stdout.split()
+    for tex in (gate.TEX, gate.MARKED):
+        for salida in gate.build_paths(tex):
+            rel = salida.relative_to(HERE).as_posix()
+            if gate.BUILD_DIR not in salida.parts:
+                bad.append(f"el gate escribe {rel} fuera de {gate.BUILD_DIR}/")
+            if rel in rastreados:
+                bad.append(f"el gate escribe encima de {rel}, que esta trackeado")
+
+    # Y la otra mitad del mismo defecto: las paginas se leen del log del build. Con `-outdir` la
+    # linea trae el prefijo del directorio, asi que un patron anclado en "{stem}.pdf" a secas deja
+    # de casar y el check informa "no se pudo leer las paginas" sobre un build correcto.
+    if gate.pages_in("Output written on _gate_build/aanda.pdf (26 pages, 5 bytes).", "aanda") != 26:
+        bad.append("pages_in no lee la linea del log con outdir")
+    if gate.pages_in("Output written on aanda.pdf (26 pages).", "aanda") != 26:
+        bad.append("pages_in no lee la linea del log sin outdir")
+    if gate.pages_in("Output written on otro.pdf (26 pages).", "aanda") is not None:
+        bad.append("pages_in acepta un stem que no es el suyo")
+
     for line in bad:
         print(f"  - {line}")
     if bad:
         return 1
-    print("gate: --quick no bendice, una omisión no sale 0, --allow-skips la perdona")
+    print("gate: --quick no bendice, una omisión no sale 0, --allow-skips la perdona,\n      el build no toca ficheros trackeados, pages_in lee el log con y sin outdir")
     return 0
 
 

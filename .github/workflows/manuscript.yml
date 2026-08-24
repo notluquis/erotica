@@ -61,12 +61,23 @@ jobs:
         working-directory: data/test/NGC6383/comments_paper/submission_package
         run: python3 gate.py --allow-skips
 
+      # Corre el gate contra si mismo: que --quick no bendiga, que una omision no salga 0 y que
+      # --allow-skips sea lo unico que la perdona. Existia desde el 2026-08-23 y no lo corria nadie
+      # -- vive fuera de `tests/`, asi que `testpaths = tests` hace que pytest recoja cero de el.
+      - name: El gate cumple lo que promete de si mismo
+        working-directory: data/test/NGC6383/comments_paper/submission_package
+        run: python3 test_gate_behaviour.py
+
+      # Los PDF que se publican son los que ESTA corrida construyo, en _gate_build/. Apuntaban a
+      # clean_source/aanda.pdf, que es un fichero trackeado: desde que el gate construye fuera del
+      # arbol, ese ya no es el build sino la copia versionada, y publicarlo como "the built PDF"
+      # habria subido en silencio la revision anterior.
       - name: Keep the built PDFs for inspection
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: manuscript-pdfs
           path: |
-            data/test/NGC6383/comments_paper/submission_package/clean_source/aanda.pdf
-            data/test/NGC6383/comments_paper/submission_package/marked_changes/aanda_marked.pdf
+            data/test/NGC6383/comments_paper/submission_package/clean_source/_gate_build/aanda.pdf
+            data/test/NGC6383/comments_paper/submission_package/marked_changes/_gate_build/aanda_marked.pdf
           if-no-files-found: warn

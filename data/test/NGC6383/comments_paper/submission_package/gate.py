@@ -47,6 +47,38 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 TEX = HERE / "clean_source" / "aanda.tex"
 MARKED = HERE / "marked_changes" / "aanda_marked.tex"
+
+# latexmk escribia el PDF y el log ENCIMA de los ficheros trackeados, asi que cada corrida lenta
+# dejaba dos binarios de ~6 MB modificados en `git status`. El parche anterior era restaurar los
+# bytes originales cuando el TEXTO extraido no cambiaba, y eso tenia cuatro modos de falla medidos:
+# una figura regenerada no cambia el texto y se revertia en silencio; si `pdftotext` fallaba en los
+# dos PDF las dos cadenas quedaban vacias y el build era un no-op permanente; la restauracion
+# devolvia el PDF viejo justo antes de que c_deliverables leyera su /Producer, tapando el desajuste
+# de motor de TeX que ese check acababa de volver fatal; y si el build fallaba no restauraba nada,
+# que era el unico caso donde el arbol quedaba peor. Ninguna senal disponible decide bien: qpdf no
+# esta y `pdfimages` solo ve 8 rasters porque las figuras A&A son PDF vectoriales.
+# Se construye en un subdirectorio propio. El arbol trackeado no se toca, no hay nada que restaurar,
+# y c_deliverables compara contra un build FRESCO, que es lo que siempre quiso comparar.
+BUILD_DIR = "_gate_build"
+
+
+def build_paths(tex: Path) -> tuple[Path, Path]:
+    """(pdf, log) que produce el gate para `tex`, fuera del arbol trackeado."""
+    stem = tex.with_suffix("").name
+    return tex.parent / BUILD_DIR / f"{stem}.pdf", tex.parent / BUILD_DIR / f"{stem}.log"
+
+
+def pages_in(log_text: str, stem: str) -> int | None:
+    """Las paginas que declara un log de latexmk.
+
+    Con `-outdir` la linea trae el prefijo del directorio, y el patron anclado en `{stem}.pdf`
+    dejaba de casar -- devolviendo "no se pudo leer las paginas" sobre un build correcto. Con
+    ruta ABSOLUTA no basta con tolerar el prefijo: LaTeX parte la linea del log a 79 caracteres
+    y el nombre queda cortado en dos. Por eso el outdir es relativo, y esto tolera el prefijo.
+    """
+    m = re.search(rf"Output written on (?:\S*/)?{stem}\.pdf \((\d+) pages", log_text)
+    return int(m.group(1)) if m else None
+
 LETTERS = [HERE / "letters" / "cover_letter_round2.txt",
            HERE / "letters" / "response_to_referee_round2.txt"]
 CDS_DAT = HERE.parent / "cds_final" / "ngc6383_members.dat"
@@ -932,22 +964,20 @@ def c_build():
     reported a clean build. c_overfull reads these logs, so building here also guarantees
     it is reading logs this run produced rather than a previous state of the manuscript.
     """
-    # Cada corrida borraba y reconstruia dos PDF TRACKEADOS (5,9 y 6,0 MB), asi que `git status`
-    # quedaba con dos binarios modificados y cada commit se llevaba ~11,9 MB de churn sin cambio
-    # semantico -- dos commits de esta misma sesion lo cargan. Se guarda el byte original y, si el
-    # PDF reconstruido es identico en TEXTO al anterior, se restaura el fichero: el build se hizo y
-    # se verifico igual, y el arbol queda como estaba. Si el texto cambio, el nuevo se queda, que es
-    # justo cuando el diff vale algo.
     out = []
     for tag, tex in (("limpio", TEX), ("marcado", MARKED)):
         stem = tex.with_suffix("").name
-        pdf = tex.parent / f"{stem}.pdf"
-        antes = pdf.read_bytes() if pdf.exists() else None
-        texto_antes = run(["pdftotext", str(pdf), "-"]).stdout if antes else None
-        run(["latexmk", "-C", stem], cwd=tex.parent)
-        run(["latexmk", "-pdf", "-bibtex", "-interaction=nonstopmode", tex.name], cwd=tex.parent)
-        log = (tex.parent / f"{stem}.log").read_text(errors="replace")
-        pages = re.search(rf"Output written on {stem}\.pdf \((\d+) pages", log)
+        pdf, logp = build_paths(tex)
+        # El clean sigue siendo necesario -- sin el, c_overfull y c_manifest_pages podrian leer el
+        # log de una corrida anterior -- pero ahora solo borra el directorio de build.
+        run(["latexmk", "-C", f"-outdir={BUILD_DIR}", stem], cwd=tex.parent)
+        run(["latexmk", "-pdf", "-bibtex", "-interaction=nonstopmode",
+             f"-outdir={BUILD_DIR}", tex.name], cwd=tex.parent)
+        if not logp.exists():
+            out.append(f"FALLA {tag}: latexmk no dejo log en {BUILD_DIR}/")
+            continue
+        log = logp.read_text(errors="replace")
+        pages = pages_in(log, stem)
         bad = {
             "errores TeX": len(re.findall(r"^! ", log, re.M)),
             "LaTeX Error": log.count("LaTeX Error"),
@@ -958,17 +988,10 @@ def c_build():
             # Recorded, not returned: returning here skipped the marked rebuild, leaving its log
             # from a previous run for c_overfull and c_manifest_pages to read -- the exact stale-log
             # state this check was written to end.
-            out.append(f"FALLA {tag}: {pages.group(1) if pages else '?'} pp, "
+            out.append(f"FALLA {tag}: {pages if pages is not None else '?'} pp, "
                        + ", ".join(f"{k} {v}" for k, v in bad.items()))
         else:
-            out.append(f"{tag} {pages.group(1)} pp")
-        if antes is not None and pdf.exists():
-            # aa.cls estampa \today, asi que un rebuild otro dia difiere en la fecha y en nada mas;
-            # se normaliza igual que en c_deliverables antes de decidir si hubo cambio real.
-            import re as _re
-            norm = lambda s: _re.sub(r"\b[A-Z][a-z]+ \d{1,2}, \d{4}\b", "<fecha>", s or "")
-            if norm(run(["pdftotext", str(pdf), "-"]).stdout) == norm(texto_antes):
-                pdf.write_bytes(antes)
+            out.append(f"{tag} {pages} pp")
     failed = [o for o in out if o.startswith("FALLA")]
     return not failed, ("; ".join(out) + ", 0 errores y 0 indefinidas en ambos" if not failed
                         else "; ".join(out))
@@ -1006,9 +1029,18 @@ def c_deliverables():
         _prod_cache[p] = m.group(1).strip() if m else "?"
         return _prod_cache[p]
 
-    pairs = [(TEX.parent / "aanda.pdf", HERE / "aanda_revised_clean.pdf"),
-             (MARKED.parent / "aanda_marked.pdf", HERE / "aanda_revised_marked.pdf"),
-             (MARKED.parent / "aanda_marked.pdf", HERE / "aa52082-24_marked_changes.pdf")]
+    limpio, marcado = build_paths(TEX)[0], build_paths(MARKED)[0]
+    # Los dos primeros pares son los PDF TRACKEADOS del arbol. Antes eran el lado "construido" de
+    # la comparacion, asi que nada los vigilaba; ahora el lado construido vive en _gate_build/ y
+    # estos pasan a ser comparados como cualquier otra copia. El gate reporta que estan viejos y
+    # quien sube decide -- que es lo que la restauracion silenciosa le quitaba.
+    pairs = [(limpio, TEX.parent / "aanda.pdf"),
+             (marcado, MARKED.parent / "aanda_marked.pdf"),
+             (limpio, HERE / "aanda_revised_clean.pdf"),
+             (marcado, HERE / "aanda_revised_marked.pdf"),
+             (marcado, HERE / "aa52082-24_marked_changes.pdf")]
+    if not limpio.exists() or not marcado.exists():
+        raise Skipped(f"no hay build en {BUILD_DIR}/ contra el que comparar; c_build es quien lo crea")
     # Este check compara un PDF recien construido con uno versionado, y eso solo significa algo si
     # los construyo el mismo motor. Otro TeX Live guiona y corta lineas distinto, asi que el texto
     # extraido difiere por el entorno y no por estar desactualizado: en CI marcaba los tres como
@@ -1053,11 +1085,13 @@ def c_manifest_pages():
     real = {}
     for tag, tex in (("limpio", TEX), ("marcado", MARKED)):
         stem = tex.with_suffix("").name
-        log = tex.parent / f"{stem}.log"
-        m = re.search(rf"Output written on {stem}\.pdf \((\d+) pages", log.read_text(errors="replace"))
-        if not m:
+        _, log = build_paths(tex)
+        if not log.exists():
+            return False, f"no hay build {tag} en {BUILD_DIR}/: corre c_build antes"
+        n = pages_in(log.read_text(errors="replace"), stem)
+        if n is None:
             return False, f"no se pudo leer las paginas del build {tag}"
-        real[tag] = int(m.group(1))
+        real[tag] = n
     claimed = {int(n) for n in re.findall(r"(\d+)\s*pp", manifest.read_text())}
     # Both directions. Checking only "no claimed count is wrong" passes on a MANIFEST that swaps
     # the two labels, drops one count, or states none at all -- and a missing or swapped count is
@@ -1090,8 +1124,7 @@ def c_overfull():
     # It is allowed by exact count, so a second overfull box still fails the gate.
     allowed = {"limpio": 0, "marcado": 1}
     bad = {}
-    for tag, log in (("limpio", TEX.parent / "aanda.log"),
-                     ("marcado", MARKED.parent / "aanda_marked.log")):
+    for tag, log in (("limpio", build_paths(TEX)[1]), ("marcado", build_paths(MARKED)[1])):
         if not log.exists():
             bad[tag] = "sin log"
             continue
@@ -1144,9 +1177,9 @@ def c_zip():
                 return False, "no compilo"
             t = log.read_text()
             n = len(re.findall(r"(Reference|Citation) .* undefined", t))
-            p = re.search(r"Output written on aanda\.pdf \((\d+) pages", t)
+            p = pages_in(t, "aanda")
             return (t.count("LaTeX Error") == 0 and n == 0,
-                    f"{p.group(1) if p else '?'} pp aislado, {n} indefinidas, 1 .tex")
+                    f"{p if p is not None else '?'} pp aislado, {n} indefinidas, 1 .tex")
 
 
 def main() -> int:

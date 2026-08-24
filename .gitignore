@@ -171,3 +171,6 @@ paper/methods-aa/*.log
 paper/methods-aa/*.out
 paper/methods-aa/*.pdf
 paper/methods-aa/*.synctex.gz
+
+# El gate construye los PDF aqui en vez de encima de los trackeados (ver gate.py, BUILD_DIR).
+_gate_build/
