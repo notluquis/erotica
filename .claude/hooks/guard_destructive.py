@@ -65,6 +65,11 @@ import sys
 
 # Prefijos que envuelven al comando real sin cambiar lo que hace.
 WRAPPERS = {"sudo", "command", "env", "nohup", "time", "builtin", "exec"}
+# Envoltorios que reciben el comando real como ARGUMENTO, con gramáticas distintas entre sí:
+# `timeout 5 rm -rf x`, `xargs -n1 rm -rf`, `nice -n 19 rm -rf`, `watch rm -rf`. No se modela la
+# gramática de cada uno —`timeout` come una duración, `xargs -I{}` come un patrón— porque
+# equivocarse en una la deja pasar entera. Se juzga cada sufijo, que no depende de ninguna.
+CMD_WRAPPERS = {"timeout", "xargs", "nice", "ionice", "stdbuf", "watch", "parallel"}
 # `git -C <ruta>` y compañía: opciones globales que consumen un argumento.
 GIT_OPTS_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
 # Sufijos que delatan que el argumento de checkout es un fichero y no una rama.
@@ -107,12 +112,24 @@ def _judge_git(sub: str, rest: list[str]) -> str | None:
             return DISCARDS_TREE
         if _has(rest, "-f", "--force"):
             return DISCARDS_TREE
-        for t in rest:
-            if t.startswith("-"):
-                continue
-            if t in (".", "./") or "/" in t or FILEISH.search(t) or "*" in t:
-                return DISCARDS_TREE
-            break  # el primer argumento suelto es la rama; lo demás ya no decide
+        # `-p`/`--patch` descarta trozos del árbol interactivamente, sin nombrar ninguna ruta.
+        if _has(rest, "-p", "--patch"):
+            return DISCARDS_TREE
+        sueltos = [t for t in rest if not t.startswith("-")]
+        # `git checkout <tree-ish> <ruta>...`: con dos o más argumentos sueltos, los que siguen al
+        # primero SON rutas y la forma descarta el árbol. Antes se hacía `break` tras el primero
+        # —"lo demás ya no decide"— y por eso `git checkout HEAD .` pasaba: la grafía exacta del
+        # incidente que este fichero existe para impedir, con `HEAD` absorbiendo la decisión.
+        if len(sueltos) >= 2:
+            return DISCARDS_TREE
+        # Con uno solo no se puede distinguir rama de ruta por sintaxis: `docs/notes` es las dos
+        # cosas. Se resuelve conservador, con `/`, que es lo que hacia la version anterior y lo que
+        # exige el fichero de casos (`checkout src/` deniega, `checkout dev` pasa). El precio es
+        # denegar `git checkout feat/x` sobre una rama existente; cuesta un `!` y un falso negativo
+        # aqui cuesta trabajo sin commitear. La rama NUEVA no paga nada: `-b`/`-B` sale antes.
+        uno = sueltos[0] if sueltos else ""
+        if uno in (".", "./") or "/" in uno or FILEISH.search(uno) or "*" in uno:
+            return DISCARDS_TREE
         return None
     if sub == "switch":
         return DISCARDS_TREE if _has(rest, "--discard-changes", "-f", "--force") else None
@@ -153,12 +170,52 @@ def _judge(seg: str) -> str | None:
         return "borra recursivamente sin papelera" if (recursive and forced) else None
     if toks[0] == "git":
         return _judge_git(*_git_subcommand(toks))
+    if toks[0] in CMD_WRAPPERS:
+        # Se juzga cada sufijo en vez de modelar la gramática del envoltorio. Cuesta O(n^2) sobre
+        # una lista de tokens corta y no depende de saber cuántos argumentos come `timeout` o
+        # `xargs -I{}`; equivocarse en eso deja pasar la forma entera.
+        for k in range(1, len(toks)):
+            loss = _judge(shlex.join(toks[k:]))
+            if loss:
+                return loss
     return None
 
 
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+
+
+def _strip_heredocs(cmd: str) -> str:
+    """Quita el CUERPO de cada heredoc: es dato, no comandos.
+
+    La defensa contra un mensaje de commit que DESCRIBE un comando era que la línea no empezara por
+    él, y separar por `&` la rompió: un trozo nuevo puede empezar por el comando destructivo aunque
+    la línea entera sea prosa. El commit de este mismo arreglo se bloqueó a sí mismo así, que es
+    exactamente el caso que el fichero de casos ya protegía por el otro lado.
+
+    Descartar el cuerpo entero no pierde cobertura: nada de lo que hay dentro de un heredoc se
+    ejecuta. Lo que venga DESPUÉS del marcador de cierre sí se sigue juzgando.
+    """
+    lineas = cmd.split("\n")
+    fuera, i = [], 0
+    while i < len(lineas):
+        fuera.append(lineas[i])
+        marcas = [m.group(2) for m in HEREDOC.finditer(lineas[i])]
+        i += 1
+        for marca in marcas:
+            while i < len(lineas) and lineas[i].strip() != marca:
+                i += 1
+            i += 1  # la línea de cierre tampoco es un comando
+    return "\n".join(fuera)
+
+
 def verdict(cmd: str) -> str | None:
-    """Un comando por segmento: `&&`, `||`, `;`, `|` y saltos de línea los separan."""
-    for seg in re.split(r"&&|\|\||[;|\n]", cmd):
+    """Un comando por segmento: `&&`, `||`, `;`, `|`, `&` y saltos de línea los separan.
+
+    El `&` suelto faltaba, y `&&` lo tapaba: `sleep 1 & rm -rf build` era UN segmento que empezaba
+    por `sleep`, así que el `rm -rf` de la derecha no se juzgaba nunca. Va después de `&&` en la
+    alternancia, que es lo que impide partir un `&&` por la mitad.
+    """
+    for seg in re.split(r"&&|\|\||[;|\n&]", _strip_heredocs(cmd)):
         loss = _judge(seg)
         if loss:
             return loss
@@ -201,9 +258,14 @@ def _twin_of(mine: pathlib.Path) -> pathlib.Path | None:
 
 
 def _declared(repo_root: pathlib.Path) -> bool:
-    """Que el otro repo además lo DECLARE. Comparar sólo el script deja pasar la mitad que falta:
-    borrar el bloque `PreToolUse` de su settings.json dejaba ese repo sin guardia con este check en
-    verde, que es la misma deriva silenciosa que el check existe para cerrar."""
+    """Que el repo además lo DECLARE, con el matcher que hace falta. Comparar sólo el script deja
+    pasar la mitad que falta: borrar el bloque `PreToolUse` de su settings.json dejaba ese repo sin
+    guardia con este check en verde, que es la misma deriva silenciosa que el check existe para
+    cerrar.
+
+    El `matcher` se comprueba porque una declaración con el matcher equivocado —`Read`, `Write`,
+    cualquier cosa que no sean comandos— contaba como declarada y no habría corrido nunca sobre un
+    `Bash`. El hook son dos mitades y la segunda tiene su propia mitad."""
     cfg = repo_root / ".claude" / "settings.json"
     if not cfg.exists():
         return False
@@ -213,6 +275,7 @@ def _declared(repo_root: pathlib.Path) -> bool:
         return False
     return any(
         "guard_destructive.py" in h.get("command", "")
+        and re.search(r"\bBash\b", entry.get("matcher", "") or "")
         for entry in hooks
         for h in entry.get("hooks", [])
     )
@@ -220,6 +283,17 @@ def _declared(repo_root: pathlib.Path) -> bool:
 
 def check_twin() -> int:
     mine = pathlib.Path(__file__).resolve()
+    # PRIMERO el repo desde el que se corre. `_declared` sólo se llamaba sobre el GEMELO, así que
+    # el settings.json de este repo —el único desde el que este check se invoca— no lo comprobaba
+    # nadie: borrar su bloque `PreToolUse` dejaba el hub sin guardarraíl con el check en verde.
+    # Es el mismo agujero que `_declared` dice cerrar, un repo más cerca.
+    aqui = mine.parent.parent.parent
+    if not _declared(aqui):
+        print(
+            f"{aqui.name} tiene el script pero su settings.json no lo declara para Bash en "
+            "PreToolUse: aqui el guardarrail no corre"
+        )
+        return 1
     twin = _twin_of(mine)
     if twin is None:
         print(f"no sé cuál es el repo gemelo de {mine}; esperaba uno de {TWIN_REPOS}")
