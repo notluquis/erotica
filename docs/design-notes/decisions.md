@@ -349,6 +349,13 @@ $$r^{\mathrm{true}}_i \sim \mathrm{Gamma}(\mu_r, \sigma_r), \qquad
   r^{\mathrm{obs}}_i \sim \mathcal{N}(r^{\mathrm{true}}_i, \sigma_i), \qquad
   \sigma_i = (r_{\mathrm{hi}} - r_{\mathrm{lo}})/2 .$$
 
+> **Superseded 2026-08-24.** This is the hierarchy as it shipped, and it is what produced the
+> `std_r = 0.0234 ± 0.0106` in the table below. Sampling those latents was a *centred*
+> parameterisation and it funnelled; the population is now `\mathcal{N}` and the latents are
+> integrated out in closed form. The old formula is left standing because the entry below it only
+> makes sense against it.
+
+
 **Numbers** (injected depth 20 pc; Bailer-Jones fractional errors 4–14%, median σ = 104 pc):
 
 | | `mu_r` | `std_r` | implied depth | vs truth |
@@ -1046,7 +1053,7 @@ a correction that measurement does not support.
 
 ### A defect the fix exposed: the error-aware distance model does not converge at N > 250
 
-**Status: measured, not fixed. It is in the new default path.**
+**Status: measured, then fixed on 2026-08-24 by marginalising the latents. Everything below this line is the state *before* that fix and is kept for the record — see [The latents are integrated out, and the funnel goes with them](#the-latents-are-integrated-out-and-the-funnel-goes-with-them) at the end of this file. The prohibition on quoting `mu_r`/`std_r` above ~250 stars was lifted by that fix.**
 
 Turning on the Bailer-Jones bounds gives `distance_model` one latent `r_true` per star, and the
 Gamma hierarchy over those latents does not sample adequately once the member list grows. Measured
@@ -1221,3 +1228,60 @@ Full derivation, scripts and numbers: `~/phd/agent-findings/differentiable-emula
 | PyMC is an optional extra | Keeps the default install light; **but a default `pip install erotica` therefore produces only frequentist and heuristic numbers.** Anything Bayesian requires `[bayes]`. |
 | `data/test/NGC6383/` (~3.1 GB) is committed | It is the paper's reproducibility artefact, tagged `ngc6383-aanda-resubmission`. It is also the reason pre-commit is broken. |
 | ~30 files hardcode `/Users/notluquis/erotica/...` | Paper figure-regeneration scripts. They were rewritten during the 2026-07-21 directory move; if the directory moves again they must be rewritten in the same pass. |
+
+
+## The latents are integrated out, and the funnel goes with them
+
+*2026-08-24. Supersedes "A defect the fix exposed: the error-aware distance model does not converge
+at N > 250" and the hierarchy quoted at the top of this file.*
+
+**What was wrong.** `distance_model`'s error-aware branch declared `r_true_i ~ Gamma(mu_r, std_r)`
+and `r_i ~ Normal(r_true_i, errors_i)` — one latent per star, sampled. That is a centred hierarchical
+parameterisation, and when the group scale falls below the measurement errors each latent is weakly
+informed by its own observation relative to `std_r`; as `std_r -> 0` they all collapse onto `mu_r`.
+Neal's funnel. It is not an edge case for this model: **the intrinsic depth being smaller than the
+catalogue errors is the regime the model exists for.**
+
+**The number that was wrong, and what replaced it.** The entry above prohibited quoting `mu_r` or
+`std_r` from a fit with more than ~250 stars, and its table recorded R-hat 1.0409 with bulk-ESS 43
+and 9 divergences at N = 313. On the 200-star test fixture (median catalogue error 5.2x the injected
+depth) the failure was sharper still:
+
+| parameterisation | `std_r` | R-hat | ESS | divergences |
+|---|---|---|---|---|
+| centred, latents sampled (old) | 0.0185–0.0262 across seeds | **1.377**, and **1.817** on another seed | **5** | 0, then **344** |
+| latents marginalised (new) | 0.0233 | ≤ 1.009 | 849–992 | 0 on three seeds |
+
+`std_r` — the parameter the model is *for* — was not sampling at all, and the test that guarded it
+asserted only a divergence count, which is arbitrary on a chain that has not converged.
+
+**The fix, and why it is exact rather than approximate.** For a normal population the latent
+integrates in closed form: if `r_true ~ N(mu, s)` and `r | r_true ~ N(r_true, e)`, then
+`r ~ N(mu, sqrt(s^2 + e^2))`. No latents, no funnel, N fewer parameters, and no approximation. The
+price is the population family: this branch is now `Normal` where it was `Gamma`. The no-errors
+branch keeps the `Gamma` likelihood over the observations, and `metadata["population"]` records
+which of the two was fitted, per threshold, all the way out to
+`ClusterInferenceAnalyzer.distance_and_parallax_by_probability`.
+
+**Validity range, which the old entry did not state.** After marginalising, `std_r` is identified
+only as the *excess* of observed variance over the known errors, so the honest question is whether
+the reported depth is the data or the `HalfNormal(sigma_scale)` prior. Measured by sweeping
+`sigma_scale` 8x, from 0.025 to 0.20:
+
+| `sigma_scale` | prior mean | fitted `std_r` |
+|---|---|---|
+| 0.025 | 0.0199 | 0.0194 |
+| 0.05 (default) | 0.0399 | 0.0233 |
+| 0.10 | 0.0798 | 0.0243 |
+| 0.20 | 0.1596 | 0.0253 |
+
+`std_r` moves 0.0058 kpc while the prior moves 0.1396 — **4%**. It is not prior-dominated. But
+0.0058 kpc is **29% of the injected depth**, so that residual prior sensitivity is the range to
+quote alongside any depth, and it is pinned by
+`tests/test_inference.py::test_distance_depth_is_identified_by_the_data_not_by_its_prior`.
+
+**What the guard does not cover, measured by mutating it.** Reverting to the centred hierarchy
+leaves that test **green**: both parameterisations identify `std_r` equally well, and what the old
+one broke was the geometry, not the identification. The R-hat and ESS assertions in
+`_assert_no_divergences` are what guard the geometry. The two mutations that do turn the prior test
+red are the ones that remove `std_r` from the likelihood.

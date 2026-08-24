@@ -60,3 +60,16 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      # `check-json` de arriba usa `json.load`, que ACEPTA los tokens `NaN`/`Infinity` que
+      # `json.dumps(..., default=float)` emite: pasaba verde sobre un sidecar con 907 de ellos.
+      # Ningun lector ajeno —jq, JSON.parse, Go, un validador de esquema— abre ese fichero, y de
+      # estos sidecars salen las cifras que cita el paper. Este relee con `parse_constant`.
+      - id: json-estricto
+        name: los JSON son JSON, no solo relegibles por Python
+        entry: python3 tools/check_json_strict.py
+        language: system
+        files: \.(json|jsonl)$
+        pass_filenames: true

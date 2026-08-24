@@ -328,13 +328,25 @@ def distance_model(
 
         .. math::
 
-            r^{\mathrm{true}}_i &\sim \mathrm{Gamma}(\mu_r,\ \sigma_r) \\
+            r^{\mathrm{true}}_i &\sim \mathcal{N}(\mu_r,\ \sigma_r) \\
             r^{\mathrm{obs}}_i  &\sim \mathcal{N}(r^{\mathrm{true}}_i,\ \sigma_i)
+            \quad\Longrightarrow\quad
+            r^{\mathrm{obs}}_i \sim \mathcal{N}\!\left(\mu_r,\ \sqrt{\sigma_r^2 + \sigma_i^2}\right)
 
-        with :math:`\sigma_i = (r_{\mathrm{hi}} - r_{\mathrm{lo}})/2`. Without
-        them ``std_r`` absorbs the Bailer-Jones uncertainties as if they were
-        cluster depth, and those are large: a 10% distance error at 1 kpc is
-        100 pc, several times any real cluster.
+        with :math:`\sigma_i = (r_{\mathrm{hi}} - r_{\mathrm{lo}})/2`. The latent
+        true distances are **marginalised in closed form**, not sampled: the
+        right-hand identity is exact for a normal population, so the fit carries
+        two parameters rather than two plus one per star. Sampling them was a
+        centred hierarchy and produced Neal's funnel whenever the cluster depth
+        fell below the catalogue errors -- which is the regime of interest.
+        See ``docs/design-notes/decisions.md`` for the measurement.
+
+        This is the **only** branch that uses a normal population. With no errors
+        the observations keep the ``Gamma`` likelihood; ``metadata["population"]``
+        records which of the two was fitted. Without errors ``std_r`` absorbs the
+        Bailer-Jones uncertainties as if they were cluster depth, and those are
+        large: a 10% distance error at 1 kpc is 100 pc, several times any real
+        cluster.
     priors : DistancePriors, optional
         Scale-free priors. Fixed constants, **not** functions of `data`.
 
@@ -923,6 +935,12 @@ class ClusterInferenceAnalyzer:
             "sigma_parallax_mean": [],
             "mu_parallax_std": [],
             "sigma_parallax_std": [],
+            # Que familia se ajusto en cada umbral. `distance_model` elige entre la Gamma sobre las
+            # observaciones y la Normal marginalizada segun le den o no errores por estrella, y era
+            # la unica que lo sabia: este metodo copiaba cuatro claves del resultado y descartaba
+            # `metadata` entero, asi que el pipeline que produce las cifras del paper no podia decir
+            # cual de los dos modelos las produjo.
+            "population": [],
         }
         # Fail loudly rather than degrading to the old, uncertainty-free path. A
         # missing error column is a reason to say so, not a reason to quietly fit
@@ -992,6 +1010,7 @@ class ClusterInferenceAnalyzer:
             parallax_payload = _dataclass_result_to_dict(parallax_result)
             for key in ("mu_r_mean", "std_r_mean", "mu_r_std", "std_r_std"):
                 results[key].append(distance_payload[key])
+            results["population"].append(distance_result.metadata["population"])
             for key in (
                 "mu_parallax_mean",
                 "sigma_parallax_mean",

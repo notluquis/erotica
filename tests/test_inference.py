@@ -11,6 +11,8 @@ division by zero. The fix requires ``parallax > 0`` and guards the division.
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -65,7 +67,20 @@ def _capture_useful(monkeypatch) -> dict[str, QTable]:
 
     def fake_distance_model(useful, *args, **kwargs):
         captured["useful"] = useful
-        return DistanceFitResult(mu_r_mean=0.0, std_r_mean=0.0, mu_r_std=0.0, std_r_std=0.0)
+        # `metadata` con la familia dentro, como la trae SIEMPRE el resultado real: `distance_model`
+        # la pone incondicionalmente. El stub la omitia, o sea fingia una forma de resultado que el
+        # codigo no puede producir, y el llamador reventaba con KeyError en cuanto empezo a leerla.
+        # Un doble que no puede representar la salida real convierte cualquier consumo nuevo de esa
+        # salida en un fallo del test en vez de un fallo del codigo.
+        return DistanceFitResult(
+            mu_r_mean=0.0,
+            std_r_mean=0.0,
+            mu_r_std=0.0,
+            std_r_std=0.0,
+            metadata={
+                "population": "normal-marginalised" if kwargs.get("distance_lo_column") else "gamma"
+            },
+        )
 
     def fake_fit_parallax_model(useful, *args, **kwargs):
         captured["useful_parallax"] = useful
@@ -350,7 +365,7 @@ def _pm_table(n=400, seed=9, corr=0.4):
     return obs[:, 0], obs[:, 1], e_ra, e_dec, rho
 
 
-def _assert_no_divergences(res, label: str) -> None:
+def _assert_no_divergences(res, label: str, *, latentes: frozenset[str] = frozenset()) -> None:
     """Gate on the divergence COUNT, which is what the RuntimeWarning filter gave up.
 
     ``pytest.ini`` escalates RuntimeWarning to an error, and NUTS signals a divergent
@@ -371,16 +386,29 @@ def _assert_no_divergences(res, label: str) -> None:
     # geometry occasionally producing the symptom being checked. A divergence count of 0, 1, 32 or
     # 344 is arbitrary when the chain has not converged.
     #
-    # Only parameters with no dimension beyond (chain, draw): a per-star latent like `r_true` is
-    # constrained by a single observation, so low ESS there is expected and says nothing about the
-    # population parameters -- which is exactly what `_latent_rhat` in wiring_fix_deltas.py records.
+    # Se exime por NOMBRE, y por defecto no se exime nada. La primera version filtraba por FORMA
+    # --quedarse con lo que no tuviera dimensiones mas alla de (chain, draw)-- para saltarse un
+    # latente por estrella como `r_true`, y eso tenia tres problemas: `r_true` ya no existe en
+    # ninguno de los dos modelos que llegan aca (la marginalizacion lo elimino, y el modelo de
+    # movimientos propios nunca lo tuvo), asi que el filtro no eximia nada; un parametro de
+    # POBLACION declarado vectorial —`pm.Normal("mu", shape=2)`— quedaba exento por accidente y
+    # podia pasar con R-hat 1,5; y si el filtro no seleccionaba nada, `max(())` reventaba con un
+    # `ValueError: max() iterable argument is empty` en vez de decir que pasaba.
+    #
+    # Un latente futuro se exime nombrandolo, que obliga a justificarlo en el sitio de la llamada.
     import arviz as az
 
     post = trace.posterior
-    poblacion = [v for v in post.data_vars if set(post[v].dims) <= {"chain", "draw"}]
+    poblacion = [v for v in post.data_vars if v not in latentes]
+    assert poblacion, (
+        f"{label}: no queda ningun parametro que revisar tras eximir {sorted(latentes)} "
+        f"de {sorted(post.data_vars)}"
+    )
     rhat, ess = az.rhat(post), az.ess(post)
-    peor_rhat = max(((v, float(rhat[v].values)) for v in poblacion), key=lambda x: x[1])
-    peor_ess = min(((v, float(ess[v].values)) for v in poblacion), key=lambda x: x[1])
+    # `.max()` / `.min()` y no `float(...values)`: un parametro vectorial trae un array por
+    # variable, y `float()` sobre el habria reventado en vez de tomar el peor de sus componentes.
+    peor_rhat = max(((v, float(rhat[v].max())) for v in poblacion), key=lambda x: x[1])
+    peor_ess = min(((v, float(ess[v].min())) for v in poblacion), key=lambda x: x[1])
     assert peor_rhat[1] < 1.01, (
         f"{label}: R-hat {peor_rhat[1]:.3f} on `{peor_rhat[0]}` -- la cadena no convergio, "
         f"asi que el conteo de divergencias ({n_div}) no significa nada"
@@ -535,9 +563,16 @@ def test_bailer_jones_bounds_separate_depth_from_catalogue_error():
     _assert_no_divergences(naive, "distance naive")
     _assert_no_divergences(aware, "distance error-aware")
 
-    # both find the cluster distance
+    # both find the cluster distance.
+    # ABSOLUTA, igual que la de la profundidad tres lineas mas abajo. Era `< 5 * res.mu_r_std`, la
+    # tolerancia auto-ensanchable que `tests/CLAUDE.md` prohibe por nombre: pasa sola siempre que el
+    # ajuste sea incierto, o sea justo cuando importa. 0,05 kpc es ~2,5x la profundidad inyectada y
+    # ~la mitad del error de catalogo mediano (0,104 kpc), asi que sigue siendo holgada para el
+    # brazo naive sin volverse insensible.
     for res in (naive, aware):
-        assert abs(res.mu_r_mean - TRUE_DIST["mu"]) < 5 * res.mu_r_std
+        assert abs(res.mu_r_mean - TRUE_DIST["mu"]) < 0.05, (
+            f"mu_r {res.mu_r_mean:.4f} kpc vs inyectado {TRUE_DIST['mu']}"
+        )
 
     # the error-aware fit recovers the injected depth; the naive one reports the
     # catalogue scatter instead, which is several times larger.
@@ -550,6 +585,79 @@ def test_bailer_jones_bounds_separate_depth_from_catalogue_error():
     assert aware.std_r_std < 0.020
     assert naive.std_r_mean > 3 * aware.std_r_mean
     assert naive.std_r_mean > 0.5 * float(np.median(sigma))
+
+
+@requires_bayes_extra
+@pytest.mark.slow
+def test_distance_depth_is_identified_by_the_data_not_by_its_prior():
+    """La profundidad que se reporta, ¿la decide el dato o el ``HalfNormal``?
+
+    Al marginalizar los latentes, ``std_r`` sólo queda identificado como el **exceso** de varianza
+    observada por encima de los errores conocidos. En el régimen que este modelo declara de interés
+    —``std_r`` mucho menor que los errores; acá el error mediano es 5,2x la profundidad inyectada— la
+    verosimilitud podría ser casi plana cerca de cero, y entonces el número publicado sería el prior
+    y no el dato. Con la tolerancia del test de arriba en ±60% del valor verdadero, una profundidad
+    enteramente impuesta por el prior pasaría sin que nada lo dijera.
+
+    Medido 2026-08-24 barriendo ``sigma_scale`` 8x, de 0,025 a 0,20:
+
+    ==============  ================  ===============
+    ``sigma_scale``  media del prior   ``std_r``
+    ==============  ================  ===============
+    0,025            0,0199            0,0194
+    0,05  (defecto)  0,0399            0,0233
+    0,10             0,0798            0,0243
+    0,20             0,1596            0,0253
+    ==============  ================  ===============
+
+    ``std_r`` se mueve 0,0058 kpc mientras el prior se mueve 0,1396 — el **4%**. No está dominado
+    por el prior. Pero 0,0058 kpc es el **29% de la profundidad inyectada**, así que la sensibilidad
+    residual no es cero y ese es el rango de validez que hay que citar junto a cualquier profundidad.
+
+    El límite se pone en 0,010 kpc, ~1,7x lo medido: se rompe si el prior pasa a mandar, y no se
+    rompe por ruido de muestreo.
+
+    **Lo que este test NO caza, medido al mutarlo.** Volver a la jerarquía centrada
+    (``r_true ~ Gamma`` muestreado + ``r ~ Normal(r_true, errors)``) lo deja **verde**: esa
+    parametrización identifica ``std_r`` igual de bien, y lo que rompe es la *geometría*, no la
+    identificación. Quien vigila eso son las aserciones de R-hat y ESS de
+    ``_assert_no_divergences``, no esta. Las dos mutaciones que sí lo ponen en rojo son las que
+    borran ``std_r`` de la verosimilitud —``sigma=errors`` (0,1343 kpc de barrido) y
+    ``sigma=sqrt((std_r*0.001)**2 + errors**2)`` (0,1389)— que es exactamente el modo de falla
+    que el test declara.
+    """
+    from erotica.analysis.inference import DistancePriors, distance_model
+
+    table, _ = _distance_table()
+    ajustes = {}
+    for escala in (0.025, 0.20):
+        res = distance_model(
+            table,
+            distance_lo_column="r_lo_geo",
+            distance_hi_column="r_hi_geo",
+            sampling=SamplingConfig(
+                draws=2000,
+                tune=1000,
+                chains=2,
+                random_seed=8,
+                progressbar=False,
+                extra_kwargs={"cores": 1},
+            ),
+            priors=DistancePriors(sigma_scale=escala),
+        )
+        ajustes[escala] = res.std_r_mean
+
+    barrido = abs(ajustes[0.20] - ajustes[0.025])
+    barrido_del_prior = (0.20 - 0.025) * math.sqrt(2 / math.pi)
+    assert barrido < 0.010, (
+        f"std_r se mueve {barrido:.4f} kpc cuando el prior se mueve {barrido_del_prior:.4f}: "
+        f"la profundidad la esta poniendo el prior, no el dato ({ajustes})"
+    )
+    # Y la otra direccion: si NO se moviera nada, el rango de prior seria demasiado angosto para
+    # discriminar y el test estaria pasando por construccion en vez de por medicion.
+    assert barrido > 0.0005, (
+        f"std_r no se movio ({barrido:.5f} kpc) con el prior barriendo 8x: el barrido no discrimina"
+    )
 
 
 @requires_bayes_extra

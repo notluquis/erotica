@@ -414,7 +414,8 @@ def stage_b(table, member_mask, *, draws, seed, label):
             f"    {rung:52s} N={n_fitted:4d}  plx={row['mu_parallax_mas']:.4f}"
             f"+/-{row['mu_parallax_sd_mas']:.4f}  d={row['mu_r_kpc']:.4f}"
             f"+/-{row['mu_r_sd_kpc']:.4f} kpc  rhat<={max(row['distance_r_hat_max'], row['parallax_r_hat_max']):.4f}"
-            f" (latent {latent:.3f})  ({row['seconds']}s){flag}",
+            f" (latent {'sin latentes' if latent is None else format(latent, '.3f')})"
+            f"  ({row['seconds']}s){flag}",
             flush=True,
         )
     return out
@@ -450,14 +451,22 @@ def _latent_rhat(trace):
     attributed rather than guessed at.
 
     Desde 2026-08-24 esa rama marginaliza los latentes en forma cerrada, asi que ya no existen y
-    esto devuelve NaN. Se conserva porque una traza guardada de antes del cambio si los trae, y
-    porque la distincion que hace —ESS bajo en un latente no dice nada sobre los parametros de
-    poblacion— es la que separo el ruido esperable del defecto real cuando se diagnostico el embudo.
+    esto devuelve ``None`` en toda traza que produzca este script.
+
+    Devolvia ``float("nan")``, y `json.dumps(..., default=float)` lo emite como el token desnudo
+    ``NaN``: Python lo relee, pero eso NO es JSON — jq, `JSON.parse` y cualquier validador de
+    esquema rechazan el fichero entero. El sidecar commiteado es de donde salen las cifras que cita
+    el paper, asi que dejarlo invalido rompe a todo lector que no sea Python. ``None`` sale como
+    ``null``, que es valido y significa lo mismo: este modelo no tiene latentes.
+
+    Se conserva la clave, y no la justificacion que la acompañaba: decia que se guardaba porque
+    "una traza guardada de antes del cambio si los trae", y no hay ninguna ruta de codigo que le
+    pase una traza guardada — solo se llama sobre el `distance_trace` de la misma corrida.
     """
     import arviz as az
 
     if "r_true" not in trace.posterior:
-        return float("nan")
+        return None
     return float(np.nanmax(az.rhat(trace, var_names=["r_true"])["r_true"].values))
 
 
