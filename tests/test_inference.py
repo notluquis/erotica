@@ -363,6 +363,32 @@ def _assert_no_divergences(res, label: str) -> None:
     trace = getattr(res, "trace", None)
     assert trace is not None, f"{label}: return_trace=True did not return a trace"
     n_div = int(trace.sample_stats["diverging"].sum())
+
+    # Convergence, not just the divergence counter. Measured 2026-08-24: the error-aware distance
+    # fit passed this assertion on seed 8 with **R-hat 1.377 and ESS 5** on `std_r` -- the very
+    # parameter the caller then asserts on, with a tolerance of +-60% of the true value. It was
+    # passing on the tolerance, not on the fit, and the 8-in-100 CI failures were the same broken
+    # geometry occasionally producing the symptom being checked. A divergence count of 0, 1, 32 or
+    # 344 is arbitrary when the chain has not converged.
+    #
+    # Only parameters with no dimension beyond (chain, draw): a per-star latent like `r_true` is
+    # constrained by a single observation, so low ESS there is expected and says nothing about the
+    # population parameters -- which is exactly what `_latent_rhat` in wiring_fix_deltas.py records.
+    import arviz as az
+
+    post = trace.posterior
+    poblacion = [v for v in post.data_vars if set(post[v].dims) <= {"chain", "draw"}]
+    rhat, ess = az.rhat(post), az.ess(post)
+    peor_rhat = max(((v, float(rhat[v].values)) for v in poblacion), key=lambda x: x[1])
+    peor_ess = min(((v, float(ess[v].values)) for v in poblacion), key=lambda x: x[1])
+    assert peor_rhat[1] < 1.01, (
+        f"{label}: R-hat {peor_rhat[1]:.3f} on `{peor_rhat[0]}` -- la cadena no convergio, "
+        f"asi que el conteo de divergencias ({n_div}) no significa nada"
+    )
+    assert peor_ess[1] > 400, (
+        f"{label}: ESS {peor_ess[1]:.0f} on `{peor_ess[0]}` -- muestras efectivas insuficientes "
+        "para creerle a una media posterior"
+    )
     assert n_div == 0, f"{label}: {n_div} divergent transitions"
 
 
