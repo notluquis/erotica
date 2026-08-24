@@ -803,6 +803,12 @@ def c_linters():
     # largo de guion, una regla de estilo sobre prosa cuyos casos reales ya cubre DashExcpt en
     # .chktexrc; cualquier otro numero falla y se imprime.
     a = run(["chktex", "-q", "-f", "%n|%l|%m\n", "aanda.tex"], cwd=TEX.parent)
+    # Medido: `chktex fichero_inexistente.tex` devuelve rc=0 con stdout vacio y el aviso en stderr.
+    # Sin mirar stderr, `warns` quedaba vacio, `unexpected` vacio, y el check reportaba
+    # "0 avisos, todos aceptados" -- verde. Un renombre del .tex, un cwd equivocado, un .chktexrc
+    # corrupto o un build que rechace el `-f` convertian los dos linters en un pase incondicional.
+    if "Unable to open" in a.stderr or "unable to open" in a.stderr.lower():
+        return False, f"chktex no pudo leer aanda.tex: {a.stderr.strip()[:90]}"
     warns = [w for w in a.stdout.replace("\\n", "\n").split("\n") if w.strip()]
     accept = ["8|"]  # nº8: largo de guion, ver DashExcpt en .chktexrc
     # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$).
@@ -816,11 +822,17 @@ def c_linters():
     # convertirse en la clase de silencio que este gate existe para sacar.
     ver = run(["chktex", "--version"]).stdout
     m = re.search(r"v(\d+)\.(\d+)\.(\d+)", ver)
-    old_chktex = tuple(map(int, m.groups())) < (1, 7, 9) if m else True
+    # Fallaba ABIERTO: sin `m`, `old_chktex` era True y la exencion del nº12 se concedia para
+    # siempre. chktex 2.x, un build de distro, cualquier `--version` que no case, y la clase que el
+    # nº12 vigila -- 113 abreviaturas en este manuscrito -- se aceptaba en silencio. Si no se sabe
+    # que version es, se asume la estricta: una exencion se concede sabiendo, no por no saber.
+    old_chktex = tuple(map(int, m.groups())) < (1, 7, 9) if m else False
     if old_chktex:
         accept.append("12|")
     unexpected = [w for w in warns if not any(w.startswith(k) for k in accept)]
     b = run(["lacheck", "aanda.tex"], cwd=TEX.parent)
+    if "not open" in b.stderr.lower() or "no such file" in b.stderr.lower():
+        return False, f"lacheck no pudo leer aanda.tex: {b.stderr.strip()[:90]}"
     lacheck = [l for l in b.stdout.split("\n")
                if l.strip() and "Dots should be ellipsis" not in l]
     ok = not unexpected and not lacheck
@@ -943,8 +955,14 @@ def c_deliverables():
     # obsoletos siempre. La condicion es medida, no una bandera -- el propio PDF dice quien lo hizo.
     for built, sent in pairs:
         if sent.exists() and producer(built) != producer(sent):
+            # En la maquina que sube esta omision ya no es benigna: desde que las omisiones son
+            # fatales sin `--allow-skips`, un desajuste de motor aqui hace que el gate se niegue a
+            # bendecir. Que es lo correcto -- tras actualizar TeX Live, los PDF versionados llevan
+            # el motor viejo y todo build fresco el nuevo, asi que el check se apagaba exactamente
+            # cuando su respuesta correcta era "reconstruye y vuelve a copiar".
             raise Skipped(f"construido por {producer(built)}, enviado por {producer(sent)}: "
-                          "la comparacion solo vale en la maquina que sube")
+                          "otro motor de TeX. En la maquina que sube esto significa reconstruir "
+                          "los entregables y volver a copiarlos")
     stale = []
     for built, sent in pairs:
         if not sent.exists():
@@ -1074,6 +1092,9 @@ def c_zip():
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--quick", action="store_true", help="omite lo que necesita compilar LaTeX")
+    ap.add_argument("--allow-skips", action="store_true",
+                    help="una omision no es fatal. Solo para CI: en la maquina que sube, un check "
+                         "omitido es un check que no se hizo donde importa")
     args = ap.parse_args()
 
     print("=== consistencia entre el manuscrito y lo que lo describe ===")
@@ -1108,11 +1129,29 @@ def main() -> int:
     # correcto, pero en la maquina que sube significa que la ranura obligatoria de NESTOR no
     # existe -- y el gate igual imprimia "puede subirse". Una omision aca abajo es informacion
     # que se pierde justo donde se toma la decision.
+    # La bendicion se hizo consciente de las omisiones y no del modo rapido: `--quick` imprimia
+    # "puede subirse" sin haber corrido la ranura obligatoria de NESTOR ni ninguna de las dos
+    # compilaciones. Y `REVISADO PARCIAL` salia 0, o sea que cualquier consumidor automatico
+    # -- un `gate.py && subir`, un paso de CI -- leia una omision como exito, y solo un humano
+    # leyendo las dos ultimas lineas se enteraba.
+    #
+    # `--allow-skips` es la salida: las omisiones son fatales por defecto y solo el runner las
+    # perdona, porque es el unico sitio donde son legitimas. En la maquina que sube no hay ninguna,
+    # asi que la bandera no cuesta nada aqui y hace que la MAQUINA, no el lector, imponga que no se
+    # omitio nada donde importa.
+    # Las dos razones de una revision parcial se reportan JUNTAS, y la fatalidad la decide la
+    # omision. La primera version devolvia 0 en cuanto veia `--quick`, antes de mirar `skipped`, asi
+    # que el modo rapido se tragaba las omisiones y volvia a colar exactamente el agujero que este
+    # bloque cierra. Lo caza `test_gate_behaviour.py`.
+    parcial = []
+    if args.quick:
+        parcial.append("modo --quick: no corrieron " + ", ".join(sorted(slow_checks)))
     if skipped:
-        print(f"REVISADO PARCIAL - {len(skipped)} no corrieron: "
-              + ", ".join(n for n, _ in skipped)
-              + ". En la maquina que sube no deberia omitirse ninguno.")
-        return 0
+        parcial.append(f"{len(skipped)} omitidos: " + ", ".join(n for n, _ in skipped)
+                       + ". En la maquina que sube no deberia omitirse ninguno")
+    if parcial:
+        print("REVISADO PARCIAL - " + "; ".join(parcial) + ".")
+        return 1 if (skipped and not args.allow_skips) else 0
     print("OK - el paquete puede subirse.")
     return 0
 

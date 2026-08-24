@@ -55,11 +55,11 @@ jobs:
       # ReadMe or a knowledge-graph note saying something the manuscript no longer says.
       - name: Consistency gate
         working-directory: data/test/NGC6383/comments_paper/submission_package
-        run: python3 gate.py --quick
+        run: python3 gate.py --quick --allow-skips
 
       - name: Full gate, including both builds and the standalone zip
         working-directory: data/test/NGC6383/comments_paper/submission_package
-        run: python3 gate.py
+        run: python3 gate.py --allow-skips
 
       - name: Keep the built PDFs for inspection
         if: always()

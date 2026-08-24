@@ -104,11 +104,19 @@ def main(argv: list[str]) -> int:
     # orden es arbitrario, asi que el check no podia fallar en CI ni por la razon correcta ni por
     # ninguna otra. Se escribe aca porque este script es obligatorio en la receta y corre justo
     # despues de latexdiff -- nada queda a que alguien se acuerde de un paso extra.
+    # SOLO si este script hizo algo. Antes se escribia siempre, asi que re-correrlo sobre un
+    # marcado ya procesado —que es justo lo que invita a hacer el mensaje de error del gate—
+    # reescribia el sello al sha nuevo sin que latexdiff hubiera corrido: el diff viejo quedaba
+    # certificado como fresco y el arbitro leia un diff sin el cambio que pidio. El sello atestigua
+    # que este script corrio; que corriera SOBRE la fuente actual solo es cierto si hubo trabajo.
+    hizo_algo = any(d not in ("marcado ya ajustado", "leyenda ya presente") for d in done)
     src = target.parent / "new_revised.tex"
-    if src.exists():
+    if src.exists() and hizo_algo:
         sha = hashlib.sha256(src.read_bytes()).hexdigest()
         (target.parent / "new_revised.sha256").write_text(sha + "\n")
         done.append(f"sello de new_revised.tex {sha[:12]}")
+    elif src.exists():
+        done.append("sin cambios: el sello NO se toca")
 
     print("; ".join(done))
     return 0
