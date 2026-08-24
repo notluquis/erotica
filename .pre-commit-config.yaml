@@ -71,6 +71,15 @@ repos:
       # del toctree y, via autodoc + viewcode, el fuente entero del paquete— no puede mandar al
       # lector a un sitio que no puede abrir. `~/phd/src/check_dead_paths.py` no ve esta clase: resuelve
       # contra un disco donde ~/phd SI existe.
+      # Lo que el paquete importa tiene que estar declarado. Sustituye al "verify in a clean
+      # venv" del release-blocker: sin red, en un segundo, y NOMBRA el modulo que falta en vez de
+      # reventar con un ImportError a quien instale.
+      - id: deps-declaradas
+        name: todo import del paquete esta declarado en pyproject
+        entry: python3 tools/validation/check_declared_deps.py
+        language: system
+        pass_filenames: false
+        files: ^(erotica/.*\.py|pyproject\.toml)$
       - id: superficie-publica
         name: ningun doc publicado cita un repo privado
         entry: python3 tools/validation/check_public_surface.py
