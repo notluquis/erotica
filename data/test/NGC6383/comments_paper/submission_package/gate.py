@@ -844,14 +844,11 @@ def c_linters():
             return False
         return ACCEPTED_DASH in src
     # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$).
-    # \textsc{`:
-    # no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La clase que el
-    # 12
-    # vigila es real aca -- 113 abreviaturas en el manuscrito -- asi que NO se desactiva: se acepta
-    # solo bajo la version vieja, que es la que trae el runner de Ubuntu. La version se imprime,
-    # para
-    # que la divergencia entre los dos entornos quede a la vista en ambos registros en vez de
-    # convertirse en la clase de silencio que este gate existe para sacar.
+    # \textsc{`: no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La
+    # clase que el 12 vigila es real aca -- 113 abreviaturas en el manuscrito -- asi que NO se
+    # desactiva: se acepta solo bajo la version vieja, que es la que trae el runner de Ubuntu. La
+    # version se imprime, para que la divergencia entre los dos entornos quede a la vista en ambos
+    # registros en vez de convertirse en la clase de silencio que este gate existe para sacar.
     accept: list[str] = []
     ver = run(["chktex", "--version"]).stdout
     m = re.search(r"v(\d+)\.(\d+)\.(\d+)", ver)
