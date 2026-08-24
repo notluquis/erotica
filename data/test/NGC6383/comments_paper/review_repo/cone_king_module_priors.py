@@ -7,19 +7,20 @@ sys.path.insert(0,"/Users/notluquis/erotica")
 import astropy.units as u, arviz as az
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
-from erotica.analysis import structure
+from erotica.analysis import structure, write_metadata
 from erotica.analysis.inference import SamplingConfig
 
 B="/Users/notluquis/erotica/data/test/NGC6383/comments_paper/radius_robustness/generated"
+CFG=SamplingConfig(draws=2000,tune=2000,target_accept=0.99,chains=4,
+                   random_seed=42,nuts_sampler="pymc",progressbar=False,
+                   extra_kwargs={"cores":1})
 center=SkyCoord(263.6826*u.deg,-32.5838*u.deg)
 for radius in [50,60,70]:
     t=Table.read(f"{B}/{radius}/paperfaithful_reference_p06.ecsv")
     prof=structure.radial_density_profile(t,center,method="equip")
     res=structure.RDP_bayesian(prof.density,prof.radius,d_center=42.45*u.arcmin,
         return_trace=True,
-        sampling=SamplingConfig(draws=2000,tune=2000,target_accept=0.99,chains=4,
-                                random_seed=42,nuts_sampler="pymc",progressbar=False,
-                                extra_kwargs={"cores":1}))
+        sampling=CFG)
     tr=res["king_trace"]; post=tr.posterior
     out={v:(float(post[v].values.mean()),float(post[v].values.std())) for v in ["R_c","R_t","b","k"]}
     C=np.log10(post["R_t"].values.ravel()/post["R_c"].values.ravel())
@@ -29,4 +30,7 @@ for radius in [50,60,70]:
     ok=rmax<1.01 and bmin>400 and tmin>400 and div==0 and bfmi>0.3
     print(f"[{radius}'] N={len(t)} Rc={out['R_c'][0]:.2f}+-{out['R_c'][1]:.2f} Rt={out['R_t'][0]:.1f}+-{out['R_t'][1]:.1f} "
           f"C={C.mean():.2f}+-{C.std():.2f} b={out['b'][0]:.5f} | div={div} BFMI={bfmi:.2f} Rhat={rmax:.4f} ESS={bmin:.0f}/{tmin:.0f} {'PASS' if ok else 'FAIL'}")
-    tr.to_netcdf(f"/Users/notluquis/erotica/data/test/NGC6383/comments_paper/review_repo/idata_king_cone{radius}_modpriors.nc")
+    nc = f"/Users/notluquis/erotica/data/test/NGC6383/comments_paper/review_repo/idata_king_cone{radius}_modpriors.nc"
+    tr.to_netcdf(nc)
+    write_metadata(nc[: -len(".nc")] + "_provenance.json", inputs=[f"{B}/{radius}/paperfaithful_reference_p06.ecsv"],
+                   seeds=CFG.random_seed, script="cone_king_module_priors.py", model="structure.RDP_bayesian", radius=radius)

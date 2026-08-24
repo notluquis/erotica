@@ -7,6 +7,7 @@ Sanity: the same code refits the 40-arcmin sample to confirm it reproduces the
 published values before trusting the 50-arcmin numbers."""
 import numpy as np
 from astropy.table import Table
+from erotica.analysis import write_metadata
 from astropy.coordinates import SkyCoord, angular_separation
 import astropy.units as u
 
@@ -14,7 +15,8 @@ B = "/Users/notluquis/erotica/data/test/NGC6383/comments_paper/radius_robustness
 CRA, CDEC = 263.6826, -32.5838
 TMAX = 42.45  # arcmin: max(Hill 28.32, bound 42.45) as in the paper
 c = SkyCoord(CRA * u.deg, CDEC * u.deg)
-rng = np.random.default_rng(11)
+SEED = 11
+rng = np.random.default_rng(SEED)
 
 def load(radius):
     t = Table.read(f"{B}/{radius}/paperfaithful_reference_p06.ecsv").to_pandas()
@@ -55,7 +57,7 @@ def fit_king(t, tag):
         sigma = pm.HalfNormal("sigma", rho.std())
         pm.Normal("obs", mu=mod, sigma=sigma, observed=rho)
         idata = pm.sample(2000, tune=2000, chains=4, cores=4,
-                          progressbar=False, random_seed=11, target_accept=0.99)
+                          progressbar=False, random_seed=SEED, target_accept=0.99)
     post = idata.posterior
     out = {}
     for v in ["b", "k", "Rc", "Rt"]:
@@ -73,7 +75,12 @@ def fit_king(t, tag):
     rmax = float(summ["r_hat"].max()); bmin = float(summ["ess_bulk"].min()); tmin = float(summ["ess_tail"].min())
     passed = rmax < 1.01 and bmin > 400 and tmin > 400 and div == 0 and bfmi > 0.3
     print(f"[{tag}] DIAG: div={div} minBFMI={bfmi:.3f} maxRhat={rmax:.4f} minESS={bmin:.0f}/{tmin:.0f} -> {'PASS' if passed else 'FAIL'}")
-    idata.to_netcdf(f"/Users/notluquis/erotica/data/test/NGC6383/comments_paper/review_repo/idata_king_cone{tag.split()[-1].strip(chr(39))}.nc")
+    radius = tag.split()[-1].strip(chr(39))
+    src = f"{B}/{radius}/paperfaithful_reference_p06.ecsv"
+    nc = f"/Users/notluquis/erotica/data/test/NGC6383/comments_paper/review_repo/idata_king_cone{radius}.nc"
+    idata.to_netcdf(nc)
+    write_metadata(nc[: -len(".nc")] + "_provenance.json", inputs=[src], seeds=SEED,
+                   script="cone_king_convergence.py", model="King RDP, paper priors", tag=tag)
     return out
 
 for radius in [40, 50, 60, 70]:

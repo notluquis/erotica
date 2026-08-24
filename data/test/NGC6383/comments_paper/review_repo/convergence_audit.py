@@ -14,21 +14,23 @@ import arviz as az
 from erotica.analysis.inference import (
     SamplingConfig, fit_parallax_model, distance_model, proper_motion_2d_gaussian,
 )
-from erotica.analysis import structure
+from erotica.analysis import structure, write_metadata
 
 B = "/Users/notluquis/erotica/data/test/NGC6383"
 OUT = f"{B}/comments_paper/review_repo"
 CFG = SamplingConfig(draws=2000, tune=2000, target_accept=0.9, chains=4,
                      random_seed=42, nuts_sampler="pymc", progressbar=False)
 
-ref = Table.read(f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv")
+SRC = [f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv",
+       f"{B}/data/40/clustering_results.ecsv"]
+ref = Table.read(SRC[0])
 print(f"reference sample N={len(ref)}")
 frac = np.abs(ref["parallax_error"] / ref["parallax"])
 sub = ref[frac < 0.1]
 print(f"frac plx err <0.1 subsample n={len(sub)}")
 
 # Bailer-Jones geometric distances matched by source_id
-cl = Table.read(f"{B}/data/40/clustering_results.ecsv")
+cl = Table.read(SRC[1])
 bj = pd.DataFrame({"source_id": np.asarray(cl["source_id"]),
                    "r_med_geo": np.asarray(cl["r_med_geo"], dtype=float)})
 sid = pd.DataFrame({"source_id": np.asarray(sub["source_id"])})
@@ -50,7 +52,10 @@ def diag(idata, name, params):
     print(s[["mean", "sd", "ess_bulk", "ess_tail", "r_hat"]])
     print(f"divergences={div}  min E-BFMI={bfmi:.3f}  max R-hat={rmax:.4f}  "
           f"min ESS bulk/tail={bmin:.0f}/{tmin:.0f}  -> {'PASS' if ok else 'FAIL'}")
-    idata.to_netcdf(f"{OUT}/idata_{name}.nc")
+    nc = f"{OUT}/idata_{name}.nc"
+    idata.to_netcdf(nc)
+    write_metadata(nc[: -len(".nc")] + "_provenance.json", inputs=SRC, seeds=CFG.random_seed,
+                   script="convergence_audit.py", model=name)
     return ok
 
 # 1. parallax model (Gaussian cluster parallax; published mu=0.908 sd-disp=0.046, SEM 0.004)

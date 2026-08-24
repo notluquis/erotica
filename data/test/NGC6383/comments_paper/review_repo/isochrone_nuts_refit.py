@@ -13,9 +13,12 @@ import arviz as az
 from scipy.stats import gaussian_kde
 
 from erotica.analysis._isochrone import IsochroneFitter
+from erotica.analysis import write_metadata
 
+SEED = 42
 B = "/Users/notluquis/erotica/data/test/NGC6383"
-ref = Table.read(f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv")
+SRC = f"{B}/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv"
+ref = Table.read(SRC)
 print(f"reference sample N={len(ref)}")
 
 fitter = IsochroneFitter(
@@ -33,7 +36,7 @@ fitter.build_grid(grid_cache=f"{B}/data/40/hgrid_paper254.npz")
 
 idata = fitter.fit(
     draws=2000, tune=2000, chains=4, target_accept=0.9,
-    nuts_sampler="blackjax", random_seed=42,
+    nuts_sampler="blackjax", random_seed=SEED,
 )
 
 params = ["met", "loga", "Av", "dm"]
@@ -57,5 +60,8 @@ for p in avail:
     pm_, ps = pub.get(p, (np.nan, np.nan))
     print(f"  {p}: mode={mode:.4f}  mean={arr.mean():.4f}+-{arr.std():.4f}  [16,84]=({lo:.4f},{hi:.4f})  published={pm_}+-{ps}")
 
-idata.to_netcdf(f"{B}/comments_paper/review_repo/idata_isochrone_nuts.nc")
+nc = f"{B}/comments_paper/review_repo/idata_isochrone_nuts.nc"
+idata.to_netcdf(nc)
+write_metadata(nc[: -len(".nc")] + "_provenance.json", inputs=[SRC], seeds=SEED,
+               script="isochrone_nuts_refit.py", model="IsochroneFitter NUTS", sampler="blackjax")
 print("saved idata_isochrone_nuts.nc\nISOCHRONE REFIT DONE")
