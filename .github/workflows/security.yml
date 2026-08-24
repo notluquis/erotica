@@ -46,6 +46,41 @@ jobs:
       - name: Audit
         run: zizmor --format sarif . > zizmor.sarif
         continue-on-error: true        # report findings, do not block the release path on them
+
+      # `continue-on-error` es deliberado —los hallazgos de zizmor no deben frenar un release— pero
+      # sin esto el check queda verde diga lo que diga el SARIF, y verde se lee como "sin
+      # hallazgos". Es un guardia que no puede fallar: imprime exactamente lo mismo pase lo que
+      # pase. El 2026-08-23 este repo tenía 27 alertas abiertas, 20 de severidad `error`, mientras
+      # la corrida de seguridad figuraba en verde y yo la citaba como evidencia de que todo estaba
+      # bien salvo un workflow. No bloquea; habla.
+      - name: Lo que encontró, en el resumen del job
+        if: always()
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, collections, pathlib
+          f = pathlib.Path("zizmor.sarif")
+          if not f.exists():
+              print("## zizmor\n\nNo se produjo SARIF: la auditoría no llegó a correr.")
+              raise SystemExit
+          runs = json.loads(f.read_text()).get("runs", [])
+          rules = {r["id"]: r for run in runs for r in run["tool"]["driver"].get("rules", [])}
+          c = collections.Counter()
+          for run in runs:
+              for res in run.get("results", []):
+                  lvl = res.get("level") or rules.get(res.get("ruleId"), {}).get(
+                      "defaultConfiguration", {}).get("level", "note")
+                  c[(lvl, res.get("ruleId"))] += 1
+          print("## zizmor\n")
+          if not c:
+              print("Sin hallazgos.")
+          else:
+              print(f"**{sum(c.values())} hallazgos.** Este check no puede ponerse rojo "
+                    "(`continue-on-error`), así que su verde sólo dice que corrió.\n")
+              print("| severidad | n | regla |\n|---|---|---|")
+              for (lvl, rid), n in sorted(c.items(), key=lambda x: (-x[1], x[0])):
+                  print(f"| {lvl} | {n} | `{rid}` |")
+          PY
       - uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: zizmor.sarif
