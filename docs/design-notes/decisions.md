@@ -1053,7 +1053,7 @@ a correction that measurement does not support.
 
 ### A defect the fix exposed: the error-aware distance model does not converge at N > 250
 
-**Status: measured, then fixed on 2026-08-24 by marginalising the latents. Everything below this line is the state *before* that fix and is kept for the record — see [The latents are integrated out, and the funnel goes with them](#the-latents-are-integrated-out-and-the-funnel-goes-with-them) at the end of this file. The prohibition on quoting `mu_r`/`std_r` above ~250 stars was lifted by that fix.**
+**Status: measured, then fixed on 2026-08-24 by marginalising the latents. Everything below this line is the state *before* that fix and is kept for the record — see **"The latents are integrated out, and the funnel goes with them"** at the end of this file. The prohibition on quoting `mu_r`/`std_r` above ~250 stars was lifted by that fix.**
 
 Turning on the Bailer-Jones bounds gives `distance_model` one latent `r_true` per star, and the
 Gamma hierarchy over those latents does not sample adequately once the member list grows. Measured
