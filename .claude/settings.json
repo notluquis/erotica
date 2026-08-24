@@ -51,6 +51,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "S=\"$HOME/phd/.claude/hooks/edit_feedback.py\"; if [ -f \"$S\" ]; then python3 \"$S\"; else exit 0; fi"
+          }
+        ]
+      }
     ]
   }
 }
