@@ -1,5 +1,5 @@
 """Core clustering subpackage."""
 
-from .clustering import Clustering, HDBSCANEstimator
+from .clustering import Clustering, HDBSCANEstimator, NoCandidateClusters
 
-__all__ = ["Clustering", "HDBSCANEstimator"]
+__all__ = ["Clustering", "NoCandidateClusters", "HDBSCANEstimator"]

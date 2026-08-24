@@ -197,6 +197,8 @@ os.environ.setdefault("MPLCONFIGDIR", tempfile.mkdtemp(prefix="erotica-mpl-"))
 
 import numpy as np
 
+from erotica.core.clustering import NoCandidateClusters
+
 BASE = Path("/Users/notluquis/erotica")
 CONE = (
     BASE
@@ -366,7 +368,9 @@ def run_pipeline(table, mcs_step: int, quiet: bool = True):
                     "core_dist_n_jobs": 1,
                 },
             )
-    except RuntimeError as exc:  # "did not find candidate clusters"
+    # El tipo lo dice ahora, en vez de un comentario que nadie puede ejecutar: si la búsqueda
+    # se rompiera por otra cosa, este `except` la habría tratado como «no encontró nada».
+    except NoCandidateClusters as exc:
         return np.zeros(len(table), bool), {
             "detected": False,
             "reason": str(exc),

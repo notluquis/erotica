@@ -25,6 +25,25 @@ from ._style import apply_default_style
 from ._summary import build_cluster_summary, clustering_statistics, combine_datasets
 
 
+class NoCandidateClusters(RuntimeError):
+    """La búsqueda no encontró ningún candidato. **Es una respuesta, no un fallo.**
+
+    Sobre un campo sin estructura no hay nada que encontrar, y decirlo es correcto. Lo que estaba mal
+    era el tipo: llegaba como `RuntimeError` pelado, indistinguible de que la búsqueda se rompiera,
+    así que cada consumidor tenía que decidirlo leyendo el texto del mensaje — y uno de ellos lo hacía
+    con un comentario en vez de con código.
+
+    Medido en el hilo CTRL-seeds: **82 ocurrencias sobre 24 semillas de campo liso** —70 celdas de
+    los arms 5D y 12 de los 3D— y **cero** en cuanto hay estructura. La rama no es rara: es la
+    respuesta normal a un cielo vacío. El prerregistro de ese hilo llegó a escribir que era «una
+    caída puntuada como acierto» antes de leer el mensaje, que es justo el costo de no poder
+    distinguirlas.
+
+    Hereda de `RuntimeError` a propósito: quien ya lo captaba sigue funcionando, y quien quiera
+    separar «no hay nada» de «me rompí» ahora puede hacerlo sin mirar una cadena.
+    """
+
+
 class Clustering:
     """Perform HDBSCAN clustering with optional hyper-parameter search."""
 
@@ -479,7 +498,7 @@ class Clustering:
             )
 
         if not results:
-            raise RuntimeError("Pseudo-probability search did not find candidate clusters.")
+            raise NoCandidateClusters("Pseudo-probability search did not find candidate clusters.")
 
         selected = self._select_pseudoprobability_result(results, selection)
         final_probability_times = np.mean(labels_matrix != -1, axis=1)
