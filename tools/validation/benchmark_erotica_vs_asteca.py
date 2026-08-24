@@ -927,6 +927,9 @@ def run_cell(
     contamination: float,
     fractal_dimension: float,
     seed: int,
+    neighbour_fraction: float = 0.0,
+    delta_pm: float = 1.25,
+    delta_plx: float = 0.8,
     mcs_range: range,
     configs: list[str],
     asteca_runs: int,
@@ -939,8 +942,21 @@ def run_cell(
         contamination=contamination,
         fractal_dimension=fractal_dimension,
         seed=seed,
+        neighbour_fraction=neighbour_fraction,
+        delta_pm=delta_pm,
+        delta_plx=delta_plx,
     )
     gen_check = check_generator(real, requested_contamination=contamination)
+    # Qué tarea fue ésta, en la propia fila. Sin esto una tabla con brazos mezclados no se puede
+    # leer, y separar los ficheros por brazo hace que la comparación dependa de juntarlos bien.
+    gen_check.update(
+        {
+            "neighbour_fraction": float(neighbour_fraction),
+            "delta_pm": float(delta_pm) if neighbour_fraction else None,
+            "delta_plx": float(delta_plx) if neighbour_fraction else None,
+            "n_neighbour": int(real.n_neighbour),
+        }
+    )
     caps: dict[str, int] = {}
     if adaptive:
         for cfg in set(configs) | set(diagnostic_configs):
@@ -1209,6 +1225,30 @@ def main(argv=None) -> int:
         help="cap the mcs sweep with the truth-free adaptive rule "
         "(see adaptive_mcs_cap); otherwise use --mcs-lo..--mcs-hi",
     )
+    # --- thread B6: el vecino comovil ---------------------------------------------------
+    # Por defecto 0: sin banderas, este harness es exactamente el que produjo la tabla publicada.
+    ap.add_argument(
+        "--neighbour-fraction",
+        type=float,
+        default=0.0,
+        help="que fraccion del contaminante es un SEGUNDO cumulo en vez de campo liso. "
+        "B1 midio 0.661 sobre NGC 6383 (179 de 271 miembros externos). El contaminante TOTAL no "
+        "cambia: cambia de que esta hecho, para que los brazos difieran en una sola cosa.",
+    )
+    ap.add_argument(
+        "--delta-pm",
+        type=float,
+        default=1.25,
+        help="separacion del vecino en unidades de la dispersion de PM del cumulo. 1.25 = Theia "
+        "1645 como B1 lo midio; ~12 es la distancia del centroide del campo actual.",
+    )
+    ap.add_argument(
+        "--delta-plx",
+        type=float,
+        default=0.8,
+        help="separacion en paralaje, en unidades de la profundidad del cumulo. MEDIDO: a este "
+        "valor el eje es casi inerte, porque el error de catalogo es 12x la profundidad intrinseca.",
+    )
     ap.add_argument("--skip-control", action="store_true")
     ap.add_argument("--skip-sensitivity", action="store_true")
     ap.add_argument(
@@ -1278,6 +1318,9 @@ def main(argv=None) -> int:
                         contamination=cont,
                         fractal_dimension=dim,
                         seed=seed,
+                        neighbour_fraction=args.neighbour_fraction,
+                        delta_pm=args.delta_pm,
+                        delta_plx=args.delta_plx,
                         mcs_range=mcs_range,
                         configs=configs,
                         asteca_runs=args.asteca_runs,
