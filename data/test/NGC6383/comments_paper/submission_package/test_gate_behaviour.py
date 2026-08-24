@@ -16,6 +16,7 @@ Es barato: usa `--quick`, que no compila.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -47,7 +48,18 @@ def main() -> int:
     # y se llevaba también los linters, así que `--allow-skips` salía distinto de 0 por un FALLO
     # real y no por la omisión — el caso probaba otra cosa de la que decía. Segunda vez que la
     # sonda de este mismo test era lo roto.
-    env = {"PATH": "/Library/TeX/texbin:/usr/bin:/bin", "HOME": str(Path.home())}
+    # El entorno se recorta para inducir UNA omisión, no para cambiarle el entorno a los demás
+    # checks. `c_kb` se omite cuando ve `CI`/`GITHUB_ACTIONS` y **falla** cuando no las ve, así que
+    # un env limpio convertía esa omisión en un FALLO y `--allow-skips` salía distinto de 0 por algo
+    # que no era la omisión inducida. Tercera vez que la sonda de este test era lo roto, y la
+    # primera que sólo se veía en CI: en local esas variables no están y el check se omite igual por
+    # falta del repo hermano. → `methodology.md` §K.1.6c.
+    #
+    # `/usr/bin` primero: en Ubuntu chktex vive ahí, y `/Library/TeX/texbin` sólo existe en macOS.
+    env = {"PATH": "/usr/bin:/bin:/Library/TeX/texbin", "HOME": str(Path.home())}
+    for k in ("CI", "GITHUB_ACTIONS", "GITHUB_WORKSPACE"):
+        if k in os.environ:
+            env[k] = os.environ[k]
     code_sin, out_sin = run("--quick", env=env)
     code_con, _ = run("--quick", "--allow-skips", env=env)
     if "omitido" not in out_sin:
@@ -60,19 +72,18 @@ def main() -> int:
     # La rama del nº12 sólo vive bajo un chktex < 1.7.9, y en esta máquina hay 1.7.9 — así que
     # `accept` queda en cortocircuito y esa rama NUNCA se ejercita en local. Un shim que reporta la
     # versión vieja y emite un nº12 la despierta sin tocar el manuscrito.
-    import os
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         shim = Path(d) / "chktex"
         real = subprocess.run(["command", "-v", "chktex"], capture_output=True, text=True,
                               shell=False, executable="/bin/sh")
-        ruta = real.stdout.strip() or "/Library/TeX/texbin/chktex"
+        ruta = real.stdout.strip() or "/usr/bin/chktex"
         shim.write_text("#!/bin/sh\n"
                         'if [ "$1" = "--version" ]; then echo "ChkTeX v1.7.8 - shim"; exit 0; fi\n'
                         f'"{ruta}" "$@"\n'
                         "printf '12|134|Interword spacing should perhaps be used.\\n'\n")
         shim.chmod(0o755)
-        env = {**os.environ, "PATH": f"{d}:/Library/TeX/texbin:/usr/bin:/bin"}
+        env = {**os.environ, "PATH": f"{d}:/usr/bin:/bin:/Library/TeX/texbin"}
         _, out_viejo = run("--quick", "--allow-skips", env=env)
         linea = next((l for l in out_viejo.split("\n") if "chktex" in l), "")
         if "nº12 aceptado" not in linea:
