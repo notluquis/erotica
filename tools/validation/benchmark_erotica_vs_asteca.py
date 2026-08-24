@@ -207,6 +207,12 @@ class Realisation:
     n_members: int
     n_field: int
     contamination: float  # realised n_field / n_total
+    # Cual del contaminante es el vecino comovil y cual campo liso. Por defecto no hay vecino, y
+    # entonces es todo False -- la forma antigua exactamente. Viaja aparte de `truth` porque un
+    # metodo puede fallar de dos maneras distintas y hay que poder separarlas: confundir el vecino
+    # con un miembro (contaminacion) o con campo (que es lo correcto, y es lo dificil).
+    neighbour: np.ndarray = None  # type: ignore[assignment]
+    n_neighbour: int = 0
 
     def as_qtable(self, columns: dict[str, np.ndarray]) -> QTable:
         return QTable(columns)
@@ -226,20 +232,50 @@ def generate(
     fractal_dimension: float,
     seed: int,
     inject_cluster: bool = True,
+    neighbour_fraction: float = 0.0,
+    delta_pm: float = 1.25,
+    delta_plx: float = 0.8,
 ) -> Realisation:
     """Synthesise one cluster+field realisation with known membership truth.
 
     ``contamination`` is the target field fraction ``n_field / n_total``. With
     ``inject_cluster=False`` the cluster is omitted entirely (negative control) and
     ``n_members`` field stars are added in its place so the total is unchanged.
+
+    ``neighbour_fraction`` splits that contaminant between a **second comoving cluster** and
+    smooth field. It is 0 by default, which reproduces every published run byte-for-byte.
+
+    Why this shape rather than an extra population on top (thread B6). Until 2026-08-24 this
+    generator put ONE cluster in a structureless field: uniform on the disc, unimodal PM with
+    ``FIELD_PM_SIGMA`` 20x the cluster's own dispersion. But B1 measured that NGC 6383's real
+    contaminant is **not field** -- 179 of 271 members beyond the Jacobi radius (66.1%) belong to
+    catalogued comoving clusters, Antalova 2 (dpm 0.549 mas/yr, dplx 0.011 mas) and Theia 1645
+    (0.250, 0.004). Theia 1645 sits at **1.25x the cluster's PM dispersion and 0.8x its parallax
+    depth**: inside its own scatter.
+
+    So every membership AP measured here -- ours and ASteCA's -- was measured on a task whose
+    competitor is 12.3x further away than the one that dominates the real cluster, against a
+    background that is smooth where the real one has a second peak.
+
+    Keeping the contaminant's SIZE fixed and changing only its COMPOSITION is what makes the arms
+    comparable: with ``contamination`` unchanged, a run with and without the neighbour differs in
+    one thing. Adding the neighbour on top would vary two.
+
+    ``delta_pm`` and ``delta_plx`` are in units of the cluster's **own** dispersion, not mas --
+    that is what makes a sweep interpretable. The defaults are Theia 1645 as B1 measured it.
     """
     rng = np.random.default_rng(seed)
     if not 0.0 <= contamination < 1.0:
         raise ValueError("contamination must lie in [0, 1).")
+    if not 0.0 <= neighbour_fraction < 1.0:
+        raise ValueError("neighbour_fraction must lie in [0, 1).")
     n_field = int(round(n_members * contamination / (1.0 - contamination)))
     if not inject_cluster:
         n_field += n_members
         n_members = 0
+    # El contaminante se REPARTE, no se amplia: el total no cambia, cambia de que esta hecho.
+    n_neigh = int(round(n_field * neighbour_fraction))
+    n_field -= n_neigh
 
     cosd = np.cos(np.deg2rad(DEC_C))
 
@@ -261,6 +297,30 @@ def generate(
     else:
         ra_m = dec_m = pmra_m = pmdec_m = plx_m = np.empty(0)
 
+    # --- comoving neighbour ----------------------------------------------
+    # Un CUMULO, no campo con otro centroide: misma dispersion interna y mismo perfil fractal.
+    # Si se inyectara con la dispersion del campo no seria un vecino y el brazo no probaria nada.
+    if n_neigh:
+        # La direccion del desplazamiento es fija y no aleatoria: una direccion por semilla haria
+        # que el barrido variase dos cosas -- distancia y angulo -- y la atribucion se perderia.
+        ang = np.deg2rad(45.0)
+        pmra_n_c = PMRA_C + delta_pm * SIGMA_PM_INT * np.cos(ang)
+        pmdec_n_c = PMDEC_C + delta_pm * SIGMA_PM_INT * np.sin(ang)
+        plx_n_c = PLX_C + delta_plx * SIGMA_PLX_INT
+        pos_n = fractal_cluster(
+            n_neigh, fractal_dimension=fractal_dimension, radius=CLUSTER_RADIUS_DEG, rng=rng
+        )
+        # Desplazado en el cielo tambien: dos cumulos comoviles no comparten centro. Se pone a
+        # 2 radios, dentro del campo de vision, que es la geometria que B1 describe -- los vecinos
+        # solapan con los miembros EXTERNOS, no con el nucleo.
+        ra_n = RA_C + (pos_n[:, 0] + 2.0 * CLUSTER_RADIUS_DEG * np.cos(ang)) / cosd
+        dec_n = DEC_C + pos_n[:, 1] + 2.0 * CLUSTER_RADIUS_DEG * np.sin(ang)
+        pmra_n = pmra_n_c + rng.normal(0.0, SIGMA_PM_INT, n_neigh)
+        pmdec_n = pmdec_n_c + rng.normal(0.0, SIGMA_PM_INT, n_neigh)
+        plx_n = plx_n_c + rng.normal(0.0, SIGMA_PLX_INT, n_neigh)
+    else:
+        ra_n = dec_n = pmra_n = pmdec_n = plx_n = np.empty(0)
+
     # --- field -----------------------------------------------------------
     # uniform on the disc: r = R sqrt(u)
     r = FOV_RADIUS_DEG * np.sqrt(rng.random(n_field))
@@ -271,12 +331,18 @@ def generate(
     pmdec_f = rng.normal(FIELD_PM_C[1], FIELD_PM_SIGMA, n_field)
     plx_f = _sample_field_parallax(rng, n_field)
 
-    ra_t = np.concatenate([ra_m, ra_f])
-    dec_t = np.concatenate([dec_m, dec_f])
-    pmra_t = np.concatenate([pmra_m, pmra_f])
-    pmdec_t = np.concatenate([pmdec_m, pmdec_f])
-    plx_t = np.concatenate([plx_m, plx_f])
-    truth = np.concatenate([np.ones(n_members, bool), np.zeros(n_field, bool)])
+    ra_t = np.concatenate([ra_m, ra_n, ra_f])
+    dec_t = np.concatenate([dec_m, dec_n, dec_f])
+    pmra_t = np.concatenate([pmra_m, pmra_n, pmra_f])
+    pmdec_t = np.concatenate([pmdec_m, pmdec_n, pmdec_f])
+    plx_t = np.concatenate([plx_m, plx_n, plx_f])
+    # El vecino NO es miembro: la verdad de membresia es del cumulo primario, que es lo que el
+    # benchmark mide. Su mascara viaja aparte porque sin ella no se puede saber si un metodo
+    # confundio vecino con miembro o vecino con campo -- que son errores distintos.
+    truth = np.concatenate([np.ones(n_members, bool), np.zeros(n_neigh + n_field, bool)])
+    neighbour = np.concatenate(
+        [np.zeros(n_members, bool), np.ones(n_neigh, bool), np.zeros(n_field, bool)]
+    )
 
     # --- observational scatter -------------------------------------------
     n_tot = truth.size
@@ -301,7 +367,13 @@ def generate(
         truth=truth[order],
         n_members=int(n_members),
         n_field=int(n_field),
-        contamination=float(n_field / max(n_tot, 1)),
+        # El vecino es CONTAMINANTE, no miembro: la fraccion contaminante es todo lo que no es del
+        # cumulo primario. Calcularla sobre `n_field` sola habria hecho que inyectar un vecino
+        # BAJARA la contaminacion declarada, y entonces los brazos con y sin vecino habrian diferido
+        # en dos cosas -- que es justo lo que este diseno existe para evitar.
+        contamination=float((n_neigh + n_field) / max(n_tot, 1)),
+        neighbour=neighbour[order],
+        n_neighbour=int(n_neigh),
     )
 
 
