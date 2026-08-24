@@ -1096,20 +1096,44 @@ def run_cell(
 
 
 def negative_control(
-    *, seed: int, n_field_like: int, mcs_range: range, configs: list[str], asteca_runs: int
+    *,
+    seed: int,
+    n_field_like: int,
+    mcs_range: range,
+    configs: list[str],
+    asteca_runs: int,
+    neighbour_fraction: float = 0.0,
+    delta_pm: float = 1.25,
+    delta_plx: float = 0.8,
 ) -> dict:
-    """Field-only realisation: no cluster injected. Anything found is a false positive."""
+    """Field-only realisation: no target cluster injected.
+
+    Con ``neighbour_fraction = 0`` esto es el control de siempre: campo liso, cero cúmulos, y
+    cualquier cosa seleccionada es un **falso positivo**.
+
+    Con un vecino inyectado significa algo DISTINTO, y confundirlos sería el error de B6 otra vez.
+    ``truth`` sigue siendo todo ``False`` porque no hay primario, así que el harness puntúa cualquier
+    selección como error — correcto para la métrica y **engañoso para la frase**. Un método que
+    encuentre el vecino ahí no está inventando un cúmulo sobre cielo vacío: está **discriminando
+    mal**, que es otro fallo. Por eso los dos controles se corren y se reportan por separado, y la
+    fila lleva ``neighbour_fraction`` para que no haya que juntarlos de memoria.
+    """
     real = generate(
         n_members=n_field_like,
         contamination=0.9,
         fractal_dimension=1.6,
         seed=seed,
         inject_cluster=False,
+        neighbour_fraction=neighbour_fraction,
+        delta_pm=delta_pm,
+        delta_plx=delta_plx,
     )
     out: dict = {
         "seed": seed,
         "n_sources": int(real.truth.size),
         "n_true_members": 0,
+        "neighbour_fraction": float(neighbour_fraction),
+        "n_neighbour": int(real.n_neighbour),
         "methods": {},
     }
     for cfg in configs:
@@ -1271,6 +1295,14 @@ def main(argv=None) -> int:
         help="separacion en paralaje, en unidades de la profundidad del cumulo. MEDIDO: a este "
         "valor el eje es casi inerte, porque el error de catalogo es 12x la profundidad intrinseca.",
     )
+    ap.add_argument(
+        "--control-seeds",
+        type=int,
+        default=3,
+        help="semillas del control negativo. Eran 3 fijas, y el hallazgo que las cita declaraba eso "
+        "como su limite. El default no sube para no cambiar en silencio lo que produjo la tabla "
+        "publicada; se sube en la linea de comandos.",
+    )
     ap.add_argument("--skip-control", action="store_true")
     ap.add_argument("--skip-sensitivity", action="store_true")
     ap.add_argument(
@@ -1359,12 +1391,18 @@ def main(argv=None) -> int:
         control = [
             negative_control(
                 seed=90000 + i,
+                neighbour_fraction=args.neighbour_fraction,
+                delta_pm=args.delta_pm,
+                delta_plx=args.delta_plx,
                 n_field_like=61,
                 mcs_range=mcs_range,
                 configs=configs,
                 asteca_runs=args.asteca_runs,
             )
-            for i in range(3)
+            # Las semillas de control eran TRES, y el propio hallazgo lo declaraba como su limite:
+            # "tres es tres". Ahora es una bandera, porque el numero de semillas de un control es un
+            # parametro del experimento y no una constante del harness.
+            for i in range(args.control_seeds)
         ]
 
     sensitivity = None
