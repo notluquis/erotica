@@ -16,8 +16,8 @@ jobs:
       matrix:
         python-version: ["3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e .[dev]
@@ -40,8 +40,8 @@ jobs:
   test-bayes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.14"
       - run: pip install -e .[dev,bayes]
@@ -63,10 +63,10 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.14"
       # `docs` alone, deliberately -- and this is a correction. This step used to install
@@ -130,7 +130,7 @@ jobs:
         run: |
           python -m sphinx -T -b html -n docs docs/_build/nitpick 2>&1 | tee /tmp/sphinx-n.log | tail -5
           echo "unresolved cross-references: $(grep -c 'WARNING\|ERROR' /tmp/sphinx-n.log || true) (informational; tracks package docstrings)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: docs-html
           path: docs/_build/html
