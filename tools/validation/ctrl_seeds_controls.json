@@ -1,0 +1,4249 @@
+{
+ "thread": "CTRL-seeds",
+ "question": "does the negative-control result survive 24 seeds, and what happens when the field contains a real non-target cluster",
+ "finding": "agent-findings/asteca-gap-negative-control.md (hub repo)",
+ "controls": {
+  "CN0": {
+   "neighbour_fraction": 0.0,
+   "meaning": "empty sky; any selection is a false positive"
+  },
+  "CN1": {
+   "neighbour_fraction": 0.175,
+   "delta_pm": 1.25,
+   "delta_plx": 0.8,
+   "meaning": "a real comoving cluster that is NOT the target; truth is all-False so the metric scores any selection as error, but selecting here is bad discrimination, not invention"
+  }
+ },
+ "seeds": 24,
+ "grid": {
+  "n_members": 61,
+  "contamination": 0.8,
+  "fractal_dimension": 1.6
+ },
+ "cells": [
+  {
+   "control": "CN0",
+   "seed": 90000,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.043860133125309224,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.02350698830511888,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.09111111111111095,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06127917171454243,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90001,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.032860056155007006,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.06562524535297365,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.09444444444444428,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0689065076206222,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 51,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90002,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.07582992811614628,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.026295762469983337,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90003,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0882633023072193,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.00889933859566248,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.046666666666666655,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.03592020146114756,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90004,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.12962045712937567,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.008338554365107066,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.01726609222186142,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.04333333333333333,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.03096020818149999,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 24,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90005,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.16547570382209018,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.02115532967084839,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90006,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.11875406604886268,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.02869824793512675,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.00799354735912626,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.03000000000000001,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.02005208182140324,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90007,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.18473970925148245,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.041743084647473616,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.02262770871524034,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06111111111111105,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.04138236770652327,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90008,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0211208723417814,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 28,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90009,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.03125059386443102,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90010,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.11555563343924923,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.009032188941990014,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 24,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90011,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08854404961101613,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 23,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90012,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08701300969962726,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0073344151634269356,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.011111111111111112,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06555555555555548,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06555555555555548,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 27,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90013,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.05432136805234239,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 39,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90014,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.2,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.1821337096735444,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.035209639018598554,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.05328915934452663,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.10888888888888866,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08703896026272666,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90015,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0743144757249137,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.016448037788840925,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08777777777777762,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0641473473764795,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 62,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90016,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.25555555555555554,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.25555555555555554,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.25555555555555554,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.22447132599288547,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.043649240350315525,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.05833191247425854,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.12333333333333307,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.054068838702990236,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90017,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.12535657521543056,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.05150130875511604,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.03266061397131822,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.09777777777777759,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.07185335073689994,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90018,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08710629529402562,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.03232677517076161,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 27,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90019,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.07384174918947002,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0366089979808199,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 24,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90020,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.03333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.028562991310494966,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.01706965423140066,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08666666666666652,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06657165150246246,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 24,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90021,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.07817554824377196,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.03527704593329197,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.033483758006030984,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.07222222222222212,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.04911760114213313,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 27,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90022,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.022222222222222223,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.07759275805526994,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08990002196270569,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.015392081289991465,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.10111111111111092,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06140521044530296,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 103,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN0",
+   "seed": 90023,
+   "n_sources": 610,
+   "n_neighbour": 0,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.07819202318248204,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.0,
+     "error": "RuntimeError: Pseudo-probability search did not find candidate clusters."
+    },
+    "asteca_fastmp": {
+     "n_selected": 25,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90000,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 90,
+     "max_prob": 0.7666666666666667,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 77,
+     "max_prob": 0.7666666666666667,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 87,
+     "max_prob": 0.7666666666666667,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.06356586512566902,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 8,
+     "max_prob": 0.6955421538719968,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.13091508044931555,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.21333333333333304,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.19335150343283503,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90001,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 95,
+     "max_prob": 0.7333333333333333,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.2,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 51,
+     "max_prob": 0.7333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 92,
+     "max_prob": 0.7333333333333333,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 11,
+     "max_prob": 0.6986490958347151,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.17151104754593255,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.22222222222222177,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.19370659487540573,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 109,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90002,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 99,
+     "max_prob": 0.8555555555555555,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 78,
+     "max_prob": 0.8555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 92,
+     "max_prob": 0.8555555555555555,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.22181790925336792,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 14,
+     "max_prob": 0.8298352959087247,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.13705932922511993,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.11888888888888864,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08994518480398478,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 122,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90003,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 112,
+     "max_prob": 0.9888888888888889,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 61,
+     "max_prob": 0.9888888888888889,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 87,
+     "max_prob": 0.9888888888888889,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.06618983908998857,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 30,
+     "max_prob": 0.9432024278799156,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.13052773255074754,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.11222222222222202,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08076403451577488,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 112,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90004,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.5,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.5,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.5,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.17483868479176223,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.46709982681596185,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.1576649873108351,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.21555555555555522,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.1529350376915098,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.3333333333333333,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 55,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90005,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 0,
+     "max_prob": 0.4222222222222222,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.4222222222222222,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.13333333333333333,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.4222222222222222,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.13281050309946144,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.3649031257293055,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08950815889803158,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.10888888888888866,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.09746443968896751,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 115,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90006,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 51,
+     "max_prob": 0.6888888888888889,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 48,
+     "max_prob": 0.6888888888888889,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 78,
+     "max_prob": 0.6888888888888889,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 5,
+     "max_prob": 0.6720824060879977,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.10522910494954228,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.13555555555555532,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.11670864367131033,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 23,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90007,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 84,
+     "max_prob": 0.6777777777777778,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 47,
+     "max_prob": 0.6777777777777778,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 79,
+     "max_prob": 0.6777777777777778,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.11552698967271216,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 12,
+     "max_prob": 0.6617006705681386,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.07181668900404908,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.11555555555555533,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.09336169570526363,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 23,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90008,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 90,
+     "max_prob": 0.8111111111111111,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 68,
+     "max_prob": 0.8111111111111111,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.06666666666666667,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 90,
+     "max_prob": 0.8111111111111111,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.066164545596865,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 22,
+     "max_prob": 0.7953983686602837,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.11057133390868487,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.12777777777777755,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08477135599665825,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 116,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90009,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 93,
+     "max_prob": 0.8333333333333334,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.2111111111111111,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 73,
+     "max_prob": 0.8333333333333334,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2111111111111111,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.044444444444444446,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 88,
+     "max_prob": 0.8333333333333334,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2111111111111111,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.04370198285257766,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 22,
+     "max_prob": 0.7467311790697024,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.18854973252922333,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.22222222222222177,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.19847340266233995,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 106,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90010,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 81,
+     "max_prob": 0.7888888888888889,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.2777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 58,
+     "max_prob": 0.7888888888888889,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 88,
+     "max_prob": 0.7888888888888889,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2777777777777778,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.2377467162151854,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 15,
+     "max_prob": 0.7797216759831753,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.14767296792400245,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.3288888888888885,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.17425410215032267,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.3333333333333333,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 40,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90011,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 94,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.45555555555555555,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 83,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.45555555555555555,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 93,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.45555555555555555,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.10932994508219253,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 25,
+     "max_prob": 0.9406174443278733,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.39532595041415713,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.4133333333333327,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.35868598427821036,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 49,
+     "max_prob": 0.5555555555555556,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 28,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90012,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 45,
+     "max_prob": 0.7444444444444445,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.37777777777777777,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 47,
+     "max_prob": 0.7444444444444445,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.37777777777777777,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 82,
+     "max_prob": 0.7444444444444445,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.37777777777777777,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.05439963067982988,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 4,
+     "max_prob": 0.6784851507763681,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.3172395347916872,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.2422222222222218,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.20340652524878733,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.4444444444444444,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90013,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 102,
+     "max_prob": 0.9555555555555556,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 61,
+     "max_prob": 0.9555555555555556,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 93,
+     "max_prob": 0.9555555555555556,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.14335978387696705,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 27,
+     "max_prob": 0.9382976844086683,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.09217285672889539,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.13222222222222196,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.0963625320347541,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 27,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90014,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 76,
+     "max_prob": 0.7,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 40,
+     "max_prob": 0.7,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.05555555555555555,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 82,
+     "max_prob": 0.7,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.07777777777777778,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.04909411806256574,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 6,
+     "max_prob": 0.6919599911570753,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.055598872160355854,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.09111111111111095,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.06274729858097292,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 112,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90015,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.37777777777777777,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 106,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.37777777777777777,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 63,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.37777777777777777,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 95,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.24444444444444444,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.37764546835581714,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 28,
+     "max_prob": 0.9247504178952517,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.19415989368744765,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.22777777777777736,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.18022276532904724,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.3333333333333333,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90016,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 87,
+     "max_prob": 0.6666666666666666,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 45,
+     "max_prob": 0.6666666666666666,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 86,
+     "max_prob": 0.6666666666666666,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.1,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.21063934011360272,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 7,
+     "max_prob": 0.6395477226209294,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08558590235252019,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.1277777777777775,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.10935976411710888,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.1111111111111111,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 115,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90017,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.18888888888888888,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 69,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.4111111111111111,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.18888888888888888,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 69,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.4111111111111111,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.18888888888888888,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 101,
+     "max_prob": 1.0,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.4111111111111111,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.1887126766693718,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 36,
+     "max_prob": 0.9643006683729575,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.37459813993370644,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.1911111111111108,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.17413751369891192,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.4444444444444444,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 117,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90018,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 81,
+     "max_prob": 0.6555555555555556,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 38,
+     "max_prob": 0.6555555555555556,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.08888888888888889,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 75,
+     "max_prob": 0.6555555555555556,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.12222222222222222,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08818524058043023,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 5,
+     "max_prob": 0.6239033800275938,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.08201697334543052,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.12555555555555528,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.08425379989121481,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 28,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90019,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 94,
+     "max_prob": 0.7666666666666667,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 42,
+     "max_prob": 0.7666666666666667,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.14444444444444443,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 94,
+     "max_prob": 0.7666666666666667,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.13405714224537213,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 17,
+     "max_prob": 0.7250906014187084,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.13684706895795068,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.14999999999999972,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.12316236206215539,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 114,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90020,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 89,
+     "max_prob": 0.8111111111111111,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.28888888888888886,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 69,
+     "max_prob": 0.8111111111111111,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.28888888888888886,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.17777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 87,
+     "max_prob": 0.8111111111111111,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.28888888888888886,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.17558479082872636,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 15,
+     "max_prob": 0.7735194133325667,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.18003310834497532,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.3333333333333329,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.20773050962881745,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.3333333333333333,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 112,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90021,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 80,
+     "max_prob": 0.8222222222222222,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.15555555555555556,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 60,
+     "max_prob": 0.8222222222222222,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.15555555555555556,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.16666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 92,
+     "max_prob": 0.8222222222222222,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.15555555555555556,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.16451728693238335,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 24,
+     "max_prob": 0.7957467241484681,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.12623908607768933,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.17666666666666633,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.14337153347394688,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.2222222222222222,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 114,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90022,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.26666666666666666,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 89,
+     "max_prob": 0.9777777777777777,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.28888888888888886,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.26666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 69,
+     "max_prob": 0.9777777777777777,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.28888888888888886,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.26666666666666666,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 94,
+     "max_prob": 0.9777777777777777,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.28888888888888886,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.25895747159135857,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 33,
+     "max_prob": 0.9507872561563735,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.24188154904917716,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.19777777777777747,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.1655958297336672,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.3333333333333333,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 26,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  },
+  {
+   "control": "CN1",
+   "seed": 90023,
+   "n_sources": 610,
+   "n_neighbour": 107,
+   "methods": {
+    "erotica_pm": {
+     "n_selected": 0,
+     "max_prob": 0.2777777777777778,
+     "error": null
+    },
+    "erotica_3d": {
+     "n_selected": 94,
+     "max_prob": 0.8333333333333334,
+     "error": null
+    },
+    "erotica_5d": {
+     "n_selected": 0,
+     "max_prob": 0.4,
+     "error": null
+    },
+    "erotica_pm_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.2777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxlambda": {
+     "n_selected": 68,
+     "max_prob": 0.8333333333333334,
+     "error": null
+    },
+    "erotica_5d_maxlambda": {
+     "n_selected": 0,
+     "max_prob": 0.4,
+     "error": null
+    },
+    "erotica_pm_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.2777777777777778,
+     "error": null
+    },
+    "erotica_3d_maxpersistence": {
+     "n_selected": 88,
+     "max_prob": 0.8333333333333334,
+     "error": null
+    },
+    "erotica_5d_maxpersistence": {
+     "n_selected": 0,
+     "max_prob": 0.4,
+     "error": null
+    },
+    "erotica_pm_soft": {
+     "n_selected": 0,
+     "max_prob": 0.27615466833050045,
+     "error": null
+    },
+    "erotica_3d_soft": {
+     "n_selected": 19,
+     "max_prob": 0.7943229724718738,
+     "error": null
+    },
+    "erotica_5d_soft": {
+     "n_selected": 0,
+     "max_prob": 0.33484616841054166,
+     "error": null
+    },
+    "erotica_5d_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.34111111111111064,
+     "error": null
+    },
+    "erotica_5d_soft_erroraware": {
+     "n_selected": 0,
+     "max_prob": 0.28554937139454484,
+     "error": null
+    },
+    "erotica_5d_coarsef": {
+     "n_selected": 0,
+     "max_prob": 0.4444444444444444,
+     "error": null
+    },
+    "asteca_fastmp": {
+     "n_selected": 113,
+     "max_prob": 1.0,
+     "error": null
+    }
+   }
+  }
+ ]
+}
