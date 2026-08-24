@@ -848,7 +848,7 @@ def c_linters():
     # porque imprimia una cifra. Ahora acepta por NUMERO de aviso, no por cantidad: el 8 es el
     # largo de guion, una regla de estilo sobre prosa cuyos casos reales ya cubre DashExcpt en
     # .chktexrc; cualquier otro numero falla y se imprime.
-    a = run(["chktex", "-q", "-f", "%n|%l|%m\n", "aanda.tex"], cwd=TEX.parent)
+    a = run(["chktex", "-q", "-f", "%n|%l|%c|%m\n", "aanda.tex"], cwd=TEX.parent)
     # Medido: `chktex fichero_inexistente.tex` devuelve rc=0 con stdout vacio y el aviso en stderr.
     # Sin mirar stderr, `warns` quedaba vacio, `unexpected` vacio, y el check reportaba
     # "0 avisos, todos aceptados" -- verde. Un renombre del .tex, un cwd equivocado, un .chktexrc
@@ -872,14 +872,29 @@ def c_linters():
     tex_lines = TEX.read_text().split("\n")
 
     def dash_ok(w: str) -> bool:
+        """El aviso marca la OCURRENCIA aceptada, no una linea que la contenga en alguna parte.
+
+        Aceptaba cualquier nº8 cuya LINEA contuviera "Sh 2-012", que es la misma clase de agujero
+        que este bloque dice haber cerrado —de fichero entero a linea— sin llegar al final: en
+        `... in Sh 2-012, over 1-10 Myr ...` chktex emite dos avisos con la misma `%l` y los dos
+        pasaban. Con `%c` se exige que la columna marcada caiga DENTRO de una ocurrencia del texto
+        aceptado; medido, chktex apunta al guion (col 114) dentro de "Sh 2-012" (cols 110-117).
+        """
         parts = w.split("|")
-        if len(parts) < 2 or parts[0] != "8":
+        if len(parts) < 3 or parts[0] != "8":
             return False
         try:
             src = tex_lines[int(parts[1]) - 1]
+            col = int(parts[2])
         except (ValueError, IndexError):
             return False
-        return ACCEPTED_DASH in src
+        desde = 0
+        while (i := src.find(ACCEPTED_DASH, desde)) >= 0:
+            # 1-based, como los reporta chktex; el tramo va de i+1 a i+len inclusive.
+            if i + 1 <= col <= i + len(ACCEPTED_DASH):
+                return True
+            desde = i + 1
+        return False
     # El nº12 ("interword spacing") es un falso positivo de chktex < 1.7.9 sobre `($m=43$).
     # \textsc{`: no distingue ese punto de una abreviatura. 1.7.9 lo distingue y no lo emite. La
     # clase que el 12 vigila es real aca -- 113 abreviaturas en el manuscrito -- asi que NO se

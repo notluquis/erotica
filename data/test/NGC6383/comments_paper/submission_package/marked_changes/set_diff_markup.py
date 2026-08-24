@@ -72,6 +72,11 @@ def main(argv: list[str]) -> int:
 
     text = target.read_text()
     done = []
+    # La sustitucion CFONT -> OURS es la UNICA senal de que latexdiff acaba de correr sobre esta
+    # fuente: los marcadores CFONT solo existen en su salida cruda. Se lleva en un booleano propio y
+    # no se deduce de los mensajes de `done`, porque reescribir un mensaje habria cambiado en
+    # silencio quien puede firmar el sello.
+    latexdiff_fresco = False
 
     # Two independent concerns, each checked on its own. An early "already processed" exit keyed on
     # the markup alone made the legend unreachable on every file the previous version of this
@@ -86,6 +91,7 @@ def main(argv: list[str]) -> int:
                   "corre latexdiff con --type=CFONT")
             return 1
         text = text.replace(CFONT_ADD, OURS_ADD).replace(CFONT_DEL, OURS_DEL)
+        latexdiff_fresco = True
         done.append("adiciones en la letra del cuerpo (azul), borrados en rojo footnotesize")
 
     if LEGEND_MARK in text:
@@ -104,19 +110,24 @@ def main(argv: list[str]) -> int:
     # orden es arbitrario, asi que el check no podia fallar en CI ni por la razon correcta ni por
     # ninguna otra. Se escribe aca porque este script es obligatorio en la receta y corre justo
     # despues de latexdiff -- nada queda a que alguien se acuerde de un paso extra.
-    # SOLO si este script hizo algo. Antes se escribia siempre, asi que re-correrlo sobre un
-    # marcado ya procesado —que es justo lo que invita a hacer el mensaje de error del gate—
-    # reescribia el sello al sha nuevo sin que latexdiff hubiera corrido: el diff viejo quedaba
-    # certificado como fresco y el arbitro leia un diff sin el cambio que pidio. El sello atestigua
-    # que este script corrio; que corriera SOBRE la fuente actual solo es cierto si hubo trabajo.
-    hizo_algo = any(d not in ("marcado ya ajustado", "leyenda ya presente") for d in done)
+    # SOLO si latexdiff acaba de correr. Se escribia siempre, y re-correrlo sobre un marcado ya
+    # procesado —que es justo lo que invita a hacer el mensaje de error del gate— reescribia el sello
+    # al sha nuevo sin que latexdiff hubiera corrido: el diff viejo quedaba certificado como fresco y
+    # el arbitro leia un diff sin el cambio que pidio.
+    #
+    # El primer arreglo condiciono en "hizo algo", y eso seguia certificando de mas. En el estado
+    # PARCIAL —marcado ya ajustado, leyenda ausente, que es exactamente lo que dejan los dos scripts
+    # que reescriben este fichero despues— insertar la leyenda contaba como trabajo y el sello se
+    # reescribia igual. Insertar una leyenda es cosmetica: no dice nada sobre de que fuente salio el
+    # diff. La unica evidencia de procedencia es haber convertido marcadores CFONT, que solo existen
+    # en la salida cruda de latexdiff.
     src = target.parent / "new_revised.tex"
-    if src.exists() and hizo_algo:
+    if src.exists() and latexdiff_fresco:
         sha = hashlib.sha256(src.read_bytes()).hexdigest()
         (target.parent / "new_revised.sha256").write_text(sha + "\n")
         done.append(f"sello de new_revised.tex {sha[:12]}")
     elif src.exists():
-        done.append("sin cambios: el sello NO se toca")
+        done.append("latexdiff no corrio en esta pasada: el sello NO se toca")
 
     print("; ".join(done))
     return 0
