@@ -1912,3 +1912,62 @@ artefact describing the manuscript in terms the manuscript no longer uses.** Eve
 instance was a value or a phrase. This one was a coordinate system.
 
 gate.py 21/21 quick.
+
+## 81. The methods section described a prior the released package no longer implements (2026-08-24)
+
+Methods states $\sigma_r \sim \mathcal{HN}(s_r)$ **with $s_r$ the standard deviation of the geometric
+distances being fitted**. The released package has used a fixed $0.05\,\mathrm{kpc}$ scale since
+2026-07-27, and its own docstring calls the previous form *"the data used twice, twice over"*. The
+published `1.11 ± 0.06 kpc` was committed 2026-07-19, eight days earlier, so **the number is not
+wrong** — it was produced by the code exactly as methods describes it. But the paper claims *"a
+released, reusable pipeline"* and links the repository, so a referee who installs it and follows
+methods gets a different prior.
+
+Three options were on the table: refit, declare the version, or wait for the referee round. The
+choice was made by a measurement **pre-registered before it was run** (hub commit `afc7b8a`), with
+a threshold of $0.005\,\mathrm{kpc}$ — half the last printed digit — and a row written in advance
+for each outcome, including the one that would have stopped the work and handed it back:
+
+| measured | threshold |
+|---|---|
+| $\|\Delta\mu_r\| = 2.3\times10^{-4}\,\mathrm{kpc}$ | $\le 5\times10^{-3}$ |
+| $\|\Delta\sigma_r\| = 6\times10^{-5}\,\mathrm{kpc}$ | $\le 5\times10^{-3}$ |
+
+Twenty times below. Refitting buys nothing; waiting only risks the referee finding it first. Methods
+now names the scale that produced the values, the one the package ships today, and how much the
+numbers move.
+
+**Two things the measurement turned up that were not in the pre-registration.**
+
+1. **Which estimator the published pair is.** Reproducing the fit gives $\mu_r = 1.1168$, which
+   rounds to **1.12**, not the 1.11 printed. That is not a disagreement: the published pair is the
+   **mode of the Gamma predictive** (1.1136) and $\sigma_r$ (0.0600). Of five candidates only that
+   one gives $1.11 \pm 0.06$. So **the $\pm0.06$ is the line-of-sight depth, not the uncertainty on
+   the mean**, which is 0.0053 — eleven times smaller. The methods sentence was drafted saying the
+   fixed scale "leaves the reported values unchanged: $\mu_r$ moves by …", and that was wrong in a
+   way a referee would catch: $\mu_r$ is not reported. It now names the two quantities that are.
+2. **The mode estimator carries more noise than the prior does.** A KDE mode over the predictive
+   departs from the analytic one by 0.0152 / 0.0049 / 0.0045 kpc at 8k / 100k / 2M draws — 20 to 70
+   times the $2.3\times10^{-4}$ that separates the two priors. The last printed digit of 1.11 is
+   decided by the mode estimator, not by the prior. Recorded, not resolved here.
+
+**The depth's validity range, in the same sentence.** The residual prior sensitivity had been
+measured at 29% of the injected depth, but **on synthetic data whose depth is 5.2× smaller than the
+median error** — the test's regime, not the paper's. Swept on the published fit across seven scales
+from 0.025 to 0.20 kpc, $\sigma_r$ moves 0.0013 kpc: 2% of its value, 0.7% of the range swept, and
+the predictive mode rounds to 1.11 at every scale. A same-scale, four-seed null moves it by
+$8\times10^{-5}$, so the 0.0013 is prior response and not sampler noise — 15× above the null. The
+regime caveat is stated explicitly, because the number does not transfer to a cluster whose depth is
+far below its distance errors.
+
+**Every figure above is reproducible from the repository**, by
+`tools/probes/distance_prior_sensitivity.py`, which the sentence cites. The first draft of this pass
+took them from a session scratchpad that nothing in either repository could re-run — the same defect
+class as the provenance gap this work exists to close, created inside the fix for it.
+
+Also fixed here: the new sentence first cited Hunt & Reffert as `2024A&A...686A..42H`, which is the
+bibcode. `cites.bib` carries that string in the `adsurl` field, not as the entry key — the key is
+`2024arXiv240305143H`. `grep` found the string and the citation was still undefined; the compile
+caught it, one undefined citation in both documents.
+
+gate.py 26/26 full. 26 pp clean / 29 pp marked, 0 undefined refs, 0 undefined citations.
