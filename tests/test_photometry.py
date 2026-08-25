@@ -20,8 +20,11 @@ WHAT THESE ARE CHECKED AGAINST
 
 from __future__ import annotations
 
+import warnings
+
 import astropy.units as u
 import numpy as np
+import pandas as pd
 import pytest
 from astropy.table import QTable
 
@@ -168,9 +171,41 @@ def test_assign_masses_drops_non_finite_isochrone_points():
     mag = mag.copy()
     mag[10] = np.nan
     iso = [(mag, color, np.zeros_like(mass), mass)]
-    out = assign_masses(iso, np.array([mag[20]]), np.array([color[20]]), [0], k=1)
+    # El descarte es correcto y ahora es AUDIBLE: se salta un punto y se dice cuántos. Antes se
+    # saltaba en silencio, y ésta es la función que produce la masa del cúmulo.
+    with pytest.warns(UserWarning, match="1 punto"):
+        out = assign_masses(iso, np.array([mag[20]]), np.array([color[20]]), [0], k=1)
     assert np.isfinite(out["mass"].to_value(u.Msun)).all()
     assert out["mass"].to_value(u.Msun)[0] == pytest.approx(mass[20], rel=1e-10)
+
+
+def test_assign_masses_says_how_many_isochrones_it_threw_away():
+    """C4: la masa fija r_J, así que un descarte silencioso mueve el radio de Jacobi.
+
+    Nueve isócronas llegan sin su columna de masa -- lo que pasa cuando un lector cambia de
+    formato -- y una llega entera. La masa sale de esa una, y el resultado es un número
+    perfectamente formado. Antes de 2026-08-24 nada lo delataba: el único caso que avisaba era el
+    de CERO puntos, que es el que menos falta hace porque ya revienta solo.
+    """
+    mag, color, mass = _synthetic_isochrone(n=50)
+    cortas = [(mag, color, np.zeros_like(mass))] * 9  # tres columnas: sin masa
+    buena = (mag, color, np.zeros_like(mass), mass)
+    with pytest.warns(UserWarning, match=r"9 isocrona\(s\) con menos de cuatro columnas"):
+        out = assign_masses([*cortas, buena], np.array([mag[20]]), np.array([color[20]]), [0], k=1)
+    assert out["mass"].to_value(u.Msun)[0] == pytest.approx(mass[20], rel=1e-10)
+
+
+def test_assign_masses_keeps_quiet_when_nothing_is_dropped():
+    """Un aviso que salta siempre se apaga, y entonces no avisa de nada.
+
+    Es la otra mitad del test de arriba y la que decide si el guardia sirve: sin ella, un aviso
+    incondicional pasaría las dos pruebas de «avisa cuando hay que avisar».
+    """
+    mag, color, mass = _synthetic_isochrone(n=50)
+    iso = [(mag, color, np.zeros_like(mass), mass)]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        assign_masses(iso, np.array([mag[20]]), np.array([color[20]]), [0], k=1)
 
 
 # ---------------------------------------------------------------------------
@@ -375,3 +410,58 @@ def test_estimator_accepts_a_generator_of_isochrones():
     out = est.assign_from_samples(np.array([12.0, 13.5]), np.array([0.6, 1.1]), np.array([1, 2]))
     assert len(out) == 2
     assert np.all(np.isfinite(np.asarray(out["mass"], dtype=float)))
+
+
+def test_kdtree_legacy_six_arg_form_filters_by_zini_and_agrees_with_the_new_api():
+    """C4: la rama legacy del asignador de masas no la ejercitaba nadie.
+
+    El docstring la declara "retained for the legacy notebook path", y el camino legacy es justo
+    el que produjo las cifras publicadas. Sin test, un cambio en el filtrado por `Zini`/`logAge`
+    -- o en el orden de los seis argumentos posicionales, que no llevan nombre -- pasa verde.
+
+    **El fixture tuvo dos formas degeneradas antes de morder, y las dos se midieron.** Con una
+    sola metalicidad, filtrar por `Zini` es un no-op: borrar el filtro dejaba el test verde. Con
+    dos metalicidades sobre la MISMA rejilla, tampoco: los puntos coinciden y el vecino más
+    cercano sale igual con filtro o sin él. Lo que hace portante al filtro es que el bloque
+    equivocado esté **más cerca** de la estrella que el correcto -- así, ignorarlo devuelve
+    `3 * mass` y el test se pone rojo (§K.1.2, un experimento degenerado con su propio control).
+    """
+    mag, color, mass = _synthetic_isochrone(n=60)
+    pick = 25
+    eps = 1e-4
+    iso_df = pd.concat(
+        [
+            pd.DataFrame(
+                {"Zini": 0.0152, "logAge": 7.0, "Gmag": mag, "BP_RP": color, "Mass": mass}
+            ),
+            pd.DataFrame(  # metalicidad equivocada, mas cerca de la estrella, y masas x3
+                {
+                    "Zini": 0.0300,
+                    "logAge": 7.0,
+                    "Gmag": mag,
+                    "BP_RP": color - eps,
+                    "Mass": mass * 3.0,
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+    stars = QTable({"BP_RP": [color[pick] - eps], "Gmag": [mag[pick]], "designation": ["s1"]})
+
+    legacy = assign_mass_nearest_isochrone_point_kdtree(
+        iso_df, stars, (6.9, 7.1), 0.0152, "BP_RP", "Gmag", 0.0, 0.0
+    )
+    nuevo = assign_mass_nearest_isochrone_point_kdtree(stars, (mag, color, mass))
+    assert legacy["mass"].to_value(u.Msun)[0] == pytest.approx(mass[pick], rel=1e-10)
+    assert legacy["mass"].to_value(u.Msun)[0] == pytest.approx(
+        nuevo["mass"].to_value(u.Msun)[0], rel=1e-10
+    )
+
+
+def test_kdtree_legacy_form_rejects_the_wrong_number_of_positional_args():
+    """Seis argumentos posicionales sin nombre: pasar cinco tiene que doler aquí, no más abajo."""
+    stars = QTable({"BP_RP": [0.1], "Gmag": [10.0], "designation": ["s1"]})
+    with pytest.raises(TypeError, match="Legacy call requires"):
+        assign_mass_nearest_isochrone_point_kdtree(
+            pd.DataFrame(), stars, (6.9, 7.1), 0.0152, "BP_RP", "Gmag", 0.0
+        )

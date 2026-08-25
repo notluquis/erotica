@@ -15,6 +15,7 @@ from erotica.analysis.dynamics import (
     SOLAR_RADIUS,
     calculate_galactic_mass,
     calculate_galactocentric_distance,
+    calculate_hill_radius,
     crossing_time,
     half_mass_relaxation_time,
     posterior_summary,
@@ -58,7 +59,6 @@ def test_galactocentric_distance_equatorial_returns_pair():
 # ---------------------------------------------------------------------------
 
 import inspect
-
 
 from erotica.analysis.dynamics import (
     SOLAR_RADIUS,
@@ -118,9 +118,7 @@ def test_solar_radius_override_is_honoured_on_every_path():
 
     # direct function
     a = calculate_galactocentric_distance(1.5 * u.kpc, 0.0 * u.deg, 0.0 * u.deg)
-    b = calculate_galactocentric_distance(
-        1.5 * u.kpc, 0.0 * u.deg, 0.0 * u.deg, solar_radius=alt
-    )
+    b = calculate_galactocentric_distance(1.5 * u.kpc, 0.0 * u.deg, 0.0 * u.deg, solar_radius=alt)
     assert not np.isclose(a.to_value(u.kpc), b.to_value(u.kpc)), "override ignored"
     assert b.to_value(u.kpc) == pytest.approx(abs(4.0 - 1.5), abs=1e-6)
 
@@ -183,9 +181,7 @@ def test_tidal_radius_prior_works_on_its_default_path():
     assert np.isfinite(out["angular_size"].to_value(u.arcmin))
     assert out["angular_size"].to_value(u.arcmin) > 0
     # and it still works when an error IS given, i.e. the other branch
-    with_err = tidal_radius_prior(
-        900 * u.Msun, 7.2 * u.kpc, 0.1 * u.kpc, distance=1.11 * u.kpc
-    )
+    with_err = tidal_radius_prior(900 * u.Msun, 7.2 * u.kpc, 0.1 * u.kpc, distance=1.11 * u.kpc)
     assert np.isfinite(with_err["angular_size"].to_value(u.arcmin))
 
 
@@ -278,8 +274,8 @@ def test_posterior_summary_distinguishes_median_from_mean():
     rng = np.random.default_rng(0)
     skewed = rng.lognormal(0.0, 1.0, 200_000)
     s = posterior_summary(skewed, credible_mass=0.68)
-    assert s["median"] == pytest.approx(1.0, rel=0.02)          # exp(mu)
-    assert s["median"] < skewed.mean() * 0.75                   # mean ~1.65: distinct
+    assert s["median"] == pytest.approx(1.0, rel=0.02)  # exp(mu)
+    assert s["median"] < skewed.mean() * 0.75  # mean ~1.65: distinct
     # asymmetric, and the right way round
     assert s["plus"] > 2.0 * s["minus"]
     assert s["upper"] - s["median"] == pytest.approx(s["plus"])
@@ -293,7 +289,7 @@ def test_galactocentric_distance_uses_galactic_latitude(b_deg):
     Every earlier test used b = 0, where cos(b) = 1, so deleting cos(b) from all
     three of its occurrences changed nothing any test could see.
     """
-    d, l = 1.5 * u.kpc, 40.0 * u.deg
+    d, l = 1.5 * u.kpc, 40.0 * u.deg  # noqa: E741 -- `l` es la longitud galactica, como en la API
     b = b_deg * u.deg
     R0 = SOLAR_RADIUS.to_value(u.kpc)
     dv = d.to_value(u.kpc)
@@ -438,7 +434,9 @@ def test_relaxation_time_flags_an_unphysical_implied_mean_mass():
     with _warnings.catch_warnings(record=True) as caught:
         _warnings.simplefilter("always")
         half_mass_relaxation_time(254, 2.0 * u.pc, 900 * u.Msun)
-    assert any("no IMF produces" in str(w.message) for w in caught), [str(w.message) for w in caught]
+    assert any("no IMF produces" in str(w.message) for w in caught), [
+        str(w.message) for w in caught
+    ]
 
     # a physical mean mass must not warn about it
     with _warnings.catch_warnings(record=True) as clean:
@@ -602,4 +600,55 @@ def test_the_hub_knowledge_node_lists_the_same_values_as_the_code():
     documented = {float(m) for m in re.findall(r"^\s*-\s*value:\s*([0-9.]+)", frontmatter, re.M)}
     assert documented == set(COULOMB_CALIBRATIONS), (
         f"kb node lists {sorted(documented)}, code has {sorted(COULOMB_CALIBRATIONS)}"
+    )
+
+
+def test_a_posterior_pushed_through_dynamics_stays_a_distribution():
+    """C3: el camino posterior -> dynamics -> resumen funciona, y nadie lo ejercitaba.
+
+    `posterior_summary` existía y estaba testeada sobre arrays sintéticos, pero **ninguna llamada
+    la alimentaba con salida de `dynamics`**: estaba la mitad que reduce y faltaba la que empuja.
+    Medido, empujar ya funciona -- las funciones son vectorizadas y devuelven un draw por muestra --
+    así que lo que faltaba no era código sino este test, que impide que un futuro `float()` interno
+    colapse el camino en silencio.
+    """
+    rng = np.random.default_rng(1)
+    n = 4000
+    distance = rng.normal(1.30, 0.05, n) * u.kpc
+    mass = rng.lognormal(np.log(500.0) - 0.5 * 0.25**2, 0.25, n) * u.Msun
+
+    # Cada entrada por separado, y no las dos a la vez. Medido: con las dos variando, colapsar la
+    # DISTANCIA dejaba la forma en (n,) porque la masa seguía siendo un array -- el test pasaba con
+    # el bug puesto. Un solo caso "empujar funciona" no dice CUAL de las entradas empuja.
+    fijo_m = 500.0 * u.Msun
+    fijo_d = 1.30 * u.kpc
+    for etiqueta, kw in (
+        ("distancia", {"distance": distance, "cluster_mass": fijo_m}),
+        ("masa", {"distance": fijo_d, "cluster_mass": mass}),
+    ):
+        empujado = calculate_hill_radius(l=355.68 * u.deg, b=0.13 * u.deg, **kw)["angular_size"]
+        assert empujado.shape == (n,), f"se colapsaron las muestras de {etiqueta}"
+        s = posterior_summary(empujado)
+        assert s["n"] == n
+        assert s["lower"] < s["median"] < s["upper"]
+
+
+def test_a_timescale_has_no_error_route_at_all_so_the_samples_are_the_only_one():
+    """C3, la mitad que sí es un agujero: los tiempos no tienen `*_err` por ninguna parte.
+
+    `calculate_hill_radius` y `grav_bound_radius` aceptan `*_err` y propagan en cuadratura.
+    `half_mass_relaxation_time`, `crossing_time` y `mass_segregation_timescale` **no**, así que
+    para ellos empujar el posterior no es una alternativa a la gaussiana: es la única ruta que
+    existe. Y produce un intervalo **asimétrico**, que es justo lo que un `+-` no puede escribir.
+    """
+    rng = np.random.default_rng(2)
+    mass = rng.lognormal(np.log(500.0) - 0.5 * 0.5**2, 0.5, 40000) * u.Msun
+    with pytest.warns(UserWarning, match="calibration"):
+        trh = half_mass_relaxation_time(500, 1.31 * u.pc, mass)
+    s = posterior_summary(trh)
+    # Medido a sigma_M = 0.5: las dos colas difieren ~28%. El umbral se pone MUY por debajo para
+    # que el test hable de la asimetría y no de la cifra exacta de una realización.
+    asimetria = abs(s["plus"] - s["minus"]) / s["minus"]
+    assert asimetria > 0.10, (
+        f"el intervalo salió simétrico ({asimetria:.2%}): ¿se colapsó la entrada?"
     )

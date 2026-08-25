@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 from astropy import units as u
@@ -269,13 +271,33 @@ def assign_masses(isochrones, mag_column, color_column, source_id, *, k: int = 5
     """
     points = []
     masses = []
+    # Lo que se descarta se CUENTA. Estas dos guardas -- isocrona con menos de cuatro columnas, y
+    # punto no finito -- se saltaban en silencio, y esta es la funcion que produce la masa del
+    # cumulo: la masa fija el radio de Jacobi, y r_J es el eje sobre el que gira todo el argumento
+    # de R_t. Si nueve de diez isocronas llegan sin su columna de masa, la masa sale de UNA sola y
+    # el resultado es un numero perfectamente formado. El unico caso que hoy avisa es el de cero
+    # puntos, que es el que menos falta hace: ese ya revienta solo.
+    descartadas = 0
+    no_finitos = 0
     for iso in isochrones:
         if len(iso) < 4:
+            descartadas += 1
             continue
         for mag, color, mass in zip(iso[0], iso[1], iso[3], strict=False):
             if np.isfinite(mag) and np.isfinite(color) and np.isfinite(mass):
                 points.append([color, mag])
                 masses.append(mass)
+            else:
+                no_finitos += 1
+    if descartadas or no_finitos:
+        warnings.warn(
+            f"assign_masses ignoro {descartadas} isocrona(s) con menos de cuatro columnas y "
+            f"{no_finitos} punto(s) no finito(s); la masa sale de {len(points)} punto(s) de "
+            f"{len(list(isochrones))} isocrona(s). La masa fija r_J, asi que un descarte silencioso "
+            f"mueve el radio de Jacobi sin mover ninguna senal.",
+            UserWarning,
+            stacklevel=2,
+        )
     if not points:
         raise ValueError("No finite isochrone points with masses were supplied.")
 
