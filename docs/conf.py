@@ -27,7 +27,10 @@ extensions = [
 
 templates_path = ["_templates"]
 # CLAUDE.md files are per-directory agent guidance, not documentation pages.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**/CLAUDE.md"]
+# `AGENTS.md` es el fichero real y `CLAUDE.md` su symlink: los DOS se excluyen. Al renombrar
+# el 2026-08-25 sólo estaba excluido `CLAUDE.md`, así que las instrucciones de agente habrían
+# entrado en la doc publicada — el arreglo reintroduciendo la clase que arreglaba.
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**/CLAUDE.md", "**/AGENTS.md"]
 source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 myst_enable_extensions = ["colon_fence", "deflist", "dollarmath", "amsmath"]
 
