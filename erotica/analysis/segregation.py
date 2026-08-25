@@ -80,8 +80,8 @@ is that exact permutation p-value; it is what should be quoted.
 
 Measured null (King profile at NGC 6383's :math:`C = 1.43`, :math:`R_c = 1.96'`,
 :math:`R_t = 54'`, truncated at its 40 arcmin footprint, :math:`N_{\rm total} = 254`,
-600 realisations x 100 draws; ``~/phd/agent-findings/scripts/lambda_msr_king_null.py``,
-Monte Carlo errors in the raw output alongside it):
+600 realisations x 100 draws, with Monte Carlo errors in the raw output of the
+calibration script that produced them):
 
 ======  ===========  ========  ========
 N_MST   null median  null p95  null p99
@@ -154,8 +154,9 @@ the Maschberger & Clarke or Olczak variants.
 from __future__ import annotations
 
 import warnings
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal, Sequence
+from typing import Any, Literal
 
 import numpy as np
 from astropy import units as u
@@ -173,6 +174,7 @@ __all__ = [
     "lambda_msr_profile",
     "mst_edges",
 ]
+
 
 class SegregationValidityWarning(UserWarning):
     """Raised when Lambda_MSR is being evaluated outside a regime anyone has validated.
@@ -238,7 +240,9 @@ def _tree_statistic(edges: np.ndarray, statistic: Statistic) -> float:
         # exp(mean(log e)) rather than prod(e)**(1/n): the product underflows for
         # k >~ 30 edges of sub-arcminute length, silently returning 0 and then inf.
         if np.any(edges <= 0):
-            raise ValueError("geometric_edge is undefined for zero-length edges (duplicate positions)")
+            raise ValueError(
+                "geometric_edge is undefined for zero-length edges (duplicate positions)"
+            )
         return float(np.exp(np.mean(np.log(edges))))
     raise ValueError(f"unknown statistic {statistic!r}; expected one of {list(_STATISTIC_SOURCE)}")
 
@@ -395,13 +399,14 @@ def _random_subsets(rng: np.random.Generator, n_total: int, n_mst: int, n_sets: 
     ``argsort`` of a uniform row is a uniform random permutation, so its first
     ``n_mst`` entries are a uniform random subset.  Chunk-free: ``n_sets`` here is
     the user's ``n_sets``, which is thousands, not the millions the calibration
-    study in ``~/phd/agent-findings/scripts/`` needs.
+    study needs.
     """
     return np.argsort(rng.random((n_sets, n_total)), axis=1)[:, :n_mst]
 
 
-def _check_validity(n_total: int, n_mst: int, n_sets: int, null_median: float,
-                    strict: bool) -> tuple[str, ...]:
+def _check_validity(
+    n_total: int, n_mst: int, n_sets: int, null_median: float, strict: bool
+) -> tuple[str, ...]:
     msgs: list[str] = []
     if abs(null_median - 1.0) > NULL_MEDIAN_TOLERANCE:
         msgs.append(
@@ -577,8 +582,16 @@ def lambda_msr_profile(
     results: dict[int, SegregationResult] = {}
     sorted_pools: dict[int, np.ndarray] = {}
     for n in grid:
-        res = lambda_msr(pts, masses, n, statistic=statistic, n_sets=n_sets,
-                         rng=generator, strict=strict, _distances=distances)
+        res = lambda_msr(
+            pts,
+            masses,
+            n,
+            statistic=statistic,
+            n_sets=n_sets,
+            rng=generator,
+            strict=strict,
+            _distances=distances,
+        )
         results[n] = res
         sorted_pools[n] = np.sort(res.reference_statistics)
 
@@ -586,8 +599,9 @@ def lambda_msr_profile(
         pool = sorted_pools[n]
         return (np.searchsorted(pool, t, side="right") + 1) / (len(pool) + 1)
 
-    obs_local = {n: float(local_p(n, _subset_statistic(distances, order[:n], statistic)))
-                 for n in grid}
+    obs_local = {
+        n: float(local_p(n, _subset_statistic(distances, order[:n], statistic))) for n in grid
+    }
     best_n = min(obs_local, key=obs_local.get)
     best_p = obs_local[best_n]
 

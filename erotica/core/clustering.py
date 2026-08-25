@@ -1031,7 +1031,6 @@ class Clustering:
            crushed values make it noise. EROTICA runs on cross-matched catalogues, where repeated
            coordinates are an ordinary artefact rather than a pathology.
 
-           See ``~/phd/agent-findings/hdbscan-mechanism.md``.
 
         Returns the diagnostic dict so a caller can record it in provenance.
         """

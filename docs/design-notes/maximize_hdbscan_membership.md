@@ -14,7 +14,8 @@ the VizieR ReadMe for `J/A+A/617/A15`, column `s_pc`. Measurement-error-aware me
 likewise precedented (Jaehnig+2021 `2021ApJ...923..129J`, XD-GMM with full covariance over 431
 clusters). What remains genuinely open is whether such posteriors are **calibrated** —
 simulation-based calibration and a reliability diagram against astrometry-independent labels.
-See `~/phd/methodology.md` § "Falsified novelty claims".
+The project keeps a ledger of its own falsified novelty claims; this one is
+narrowed against it.
 ```
 
 ## Current state (code-audited)

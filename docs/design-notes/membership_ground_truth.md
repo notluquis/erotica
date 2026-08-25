@@ -147,8 +147,7 @@ catalogues are explicitly Gaia-matched → circular. `[S]`
 2–6000 Myr, **3000 < T_eff/K < 6500**, best precision 0.1 dex in log age. `[S]`
 
 ```{important}
-Two limits that constrain the Sagitta two-arm plan (see `../design-notes/`, and
-`~/phd/sagitta-followup.md`):
+Two limits that constrain the Sagitta two-arm plan (see the Sagitta follow-up notes):
 1. **EAGLES answers "is this star young?", not "is this star a member."** It returns an age posterior
    for a star already selected by other means.
 2. **It needs a Li 6708 Å equivalent width → spectroscopy → it structurally cannot reach G > 18.**

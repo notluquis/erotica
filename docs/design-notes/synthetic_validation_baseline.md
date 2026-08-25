@@ -384,7 +384,6 @@ binaries, extinction, differential reddening, error calibration — and models n
 all. This repository's work is entirely on the *spatial* axis and models no photometry at all.
 
 The consequence for P02 is specific: a novelty claim may be made on the structural axis, but on the
-CMD axis ASteCA is ahead and must be **cited as the standard rather than benchmarked against**. See
-`~/phd/software-landscape.md` for the full adjudication, including the two BAAA proceedings
+CMD axis ASteCA is ahead and must be **cited as the standard rather than benchmarked against**. The adjudication rests on the two BAAA proceedings
 (Pera+2021, Pera+2024) that are the real prior art for a Bayesian King fit and that must be read
 before any "first Bayesian King profile" sentence is written.

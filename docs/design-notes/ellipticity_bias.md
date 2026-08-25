@@ -24,7 +24,7 @@ young sample (342 converged, 98.84%) the bin containing `γ = 2` sits **+1.2σ**
 bins — noise. Median `γ` = 2.585, sd 1.088. The null holds under *both* background treatments; a
 free background makes the `γ ≈ 2` region **emptier** (1.8–2.2 fraction 17.3% → 6.5%). This
 measurement therefore stands as a systematic worth reporting, not as the explanation of a signal.
-Full result: `~/phd/agent-findings/a5-census-gamma-sweep-results.md`.
+The figures above are the result; the sweep that produced them is held internally.
 ```
 
 Regenerate everything here with `python tools/validation/ellipticity_bias.py --realizations 6`.
@@ -118,7 +118,8 @@ which are circular — not a statement that doing better is impossible.
 
 This is the eighth novelty claim in this programme to need narrowing before publication, and the
 pattern has been identical every time: a true statement about what *most* papers do, written as a
-statement about what *no* paper does. See `~/phd/methodology.md` PART K.4.
+statement about what *no* paper does — a pattern the project tracks in its falsified-claims
+ledger.
 ```
 
 ## Limitations

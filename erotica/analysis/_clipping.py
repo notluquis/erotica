@@ -249,7 +249,8 @@ def sigma_clip_parallax(
            normalised clip *rejects* two bright, well-measured published members
            (G = 12.78, 13.04) while adding 61 faint ones. It is a different selection, not a
            refinement, and a published analysis is defined by the selection it used.
-           Full measurement: ``~/phd/agent-findings/p01-254-vs-313.md``.
+           The two rejected magnitudes and the count of added faint members above are
+           the measurement; the full comparison is held in the project's internal record.
 
            The default changed because the raw clip is strongly
            magnitude-dependent: measured retention gradient across magnitude

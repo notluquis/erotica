@@ -67,6 +67,16 @@ repos:
       # `json.dumps(..., default=float)` emite: pasaba verde sobre un sidecar con 907 de ellos.
       # Ningun lector ajeno —jq, JSON.parse, Go, un validador de esquema— abre ese fichero, y de
       # estos sidecars salen las cifras que cita el paper. Este relee con `parse_constant`.
+      # Este repo es PUBLICO y cita un hub PRIVADO. La documentacion que Sphinx publica —los .md
+      # del toctree y, via autodoc + viewcode, el fuente entero del paquete— no puede mandar al
+      # lector a un sitio que no puede abrir. `~/phd/check_dead_paths.py` no ve esta clase: resuelve
+      # contra un disco donde ~/phd SI existe.
+      - id: superficie-publica
+        name: ningun doc publicado cita un repo privado
+        entry: python3 tools/validation/check_public_surface.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: json-estricto
         name: los JSON son JSON, no solo relegibles por Python
         entry: python3 tools/check_json_strict.py

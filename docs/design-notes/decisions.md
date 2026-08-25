@@ -93,8 +93,8 @@ that produce every published number were entirely unexercised. A JOSS reviewer i
 `mu = 0.8948 ± 0.0027` against an injected truth of 0.90.
 
 **Oracle.** Injected truth, not a golden number — synthetic parallaxes drawn from a known
-`(mu, sigma)` must be recovered, plus the convergence floor from `~/phd/methodology.md` PART A
-(Vehtari+2021): **R-hat < 1.01, bulk-ESS > 400, zero divergences**. See
+`(mu, sigma)` must be recovered, plus the convergence floor of Vehtari et al.
+(2021): **R-hat < 1.01, bulk-ESS > 400, zero divergences**. See
 `tests/test_inference.py::test_fit_parallax_model_recovers_injected_truth`.
 
 **Also fixed in the same pass:** CI gained a `test-bayes` job that installs `.[dev,bayes]` and
@@ -170,7 +170,8 @@ that regime the fit stops recovering the intrinsic correlation — it returns **
 **unresolved**; a longer investigation timed out.
 
 Shipping a test tuned until it passed in a regime that is not understood would repeat exactly the
-failure this audit exposed, so the gap is recorded instead. See `~/phd/open-threads.md` C5.
+failure this audit exposed, so the gap is recorded instead as an open item in the
+project's thread queue.
 ```
 
 **Still outstanding**, listed so they are not mistaken for fixed: `distance_model` still survives
@@ -264,7 +265,7 @@ their abstract.
 
 ```{warning}
 An earlier version of this entry attributed that number to Vasiliev & Baumgardt (2021,
-`2021MNRAS.505.5978V`). **That was wrong.** Both bibcodes appear in `~/phd/methodology.md` PART J
+`2021MNRAS.505.5978V`). **That was wrong.** Both bibcodes appear in the same reference list
 and the figure was attached to the wrong one, then propagated into a shipped docstring. Caught by
 an independent audit, not by review. The lesson is the one already in this log: a number taken from
 a summary must be round-tripped to the source abstract before it enters code.
@@ -308,7 +309,7 @@ the ZP-inflated interval here (±0.014 kpc). Nothing moves.
 
 **I said the `inference.py` sweep was complete after parallax, proper motion and distance. It was
 not** — `velocity_model` was missed, and it carried the same three defects, one of them flagged
-explicitly in `~/phd/methodology.md` PART J as a ten-minute fix.
+explicitly in the project's methodology audit as a ten-minute fix.
 
 ```python
 mu_v  = pm.Normal("mu_v", mu=float(np.nanmean(velocity_values)), sigma=10)   # data-derived
@@ -1113,8 +1114,8 @@ curve without saying so.
 ### The pseudo-probability `p̃` is a score, not a probability
 `p̃ = probabilities_ × probability_times` (`core/clustering.py`) has no prior, no likelihood and no
 normalisation. It is deliberately labelled an *operational ranking statistic* rather than a
-posterior — this was a direct referee lesson from P01 (see `~/phd/methodology.md` PART D:
-*"Label operational proxies as proxies"*). `calibration.py` exists to measure, empirically, whether
+posterior — this was a direct referee lesson from P01 —
+*label operational proxies as proxies*. `calibration.py` exists to measure, empirically, whether
 it behaves like a frequency. **Do not describe `p̃` as a membership probability in any paper.**
 
 ### Tests assert on behaviour, not execution
@@ -1217,7 +1218,8 @@ age fall from **45–55** to **2.5 (C0) / 3.1 (C1)**. The interpolant is also Py
 `nuts_sampler="numpyro"` and the default PyTensor NUTS — so the isochrone module does **not** have to
 leave PyMC, which was the premise the original design note assumed and the spike refuted.
 
-Full derivation, scripts and numbers: `~/phd/agent-findings/differentiable-emulator-design.md`.
+The derivation, the spike scripts and the timings are held in the project's internal design
+record; the conclusion above is what they support.
 
 ---
 

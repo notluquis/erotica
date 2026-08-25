@@ -792,7 +792,8 @@ fit clusters of any age, in any galaxy, as well as or better than King models"*,
 extended halos known to characterize many Magellanic Cloud clusters may be examples of the **generic
 envelope structure** of self-gravitating star clusters, not just transient features associated
 strictly with young age."* That belongs in the `compare_radial_profiles` Bayes-factor comparison
-alongside King, EFF and Plummer. See `~/phd/open-threads.md` G6, G7.
+alongside King, EFF and Plummer. Recorded as open items in the
+project's thread queue.
 
 ## What else is not separately identified — a systematic audit
 
