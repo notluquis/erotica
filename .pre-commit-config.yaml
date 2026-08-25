@@ -69,7 +69,7 @@ repos:
       # estos sidecars salen las cifras que cita el paper. Este relee con `parse_constant`.
       # Este repo es PUBLICO y cita un hub PRIVADO. La documentacion que Sphinx publica —los .md
       # del toctree y, via autodoc + viewcode, el fuente entero del paquete— no puede mandar al
-      # lector a un sitio que no puede abrir. `~/phd/check_dead_paths.py` no ve esta clase: resuelve
+      # lector a un sitio que no puede abrir. `~/phd/src/check_dead_paths.py` no ve esta clase: resuelve
       # contra un disco donde ~/phd SI existe.
       - id: superficie-publica
         name: ningun doc publicado cita un repo privado

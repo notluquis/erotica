@@ -8,7 +8,7 @@
 diseño de rutear-en-vez-de-copiar aguantó— pero **prometían al lector algo que no puede seguir**, y
 cuatro de ellos con las palabras *«Full result:»* y *«Full derivation, scripts and numbers:»*.
 
-**Por qué hacía falta un detector nuevo y no bastaba el que ya existe.** `~/phd/check_dead_paths.py`
+**Por qué hacía falta un detector nuevo y no bastaba el que ya existe.** `~/phd/src/check_dead_paths.py`
 resuelve las rutas contra un disco donde `~/phd` **sí existe**, así que las dieciséis le resolvían.
 La vista del detector y la del lector público son distintas, y la que faltaba era la del lector.
 
