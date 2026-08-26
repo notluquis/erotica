@@ -455,6 +455,23 @@ class Clustering:
             labels = np.asarray(model.labels_, dtype=np.int32)
             labels_matrix[:, i] = labels
 
+            # ⚠ EL PREFIJO, NO LA MATRIZ ENTERA — y es deliberado, no un descuido.
+            #
+            # Dentro del barrido, `probability_times` sale de las columnas `[0, i]`: las
+            # iteraciones HECHAS HASTA AQUI. En la iteracion 0 vale 1.0 para todo lo agrupado, y
+            # se va afinando. Al terminar, la linea `final_probability_times` de mas abajo la
+            # recalcula sobre la matriz COMPLETA, que es la cifra que se publica.
+            #
+            # La consecuencia que hay que saber: **el candidato que gana depende del ORDEN y de
+            # la EXTENSION del barrido**, porque los filtros de tamano y la seleccion se evaluan
+            # contra el prefijo. Barrer `range(10, 300)` y barrer `range(299, 9, -1)` recorren
+            # los mismos `min_cluster_size` y **no tienen por que elegir el mismo**. Lo que si
+            # es identico entre corridas es el resultado para un orden FIJO — eso lo fija
+            # `test_search_pseudoprobability_es_determinista_para_un_orden_fijo`.
+            #
+            # No se cambia a la matriz completa porque eso no seria el mismo algoritmo: el
+            # publicado es este, y `probability_times` dentro del bucle es una fraccion sobre lo
+            # observado hasta ese punto. Cambiarlo mueve los numeros de P01 sin decirlo.
             probability_times = np.mean(labels_matrix[:, : i + 1] != -1, axis=1)
             probability = np.asarray(model.probabilities_, dtype=float) * probability_times
             tree = model.condensed_tree_.to_pandas()

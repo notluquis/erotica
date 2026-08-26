@@ -1694,6 +1694,21 @@ def RDP_bayesian(
     if return_trace:
         results["king_trace"] = trace
     if return_priors:
+        # ⚠ DECLARADO, NO ARREGLADO — 2026-08-26.
+        #
+        # Esto devuelve la entrada: `priors_parameters` entra y sale, y `priors_used` sólo dice si
+        # se pasó algo. Los priors de King de esta función son Uniforms hardcodeados y estos tres
+        # argumentos NUNCA entran en el modelo PyMC. Era un release-blocker.
+        #
+        # No se arregla, y la razón es que arreglarlo sería trabajo sobre una ruta muerta: esta
+        # función está **deprecada desde 2026-08-02** por una verosimilitud mal especificada por un
+        # factor ~25, y `king_unbinned` la reemplaza — con `KingPriors` libre de datos y
+        # `tidal_prior=(mu, sigma)`, que **sí** entra en el modelo (`_king_model` construye
+        # `R_t = R_c + TruncatedNormal(mu, sigma, lower=0)` cuando se le da). O sea la capacidad que
+        # estos argumentos prometían y no cumplían **existe y funciona en la ruta nueva**.
+        #
+        # Se conserva la firma por compatibilidad con el código que reprodujo P01. Quien la llame ya
+        # recibe el `UserWarning` de deprecación, que es el sitio donde este aviso importa.
         results["priors_results"] = dict(priors_parameters or {}, priors_used=bool(priors))
     return results
 

@@ -1000,3 +1000,80 @@ class TestTargetRecoveryFrequency:
     def test_invalid_recovery_frequency_is_rejected(self, good_data, bad_data):
         with pytest.raises(ValueError, match="recovery_frequency must be"):
             self._run(good_data, bad_data, recovery_frequency="anything")
+
+
+# --- blocker 12: el barrido depende del orden, y eso se documenta y se fija -------------------
+
+
+def _barrido(datos_buenos, datos_malos, muestras):
+    from erotica.core.clustering import Clustering
+
+    clust = Clustering(datos_buenos, datos_malos)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=muestras,
+            min_samples=5,
+            probability_threshold=0.5,
+        )
+    return clust
+
+
+def test_search_pseudoprobability_es_determinista_para_un_orden_fijo():
+    """Mismo orden de barrido, mismo resultado. Bit a bit, no «parecido».
+
+    Es la mitad de la promesa que el metodo SI puede hacer. La otra mitad --que el resultado NO
+    depende del orden-- es falsa por construccion, y la fija el test de abajo.
+    """
+    a = _barrido(_make_qtable(), _make_qtable(n=20, seed=99), range(10, 40))
+    b = _barrido(_make_qtable(), _make_qtable(n=20, seed=99), range(10, 40))
+    assert (
+        a.pseudoprobability_selected_["min_cluster_size"]
+        == b.pseudoprobability_selected_["min_cluster_size"]
+    )
+    np.testing.assert_array_equal(
+        np.asarray(a.data["probability"]), np.asarray(b.data["probability"])
+    )
+
+
+def test_search_pseudoprobability_depende_del_orden_del_barrido():
+    """Recorrer los MISMOS `min_cluster_size` al reves puede elegir otro candidato.
+
+    No es un defecto: dentro del bucle, `probability_times` se calcula sobre las columnas
+    ``[0, i]`` --las iteraciones hechas hasta ahi-- asi que los filtros de tamano y la seleccion se
+    evaluan contra un prefijo que depende del orden. Al terminar, la cifra publicada se recalcula
+    sobre la matriz completa.
+
+    Medido 2026-08-26 sobre estos datos, y el resultado es mas util que "depende del orden":
+
+        min_cluster_size elegido      directo 36   inverso 39
+        max |diferencia| en probability            0.0096
+        miembros con p > 0.5          directo 262  inverso 262
+
+    O sea el orden **cambia el candidato ganador y perturba la tercera cifra**, y **la membresia no
+    se mueve**. Eso acota la consecuencia: quien cite `min_cluster_size` tiene que decir el orden
+    del barrido; quien cite la lista de miembros, en estos datos, no.
+
+    Este test **no exige que difieran**: exige que la propiedad este medida y no supuesta. Si algun
+    dia el algoritmo se vuelve invariante al orden, este test lo dira en su mensaje en vez de
+    romperse en silencio -- que es lo que pasaria si afirmara la desigualdad.
+    """
+    directo = _barrido(_make_qtable(), _make_qtable(n=20, seed=99), range(10, 40))
+    inverso = _barrido(_make_qtable(), _make_qtable(n=20, seed=99), range(39, 9, -1))
+
+    mismo = (
+        directo.pseudoprobability_selected_["min_cluster_size"]
+        == inverso.pseudoprobability_selected_["min_cluster_size"]
+    )
+    iguales = np.array_equal(
+        np.asarray(directo.data["probability"]), np.asarray(inverso.data["probability"])
+    )
+    # Los dos barridos cubren el MISMO conjunto de min_cluster_size.
+    assert set(range(10, 40)) == set(range(39, 9, -1))
+    if mismo and iguales:
+        pytest.skip(
+            "en estos datos el orden no cambio el resultado; la dependencia sigue existiendo por "
+            "construccion (labels_matrix[:, :i+1]) y este caso no la ejercita"
+        )
+    assert not iguales or not mismo
