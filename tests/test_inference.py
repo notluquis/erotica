@@ -12,6 +12,7 @@ division by zero. The fix requires ``parallax > 0`` and guards the division.
 from __future__ import annotations
 
 import math
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -1079,3 +1080,35 @@ def test_distance_std_incluye_el_suelo_del_cero():
     assert con.distance_std > sin.distance_std
     esperado = math.hypot(sin.distance_std, priors.zero_point_scale / con.mu_parallax_mean**2)
     assert con.distance_std == pytest.approx(esperado, rel=0.25)
+
+
+def test_distance_model_sin_errores_avisa_de_su_defecto(monkeypatch):
+    """La rama Gamma-sobre-`r_med_geo` avisa, y la marginalizada no.
+
+    Retirada 2026-08-26 (J.0 #5) pero **no borrada**: el `1.11 +- 0.06 kpc` de P01 salio de ahi y
+    tiene que seguir reproducible, igual que `RDP_bayesian` para los radios. Lo que se retira es que
+    sea una ruta por defecto silenciosa, no que exista.
+
+    El aviso nombra la SALIDA —`fit_parallax_model`— y no solo el defecto: un aviso que no dice que
+    usar en su lugar deja al lector donde estaba.
+
+    `_require_pymc` se corta a proposito: el aviso se emite ANTES, asi que el test es determinista
+    con o sin el extra `bayes` instalado y no muestrea nada.
+    """
+    import erotica.analysis.inference as inf
+
+    monkeypatch.setattr(inf, "_require_pymc", lambda: (_ for _ in ()).throw(RuntimeError("corte")))
+    t = QTable()
+    t["r_med_geo"] = np.linspace(1.0, 1.2, 40) * u.kpc
+    t["r_lo_geo"] = (np.linspace(1.0, 1.2, 40) - 0.05) * u.kpc
+    t["r_hi_geo"] = (np.linspace(1.0, 1.2, 40) + 0.05) * u.kpc
+
+    with pytest.warns(UserWarning, match="fit_parallax_model"):
+        with pytest.raises(RuntimeError, match="corte"):
+            inf.distance_model(t)
+
+    # La rama marginalizada NO avisa: es la que se recomienda.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        with pytest.raises(RuntimeError, match="corte"):
+            inf.distance_model(t, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -419,6 +420,24 @@ def distance_model(
             raise ValueError("Derived per-star distance errors must be finite and positive.")
     if prior_type not in {"uniform", "normal"}:
         raise ValueError("prior_type must be 'uniform' or 'normal'.")
+
+    if errors is None:
+        # J.0 #5, retirada 2026-08-26. NO se borra: el `1.11 +- 0.06 kpc` de P01 salio de esta rama
+        # y tiene que seguir reproducible, igual que `RDP_bayesian` para los radios.
+        warnings.warn(
+            "distance_model sin `distance_lo_column`/`distance_hi_column` ajusta una Gamma a los "
+            "estimadores PUNTUALES de Bailer-Jones, que son cuantiles de una posterior: "
+            "doble-cuenta su prior galactico Y descarta las incertidumbres por estrella. Medido "
+            "sobre el ajuste publicado de NGC 6383: el 77.5% de la varianza que devuelve como "
+            "`std_r` es error de catalogo, no profundidad del cumulo, y `nanstd(r_med_geo)` "
+            "reproduce ese `std_r` -- o sea la rama devuelve la dispersion muestral del catalogo. "
+            "Pasa `distance_lo_column`/`distance_hi_column` para la rama marginalizada, o mejor "
+            "`fit_parallax_model(..., parallax_error_column=..., zero_point=True)`, que trabaja en "
+            "espacio de paralaje y no toca el prior de Bailer-Jones. Esta ruta se conserva solo "
+            "para reproducir resultados publicados antes de 2026-08-26.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     pm = _require_pymc()
     with pm.Model() as model:

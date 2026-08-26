@@ -10,6 +10,35 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-08-26 — La rama Gamma-sobre-`r_med_geo` queda retirada, no borrada
+
+**Symptom.** `distance_model` sin `distance_lo_column`/`distance_hi_column` ajusta una `Gamma` a los
+estimadores **puntuales** de Bailer-Jones, que son cuantiles de una posterior. Doble-cuenta su prior
+galáctico **y** descarta las incertidumbres por estrella, y no decía nada al hacerlo.
+
+**Cause.** Era la rama por defecto de la firma, y el orquestador la usaba hasta el 2026-08-02.
+
+**Fix.** Un `UserWarning` que nombra **la salida**, no sólo el defecto: pasa las cotas de
+Bailer-Jones para la rama marginalizada, o mejor `fit_parallax_model(..., zero_point=True)`, que
+trabaja en espacio de paralaje y no toca el prior de Bailer-Jones. **No se borra**: el
+`1.11 ± 0.06 kpc` de P01 salió de aquí y tiene que seguir reproducible — mismo trato que
+`RDP_bayesian` para los radios.
+
+**Oracle.** `test_distance_model_sin_errores_avisa_de_su_defecto`, mutado en **las dos**
+direcciones: quitar el aviso (la rama vuelve a ser silenciosa) y ponerlo también en la rama buena
+(falso positivo). Corta `_require_pymc` a propósito, así que es determinista con o sin el extra
+`bayes` y no muestrea nada.
+
+**Numbers.** Ninguno se mueve. Los que justifican el aviso están medidos: el **77.5 %** de la
+varianza que esa rama devuelve como `std_r` es error de catálogo y no profundidad, y
+`nanstd(r_med_geo)` reproduce ese `std_r` — o sea devuelve la dispersión muestral del catálogo.
+
+**What this completes.** La otra mitad de esto —modelar en espacio de paralaje con `sigma_varpi` por
+estrella y el cero residual como nuisance— **ya se había enviado el 2026-08-02**: el orquestador pasa
+las cotas y `zero_point=True` por defecto desde entonces. Lo que faltaba era retirar la ruta vieja, y
+retirarla no es borrarla.
+
+
 ## 2026-08-26 — Las dos cifras que el paquete calculaba y no devolvía
 
 **Symptom.** `DistanceFitResult` no tenía campo de moda y `ParallaxFitResult` no reportaba ninguna
