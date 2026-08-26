@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 from astropy import units as u
 
+from .._membership import select_by_probability
 from .kinematics import projected_velocity_values, radial_velocity_values
 from .units import quantity_values
 
@@ -907,9 +908,7 @@ class ClusterInferenceAnalyzer:
 
     def select(self, probability_threshold: float | None = None):
         """Return data above an optional probability threshold."""
-        if probability_threshold is None:
-            return self.data
-        return self.data[self.data[self.probability_column] >= probability_threshold]
+        return select_by_probability(self.data, self.probability_column, probability_threshold)
 
     @staticmethod
     def _normalise_thresholds(values) -> np.ndarray:

@@ -15,6 +15,7 @@ from scipy.stats import gaussian_kde, ks_2samp
 
 from erotica.core._style import apply_default_style
 
+from .._membership import COLUMNA_POR_DEFECTO, select_by_probability
 from .debugging import diagnose_distance_comparison, extract_distance_samples
 from .external.asteca import generate_isochrone_for_plot
 from .structure import (
@@ -210,7 +211,7 @@ def plot_cumulative(
         1, len(prob_thresholds), figsize=(5 * len(prob_thresholds), 5), squeeze=False
     )
     for threshold, center, ax in zip(prob_thresholds, centers, axes.ravel(), strict=False):
-        selected = data[data[probability_column] >= threshold]
+        selected = select_by_probability(data, probability_column, threshold)
         distances = angular_separation(
             selected[ra_column], selected[dec_column], center.ra, center.dec
         ).to(u.arcmin)
@@ -494,7 +495,7 @@ def plot_cumulative_by_brightness(
     )
     all_distances = {item: [] for item in brightness_ranges}
     for threshold, center, ax in zip(thresholds, centers, axes.ravel(), strict=False):
-        selected = data[data["probability"] >= threshold]
+        selected = select_by_probability(data, COLUMNA_POR_DEFECTO, threshold)
         distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(
             u.arcmin
         )
@@ -551,7 +552,7 @@ def plot_cumulative_by_mass(
     )
     ks_results = {}
     for threshold, center, ax in zip(thresholds, centers, axes.ravel(), strict=False):
-        selected = data[data["probability"] >= threshold]
+        selected = select_by_probability(data, COLUMNA_POR_DEFECTO, threshold)
         distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(
             u.arcmin
         )
@@ -600,7 +601,7 @@ def plot_cumulative_by_mass_and_type(
     """Plot mass-binned cumulative distributions split by binary probability."""
     threshold = float(_normalise_probabilities(prob_number)[0])
     center = _centers_as_skycoord(centers, 1)[0]
-    selected = data[data["probability"] >= threshold]
+    selected = select_by_probability(data, COLUMNA_POR_DEFECTO, threshold)
     distances = angular_separation(selected["ra"], selected["dec"], center.ra, center.dec).to(
         u.arcmin
     )
@@ -785,7 +786,7 @@ def graph_real(
     )
     dt = 0 if dt is None else dt
     for threshold, ax in zip(thresholds, axes.ravel(), strict=False):
-        subset = data[data["probability"] >= threshold]
+        subset = select_by_probability(data, COLUMNA_POR_DEFECTO, threshold)
         ra = subset["ra"] - subset["pmra"] * dt
         dec = subset["dec"] - subset["pmdec"] * dt
         ax.imshow(image, cmap="cubehelix", aspect="equal")

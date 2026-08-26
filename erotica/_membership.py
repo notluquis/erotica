@@ -1,5 +1,11 @@
 """Una sola forma de leer una columna de pertenencia, porque hay **dos** y no significan lo mismo.
 
+Todo el paquete pasa por :func:`select_by_probability`: ``selection.py``, ``analysis/analyzer.py``
+(x3), ``analysis/structure.py``, ``analysis/inference.py``, ``analysis/figures.py`` y
+``analysis/_isochrone.py`` (x2). Antes eran **cuatro** implementaciones del mismo criterio con
+**tres** comportamientos distintos ante una columna ausente: dos se la saltaban en silencio, una
+levantaba ``ValueError`` y otra dejaba salir el ``KeyError`` crudo de astropy.
+
 El paquete escribe tres columnas de probabilidad y **cuáles existen depende de qué camino corriste**:
 
 ===========================================  ==========================================

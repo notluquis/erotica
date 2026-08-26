@@ -406,6 +406,12 @@ class ClusterAnalyzer:
             Cluster label (defaults to ``selected_cluster``).
         prob_threshold : float
             Minimum membership probability for CMD members.
+        probability_column : str, default ``"probability_hdbscan"``
+            Cual columna umbralizar. **Difiere a proposito** de los metodos de estructura
+            (`center_determination`, `half_mass_radius`, ...), que usan ``"probability"`` =
+            ``probabilities_ x probability_times`` y por tanto siempre <= esta. El ajuste de
+            isocrona conserva ``probability_hdbscan`` porque el manuscrito de NGC 6383 esta
+            enviado; ver el docstring de :mod:`erotica._membership`.
 
         Returns
         -------
@@ -414,9 +420,15 @@ class ClusterAnalyzer:
 
         Examples
         --------
-        >>> fitter = ca.prepare_isochrone_fitter(isochs_path="./MIST/", cluster=12)
-        >>> # Los valores son del CUMULO que estas ajustando, no de un default: los de
-        >>> # abajo son de NGC 6383. Para otro cumulo, otros.
+        >>> # `loga_range`, `dm_mu` y `dm_range` son OBLIGATORIOS y son del CUMULO que estas
+        >>> # ajustando, no de un default: los de abajo son de NGC 6383. Para otro cumulo, otros.
+        >>> fitter = ca.prepare_isochrone_fitter(
+        ...     isochs_path="./MIST/",
+        ...     cluster=12,
+        ...     loga_range=(6.0, 7.0),
+        ...     dm_mu=10.2,
+        ...     dm_range=(9.5, 10.7),
+        ... )
         >>> fitter.set_priors({"dm_mu": 10.2, "dm_sigma": 0.3, "loga_range": (6.0, 7.0)})
         >>> fitter.build_grid(M_met=200, M_loga=200, grid_cache="./data/40/hgrid.npz")
         >>> idata = fitter.fit(draws=2000, tune=1000, chains=4)
@@ -489,9 +501,10 @@ class ClusterAnalyzer:
         >>> fitter, idata = ca.fit_isochrone(
         ...     isochs_path="./MIST/",
         ...     cluster=12,
+        ...     loga_range=(6.0, 7.0),
         ...     dm_mu=10.3,
         ...     dm_sigma=0.2,
-        ...     loga_range=(6.0, 7.0),
+        ...     dm_range=(9.5, 10.7),
         ...     draws=2000,
         ...     tune=1000,
         ... )

@@ -1168,3 +1168,48 @@ def test_el_analyzer_no_reinyecta_los_defaults_que_el_fitter_ya_exige():
             )
         # Y la columna de pertenencia esta en la firma, no escondida en el cuerpo.
         assert "probability_column" in p, f"{nombre_metodo} no expone probability_column"
+
+
+def test_los_ejemplos_de_docstring_pasan_los_argumentos_que_el_metodo_exige():
+    """Un ejemplo que ya no corre es documentacion que miente, y la suite no puede verlo.
+
+    `pytest.ini` no corre doctests, asi que un `Examples` que quedo con un argumento de menos pasa
+    verde para siempre. Los tres sitios que este guardia habria cazado estaban rotos cuando se
+    escribio: el ejemplo de `prepare_isochrone_fitter` y la celda de `PROCESS.ipynb` los rompio
+    `1646656` al volver obligatorios los tres parametros del cumulo, y el de `fit_isochrone` lo
+    rompio `a539363` haciendo lo mismo un nivel mas arriba -- se le quedo `dm_range`.
+
+    Es §K.1.38 en su forma barata: cuando un hueco sube de nivel, el guardia tiene que mirar a quien
+    lo rellena, y un ejemplo de docstring **es** un llamador.
+    """
+    import inspect
+
+    from erotica.analysis.analyzer import ClusterAnalyzer
+
+    for nombre_metodo in ("prepare_isochrone_fitter", "fit_isochrone"):
+        metodo = getattr(ClusterAnalyzer, nombre_metodo)
+        firma = inspect.signature(metodo).parameters
+        obligatorios = [
+            n for n, par in firma.items() if par.default is inspect.Parameter.empty and n != "self"
+        ]
+        doc = inspect.getdoc(metodo) or ""
+        assert ">>>" in doc, f"{nombre_metodo} no trae ejemplo; el guardia no puede pasar en vacio"
+        # El ejemplo de ESTE metodo, no el de los que encadena despues. Los parentesis se
+        # balancean: cortar en el primer `)` parte `loga_range=(6.0, 7.0)` por la mitad y el
+        # guardia falla sobre su propia extraccion en vez de sobre el ejemplo.
+        i = doc.index(f"{nombre_metodo}(")
+        prof, fin = 0, len(doc)
+        for k in range(i, len(doc)):
+            if doc[k] == "(":
+                prof += 1
+            elif doc[k] == ")":
+                prof -= 1
+                if prof == 0:
+                    fin = k + 1
+                    break
+        llamada = doc[i:fin]
+        for arg in obligatorios:
+            assert arg in llamada, (
+                f"el ejemplo de {nombre_metodo} no pasa {arg!r}, que es obligatorio: "
+                f"copiarlo da TypeError. Llamada del ejemplo:\n{llamada}"
+            )

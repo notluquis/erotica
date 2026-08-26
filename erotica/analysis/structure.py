@@ -12,6 +12,7 @@ from astropy.table import QTable
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 
+from .._membership import select_by_probability
 from .units import linear_size, quantity_values
 
 
@@ -1850,11 +1851,7 @@ class ClusterStructureAnalyzer:
 
     def select(self, probability_threshold: float | None = None) -> QTable:
         """Return the table subset above ``probability_threshold``."""
-        if probability_threshold is None:
-            return self.data
-        if self.probability_column not in self.data.colnames:
-            raise ValueError(f"Missing probability column {self.probability_column!r}.")
-        return self.data[self.data[self.probability_column] >= probability_threshold]
+        return select_by_probability(self.data, self.probability_column, probability_threshold)
 
     def center(self, probability_threshold: float | None = None, **kwargs):
         """Estimate the KDE center for an optional probability-selected subset."""
