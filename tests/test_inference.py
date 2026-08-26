@@ -1035,6 +1035,7 @@ def test_moda_predictiva_normal_es_mu():
     assert _moda_predictiva(mu, sigma, gamma=False) == pytest.approx(float(np.mean(mu)), rel=1e-12)
 
 
+@requires_bayes_extra
 @pytest.mark.slow
 def test_distance_std_incluye_el_suelo_del_cero():
     """`zero_point=True` tiene que ENSANCHAR la incertidumbre de la distancia, no moverla.
