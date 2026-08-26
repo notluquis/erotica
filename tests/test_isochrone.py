@@ -25,28 +25,27 @@ from astropy.table import QTable
 from erotica.analysis._isochrone import (
     IsochroneFitter,
     MISTIsochrones,
-    _chabrier2014_weights,
     _ccm89,
+    _chabrier2014_weights,
     _dk_mean_q,
     _fit_error_model,
     _mag_combine,
     _smooth2d,
 )
 
-
 _BAYES_EXTRA_MISSING = [
     name for name in ("pymc", "pytensor", "arviz") if importlib.util.find_spec(name) is None
 ]
 requires_bayes_extra = pytest.mark.skipif(
     bool(_BAYES_EXTRA_MISSING),
-    reason="requires EROTICA's optional bayes extra: missing "
-    + ", ".join(_BAYES_EXTRA_MISSING),
+    reason="requires EROTICA's optional bayes extra: missing " + ", ".join(_BAYES_EXTRA_MISSING),
 )
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def _make_mist_file(tmp_path: Path, Z: float = 0.0152, n_ages: int = 2) -> Path:
     """Write a minimal valid MIST .iso.cmd file."""
@@ -64,12 +63,12 @@ def _make_mist_file(tmp_path: Path, Z: float = 0.0152, n_ages: int = 2) -> Path:
     rows: list[str] = []
     for loga in loga_values:
         for i, m in enumerate(masses):
-            G  =  4.0 + 2.0 * i
-            BP =  4.5 + 2.0 * i
-            RP =  3.8 + 2.0 * i
+            G = 4.0 + 2.0 * i
+            BP = 4.5 + 2.0 * i
+            RP = 3.8 + 2.0 * i
             rows.append(f"{100 + i} {m:.3f} {loga:.4f} {G:.4f} {BP:.4f} {RP:.4f}")
 
-    fp = tmp_path / f"test_feh_p0.00.iso.cmd"
+    fp = tmp_path / "test_feh_p0.00.iso.cmd"
     fp.write_text(header + "\n".join(rows) + "\n")
     return fp
 
@@ -79,22 +78,25 @@ def _make_cluster_data(n: int = 80, rng: np.random.Generator | None = None) -> Q
     if rng is None:
         rng = np.random.default_rng(42)
     mag = rng.uniform(12.0, 18.0, n)
-    bp  = mag + rng.uniform(0.3, 0.8, n)
-    rp  = mag - rng.uniform(0.1, 0.4, n)
-    return QTable({
-        "Gmag":             mag,
-        "G_BPmag":          bp,
-        "G_RPmag":          rp,
-        "e_Gmag":           rng.uniform(0.003, 0.05, n),
-        "e_G_BPmag":        rng.uniform(0.004, 0.06, n),
-        "e_G_RPmag":        rng.uniform(0.004, 0.06, n),
-        "probability_hdbscan": np.ones(n),
-    })
+    bp = mag + rng.uniform(0.3, 0.8, n)
+    rp = mag - rng.uniform(0.1, 0.4, n)
+    return QTable(
+        {
+            "Gmag": mag,
+            "G_BPmag": bp,
+            "G_RPmag": rp,
+            "e_Gmag": rng.uniform(0.003, 0.05, n),
+            "e_G_BPmag": rng.uniform(0.004, 0.06, n),
+            "e_G_RPmag": rng.uniform(0.004, 0.06, n),
+            "probability_hdbscan": np.ones(n),
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
 # TestCCM89
 # ---------------------------------------------------------------------------
+
 
 class TestCCM89:
     def test_optical_range(self):
@@ -118,7 +120,7 @@ class TestCCM89:
     def test_gaia_bands_ordering(self):
         # BP (5182 Å) > G (6390 Å) > RP (7825 Å) in A_λ/A_V
         kBP = _ccm89(5182.6)
-        kG  = _ccm89(6390.7)
+        kG = _ccm89(6390.7)
         kRP = _ccm89(7825.1)
         assert kBP > kG > kRP
 
@@ -126,6 +128,7 @@ class TestCCM89:
 # ---------------------------------------------------------------------------
 # TestChabrier2014
 # ---------------------------------------------------------------------------
+
 
 class TestChabrier2014:
     def test_weights_sum_to_one(self):
@@ -142,7 +145,7 @@ class TestChabrier2014:
         # Chabrier IMF peaks around 0.2 M☉; low-mass stars should carry most weight
         mass = np.linspace(0.1, 100.0, 500)
         w = _chabrier2014_weights(mass)
-        low  = mass <= 1.0
+        low = mass <= 1.0
         high = mass > 1.0
         assert w[low].sum() > w[high].sum()
 
@@ -165,6 +168,7 @@ class TestChabrier2014:
 # ---------------------------------------------------------------------------
 # TestDKMeanQ
 # ---------------------------------------------------------------------------
+
 
 class TestDKMeanQ:
     def test_output_in_01(self):
@@ -194,6 +198,7 @@ class TestDKMeanQ:
 # TestMagCombine
 # ---------------------------------------------------------------------------
 
+
 class TestMagCombine:
     def test_combined_brighter_than_each(self):
         m1 = np.array([10.0])
@@ -212,7 +217,7 @@ class TestMagCombine:
         # _mag_combine(m1+c, m2+c) == _mag_combine(m1, m2) + c
         m1 = np.array([10.0, 12.0])
         m2 = np.array([11.0, 13.0])
-        c  = 3.5
+        c = 3.5
         lhs = _mag_combine(m1 + c, m2 + c)
         rhs = _mag_combine(m1, m2) + c
         np.testing.assert_allclose(lhs, rhs, atol=1e-10)
@@ -229,16 +234,17 @@ class TestMagCombine:
 # TestMISTIsochrones
 # ---------------------------------------------------------------------------
 
+
 class TestMISTIsochrones:
     def test_load_file(self, tmp_path):
-        fp = _make_mist_file(tmp_path, Z=0.0152, n_ages=2)
+        _make_mist_file(tmp_path, Z=0.0152, n_ages=2)  # escribe el fichero; el path no se usa
         iso = MISTIsochrones(tmp_path)
         assert iso._met_values is not None
         assert len(iso._met_values) == 1  # one Z value
         assert abs(iso._met_values[0] - 0.0152) < 1e-5
 
     def test_loga_values(self, tmp_path):
-        fp = _make_mist_file(tmp_path, Z=0.0152, n_ages=3)
+        _make_mist_file(tmp_path, Z=0.0152, n_ages=3)  # ídem
         iso = MISTIsochrones(tmp_path)
         assert len(iso._loga_values) == 3
 
@@ -284,6 +290,7 @@ class TestMISTIsochrones:
 # TestFitErrorModel
 # ---------------------------------------------------------------------------
 
+
 class TestFitErrorModel:
     def test_returns_callables(self):
         mag = np.linspace(10, 18, 50)
@@ -317,9 +324,9 @@ class TestFitErrorModel:
         f_m, f_c = _fit_error_model(mag, e_m, e_c)
 
         probe = np.array([12.0, 16.0, 25.0])
-        assert f_m(probe) == pytest.approx(0.015)     # median of e_m
-        assert f_c(probe) == pytest.approx(0.020)     # median of e_c
-        assert len(np.unique(f_m(probe))) == 1        # genuinely constant
+        assert f_m(probe) == pytest.approx(0.015)  # median of e_m
+        assert f_c(probe) == pytest.approx(0.020)  # median of e_c
+        assert len(np.unique(f_m(probe))) == 1  # genuinely constant
 
     def test_fallback_on_repeated_magnitudes(self):
         """Three points at one magnitude cannot constrain a quadratic either.
@@ -352,6 +359,7 @@ class TestFitErrorModel:
 # ---------------------------------------------------------------------------
 # TestIsochroneFitter
 # ---------------------------------------------------------------------------
+
 
 @requires_bayes_extra
 class TestIsochroneFitter:
@@ -395,8 +403,9 @@ class TestIsochroneFitter:
 
     def test_interp_H_returns_tensor(self, fitter_and_data):
         import pytensor.tensor as pt
+
         fitter, _ = fitter_and_data
-        met_t  = pt.as_tensor_variable(np.float64(0.0152))
+        met_t = pt.as_tensor_variable(np.float64(0.0152))
         loga_t = pt.as_tensor_variable(np.float64(6.5))
         H = fitter._interp_H(met_t, loga_t)
         result = H.eval()
@@ -407,28 +416,28 @@ class TestIsochroneFitter:
     def test_shift_histogram_identity(self, fitter_and_data):
         """Shifting by (0, 0) should return the original histogram."""
         import pytensor.tensor as pt
+
         fitter, _ = fitter_and_data
         Nb_m, Nb_c = fitter._Nbins
         H_np = np.random.default_rng(0).uniform(0, 1, (Nb_m, Nb_c))
-        H_t  = pt.as_tensor_variable(H_np)
+        H_t = pt.as_tensor_variable(H_np)
         dmag = pt.as_tensor_variable(np.float64(0.0))
         dcol = pt.as_tensor_variable(np.float64(0.0))
         shifted = fitter._shift_histogram(H_t, dmag, dcol).eval()
         # Zero shift: interior pixels should match (boundary may differ due to valid mask)
         s = 1  # skip outermost ring
-        np.testing.assert_allclose(
-            shifted[s:-s, s:-s], H_np[s:-s, s:-s], atol=1e-10
-        )
+        np.testing.assert_allclose(shifted[s:-s, s:-s], H_np[s:-s, s:-s], atol=1e-10)
 
     def test_shift_histogram_mass_conservation(self, fitter_and_data):
         """A small shift should not increase total mass significantly."""
         import pytensor.tensor as pt
+
         fitter, _ = fitter_and_data
         Nb_m, Nb_c = fitter._Nbins
         H_np = np.ones((Nb_m, Nb_c), dtype=float)
-        H_t  = pt.as_tensor_variable(H_np)
+        H_t = pt.as_tensor_variable(H_np)
         bw = min(fitter._binw_mag, fitter._binw_col)
-        dmag = pt.as_tensor_variable(np.float64(bw))   # shift by 1 bin
+        dmag = pt.as_tensor_variable(np.float64(bw))  # shift by 1 bin
         dcol = pt.as_tensor_variable(np.float64(0.0))
         shifted = fitter._shift_histogram(H_t, dmag, dcol).eval()
         assert shifted.sum() <= H_np.sum() + 1e-6
@@ -452,7 +461,7 @@ class TestIsochroneFitter:
         fitter2.load_grid(cache)
 
         np.testing.assert_array_equal(fitter._H_grid, fitter2._H_grid)
-        assert fitter2._kG  == pytest.approx(fitter._kG)
+        assert fitter2._kG == pytest.approx(fitter._kG)
         assert fitter2._kBP == pytest.approx(fitter._kBP)
         assert fitter2._kRP == pytest.approx(fitter._kRP)
 
@@ -464,14 +473,16 @@ class TestIsochroneFitter:
         # Build a tiny fake idata with 2 draws × 1 chain
         n = 2
         rng = np.random.default_rng(1)
-        idata = az.from_dict({
-            "posterior": {
-                "met":  rng.uniform(0.014, 0.016, (1, n)),
-                "loga": rng.uniform(6.5, 6.7, (1, n)),
-                "dm":   rng.uniform(9.8, 10.2, (1, n)),
-                "Av":   rng.uniform(0.0, 0.5, (1, n)),
-            },
-        })
+        idata = az.from_dict(
+            {
+                "posterior": {
+                    "met": rng.uniform(0.014, 0.016, (1, n)),
+                    "loga": rng.uniform(6.5, 6.7, (1, n)),
+                    "dm": rng.uniform(9.8, 10.2, (1, n)),
+                    "Av": rng.uniform(0.0, 0.5, (1, n)),
+                },
+            }
+        )
         obs_mag, obs_col, cmds = fitter.posterior_cmd(idata, num_samples=n)
         assert obs_mag.shape == fitter._obs_mag.shape
         assert len(cmds) == n
@@ -484,6 +495,7 @@ class TestIsochroneFitter:
 # TestPyTensorCompat
 # ---------------------------------------------------------------------------
 
+
 @requires_bayes_extra
 class TestPyTensorCompat:
     """Verify PyTensor tensors are correctly initialized in all code paths."""
@@ -495,9 +507,11 @@ class TestPyTensorCompat:
             isochs_path=tmp_path,
             loga_range=(6.5, 6.6),
             Av_range=(0.0, 1.0),
-            dm_mu=10.0, dm_sigma=0.3,
+            dm_mu=10.0,
+            dm_sigma=0.3,
             dm_range=(9.0, 11.0),
-            M_met=4, M_loga=4,
+            M_met=4,
+            M_loga=4,
         )
 
     def test_tensors_set_after_setup(self, base_fitter, tmp_path):
@@ -518,9 +532,11 @@ class TestPyTensorCompat:
             isochs_path=base_fitter.isochs_path,
             loga_range=base_fitter.loga_range,
             Av_range=base_fitter.Av_range,
-            dm_mu=base_fitter.dm_mu, dm_sigma=base_fitter.dm_sigma,
+            dm_mu=base_fitter.dm_mu,
+            dm_sigma=base_fitter.dm_sigma,
             dm_range=base_fitter.dm_range,
-            M_met=base_fitter.M_met, M_loga=base_fitter.M_loga,
+            M_met=base_fitter.M_met,
+            M_loga=base_fitter.M_loga,
         )
         fitter2.setup(data, prob_threshold=0.0, precompute_grid=False)
         fitter2.load_grid(cache)
@@ -534,10 +550,10 @@ class TestPyTensorCompat:
         data = _make_cluster_data(n=40)
         base_fitter.setup(data, prob_threshold=0.0)
         Nb_m, Nb_c = base_fitter._Nbins
-        I = base_fitter._I_tensor.eval()
-        J = base_fitter._J_tensor.eval()
-        assert I.shape == (Nb_m, 1)
-        assert J.shape == (1, Nb_c)
+        i_tensor = base_fitter._I_tensor.eval()
+        j_tensor = base_fitter._J_tensor.eval()
+        assert i_tensor.shape == (Nb_m, 1)
+        assert j_tensor.shape == (1, Nb_c)
 
     def test_I_J_tensor_values(self, base_fitter, tmp_path):
         data = _make_cluster_data(n=40)
@@ -555,10 +571,11 @@ class TestPyTensorCompat:
     def test_shift_histogram_int64_dtypes(self, base_fitter, tmp_path):
         """Floor-based indices must be int64 to avoid JAX int32 warnings."""
         import pytensor.tensor as pt
+
         data = _make_cluster_data(n=40)
         base_fitter.setup(data, prob_threshold=0.0)
         Nb_m, Nb_c = base_fitter._Nbins
-        H_t  = pt.as_tensor_variable(np.zeros((Nb_m, Nb_c)))
+        H_t = pt.as_tensor_variable(np.zeros((Nb_m, Nb_c)))
         dmag = pt.as_tensor_variable(np.float64(0.1))
         dcol = pt.as_tensor_variable(np.float64(0.05))
         # Building the expression should not raise a dtype error
@@ -593,9 +610,11 @@ class TestPyTensorCompat:
             isochs_path=base_fitter.isochs_path,
             loga_range=base_fitter.loga_range,
             Av_range=base_fitter.Av_range,
-            dm_mu=base_fitter.dm_mu, dm_sigma=base_fitter.dm_sigma,
+            dm_mu=base_fitter.dm_mu,
+            dm_sigma=base_fitter.dm_sigma,
             dm_range=base_fitter.dm_range,
-            M_met=base_fitter.M_met, M_loga=base_fitter.M_loga,
+            M_met=base_fitter.M_met,
+            M_loga=base_fitter.M_loga,
         )
         fitter2.setup(data, prob_threshold=0.0, precompute_grid=False)
         fitter2.load_grid(cache)
@@ -610,6 +629,7 @@ class TestPyTensorCompat:
 # ---------------------------------------------------------------------------
 # TestCCM89Extended  —  wavelength regime boundaries and known values
 # ---------------------------------------------------------------------------
+
 
 class TestCCM89Extended:
     def test_returns_float(self):
@@ -644,7 +664,7 @@ class TestCCM89Extended:
             assert _ccm89(lam) > 0
 
     def test_far_ir_less_than_optical(self):
-        k_ir  = _ccm89(20000.0)
+        k_ir = _ccm89(20000.0)
         k_opt = _ccm89(5500.0)
         assert k_ir < k_opt
 
@@ -652,6 +672,7 @@ class TestCCM89Extended:
 # ---------------------------------------------------------------------------
 # TestChabrier2014Extended
 # ---------------------------------------------------------------------------
+
 
 class TestChabrier2014Extended:
     def test_exact_m0_boundary(self):
@@ -684,14 +705,18 @@ class TestChabrier2014Extended:
 # TestDKMeanQExtended  —  all five mass regimes
 # ---------------------------------------------------------------------------
 
+
 class TestDKMeanQExtended:
-    @pytest.mark.parametrize("mass, gamma", [
-        (0.05,  4.2),   # m ≤ 0.1
-        (0.3,   0.4),   # 0.1 < m ≤ 0.6
-        (1.0,   0.3),   # 0.6 < m ≤ 1.4
-        (3.0,  -0.5),   # 1.4 < m ≤ 6.5
-        (10.0,  0.0),   # m > 6.5
-    ])
+    @pytest.mark.parametrize(
+        "mass, gamma",
+        [
+            (0.05, 4.2),  # m ≤ 0.1
+            (0.3, 0.4),  # 0.1 < m ≤ 0.6
+            (1.0, 0.3),  # 0.6 < m ≤ 1.4
+            (3.0, -0.5),  # 1.4 < m ≤ 6.5
+            (10.0, 0.0),  # m > 6.5
+        ],
+    )
     def test_all_gamma_regimes(self, mass, gamma):
         expected = (gamma + 1.0) / (gamma + 2.0)
         result = _dk_mean_q(np.array([mass]))
@@ -723,6 +748,7 @@ class TestDKMeanQExtended:
 # TestMagCombineExtended
 # ---------------------------------------------------------------------------
 
+
 class TestMagCombineExtended:
     def test_commutative(self):
         m1 = np.array([10.0, 11.0, 12.0])
@@ -746,6 +772,7 @@ class TestMagCombineExtended:
 # ---------------------------------------------------------------------------
 # TestSmooth2D
 # ---------------------------------------------------------------------------
+
 
 class TestSmooth2D:
     def test_preserves_shape(self):
@@ -774,6 +801,7 @@ class TestSmooth2D:
 # TestFitErrorModelExtended
 # ---------------------------------------------------------------------------
 
+
 class TestFitErrorModelExtended:
     def test_output_always_positive(self):
         mag = np.linspace(12, 20, 100)
@@ -787,7 +815,7 @@ class TestFitErrorModelExtended:
     def test_nan_in_errors_filtered(self):
         mag = np.linspace(12, 20, 50)
         e_m = 0.01 * np.ones(50)
-        e_m[::3] = np.nan   # every 3rd point is NaN
+        e_m[::3] = np.nan  # every 3rd point is NaN
         e_c = e_m.copy()
         f_m, f_c = _fit_error_model(mag, e_m, e_c)
         assert np.isfinite(f_m(np.array([15.0]))[0])
@@ -813,6 +841,7 @@ class TestFitErrorModelExtended:
 # TestIsochroneFitterExtended
 # ---------------------------------------------------------------------------
 
+
 @requires_bayes_extra
 class TestIsochroneFitterExtended:
     @pytest.fixture
@@ -822,9 +851,11 @@ class TestIsochroneFitterExtended:
             isochs_path=tmp_path,
             loga_range=(6.5, 6.6),
             Av_range=(0.0, 1.0),
-            dm_mu=10.0, dm_sigma=0.3,
+            dm_mu=10.0,
+            dm_sigma=0.3,
             dm_range=(9.0, 11.0),
-            M_met=4, M_loga=4,
+            M_met=4,
+            M_loga=4,
         )
         return fitter
 
@@ -832,16 +863,20 @@ class TestIsochroneFitterExtended:
         rng = np.random.default_rng(0)
         n = 100
         mag = rng.uniform(12.0, 18.0, n)
-        bp  = mag + 0.5
-        rp  = mag - 0.2
+        bp = mag + 0.5
+        rp = mag - 0.2
         probs = np.concatenate([np.ones(50), np.zeros(50)])
-        data = QTable({
-            "Gmag": mag, "G_BPmag": bp, "G_RPmag": rp,
-            "e_Gmag": np.full(n, 0.01),
-            "e_G_BPmag": np.full(n, 0.012),
-            "e_G_RPmag": np.full(n, 0.012),
-            "probability_hdbscan": probs,
-        })
+        data = QTable(
+            {
+                "Gmag": mag,
+                "G_BPmag": bp,
+                "G_RPmag": rp,
+                "e_Gmag": np.full(n, 0.01),
+                "e_G_BPmag": np.full(n, 0.012),
+                "e_G_RPmag": np.full(n, 0.012),
+                "probability_hdbscan": probs,
+            }
+        )
         setup_fitter.setup(data, prob_threshold=0.5)
         assert setup_fitter._N_obs == 50
         assert len(setup_fitter._obs_mag) == 50
@@ -851,30 +886,46 @@ class TestIsochroneFitterExtended:
         n = 40
         rng = np.random.default_rng(7)
         mag = rng.uniform(12.0, 18.0, n)
-        data_separate = QTable({
-            "Gmag": mag, "G_BPmag": mag + 0.5, "G_RPmag": mag - 0.2,
-            "e_Gmag":    np.full(n, 0.01),
-            "e_G_BPmag": np.full(n, 0.02),
-            "e_G_RPmag": np.full(n, 0.02),
-            "probability_hdbscan": np.ones(n),
-        })
-        data_combined = QTable({
-            "Gmag": mag, "G_BPmag": mag + 0.5, "G_RPmag": mag - 0.2,
-            "e_Gmag":  np.full(n, 0.01),
-            "e_BP_RP": np.full(n, 0.05),   # explicit combined column
-            "probability_hdbscan": np.ones(n),
-        })
+        data_separate = QTable(
+            {
+                "Gmag": mag,
+                "G_BPmag": mag + 0.5,
+                "G_RPmag": mag - 0.2,
+                "e_Gmag": np.full(n, 0.01),
+                "e_G_BPmag": np.full(n, 0.02),
+                "e_G_RPmag": np.full(n, 0.02),
+                "probability_hdbscan": np.ones(n),
+            }
+        )
+        data_combined = QTable(
+            {
+                "Gmag": mag,
+                "G_BPmag": mag + 0.5,
+                "G_RPmag": mag - 0.2,
+                "e_Gmag": np.full(n, 0.01),
+                "e_BP_RP": np.full(n, 0.05),  # explicit combined column
+                "probability_hdbscan": np.ones(n),
+            }
+        )
         f1 = IsochroneFitter(
             isochs_path=setup_fitter.isochs_path,
-            loga_range=setup_fitter.loga_range, Av_range=setup_fitter.Av_range,
-            dm_mu=setup_fitter.dm_mu, dm_sigma=setup_fitter.dm_sigma,
-            dm_range=setup_fitter.dm_range, M_met=4, M_loga=4,
+            loga_range=setup_fitter.loga_range,
+            Av_range=setup_fitter.Av_range,
+            dm_mu=setup_fitter.dm_mu,
+            dm_sigma=setup_fitter.dm_sigma,
+            dm_range=setup_fitter.dm_range,
+            M_met=4,
+            M_loga=4,
         )
         f2 = IsochroneFitter(
             isochs_path=setup_fitter.isochs_path,
-            loga_range=setup_fitter.loga_range, Av_range=setup_fitter.Av_range,
-            dm_mu=setup_fitter.dm_mu, dm_sigma=setup_fitter.dm_sigma,
-            dm_range=setup_fitter.dm_range, M_met=4, M_loga=4,
+            loga_range=setup_fitter.loga_range,
+            Av_range=setup_fitter.Av_range,
+            dm_mu=setup_fitter.dm_mu,
+            dm_sigma=setup_fitter.dm_sigma,
+            dm_range=setup_fitter.dm_range,
+            M_met=4,
+            M_loga=4,
         )
         f1.setup(data_separate, prob_threshold=0.0)
         f2.setup(data_combined, prob_threshold=0.0)
@@ -930,17 +981,20 @@ class TestIsochroneFitterExtended:
     def test_posterior_cmd_mag_within_range(self, setup_fitter):
         """All returned magnitudes must lie within the histogram range."""
         import arviz as az
+
         data = _make_cluster_data(n=40)
         setup_fitter.setup(data, prob_threshold=0.0)
         rng = np.random.default_rng(3)
-        idata = az.from_dict({
-            "posterior": {
-                "met":  rng.uniform(0.014, 0.016, (1, 3)),
-                "loga": rng.uniform(6.5, 6.6, (1, 3)),
-                "dm":   rng.uniform(9.5, 10.5, (1, 3)),
-                "Av":   rng.uniform(0.0, 0.5, (1, 3)),
-            },
-        })
+        idata = az.from_dict(
+            {
+                "posterior": {
+                    "met": rng.uniform(0.014, 0.016, (1, 3)),
+                    "loga": rng.uniform(6.5, 6.6, (1, 3)),
+                    "dm": rng.uniform(9.5, 10.5, (1, 3)),
+                    "Av": rng.uniform(0.0, 0.5, (1, 3)),
+                },
+            }
+        )
         obs_mag, obs_col, cmds = setup_fitter.posterior_cmd(idata, num_samples=3)
         mag_lo, mag_hi = setup_fitter._mag_range
         col_lo, col_hi = setup_fitter._col_range
@@ -951,18 +1005,21 @@ class TestIsochroneFitterExtended:
     def test_posterior_cmd_obs_unchanged(self, setup_fitter):
         """posterior_cmd should not mutate _obs_mag / _obs_col."""
         import arviz as az
+
         data = _make_cluster_data(n=40)
         setup_fitter.setup(data, prob_threshold=0.0)
         obs_before = setup_fitter._obs_mag.copy()
         rng = np.random.default_rng(4)
-        idata = az.from_dict({
-            "posterior": {
-                "met":  rng.uniform(0.014, 0.016, (1, 2)),
-                "loga": rng.uniform(6.5, 6.6, (1, 2)),
-                "dm":   rng.uniform(9.8, 10.2, (1, 2)),
-                "Av":   rng.uniform(0.0, 0.5, (1, 2)),
-            },
-        })
+        idata = az.from_dict(
+            {
+                "posterior": {
+                    "met": rng.uniform(0.014, 0.016, (1, 2)),
+                    "loga": rng.uniform(6.5, 6.6, (1, 2)),
+                    "dm": rng.uniform(9.8, 10.2, (1, 2)),
+                    "Av": rng.uniform(0.0, 0.5, (1, 2)),
+                },
+            }
+        )
         setup_fitter.posterior_cmd(idata, num_samples=2)
         np.testing.assert_array_equal(setup_fitter._obs_mag, obs_before)
 
@@ -970,6 +1027,7 @@ class TestIsochroneFitterExtended:
 # ---------------------------------------------------------------------------
 # TestMISTIsochronesExtended
 # ---------------------------------------------------------------------------
+
 
 class TestMISTIsochronesExtended:
     def test_met_age_dict_keys(self, tmp_path):
@@ -1021,9 +1079,9 @@ class TestMISTIsochronesExtended:
             "# Yinit  Zinit  FeH\n"
             "#  0.270  0.0152  0.00\n"
             "# EEP initial_mass log10_isochrone_age_yr Gaia_G_EDR3 Gaia_BP_EDR3 Gaia_RP_EDR3\n"
-            "100 0.3 6.5 nan 4.5 3.8\n"   # NaN G → excluded
-            "101 0.5 6.5 5.0 5.5 4.8\n"   # good
-            "102 1.0 6.5 4.0 4.5 3.8\n"   # good
+            "100 0.3 6.5 nan 4.5 3.8\n"  # NaN G → excluded
+            "101 0.5 6.5 5.0 5.5 4.8\n"  # good
+            "102 1.0 6.5 4.0 4.5 3.8\n"  # good
         )
         iso = MISTIsochrones(tmp_path)
         mass, G, BP, RP = iso.get_isochrone(0.0152, 6.5)
@@ -1060,3 +1118,25 @@ class TestMISTIsochronesExtended:
         # Ask for loga much larger than any in the grid
         mass, G, BP, RP = iso.get_isochrone(0.0152, 99.9)
         assert len(mass) > 0  # something returned, not an error
+
+
+def test_isochrone_fitter_exige_los_parametros_del_cumulo():
+    """`loga_range`, `dm_mu` y `dm_range` no tienen default, y el error los nombra.
+
+    Hasta 2026-08-26 valian ``(6.0, 7.0)``, ``10.2`` y ``(9.5, 10.7)`` -- la edad y el modulo de
+    distancia de **NGC 6383**, horneados en una API general. La consecuencia es medible contra el
+    censo Hunt & Reffert 2024: el cumulo mediano esta a 2.259 kpc, o sea DM = 11.77, **fuera** del
+    rango por defecto; el percentil 99.5 da 14.54. Un ajuste sobre cualquier otro cumulo se truncaba
+    en el borde del prior y devolvia una respuesta segura y equivocada, sin decir nada.
+
+    Se afirma que **faltan los tres**, no que la llamada falle: un `TypeError` cualquiera lo daria
+    tambien un argumento mal escrito.
+    """
+    with pytest.raises(TypeError) as exc:
+        IsochroneFitter("cualquier_ruta")
+    faltan = str(exc.value)
+    for nombre in ("loga_range", "dm_mu", "dm_range"):
+        assert nombre in faltan, f"{nombre} deberia ser obligatorio: {faltan}"
+    # Y los que SI conservan default no aparecen: su valor no es del cumulo.
+    for nombre in ("dm_sigma", "Rv", "Av_range"):
+        assert nombre not in faltan, f"{nombre} no deberia ser obligatorio: {faltan}"

@@ -432,11 +432,11 @@ class IsochroneFitter:
         # Binary fraction (Offner et al. 2022 / ASteCA default)
         alpha: float = 0.09,
         beta: float = 0.94,
-        loga_range: tuple[float, float] = (6.0, 7.0),
+        loga_range: tuple[float, float],
         Av_range: tuple[float, float] = (0.0, 3.0),
-        dm_mu: float = 10.2,
+        dm_mu: float,
         dm_sigma: float = 0.3,
-        dm_range: tuple[float, float] = (9.5, 10.7),
+        dm_range: tuple[float, float],
         M_met: int = 200,
         M_loga: int = 200,
     ) -> None:
@@ -473,22 +473,36 @@ class IsochroneFitter:
             defaults are the Offner et al. (2022) relation, matching ASteCA, so
             the binary fraction **rises with mass** instead of being one number
             for the whole cluster.
-        loga_range : tuple of float, default (6.0, 7.0)
+        loga_range : tuple of float
             Prior bounds on :math:`\log_{10}(\mathrm{age}/\mathrm{yr})`, i.e. 1
             to 10 Myr. This is a young-cluster window and it is narrow: an older
             cluster piles up against the upper edge rather than fitting, so
             check the posterior against these bounds before believing an age.
         Av_range : tuple of float, default (0.0, 3.0)
             Prior bounds on :math:`A_V`, in **magnitudes**.
-        dm_mu : float, default 10.2
-            Prior mean of the distance modulus, in **magnitudes** (10.2 is about
-            1.1 kpc). This is **not only a prior**: it is also the fixed
+        dm_mu : float
+            Prior mean of the distance modulus, in **magnitudes**.
+
+            ⚠ **`loga_range`, `dm_mu` y `dm_range` son OBLIGATORIOS y no tienen default a
+            propósito.** Hasta 2026-08-26 valían ``(6.0, 7.0)``, ``10.2`` y ``(9.5, 10.7)``,
+            que son **la edad y el módulo de distancia de NGC 6383** horneados en una API
+            general. Medido contra el censo Hunt & Reffert 2024: el cúmulo MEDIANO está a
+            2.259 kpc, o sea DM = 11.77, **fuera** de ese rango, y el percentil 99.5 da
+            14.54. Un ajuste sobre cualquier cúmulo que no fuera NGC 6383 se truncaba en el
+            borde del prior y devolvía una respuesta segura y equivocada, sin decir nada.
+
+            ``dm_sigma``, ``Av_range`` y ``Rv`` **sí** conservan default: la anchura del
+            prior de DM es una elección de modelado, ``Av`` de 0 a 3 cubre la mayoría de
+            las líneas de visión, y ``Rv = 3.1`` es el valor estándar del medio
+            interestelar.
+
+            It is **not only a prior**: it is also the fixed
             reference used when building the Hess-diagram binning and the
             magnitude-dependent error model, so a badly wrong value degrades the
             precomputed grid itself, not just the sampler's starting point.
         dm_sigma : float, default 0.3
             Prior standard deviation of the distance modulus, in magnitudes.
-        dm_range : tuple of float, default (9.5, 10.7)
+        dm_range : tuple of float
             Hard truncation bounds on the distance modulus, in magnitudes.
         M_met, M_loga : int, default 200
             Grid resolution in metallicity and in :math:`\log_{10}` age. The

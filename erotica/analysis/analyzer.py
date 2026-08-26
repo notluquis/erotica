@@ -383,11 +383,11 @@ class ClusterAnalyzer:
         isochs_path: str | Path,
         cluster: int | None = None,
         prob_threshold: float = 0.6,
-        loga_range: tuple[float, float] = (6.0, 7.0),
+        loga_range: tuple[float, float],
         Av_range: tuple[float, float] = (0.0, 3.0),
-        dm_mu: float = 10.2,
+        dm_mu: float,
         dm_sigma: float = 0.3,
-        dm_range: tuple[float, float] = (9.5, 10.7),
+        dm_range: tuple[float, float],
         M_met: int = 200,
         M_loga: int = 200,
         pms_column: str | None = None,
@@ -416,6 +416,8 @@ class ClusterAnalyzer:
         Examples
         --------
         >>> fitter = ca.prepare_isochrone_fitter(isochs_path="./MIST/", cluster=12)
+        >>> # Los valores son del CUMULO que estas ajustando, no de un default: los de
+        >>> # abajo son de NGC 6383. Para otro cumulo, otros.
         >>> fitter.set_priors({"dm_mu": 10.2, "dm_sigma": 0.3, "loga_range": (6.0, 7.0)})
         >>> fitter.build_grid(M_met=200, M_loga=200, grid_cache="./data/40/hgrid.npz")
         >>> idata = fitter.fit(draws=2000, tune=1000, chains=4)
