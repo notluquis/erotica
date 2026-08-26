@@ -1140,3 +1140,31 @@ def test_isochrone_fitter_exige_los_parametros_del_cumulo():
     # Y los que SI conservan default no aparecen: su valor no es del cumulo.
     for nombre in ("dm_sigma", "Rv", "Av_range"):
         assert nombre not in faltan, f"{nombre} no deberia ser obligatorio: {faltan}"
+
+
+def test_el_analyzer_no_reinyecta_los_defaults_que_el_fitter_ya_exige():
+    """Los DOS metodos del `Analyzer`, no solo el que se miro.
+
+    El arreglo de 2026-08-26 quito los defaults de NGC 6383 de `IsochroneFitter` y de
+    `Analyzer.prepare_isochrone_fitter`, y **dejo vivo `Analyzer.fit_isochrone`**, que construye su
+    propio `IsochroneFitter` y le pasaba `loga_range=(6.0, 7.0)`, `dm_mu=10.2` y
+    `dm_range=(9.5, 10.7)` desde sus propios defaults. O sea el parametro era obligatorio y el
+    metodo de conveniencia lo rellenaba con la respuesta de un cumulo concreto: la correccion
+    quedaba anulada justo en la entrada que mas gente usa.
+
+    El guardia original probaba `IsochroneFitter.__init__` y por eso no podia verlo. Este recorre
+    la firma de cada metodo del `Analyzer` que construya un fitter.
+    """
+    import inspect
+
+    from erotica.analysis.analyzer import ClusterAnalyzer
+
+    for nombre_metodo in ("prepare_isochrone_fitter", "fit_isochrone"):
+        p = inspect.signature(getattr(ClusterAnalyzer, nombre_metodo)).parameters
+        for arg in ("loga_range", "dm_mu", "dm_range"):
+            assert p[arg].default is inspect.Parameter.empty, (
+                f"{nombre_metodo}.{arg} tiene default {p[arg].default!r}: es un valor de NGC 6383 "
+                "reinyectado en una API general"
+            )
+        # Y la columna de pertenencia esta en la firma, no escondida en el cuerpo.
+        assert "probability_column" in p, f"{nombre_metodo} no expone probability_column"

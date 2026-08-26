@@ -11,6 +11,7 @@ from astropy.table import QTable
 
 from erotica.core.clustering import Clustering
 
+from .._membership import COLUMNA_ISOCRONA, COLUMNA_POR_DEFECTO, select_by_probability
 from ._clipping import DEFAULT_MAXITERS as _CLIP_MAXITERS
 from ._clipping import sigma_clip_parallax as _sigma_clip_parallax
 from ._io import _DEPRECATED, _warn_dill_cache, load_dataset
@@ -326,8 +327,7 @@ class ClusterAnalyzer:
         """Estimate the center for the selected cluster using the migrated KDE helper."""
         cid = cluster if cluster is not None else self.selected_cluster
         table = self.data if cid is None else self.data[self.data["cluster"] == cid]
-        if prob_threshold is not None and "probability" in table.colnames:
-            table = table[table["probability"] >= prob_threshold]
+        table = select_by_probability(table, COLUMNA_POR_DEFECTO, prob_threshold)
         return _center_determination(table, **kwargs)
 
     def half_mass_radius(
@@ -336,8 +336,7 @@ class ClusterAnalyzer:
         """Calculate half-mass radius for the selected cluster."""
         cid = cluster if cluster is not None else self.selected_cluster
         table = self.data if cid is None else self.data[self.data["cluster"] == cid]
-        if prob_threshold is not None and "probability" in table.colnames:
-            table = table[table["probability"] >= prob_threshold]
+        table = select_by_probability(table, COLUMNA_POR_DEFECTO, prob_threshold)
         return _half_mass_radius(table, center, **kwargs)
 
     def half_light_radius(
@@ -346,8 +345,7 @@ class ClusterAnalyzer:
         """Calculate half-light radius for the selected cluster."""
         cid = cluster if cluster is not None else self.selected_cluster
         table = self.data if cid is None else self.data[self.data["cluster"] == cid]
-        if prob_threshold is not None and "probability" in table.colnames:
-            table = table[table["probability"] >= prob_threshold]
+        table = select_by_probability(table, COLUMNA_POR_DEFECTO, prob_threshold)
         return _calculate_half_light_radius(table, center, **kwargs)
 
     def add_pm_amplitude(
@@ -383,6 +381,7 @@ class ClusterAnalyzer:
         isochs_path: str | Path,
         cluster: int | None = None,
         prob_threshold: float = 0.6,
+        probability_column: str = COLUMNA_ISOCRONA,
         loga_range: tuple[float, float],
         Av_range: tuple[float, float] = (0.0, 3.0),
         dm_mu: float,
@@ -441,6 +440,7 @@ class ClusterAnalyzer:
         fitter.setup(
             cluster_data,
             prob_threshold=prob_threshold,
+            probability_column=probability_column,
             precompute_grid=False,
             pms_column=pms_column,
             pms_max=pms_max,
@@ -454,11 +454,12 @@ class ClusterAnalyzer:
         isochs_path: str | Path,
         cluster: int | None = None,
         prob_threshold: float = 0.6,
-        loga_range: tuple[float, float] = (6.0, 7.0),
+        probability_column: str = COLUMNA_ISOCRONA,
+        loga_range: tuple[float, float],
         Av_range: tuple[float, float] = (0.0, 3.0),
-        dm_mu: float = 10.2,
+        dm_mu: float,
         dm_sigma: float = 0.3,
-        dm_range: tuple[float, float] = (9.5, 10.7),
+        dm_range: tuple[float, float],
         M_met: int = 200,
         M_loga: int = 200,
         grid_cache: str | Path | None = None,
@@ -515,10 +516,19 @@ class ClusterAnalyzer:
 
         if grid_cache is not None and _Path(grid_cache).exists():
             print(f"Loading H_grid from cache: {grid_cache}")
-            fitter.setup(cluster_data, prob_threshold=prob_threshold, precompute_grid=False)
+            fitter.setup(
+                cluster_data,
+                prob_threshold=prob_threshold,
+                probability_column=probability_column,
+                precompute_grid=False,
+            )
             fitter.load_grid(grid_cache)
         else:
-            fitter.setup(cluster_data, prob_threshold=prob_threshold)
+            fitter.setup(
+                cluster_data,
+                prob_threshold=prob_threshold,
+                probability_column=probability_column,
+            )
             if grid_cache is not None:
                 fitter.save_grid(grid_cache)
                 print(f"H_grid saved to: {grid_cache}")

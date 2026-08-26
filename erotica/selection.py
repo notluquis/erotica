@@ -49,6 +49,8 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astropy.table import QTable
 
+from ._membership import select_by_probability
+
 __all__ = [
     "attach_completeness_weights",
     "cluster_census_detectability",
@@ -296,9 +298,7 @@ def census_detectability_from_members(
     ``median_parallax_error = nanmedian(parallax_error)`` (mas). Provide exactly
     one of ``data_density`` / ``coordinates``.
     """
-    table = members
-    if probability_threshold is not None and probability_column in members.colnames:
-        table = members[members[probability_column] >= probability_threshold]
+    table = select_by_probability(members, probability_column, probability_threshold)
 
     n_stars = len(table)
     median_parallax_error = float(np.nanmedian(_values_in(table[parallax_error_column], u.mas)))
@@ -311,4 +311,3 @@ def census_detectability_from_members(
         mode=mode,
         selection_function=selection_function,
     )
-

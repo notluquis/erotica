@@ -19,6 +19,8 @@ import numpy as np
 from astropy.table import QTable
 from scipy.ndimage import convolve, gaussian_filter
 
+from .._membership import COLUMNA_ISOCRONA, select_by_probability
+
 
 def _require_pymc():
     """Import PyMC, or fail with the name of the extra that supplies it.
@@ -567,6 +569,7 @@ class IsochroneFitter:
         cluster_data: QTable,
         *,
         prob_threshold: float = 0.6,
+        probability_column: str = COLUMNA_ISOCRONA,
         precompute_grid: bool = True,
         pms_column: str | None = None,
         pms_max: float = 0.5,
@@ -605,9 +608,8 @@ class IsochroneFitter:
             color_col2=col2_name,
         )
 
-        mask = np.array(cluster_data["probability_hdbscan"]) >= prob_threshold
-        members = cluster_data[mask]
-        self._N_obs = int(mask.sum())
+        members = select_by_probability(cluster_data, probability_column, prob_threshold)
+        self._N_obs = len(members)
 
         # Per-star Hess weights: MS stars get ms_weight, PMS stars get 1.0.
         # When pms_column is None or ms_weight==1, all weights are uniform.
@@ -1269,6 +1271,7 @@ class IsochroneFitter:
         cluster_table: QTable,
         *,
         prob_threshold: float = 0.6,
+        probability_column: str = COLUMNA_ISOCRONA,
         pms_column: str | None = "pms_sagitta",
     ) -> Any:
         """For each cluster member compute its distance to the posterior median isochrone.
@@ -1323,8 +1326,7 @@ class IsochroneFitter:
         col_app = BP_app - RP_app
 
         # Observed members
-        mask = np.array(cluster_table["probability_hdbscan"]) >= prob_threshold
-        members = cluster_table[mask]
+        members = select_by_probability(cluster_table, probability_column, prob_threshold)
         obs_g = np.asarray(members["Gmag"], dtype=float)
         obs_col = np.asarray(members["G_BPmag"], dtype=float) - np.asarray(
             members["G_RPmag"], dtype=float
