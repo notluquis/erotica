@@ -70,6 +70,7 @@ from erotica.analysis.inference import (  # noqa: E402
     DistancePriors,
     ParallaxPriors,
     SamplingConfig,
+    _moda_predictiva,
     distance_model,
     fit_parallax_model,
 )
@@ -125,11 +126,11 @@ def cfg(semilla: int) -> SamplingConfig:
 def modo_gamma(mu: np.ndarray, sd: np.ndarray) -> float:
     """El modo de la predictiva Gamma: la mitad izquierda del par publicado.
 
-    Analitico y no por KDE. Medido en D7: el modo por KDE se aleja del analitico 0,0045-0,0152 kpc
-    segun cuantas extracciones se le den, o sea mas que cualquiera de los efectos que esto mide.
+    Delega en el paquete. Antes esta sonda llevaba su propia copia de la forma cerrada, y desde
+    2026-08-26 `DistanceFitResult.mode_r` la trae — dos copias de una formula divergen en cuanto se
+    edite cualquiera, que es la misma razon por la que las skills rutean en vez de copiar.
     """
-    k = (mu / sd) ** 2
-    return float(np.median((k - 1) * (sd**2 / mu)))
+    return _moda_predictiva(mu, sd, gamma=True)
 
 
 def t1(t: QTable) -> dict[str, float]:

@@ -1000,3 +1000,82 @@ def test_input_validation_does_not_require_the_bayes_extra(monkeypatch):
     )
     with pytest.raises(ValueError, match="must exceed"):
         inference.distance_model(dist, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo")
+
+
+# --- D9 y D10: las dos cifras que el paquete calculaba y no devolvia -------------------------
+
+
+def test_moda_predictiva_gamma_es_la_forma_cerrada():
+    """La moda de la Gamma es `(k-1)*theta`, no un pico estimado por KDE.
+
+    Se afirma contra la forma cerrada y no contra un numero guardado: una moda por KDE se aleja de
+    esta 0.0152 / 0.0049 / 0.0045 kpc segun cuantas extracciones se le den, o sea **20 a 70 veces**
+    la diferencia entre los dos priores que el manuscrito de NGC 6383 discute. El ultimo digito
+    impreso lo decidia el estimador y no el modelo.
+    """
+    from erotica.analysis.inference import _moda_predictiva
+
+    mu = np.full(500, 1.11)
+    sigma = np.full(500, 0.06)
+    k = (mu / sigma) ** 2
+    esperado = float(np.median((k - 1.0) * (sigma**2 / mu)))
+    assert _moda_predictiva(mu, sigma, gamma=True) == pytest.approx(esperado, rel=1e-12)
+    # Y no depende del tamano de la muestra, que es la propiedad que el KDE no tiene.
+    corto = _moda_predictiva(mu[:50], sigma[:50], gamma=True)
+    assert corto == pytest.approx(esperado, rel=1e-12)
+
+
+def test_moda_predictiva_normal_es_mu():
+    """En la rama error-aware la poblacion es Normal marginalizada y su moda ES la media."""
+    from erotica.analysis.inference import _moda_predictiva
+
+    mu = np.linspace(1.0, 1.2, 200)
+    sigma = np.full(200, 0.03)
+    assert _moda_predictiva(mu, sigma, gamma=False) == pytest.approx(float(np.mean(mu)), rel=1e-12)
+
+
+@pytest.mark.slow
+def test_distance_std_incluye_el_suelo_del_cero():
+    """`zero_point=True` tiene que ENSANCHAR la incertidumbre de la distancia, no moverla.
+
+    Es la afirmacion entera de D10: el suelo sistematico del cero residual (10.3 uas, Maiz
+    Apellaniz+2021) domina la incertidumbre correcta de la media —medido sobre el ajuste publicado
+    de NGC 6383, **86.5% de la varianza**— y sin el nuisance queda fuera entera. El camino ingenuo,
+    el error estandar de la media a secas, se queda 2.7x corto.
+
+    Se afirma la RELACION y no una cifra: la relacion es lo que el nuisance promete.
+    """
+    from erotica.analysis.inference import ParallaxPriors, SamplingConfig, fit_parallax_model
+
+    rng = np.random.default_rng(20260826)
+    n = 120
+    verdad, disp, err = 0.9, 0.01, 0.04
+    plx = rng.normal(verdad, np.hypot(disp, err), n)
+    t = QTable()
+    t["parallax"] = plx * u.mas
+    t["parallax_error"] = np.full(n, err) * u.mas
+    cfg = SamplingConfig(
+        draws=800,
+        tune=800,
+        target_accept=0.9,
+        chains=2,
+        random_seed=7,
+        nuts_sampler="pymc",
+        progressbar=False,
+        extra_kwargs={"cores": 1},
+    )
+    priors = ParallaxPriors()
+    con = fit_parallax_model(
+        t, parallax_error_column="parallax_error", zero_point=True, sampling=cfg, priors=priors
+    )
+    sin = fit_parallax_model(
+        t, parallax_error_column="parallax_error", zero_point=False, sampling=cfg, priors=priors
+    )
+
+    assert math.isfinite(con.distance_mean) and math.isfinite(con.distance_std)
+    # El valor central no se mueve: el nuisance es un ensanchador, NO una correccion de sesgo.
+    assert con.distance_mean == pytest.approx(sin.distance_mean, rel=0.02)
+    # Y la anchura crece por el suelo, que aqui domina sobre la parte estadistica.
+    assert con.distance_std > sin.distance_std
+    esperado = math.hypot(sin.distance_std, priors.zero_point_scale / con.mu_parallax_mean**2)
+    assert con.distance_std == pytest.approx(esperado, rel=0.25)

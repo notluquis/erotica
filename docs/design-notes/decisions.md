@@ -10,6 +10,41 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-08-26 — Las dos cifras que el paquete calculaba y no devolvía
+
+**Symptom.** `DistanceFitResult` no tenía campo de moda y `ParallaxFitResult` no reportaba ninguna
+distancia. Las dos cifras que un paper cita —*«the mode sampled distance is 1.11 ± 0.06 kpc»*— se
+derivaban **fuera** del paquete, en un análisis que nada del repositorio podía re-correr. La única
+moda que el paquete tenía era una por KDE, dentro de `diagnose_distance_comparison`, que es un
+diagnóstico de comparación y no la vía de reporte.
+
+**Cause.** Los modelos se escribieron para *ajustar*, y la cifra publicable se sacó a mano una vez.
+Nadie volvió a preguntar de dónde salía.
+
+**Fix.** `DistanceFitResult.mode_r` y `ParallaxFitResult.distance_mean` / `.distance_std`.
+
+**Oracle.** Dos tests, mutados los dos. `mode_r` se afirma contra la **forma cerrada**, no contra un
+número guardado, y contra la propiedad que el KDE no tiene: no depende del tamaño de la muestra.
+`distance_std` se afirma por **relación** —`zero_point=True` ensancha y no mueve el centro, y la
+anchura crece en cuadratura con el suelo— porque la relación es lo que el nuisance promete.
+
+**Numbers that moved.** Ninguno: los campos reproducen lo ya publicado. Sobre el ajuste de NGC 6383,
+`mode_r` da **1.1133** (el paper imprime 1.11) y la rama error-aware **1.1099** con `std_r` 0.0331.
+`distance_mean` da **1.10574 ± 0.01394 kpc**, y el presupuesto analítico previo daba 0.01354.
+
+**Why it matters, and it is not cosmetic.** El modo por KDE se aleja del analítico
+**0.0152 / 0.0049 / 0.0045 kpc** con 8k / 100k / 2M extracciones — o sea **20 a 70×** la diferencia
+entre los dos priores que la sección de métodos discute. El último dígito impreso lo decidía el
+estimador y no el modelo. Y del lado de la incertidumbre: el suelo del cero residual (10.3 µas,
+Maíz Apellániz et al. 2021) es el **86.5 %** de la varianza de la media, así que el camino ingenuo
+—el error estándar a secas— se queda **2.7× corto**.
+
+⚠ **Lo que esto NO cambia.** Ninguna cifra publicada se mueve, y `distance_std` **no** es la anchura
+que el paper imprime como `± 0.06`: ésa es la dispersión de la población, que mide otra cosa y cuya
+interpretación está registrada aparte. Retirar el ajuste Gamma-sobre-`r_med_geo` sigue siendo una
+decisión abierta.
+
+
 ## 2026-07-27 — `R_0` was inconsistent inside a single chain
 
 **Symptom.** `analysis/dynamics.py` carried **two different values of the solar galactocentric
