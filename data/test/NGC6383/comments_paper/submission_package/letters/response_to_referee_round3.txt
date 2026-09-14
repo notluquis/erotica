@@ -1,0 +1,21 @@
+# Response to the referee, round 3
+
+We thank the referee for the positive assessment of the revised manuscript and for the two remaining suggestions, both of which we have adopted. This round involves no restructuring, so all section, table, and figure numbers are unchanged from the previous version. The changes are highlighted in the marked-change PDF.
+
+## Point 1. The R_V value behind A_V (Table 1, Fig. B.4; Sect. 6.1)
+
+The isochrone fit adopted a fixed total-to-selective extinction ratio R_V = 3.1, with the Cardelli, Clayton & Mathis (1989) extinction law and the optical coefficients of O'Donnell (1994), as implemented in ASteCA. The previous version did not state this. Sect. 6.1 now gives R_V and the extinction law, and the footnote of Table 1 refers to it.
+
+To make the comparison with the literature color excesses of Table A.1 direct, Sect. 6.1 also gives the corresponding color excess, E(B-V) = A_V/R_V = 0.40 +/- 0.08 mag. It overlaps within its uncertainty the upper part of the 0.26-0.35 mag range of the literature determinations compiled in Table A.1, and lies below the 0.51 +/- 0.03 mag of Aidelman et al. (2018).
+
+## Point 2. The theoretical PMS models behind the Sagitta ages (Sect. 6.2)
+
+No theoretical PMS evolutionary model enters Sagitta explicitly, and Sect. 6.2 now says so and describes where its age scale comes from. The Sagitta age labels (McBride et al. 2021) are the mean ages of the Gaia moving groups of Kounkel et al. (2020), inferred with their Auriga neural network. Auriga was itself trained on the photometry of real clusters carrying literature isochrone ages, augmented with copies of that photometry shifted in distance and reddening rather than with synthetic isochrones. For the youngest star-forming regions, those labels were replaced with literature ages, mostly from the Handbook of Star Forming Regions. The Sagitta age scale is therefore empirical and inherits a heterogeneous set of literature models. It is not on the MIST v1.2 scale of our isochrone fit, and Sect. 6.2 now states that comparing the two ages compares two age scales rather than two isochrone grids.
+
+Tracing this provenance showed two things that bear on how the manuscript used the Sagitta age, and we have corrected the text for both:
+
+(a) NGC 6383 is itself one of the regions whose label was replaced in the Sagitta training set, with an age of 2 Myr after Rauw & De Becker (2008) (McBride et al. 2021, their Table 1). That label is younger than both age estimates derived in our paper, so any imprint it leaves on the Sagitta ages of our members would be toward younger values. Sect. 6.2 now states this.
+
+(b) Sect. 6.1 previously described the median Sagitta age of the 116 PMS candidates, log(age/yr) = 6.75, as one of the "independent indicators" lying above the isochrone mode. The 0.2 dex offset is smaller than the characteristic Sagitta age uncertainty of about 0.3 dex quoted by McBride et al. (2021), and the two ages are on different scales. Sect. 6.1 now states that the offset lies within that uncertainty and on a different, empirically calibrated age scale, and that neither of the two indicators is decisive on its own. The adopted age, log(age/yr) = 6.55 (+0.40/-0.20), and its interval are unchanged.
+
+No tabulated value, figure, or conclusion changes in this revision. Two references were added: Cardelli et al. (1989) and O'Donnell (1994).

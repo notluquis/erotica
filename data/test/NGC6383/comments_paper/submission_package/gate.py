@@ -79,8 +79,10 @@ def pages_in(log_text: str, stem: str) -> int | None:
     m = re.search(rf"Output written on (?:\S*/)?{stem}\.pdf \((\d+) pages", log_text)
     return int(m.group(1)) if m else None
 
-LETTERS = [HERE / "letters" / "cover_letter_round2.txt",
-           HERE / "letters" / "response_to_referee_round2.txt"]
+# Ronda 3 (decision de 2026-09: minor revision). Las de ronda 2 quedan en letters/ como registro
+# de lo que se envio; el gate vigila las que se van a subir, no las ya subidas.
+LETTERS = [HERE / "letters" / "cover_letter_round3.txt",
+           HERE / "letters" / "response_to_referee_round3.txt"]
 CDS_DAT = HERE.parent / "cds_final" / "ngc6383_members.dat"
 CDS_README = HERE.parent / "cds_final" / "ReadMe"
 KB_ROOT = Path.home() / "phd" / "kb"
@@ -410,10 +412,10 @@ def c_section_refs():
 @check("copias de las cartas y del ReadMe sincronizadas")
 def c_copies():
     pairs = [
-        (HERE / "letters" / "cover_letter_round2.txt",
-         HERE.parent / "referee_round2" / "cover_letter_round2.txt"),
-        (HERE / "letters" / "response_to_referee_round2.txt",
-         HERE.parent / "referee_round2" / "response_letter.txt"),
+        (HERE / "letters" / "cover_letter_round3.txt",
+         HERE.parent / "referee_round3" / "cover_letter_round3.txt"),
+        (HERE / "letters" / "response_to_referee_round3.txt",
+         HERE.parent / "referee_round3" / "response_letter.txt"),
         (CDS_README, HERE / "cds" / "ReadMe"),
         # marked_changes/ carries its own copy of the bibliography and the vendored A&A class,
         # so latexdiff's output builds standalone. Adding a reference to the manuscript without
