@@ -1,0 +1,19 @@
+# Cover letter, round 3
+
+Dear Editor,
+
+We submit the third revised version of manuscript aa52082-24, "Characterizing NGC 6383: A study of fundamental properties, pre-main sequence stars, mass segregation, and age using Gaia DR3 and 2MASS."
+
+We thank the referee for recommending publication, and we have adopted both remaining suggestions; the point-by-point response is enclosed. Sect. 6.1 now states the R_V = 3.1 and the extinction law adopted in the isochrone fit, and gives the corresponding E(B-V) for comparison with the literature values of Table A.1; the footnote of Table 1 refers to it. Sect. 6.2 now describes the provenance of the Sagitta age scale, which is empirical rather than based on a single theoretical PMS grid.
+
+Tracing that provenance, we found two things that we disclose in the response letter and have corrected in the text: NGC 6383 is itself in the Sagitta training set, labeled 2 Myr from the literature, and the 0.2 dex offset between the median Sagitta age and our isochrone age is within the characteristic 0.3 dex Sagitta age uncertainty. One sentence in Sect. 6.1 that described the Sagitta age as an independent indicator of an older age has been revised accordingly. No tabulated value, figure, or conclusion changes; the adopted age and its interval are unchanged. Two references were added (Cardelli et al. 1989; O'Donnell 1994).
+
+The author list is unchanged from the previous version: no coauthors have been added or removed, and the order is unchanged (L.M. Pulgar-Escobar, N.A. Henriquez-Salgado, R.E. Mennickent, P. Cerulo).
+
+Before resubmitting we ran the checks listed in your letter. The spelling is consistently US throughout, including the new text. The new text introduces no abbreviation. The two new references follow the A&A style, like the rest of the list.
+
+The upload contains the clean revised source, the marked-change PDF (latexdiff against the previously submitted revision, so only the changes of this round are highlighted), and the point-by-point response. We also enclose the CDS data archive again. It is the replacement archive described in our previous cover letter (ReadMe and ngc6383_members.dat at the top level, with the two ReadMe format corrections reported then), unchanged since; we enclose it again so that the archive on file is the corrected one. No tabulated value has changed.
+
+Sincerely,
+
+L.M. Pulgar-Escobar, on behalf of the authors

@@ -1139,7 +1139,9 @@ def c_overfull():
     # GitHub URL beside the new one, two long unbreakable URLs on a single footnote line at
     # footnote size, 20.4pt over. xurl and \\sloppy were both tried and neither absorbs it.
     # It is allowed by exact count, so a second overfull box still fails the gate.
-    allowed = {"limpio": 0, "marcado": 1}
+    # Ronda 3: ese pie mostraba un cambio de ronda 2, y el diff de ronda 3 es contra la version de
+    # ronda 2, asi que ya no lo contiene. El residuo documentado paso a 0 y el conteo exacto lo sigue.
+    allowed = {"limpio": 0, "marcado": 0}
     bad = {}
     for tag, log in (("limpio", build_paths(TEX)[1]), ("marcado", build_paths(MARKED)[1])):
         if not log.exists():
@@ -1148,7 +1150,7 @@ def c_overfull():
         n = log.read_text().count("Overfull \\hbox")
         if n != allowed[tag]:
             bad[tag] = f"{n} (esperado {allowed[tag]})"
-    return not bad, ("limpio 0, marcado 1 documentado" if not bad
+    return not bad, ("limpio 0, marcado 0" if not bad
                      else f"cajas desbordadas: {bad}")
 
 
