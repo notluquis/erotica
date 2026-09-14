@@ -447,7 +447,11 @@ def c_cds_claim():
     rather than skips, on purpose -- a skip here would restore exactly the silence this check
     exists to break.
     """
-    legacy = HERE.parent / "_legacy" / "cds_superseded" / "cds.zip"
+    # Ronda 3: el autor confirmo (2026-09-14) que en ronda 2 reemplazo en NESTOR el dataset por
+    # aa52082-24_cds_members.zip. Esa es ahora la referencia de lo que NESTOR tiene. Copia
+    # congelada, porque el zip de trabajo se regenera y compararse contra lo que uno mismo acaba de
+    # reconstruir daria "sin cambios" siempre. La base de ronda 1 queda en cds_superseded/.
+    legacy = HERE.parent / "_legacy" / "cds_round2_submitted" / "cds.zip"
     if not legacy.exists():
         return False, (f"falta {legacy.relative_to(HERE.parent)}, la referencia de lo que hay en "
                        "NESTOR; restaurala desde git en vez de saltarse el chequeo")

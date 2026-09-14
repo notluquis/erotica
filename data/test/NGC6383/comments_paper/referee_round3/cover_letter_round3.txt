@@ -12,7 +12,7 @@ The author list is unchanged from the previous version: no coauthors have been a
 
 Before resubmitting we ran the checks listed in your letter. The spelling is consistently US throughout, including the new text. The new text introduces no abbreviation. The two new references follow the A&A style, like the rest of the list.
 
-The upload contains the clean revised source, the marked-change PDF (latexdiff against the previously submitted revision, so only the changes of this round are highlighted), and the point-by-point response. We also enclose the CDS data archive again. It is the replacement archive described in our previous cover letter (ReadMe and ngc6383_members.dat at the top level, with the two ReadMe format corrections reported then), unchanged since; we enclose it again so that the archive on file is the corrected one. No tabulated value has changed.
+The upload contains the clean revised source, the marked-change PDF (latexdiff against the previously submitted revision, so only the changes of this round are highlighted), and the point-by-point response. The CDS data archive is unchanged from the previous revision; we enclose it again for completeness.
 
 Sincerely,
 
