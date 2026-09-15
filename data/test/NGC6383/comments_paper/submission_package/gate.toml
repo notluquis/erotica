@@ -119,9 +119,22 @@ pairs = [
 submitted_zip = "../_legacy/cds_round2_submitted/cds.zip"
 
 [linters]
-# El 8 es el largo de guion, una regla de estilo sobre prosa cuyos casos reales ya cubre
-# DashExcpt en .chktexrc.
-accepted_dash = ["Sh 2-012"]
+# El 8 es el largo de guion. DashExcpt en .chktexrc NO cubre ninguno de estos dos casos (ver el
+# comentario de ese fichero: son "dos residuos conocidos" que se aceptan aca, por contenido, en
+# vez de alli por regex) -- por eso viven en accepted_dash y no en DashExcpt.
+# "Sh 2-012" es el designador Sharpless con un digito a cada lado del guion (NumDash lo trata
+# como rango numerico y pide "--"; DashExcpt es alfabetico y no aplica). Cinco sitios: L31, L48,
+# L398 (x2), L400.
+# El segundo es \keywords{...}: la separacion " -- " entre items es la sintaxis exigida por el
+# house style de A&A para esa macro (todo articulo A&A la usa igual), y chktex la lee como un
+# guion largo con espacios alrededor que "deberia" ser \emph{---} (guion de parentesis). Cambiarla
+# violaria el house style, asi que se acepta el tramo completo de L37 (una sola cadena cubre los
+# cinco guiones de esa linea, revisado 2026-09-15: c_linters sigue en verde con los 10 avisos
+# crudos que deja chktex, todos aceptados).
+accepted_dash = [
+    "Sh 2-012",
+    "photometric -- parallaxes -- proper motions -- stars: distances -- stars: pre-main sequence -- open clusters",
+]
 
 [kb]
 root = "~/phd/kb"

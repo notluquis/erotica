@@ -39,19 +39,37 @@ DashExcpt
 #  1: \abstract and \nolinenumbers take no argument; the following space is discarded.
 CmdLine { -n35 -n44 -n3 -n36 -n1 }
 
-# Warning 13 on lines 497 and 545 is an uppercase letter before a semicolon (HDBSCAN;, PMS;).
-# It was briefly "fixed" with \@; until the effect was measured: typesetting the phrase with and
-# without it gives 138.94467pt both times. TeX adds extra space only from spacefactor 2000 and a
-# semicolon sets 1500, so \@ there moves the stretch and not the natural width. Suppressed per
-# line with the measurement as the reason, rather than carrying markup that does nothing.
+# Warning 13, uppercase letter before a semicolon (HDBSCAN;, and the \date{} placeholder
+# "XXXX;" -- "PMS;" was the third site until that sentence was reworded to "PMS analyses" and
+# stopped matching). \@ was briefly "fixed" and then reverted on the strength of a measurement:
+# typesetting the phrase with and without it gives 138.94467pt both times -- TeX adds extra space
+# only from spacefactor 2000, and a semicolon already sets 1500, so \@ moves the stretch and not
+# the natural width. At the time this file still had the "% chktex NN" line-comment mechanism
+# available for the two sites where \@ would not fit (see the DashExcpt note below for why it
+# didn't), so the warning was suppressed per line instead of "fixed" with markup that does
+# nothing.
 #
-# Two known residuals, left in place on purpose.
+# 2026-09-15 (post-acceptance layout pass, editor asked for a clean .tex): every "% chktex NN"
+# line comment in this file was removed, including the two covering this warning, because the
+# editor's clean-version request reads a stray directive as leftover markup. With that mechanism
+# gone, \@ is now applied at both current sites (\date{Received XXXX\@; accepted YYYY} and
+# "selected by HDBSCAN\@; the tall blue ellipse...") even though the measurement above still
+# holds and it changes nothing on the page: it is harmless where it used to be pointless, and it
+# is now the only way left to satisfy chktex at these two sites without a blanket suppression.
+# chktex no longer reports warning 13 anywhere in the document; verified after the edit.
 #
-# Warning 8 on lines 31 and 48 is "Sh 2-012", the Sharpless designation. DashExcpt does not
-# cover it: the manual's examples are all alphabetic, and the digit-digit case falls under
-# NumDash, which wants -- for a numeric range. The line-comment mechanism cannot be used
-# either: line 31 is the first block of the structured \abstract and line 48 ends a
-# paragraph whose next line continues the argument, so a % would eat the newline and fuse
-# two arguments together. Relaxing NumDash to { 1 2 } would silence them but would also stop
-# catching a genuine "1-10" written for "1--10", which is the more valuable check.
-# Two explained warnings are cheaper than a weakened rule.
+# One known residual class, left in place on purpose (accepted by content in gate.toml's
+# [linters].accepted_dash, not silenced here -- see that file for why).
+#
+# Warning 8 on "Sh 2-012" (five sites: the abstract, the introduction, twice in Sect. 8, and
+# once more nearby) is the Sharpless designation. DashExcpt does not cover it: the manual's
+# examples are all alphabetic, and the digit-digit case falls under NumDash, which wants -- for
+# a numeric range. The line-comment mechanism was never usable here either -- one site is the
+# first block of the structured \abstract and another ends a paragraph whose next line continues
+# the argument, so a % would eat the newline and fuse two arguments together, independently of
+# whether "% chktex NN" comments exist elsewhere in the file. Relaxing NumDash to { 1 2 } would
+# silence it but would also stop catching a genuine "1-10" written for "1--10", which is the more
+# valuable check. A second, unrelated warning-8 site was added 2026-09-15: A&A's required
+# \keywords{...} syntax separates entries with a spaced " -- ", which chktex reads as a long dash
+# that "should" be \emph{---} instead; changing it would violate house style, so it is accepted
+# the same way, by content, not suppressed here.
