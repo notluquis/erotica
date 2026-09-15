@@ -18,7 +18,7 @@ letters = [
     "letters/cover_letter_round3.txt",
     "letters/response_to_referee_round3.txt",
 ]
-cds_dat = "../cds_final/ngc6383_members.dat"
+cds_dat = "../cds_final/table2.dat"
 cds_readme = "../cds_final/ReadMe"
 local = "gate_local.py"
 
