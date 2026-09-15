@@ -17,12 +17,12 @@ t = Table.read(f"{B}/comments_paper/cds_final/ngc6383_members.ecsv").to_pandas()
 ref = t[t.Ref == 1]
 no2m = ref.Jmag.isna() & ref.Hmag.isna() & ref.Ksmag.isna()
 groups = [                                            # (label, mask, color, linestyle)
-    ("All Data",     np.ones(len(ref), bool), "#666666", "-"),
+    ("All data",     np.ones(len(ref), bool), "#666666", "-"),
     ("PMS",          ref.PMSProb >= 0.6,      "#EE7733", "-"),
     ("Non-PMS",      ref.PMSProb < 0.6,       "#0077BB", "--"),
-    ("No 2MASS Info", no2m.values,            "#009988", ":"),
+    ("No 2MASS data", no2m.values,            "#009988", ":"),
 ]
-panels = [("PMSProb", "PMS Probability"), ("logAgeSag", r"$\log(\mathrm{Age})$"), ("AvSag", r"$A_V$")]
+panels = [("PMSProb", "PMS probability"), ("logAgeSag", r"$\log(\mathrm{age})$"), ("AvSag", r"$A_V$")]
 
 fig, axs = plt.subplots(3, 1, figsize=(7, 12), layout="tight")
 for ax, (col, xl) in zip(axs, panels):

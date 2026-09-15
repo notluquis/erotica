@@ -85,7 +85,7 @@ ax.set_xlabel(r"$G_{\mathrm{BP}}-G_{\mathrm{RP}}$ [mag]", fontsize=15)
 ax.set_ylabel(r"$G$ [mag]", fontsize=15)
 from matplotlib.lines import Line2D
 draws_proxy = Line2D([0], [0], color="0.55", lw=1.0, alpha=0.7,
-                     label="Posterior draws ($N=150$)")
+                     label="Ensemble draws ($N=150$)")
 h, lbl = ax.get_legend_handles_labels()
 ax.legend(handles=h[:3] + [draws_proxy] + h[3:], loc="upper right")
 fig.savefig(FIG + "ngc6383_cmd.pdf", bbox_inches="tight")

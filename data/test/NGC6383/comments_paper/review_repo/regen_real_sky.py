@@ -37,7 +37,7 @@ D_KPC = 1.11                                       # adopted hierarchical-model 
 
 # radii (arcmin) and the precision each label is quoted to in the text/Table 1
 radii = [
-    ("Cone Search",                 40.00, "red",          "--",      None),
+    ("Cone search",                 40.00, "red",          "--",      None),
     (r"$R_c = {:.2f}\,$arcmin",       1.96, "darkblue",     "solid",   "Rc"),
     (r"$R_{{hl}} = {:.2f}\,$arcmin",  6.02, "darkred",      "-.",      "Rhl"),
     (r"$R_{{hm}} = {:.2f}\,$arcmin",  6.26, "magenta",      "solid",   "Rhm"),
@@ -51,11 +51,11 @@ tr = ax.get_transform("world")
 ax.scatter(ra, dec, color="darkred", transform=tr, alpha=0.6, s=10, zorder=4,
            label="NGC 6383 sources")
 ax.scatter([cra], [cdec], marker="1", s=400, color="blue", transform=tr, lw=1,
-           alpha=0.85, label="Center")
+           alpha=0.85, label="Cluster center")
 
 for lab, val, col, ls, _ in radii:
-    cx, cy = (sra, sdec) if lab == "Cone Search" else (cra, cdec)
-    label = lab if lab == "Cone Search" else lab.format(val)
+    cx, cy = (sra, sdec) if lab == "Cone search" else (cra, cdec)
+    label = lab if lab == "Cone search" else lab.format(val)
     circ = SphericalCircle((cx * u.deg, cy * u.deg), val * u.arcmin, edgecolor=col,
                            facecolor="none", transform=tr, label=label)
     circ.set(linestyle=ls, alpha=0.85, linewidth=1.6)

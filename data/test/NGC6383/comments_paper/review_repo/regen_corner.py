@@ -17,6 +17,7 @@ FIG = f"{B}/comments_paper/submission_package/clean_source/Figures/"
 post = az.from_netcdf(f"{B}/data/40/fit_parameters_trace_1724708835.nc").posterior
 
 names = ["Av", "dm", "loga", "met", "sigma"]
+LABELS = {"Av": r"$A_V$", "dm": r"$\mathrm{dm}$", "loga": r"$\mathrm{loga}$", "met": r"$\mathrm{met}$", "sigma": r"$\sigma$"}  # symbols as in the caption
 s = {n: post[n].values.ravel() for n in names}
 mode = {}
 for n in names:
@@ -37,7 +38,8 @@ for i in range(n):
             ax.set_yticks([])
         else:
             x = s[names[j]]; y = s[names[i]]
-            ax.hexbin(x, y, gridsize=25, cmap="viridis", mincnt=1)
+            # rasterized: the matplotlib 3.11 PDF backend drops vector hexbin cells (blank panels, poppler and gs alike)
+            ax.hexbin(x, y, gridsize=25, cmap="viridis", mincnt=1, rasterized=True)
             ax.axvline(mode[names[j]], color="black", lw=0.8)
             ax.axhline(mode[names[i]], color="black", lw=0.8)
             ax.plot(mode[names[j]], mode[names[i]], "s", color="black", ms=4)
@@ -47,14 +49,14 @@ for i in range(n):
         else:
             ax.set_yticks([])
         if i == n - 1:
-            ax.set_xlabel(names[j])
+            ax.set_xlabel(LABELS[names[j]])
         else:
             ax.set_xticklabels([])
         if j == 0 and i != 0:
-            ax.set_ylabel(names[i])
+            ax.set_ylabel(LABELS[names[i]])
         elif i != j:
             ax.set_yticklabels([])
 fig.subplots_adjust(wspace=0.06, hspace=0.06)
-fig.savefig(FIG + "plot_pair_trace.pdf", bbox_inches="tight")
+fig.savefig(FIG + "plot_pair_trace.pdf", bbox_inches="tight", dpi=300)
 plt.close()
 print("wrote plot_pair_trace.pdf  (params: %s)" % ", ".join(names))

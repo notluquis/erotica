@@ -74,20 +74,20 @@ def plot(data,m_seg,fname):
     CB=["#0077BB","#EE7733","#009988","#CC3311"]; LS=["-","--",":","-."]  # Tol CVD-safe + line styles
     fig,axs=plt.subplots(1,3,figsize=(18,6),squeeze=False,sharex=True); axs=axs.flatten()
     bn=data[data.bp>=0.6]; sg=data[data.bp<0.6]
-    for idx,(ti,sd) in enumerate([("Single Stars",sg),("Binary Stars",bn)]):
+    for idx,(ti,sd) in enumerate([("Single stars",sg),("Binary stars",bn)]):
         ax=axs[idx]
         for j,(a,b) in enumerate(rg):
             di=sd[(sd.mass>=a)&(sd.mass<b)].dc.values
             if len(di)==0: continue
             cu=np.array([np.sum(di<=r) for r in rad],float); cu=cu/cu.max() if cu.max()>0 else cu
-            ax.plot(rad,cu,color=CB[j],ls=LS[j],lw=1.8,label=fr"$M$: {a:.2f}-{b:.2f}")
+            ax.plot(rad,cu,color=CB[j],ls=LS[j],lw=1.8,label=fr"$M$: {a:.2f}–{b:.2f} $M_\odot$")
         ax.set_title(ti); ax.set_xlabel("Radius [arcmin]"); ax.legend()
         if idx==0: ax.set_ylabel("Normalized cumulative count")
     ax=axs[2]
-    for j,(arr,lab) in enumerate([(sg.dc.values,"Single Stars"),(bn.dc.values,"Binary Stars")]):
+    for j,(arr,lab) in enumerate([(sg.dc.values,"Single stars"),(bn.dc.values,"Binary stars")]):
         cu=np.array([np.sum(arr<=r) for r in rad],float); cu=cu/cu.max() if cu.max()>0 else cu
         ax.plot(rad,cu,color=CB[j],ls=LS[j],lw=1.8,label=lab)
-    ax.set_title("Single vs Binary Stars"); ax.set_xlabel("Radius [arcmin]"); ax.legend()
+    ax.set_title("Single vs. binary stars"); ax.set_xlabel("Radius [arcmin]"); ax.legend()
     for k,ax in enumerate(axs):
         if k!=0: ax.set_yticks([])
     plt.subplots_adjust(wspace=0,hspace=0); plt.savefig(FIG+fname,bbox_inches="tight"); plt.close()
