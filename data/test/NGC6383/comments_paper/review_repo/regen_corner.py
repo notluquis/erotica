@@ -43,9 +43,11 @@ for i in range(n):
             ax.axvline(mode[names[j]], color="black", lw=0.8)
             ax.axhline(mode[names[i]], color="black", lw=0.8)
             ax.plot(mode[names[j]], mode[names[i]], "s", color="black", ms=4)
-        ax.xaxis.set_major_locator(MaxNLocator(4))
+        # bottom row and first column are the only ticks that carry labels (see below); pruning
+        # them to 3 bins keeps adjacent panels' tick labels from merging into one string.
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=3, prune="both") if i == n - 1 else MaxNLocator(4))
         if i != j:
-            ax.yaxis.set_major_locator(MaxNLocator(4))   # diagonal keeps empty y (density scale hidden)
+            ax.yaxis.set_major_locator(MaxNLocator(nbins=3, prune="both") if j == 0 and i != 0 else MaxNLocator(4))   # diagonal keeps empty y (density scale hidden)
         else:
             ax.set_yticks([])
         if i == n - 1:
