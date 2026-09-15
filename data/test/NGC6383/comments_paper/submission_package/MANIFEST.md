@@ -2,7 +2,7 @@
 
 A&A ROUND-3 resubmission (minor revision, decision 2026-09; **paper accepted 2026-09-15**, this
 pass is the post-acceptance layout cleanup the editorial office asked for by email the same day).
-Compiles to 25 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
+Compiles to 26 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
 clean count dropped from 30 pages to 27 in the post-acceptance pass: the three explicit `\clearpage`
 commands between appendices were removed, Figs. B.4 and C.3 moved to `\sidecaption` at
 `0.6\textwidth`, and Fig. C.4 was regenerated as a 1x3 row instead of a 3x1 column. A single
@@ -36,7 +36,7 @@ Remaining blank pages (21: 40%, 22: 34%, 24: 64%, both isolated single floats; 2
 text + Fig. D.1) are the structural floor of this mechanism, not unexamined: a short single-column
 float can never be followed, in the same twocolumn pass, by the very next `figure*` in source order.
 
-**2026-09-15, third pass: 26 to 25 pp.** The "structural floor" claim just above held for figures
+**2026-09-15, third pass: 26 to 25 pages.** The "structural floor" claim just above held for figures
 that must precede their *own* appendix's title, but Fig. C.6 only has to precede Fig. C.6's own
 appendix (C); nothing requires it to precede Appendix D's title too, as long as it does not drift
 onto a page *after* D's title or past it in reading order on the same page. The single
@@ -60,6 +60,31 @@ reverted. Remaining blank pages (21: 40%, Fig. B.4 + Appendix C's title and intr
 same column-backfill reason as before; 22: 34%, Figs. C.1+C.2) are the same structural floor as the
 second pass, now narrower by one page.
 
+**2026-09-15, fourth pass (independent review): 25 to 26 pp.** An outside review of the accepted,
+already-compacted manuscript found Table A.1 (`tab:literature`) landing on p. 20, in reading order
+*after* the title of Appendix B on p. 19 -- the round-3 cover letter's own promise ("Each appendix
+figure and table now appears within its own appendix") broken by the third pass above, which had
+removed every `\clearpage` between appendices without re-checking what a `table*` too tall for
+Appendix A's one short paragraph would do next. Three fixes were tried on a working copy, measured
+with `whitespace.py` and checked against the rendered PNGs of pp. 19-21, not assumed from the source
+order: (i) moving the `table*` block to right before `\section{Historical parameters}` cost nothing
+in pages (still 25) but the appendix-letter counter had not yet incremented at that point in the
+source, so the table's own number came out "Table .1" -- a new defect, not a fix, discarded on sight
+of the rendered page; (ii) a `\FloatBarrier` right before `\section{HDBSCAN diagnostic...}` forces
+the table to p. 20 (p. 19 left 85.6% blank) but lets Appendix B's title and text share p. 20 with it
+(11.6% + 23.8% blank); (iii) a `\clearpage` at the same point also reaches p. 20 but strands the
+table alone there before Appendix B starts fresh on p. 21 (64.1% + 3.8% blank) -- same page count as
+(ii), more blank. (ii) was adopted: one page more than the third pass, but the only one of the three
+that both satisfies the round-3 promise and does not spend more blank than the alternative at the
+same page count. The same pass also regenerated Fig. B.4 (`plot_pair_trace.pdf`) to prune the tick
+labels of its bottom row and first column (`MaxNLocator(nbins=3, prune='both')`, only on the axes
+that carry a label), fixing adjacent-panel tick labels that had been rendering fused (e.g. "10.500");
+same trace data, `rasterized=True` and `dpi=300` unchanged, checked at 200 dpi. Text-only fixes from
+the same review (broken CDS URL scheme, a PyPI package name, a scope-narrowed methods sentence, an
+abbreviation-first-use cleanup, a table-footnote off-by-one between "rows" and "quantities", two
+gendered pronouns rewritten, a Spitzer, Jr. BibTeX name-field order fix, and the minor items listed
+in this repository's commit history for aa52082-24) did not move the page count on their own.
+
 **No more marked diff, no more referee response, this round.** The paper is accepted; the editor
 asked for a clean version only, and there is no referee to answer. `gate.toml`'s `marked` key and
 the seven checks that depended on a live upload of the diff or the letters (letter numbers,
@@ -81,7 +106,7 @@ PDF from the zip itself, so `aa52082-24_revised_clean.pdf` is **not uploaded** �
 
 | NESTOR slot | File | Notes |
 |---|---|---|
-| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 25 pp, 0 errors, 0 undefined. |
+| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 26 pp, 0 errors, 0 undefined. |
 
 **CDS deposit is no longer a NESTOR slot.** Until 2026-09-15 this table carried a "Datasets" row
 for `aa52082-24_cds_members.zip`, uploaded to NESTOR so the journal would forward it to the CDS.
@@ -100,7 +125,7 @@ applied to the new name). It is not tracked in git, for the same reason `aa52082
 isn't: both are regenerable from tracked sources (`cds/ReadMe` + `cds/table2.dat` here, `clean_source/`
 for the .tex zip) rather than records of what a third party already received.
 
-`aa52082-24_revised_clean.pdf` (25 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
+`aa52082-24_revised_clean.pdf` (26 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.
