@@ -2,7 +2,7 @@
 
 A&A ROUND-3 resubmission (minor revision, decision 2026-09; **paper accepted 2026-09-15**, this
 pass is the post-acceptance layout cleanup the editorial office asked for by email the same day).
-Compiles to 26 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
+Compiles to 25 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
 clean count dropped from 30 pages to 27 in the post-acceptance pass: the three explicit `\clearpage`
 commands between appendices were removed, Figs. B.4 and C.3 moved to `\sidecaption` at
 `0.6\textwidth`, and Fig. C.4 was regenerated as a 1x3 row instead of a 3x1 column. A single
@@ -10,7 +10,7 @@ targeted `\FloatBarrier` (package `placeins`) was kept before Appendix D only --
 D.1 drifted five pages from the text that discusses it, undoing the exact R11 fix this same file
 documented on 2026-08-17 below; measured against the appendix pages rendered to PNG, not assumed.
 
-**2026-09-15, second compaction pass: 27 to 26 pp.** The editor's "reduce figures when needed and
+**2026-09-15, second compaction pass: 27 pages to 26.** The editor's "reduce figures when needed and
 remove the empty spaces" was only partly met by the first pass above -- pp. 21-25 still had between
 ~30% and ~75% of their height blank, measured with a per-page, per-column blank-row script
 (`whitespace.py`) rendering the PDF at 40 dpi, not eyeballed. Cause, confirmed by testing each lever
@@ -36,6 +36,30 @@ Remaining blank pages (21: 40%, 22: 34%, 24: 64%, both isolated single floats; 2
 text + Fig. D.1) are the structural floor of this mechanism, not unexamined: a short single-column
 float can never be followed, in the same twocolumn pass, by the very next `figure*` in source order.
 
+**2026-09-15, third pass: 26 to 25 pp.** The "structural floor" claim just above held for figures
+that must precede their *own* appendix's title, but Fig. C.6 only has to precede Fig. C.6's own
+appendix (C); nothing requires it to precede Appendix D's title too, as long as it does not drift
+onto a page *after* D's title or past it in reading order on the same page. The single
+`\FloatBarrier` kept before `\section{Appendix D}` was moved back six lines, to right after Fig.
+C.5's `\end{figure*}` and before Fig. C.6's `\begin{figure}` -- so it still stops every earlier
+Appendix C float from drifting past a title, but Fig. C.6, declared after the barrier, is free to
+float forward. Result: Fig. C.6 lands at the top of the left column of the first Appendix D page,
+Appendix D's title and both intro paragraphs follow in the same column below it, and Fig. D.1 lands
+at the top of the right column of that same page -- same page as the paragraph that names it
+("Fig.~D.1 shows that..."), same as required. p24 (Fig. C.6 alone) is gone; the page it shared with
+Appendix D went from 64% blank to 6%. Checked, not assumed: rendered PNG read confirms C.6 sits
+above the Appendix D title in reading order on that page; the caption-to-page map confirms pp. 1-18
+did not move; the build log has 0 errors, 0 `Overfull \hbox`, 0 "No sufficient room for the legend".
+This is a refinement of the previous pass's `\FloatBarrier` experiment, not a contradiction of it:
+that pass tried *removing* the barrier outright, which let every Appendix C figure (not just C.6)
+drift past the Appendix D title -- moving it, keeping exactly one float on the far side, does not.
+Also tried this pass, measured, and reverted: Fig. C.2 (`luminosity_function.pdf`) at `0.8\hsize` to
+see whether the saved height let Fig. C.3 join p22 -- it did not (C.3 stayed on p23), and p22 (the
+only page this could have helped) went from 34% blank to 40%, so the change bought nothing and was
+reverted. Remaining blank pages (21: 40%, Fig. B.4 + Appendix C's title and intro, isolated for the
+same column-backfill reason as before; 22: 34%, Figs. C.1+C.2) are the same structural floor as the
+second pass, now narrower by one page.
+
 **No more marked diff, no more referee response, this round.** The paper is accepted; the editor
 asked for a clean version only, and there is no referee to answer. `gate.toml`'s `marked` key and
 the seven checks that depended on a live upload of the diff or the letters (letter numbers,
@@ -57,7 +81,7 @@ PDF from the zip itself, so `aa52082-24_revised_clean.pdf` is **not uploaded** �
 
 | NESTOR slot | File | Notes |
 |---|---|---|
-| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 26 pp, 0 errors, 0 undefined. |
+| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 25 pp, 0 errors, 0 undefined. |
 
 **CDS deposit is no longer a NESTOR slot.** Until 2026-09-15 this table carried a "Datasets" row
 for `aa52082-24_cds_members.zip`, uploaded to NESTOR so the journal would forward it to the CDS.
@@ -76,7 +100,7 @@ applied to the new name). It is not tracked in git, for the same reason `aa52082
 isn't: both are regenerable from tracked sources (`cds/ReadMe` + `cds/table2.dat` here, `clean_source/`
 for the .tex zip) rather than records of what a third party already received.
 
-`aa52082-24_revised_clean.pdf` (26 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
+`aa52082-24_revised_clean.pdf` (25 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.
