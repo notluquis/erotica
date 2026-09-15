@@ -37,6 +37,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 PAPER = HERE.parent  # comments_paper/
 
+for _parent in HERE.parents:
+    _candidate = _parent / "tools" / "manuscript_gate.py"
+    if _candidate.exists():
+        ENGINE_SRC = _candidate
+        break
+else:
+    raise SystemExit(f"no encuentro tools/manuscript_gate.py subiendo desde {HERE}")
+
 
 class ProbeMissed(Exception):
     """La mutación no encontró su ancla: no se puede concluir nada del veredicto."""
@@ -107,13 +115,41 @@ class Legacy:
         return ("ok" if ok else "fail"), detail
 
 
-ADAPTERS = {"legacy": Legacy}
+class Generic:
+    """El motor generico (`tools/manuscript_gate.py`), configurado con la copia de
+    `submission_package/gate.toml`. Corre el mismo codigo que produccion -- la copia de
+    `make_copy` incluye el motor, no solo el paper -- asi que una diferencia de comportamiento
+    entre este adaptador y `Legacy` es un defecto real del refactor, no del harness."""
+
+    def __init__(self, root: Path):
+        engine_path = root / "tools" / "manuscript_gate.py"
+        spec = importlib.util.spec_from_file_location("manuscript_gate", engine_path)
+        self.mod = importlib.util.module_from_spec(spec)
+        sys.modules["manuscript_gate"] = self.mod
+        spec.loader.exec_module(self.mod)
+        self.mod.configure(root / "submission_package" / "gate.toml")
+        kb = root / "kb"
+        self.mod.KB_NOTES = [kb / p.relative_to(self.mod.KB_ROOT) for p in self.mod.KB_NOTES]
+        self.mod.KB_ROOT = kb
+
+    def run(self, fn: str) -> tuple[str, str]:
+        n_skip = len(self.mod.skipped)
+        getattr(self.mod, fn)()
+        _, ok, detail = self.mod.results[-1]
+        if len(self.mod.skipped) > n_skip:
+            return "skip", detail
+        return ("ok" if ok else "fail"), detail
+
+
+ADAPTERS = {"legacy": Legacy, "generic": Generic}
 
 
 def make_copy(dst: Path) -> Path:
     ignore = shutil.ignore_patterns("_gate_build", "__pycache__")
     for d in ("submission_package", "cds_final", "referee_round3", "_legacy/cds_round2_submitted"):
         shutil.copytree(PAPER / d, dst / d, ignore=ignore, symlinks=True)
+    (dst / "tools").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(ENGINE_SRC, dst / "tools" / "manuscript_gate.py")
     import importlib.util as u
     spec = u.spec_from_file_location("gate_paths", HERE / "gate.py")
     g = u.module_from_spec(spec)
