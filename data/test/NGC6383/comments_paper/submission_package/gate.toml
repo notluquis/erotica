@@ -7,10 +7,13 @@
 # `not_applicable`.
 
 tex = "clean_source/aa52082-24.tex"
-marked = "marked_changes/aanda_marked.tex"
-# Ronda 3 (decision de 2026-09: minor revision). Las de ronda 2 quedan en letters/ como registro
-# de lo que se envio; el gate vigila las que se van a subir, no las ya subidas. letters[0] es la
-# carta de presentacion (la usa c_cds_claim).
+# `marked` se retiro 2026-09-15 (paso 5 del pase post-aceptacion): el editor pidio version limpia
+# unicamente, y no hay respuesta al arbitro en esta ronda -- el paper ya fue aceptado. c_marked_fresh,
+# c_strip y los checks que leen LETTERS para vigilar lo que se SUBE (no lo que se conserva como
+# registro) pasan a not_applicable mas abajo. `letters` se mantiene: c_posterior y c_copies siguen
+# vigilando el contenido y la sincronia interna de las cartas de ronda 3, que quedan como registro en
+# letters/ y referee_round3/ (no se borran -- "son registro"). letters[0] seguia siendo la carta de
+# presentacion; ya no la usa c_cds_claim (n/a), pero check_posterior_claims.py la sigue leyendo.
 letters = [
     "letters/cover_letter_round3.txt",
     "letters/response_to_referee_round3.txt",
@@ -102,15 +105,13 @@ variants = [
 canonical = "fitted background annulus"
 
 [copies]
-# marked_changes/ carries its own copy of the bibliography and the vendored A&A class, so
-# latexdiff's output builds standalone.
+# Los tres pares que comparaban clean_source/ contra marked_changes/ (cites.bib, aa.cls, aa.bst --
+# la copia que dejaba a latexdiff compilar standalone) se quitaron 2026-09-15 junto con `marked`:
+# marked_changes/ sigue en el arbol como registro, pero ya no se reconstruye ni se compara.
 pairs = [
     ["letters/cover_letter_round3.txt", "../referee_round3/cover_letter_round3.txt"],
     ["letters/response_to_referee_round3.txt", "../referee_round3/response_letter.txt"],
     ["../cds_final/ReadMe", "cds/ReadMe"],
-    ["clean_source/cites.bib", "marked_changes/cites.bib"],
-    ["clean_source/aa.cls", "marked_changes/aa.cls"],
-    ["clean_source/aa.bst", "marked_changes/aa.bst"],
 ]
 
 [cds_claim]
@@ -151,19 +152,34 @@ anchors = [
 ]
 
 [deliverables]
-# Los dos primeros pares son los PDF TRACKEADOS del arbol (comparados contra el build fresco de
-# _gate_build/); los tres siguientes son las copias que de verdad se suben.
+# El primer par es el PDF TRACKEADO del arbol (comparado contra el build fresco de _gate_build/);
+# el segundo es la copia que de verdad se sube. Las tres filas "marcado" (marked_changes/aanda_marked.pdf,
+# aanda_revised_marked.pdf, aa52082-24_marked_changes.pdf) se quitaron 2026-09-15: ya no hay diff
+# marcado que subir, ver `not_applicable` mas abajo.
 pairs = [
     ["limpio", "clean_source/aa52082-24.pdf"],
-    ["marcado", "marked_changes/aanda_marked.pdf"],
     ["limpio", "aanda_revised_clean.pdf"],
-    ["marcado", "aanda_revised_marked.pdf"],
-    ["marcado", "aa52082-24_marked_changes.pdf"],
 ]
 
 [zip]
 path = "aa52082-24_source.zip"
 
 [overfull]
-# El marcado carga un residuo documentado: ver MANIFEST.md / CHANGES.md. Conteo exacto, no umbral.
-allowed = { limpio = 0, marcado = 0 }
+# El marcado se quito 2026-09-15 junto con el resto del diff marcado; DOCS ahora solo trae "limpio".
+# Conteo exacto, no umbral.
+allowed = { limpio = 0 }
+
+[not_applicable]
+# Retirados 2026-09-15 (paso 5 del pase post-aceptacion): el editor pide version limpia unicamente
+# y este paper ya fue aceptado, asi que no hay respuesta al arbitro ni diff marcado que subir en
+# esta ronda. Los siete checks de abajo dependian de esa ranura de subida, no del contenido del
+# manuscrito -- las letras y marked_changes/ se conservan en el arbol como registro (no se borran),
+# y c_posterior + c_copies (que tambien leen LETTERS) siguen activos porque vigilan el contenido y
+# la sincronia interna de ese registro, no una subida.
+letter_numbers = "no hay carta de ronda 4 que subir; letters/ queda como registro de ronda 3, sin obligacion de no divergir del manuscrito post-aceptacion"
+overclaim = "idem: nada que comparar contra una carta que no se envia"
+dropped_symbols = "idem: la conversion a texto plano para NESTOR ya no aplica"
+section_refs = "idem: ninguna carta cita secciones del manuscrito para esta ronda"
+marked_fresh = "no hay diff marcado que subir; marked_changes/ se conserva pero no se reconstruye"
+strip = "idem: nada que limpiar en un diff que no se genera"
+cds_claim = "el CDS ahora se envia directo al CDS, no via NESTOR (confirmado por el autor 2026-09-14); no hay carta que declare cambios en el paquete a un editor que ya no lo recibe por esa via"

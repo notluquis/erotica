@@ -169,8 +169,6 @@ QUICK = [
     ("c_posterior", "frase R17 verbatim en la carta de ronda 3",
      lambda r: append(r / RESP, "\nWe show posterior distributions for the astrometric, "
                                 "structural, and age parameters.\n")),
-    ("c_letter_numbers", "la carta cita un valor redondeado distinto del manuscrito",
-     lambda r: append(r / RESP, f"\nThe value is {_near_number(r)} in the text.\n")),
     ("c_kb", "la nota vuelve a citar R_t 40.4",
      lambda r: append(r / "kb/objects/ngc-6383.md", "\nR_t 40.4 arcmin\n")),
     ("c_kb", "la nota vuelve a citar R_c 1.95",
@@ -179,24 +177,12 @@ QUICK = [
      lambda r: append(r / "kb/objects/ngc-6383.md", "\nt_rh ~ 0.19\n")),
     ("c_register", "muletilla de registro en el cuerpo",
      lambda r: insert_body(r, "It is worth noting that the cluster is young.")),
-    ("c_overclaim", "la carta afirma de más",
-     lambda r: append(r / COVER, "\nThis demonstrably settles it.\n")),
-    ("c_dropped_symbols", "subíndice sin símbolo",
-     lambda r: append(r / RESP, "\nthe ratio _max is defined\n")),
-    ("c_dropped_symbols", "guion partido al re-envolver",
-     lambda r: append(r / RESP, "\na tie- breaker was used\n")),
     ("c_spelling", "forma británica en el manuscrito",
      lambda r: insert_body(r, "The colour index is used.")),
-    ("c_section_refs", "la carta cita una sección inexistente",
-     lambda r: append(r / RESP, "\nSee Sect. 9.9 for details.\n")),
     ("c_copies", "la copia en referee_round3 diverge",
      lambda r: append(r / "referee_round3/cover_letter_round3.txt", " ")),
-    ("c_copies", "cites.bib de marked_changes diverge",
-     lambda r: append(r / f"{SP}/marked_changes/cites.bib", "\n")),
-    ("c_cds_claim", "el ReadMe cambia y la carta no lo declara",
-     lambda r: append(r / "cds_final/ReadMe", "\n")),
-    ("c_marked_fresh", "se edita el manuscrito sin copiarlo a new_revised.tex",
-     lambda r: insert_body(r, "Edited.")),
+    ("c_copies", "el ReadMe de cds_final diverge de cds/ReadMe",
+     lambda r: append(r / "cds_final/ReadMe", " ")),
     ("c_table1", "sigma(t_seg) vuelve al valor sin propagar",
      lambda r: sub(r / TEX, r"(Minimum segregation time\s*&\s*\$[\d.]+\s*\\pm\s*)[\d.]+",
                    r"\g<1>1.24")),
@@ -220,12 +206,26 @@ QUICK = [
      lambda r: insert_body(r, "Ages of 1-10 Myr are common.")),
     ("c_typos", "errata",
      lambda r: insert_body(r, "This is " + "t" + "eh cluster.")),
-    ("c_strip", "float movido comentado en el diff marcado",
-     lambda r: sub(r / f"{SP}/marked_changes/aanda_marked.tex", r"(\\begin\{document\})",
-                   lambda m: m.group(1) + "\n%DIFDELCMD < \\begin{figure}\n")),
     ("c_linenumbers", "falta \\nolinenumbers tras \\begin{appendix}",
      lambda r: sub(r / TEX, r"(\\begin\{appendix\}[\s\S]{0,200}?)\\nolinenumbers", r"\g<1>")),
 ]
+
+# Retirados 2026-09-15 junto con `marked` en gate.toml (paso 5: sin diff marcado que subir en esta
+# ronda, ver el `[not_applicable]` de gate.toml para el motivo de cada uno). Un check n/a no puede
+# mutarse por QUICK: not_applicable se consulta ANTES de llamar a la función real (ver `check()` en
+# manuscript_gate.py), así que nunca entra a `results` y `gate.run(fn)` leería `results[-1]` de otro
+# check -- SIEMPRE "ok" o basura, nunca la mutación puesta. Se excusan aquí, con motivo, en vez de
+# dejar que `covered` se quede corto y la guarda de abajo los reporte como "checks sin mutación",
+# que sería la razón equivocada (no faltan, son n/a).
+NOT_APPLICABLE_THIS_PAPER = {
+    "c_letter_numbers": "n/a: no hay carta de ronda 4 que subir",
+    "c_overclaim": "n/a: idem",
+    "c_dropped_symbols": "n/a: idem",
+    "c_section_refs": "n/a: idem",
+    "c_marked_fresh": "n/a: no hay diff marcado que subir",
+    "c_strip": "n/a: idem",
+    "c_cds_claim": "n/a: el CDS se envía directo al CDS, no vía NESTOR",
+}
 
 SLOW_CHECKS = ["c_build", "c_zip", "c_deliverables", "c_manifest_pages", "c_overfull"]
 
@@ -257,10 +257,18 @@ def main() -> int:
 
         declared = {name for name in gate.mod.declared}
         fns = sorted({n for n in dir(gate.mod) if n.startswith("c_")})
-        covered = {fn for fn, _, _ in QUICK} | set(SLOW_CHECKS)
+        covered = {fn for fn, _, _ in QUICK} | set(SLOW_CHECKS) | set(NOT_APPLICABLE_THIS_PAPER)
         if len(fns) != len(declared) or set(fns) - covered:
             bad.append(f"checks sin mutación: {sorted(set(fns) - covered)} "
                        f"({len(fns)} funciones, {len(declared)} declarados)")
+        # Todo lo que se excusó por n/a tiene que SEGUIR siendo n/a en el gate.toml real -- si algún
+        # día uno de estos vuelve a aplicar (una ronda 4 con carta, por ejemplo), esta lista queda
+        # mintiendo sobre por qué no se mutó, exactamente la clase de deriva que motivó agregarla.
+        na_reales = {f"c_{corto}" for corto in gate.mod.NOT_APPLICABLE}
+        na_no_declarados = set(NOT_APPLICABLE_THIS_PAPER) - na_reales
+        if na_no_declarados:
+            bad.append(f"excusados aquí pero YA NO son n/a en gate.toml: {sorted(na_no_declarados)} "
+                       "-- necesitan una mutación real, no una excusa")
 
         quick_fns = sorted({fn for fn, _, _ in QUICK})
         base = check_all_quick(gate, quick_fns, omitted if args.allow_skips else None)

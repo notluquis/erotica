@@ -2,13 +2,25 @@
 
 A&A ROUND-3 resubmission (minor revision, decision 2026-09; **paper accepted 2026-09-15**, this
 pass is the post-acceptance layout cleanup the editorial office asked for by email the same day).
-Compiles to 27 pp clean / 31 pp marked / 0 errors / 0 undefined refs / 0 undefined citations. The
+Compiles to 27 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
 clean count dropped from 30 to 27 pp in the post-acceptance pass: the three explicit `\clearpage`
 commands between appendices were removed, Figs. B.4 and C.3 moved to `\sidecaption` at
 `0.6\textwidth`, and Fig. C.4 was regenerated as a 1x3 row instead of a 3x1 column. A single
 targeted `\FloatBarrier` (package `placeins`) was kept before Appendix D only -- without it, Fig.
 D.1 drifted five pages from the text that discusses it, undoing the exact R11 fix this same file
 documented on 2026-08-17 below; measured against the appendix pages rendered to PNG, not assumed.
+
+**No more marked diff, no more referee response, this round.** The paper is accepted; the editor
+asked for a clean version only, and there is no referee to answer. `gate.toml`'s `marked` key and
+the seven checks that depended on a live upload of the diff or the letters (letter numbers,
+overclaim, dropped symbols, section refs, marked-fresh, strip, the CDS-change claim) were retired
+to `not_applicable` 2026-09-15, each with its own reason. `marked_changes/` and `letters/` are
+**not** deleted -- they stay as the record of what round 3 actually said -- but the two tracked
+deliverable copies that only existed to be uploaded, `aa52082-24_marked_changes.pdf` and
+`aanda_revised_marked.pdf`, were removed with `git rm`: nothing in `gate.toml` compares against
+them any more, and an untracked-from-the-check binary is exactly the kind of drift this file exists
+to prevent, not something to leave sitting in the tree "just in case". `aanda_revised_clean.pdf`
+stays; it is still the local proof copy for the one document that is still uploaded.
 (Last full rebuild: 2026-08-17, co-author pass: 41 annotations from P. Cerulo applied - 24 figure-caption cuts, 11 wording fixes, the Table 1 caption moved to \tablefoot per A&A house style - plus four corrections to the Kalari 2019 comparison found while re-checking that source, including the adopted-distance systematic the previous version omitted. A later point-by-point re-read of the referee report found three internal contradictions, now fixed: the Table 1 \tablefoot scoped to the five rows whose intervals are not posterior widths, the 1.2 T_max prior collision stated explicitly, and the R17 element (i) no longer claiming a converged isochrone posterior; Appendix D also gained the argument for why R_t survives the contamination that biases R_c, and a \clearpage so Fig. D.1, the load-bearing evidence for R11, now sits on the same page as its text (p. 25) instead of five pages later. Both letters were then cross-checked against the manuscript and realigned, see CHANGES.md Sect. 49; a further pass on 2026-08-17 (Sect. 70) realigned R11 and the Spitzer attribution in the response letter, and added five gate checks after finding the marked PDF, the source zip and the sent PDFs all stale or broken while the gate was green. See referee_round2/PIERLUIGI_REVIEW_TRIAGE.md. Round-2 restructure + R1-R17 fixes are in CHANGES.md §42. latexdiff baseline = round-1 submitted version, so the marked PDF still shows only round-2 changes.)
 
 ## FILES TO SEND — mapped to the NESTOR upload slots
@@ -20,14 +32,11 @@ PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it
 | NESTOR slot | File | Notes |
 |---|---|---|
 | **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 27 pp, 0 errors, 0 undefined. |
-| Latexdiff or bold pdf (optional) | `aa52082-24_marked_changes.pdf` | 31 pp. latexdiff against the round-2 submitted version (`marked_changes/old_submitted.tex`, byte-identical to the `aanda.tex` of the round-2 source zip), so it shows round-3 changes only. The round-1 baseline is kept as `marked_changes/old_submitted_round1.tex`. |
-| Reply to the referee(s) (optional; .pdf or .txt) | `letters/response_to_referee_round3.txt` | Plain text, and now the master: the Markdown version was deleted on 2026-08-16, since NESTOR accepts only .pdf or .txt and keeping two formats had already let them drift apart once. Edit this file directly. |
-| Cover letter for the Editor (optional; .pdf or .txt) | `letters/cover_letter_round3.txt` | Lists the changes, states that the author list is unchanged, and reports the editor's three pre-submission checks. |
 | Datasets | `aa52082-24_cds_members.zip` | ✅ **Resuelto (confirmado por el autor el 2026-09-14): en ronda 2 se reemplazó en NESTOR por `aa52082-24_cds_members.zip`, que es la referencia de `c_cds_claim` desde ronda 3 (`_legacy/cds_round2_submitted/cds.zip`).** Lo que sigue es el registro de por qué hizo falta: ~~The dataset currently uploaded is the wrong one.~~ NESTOR shows `cds.zip`, 81.74 Kb, which is `_legacy/cds_superseded/cds.zip` (2026-05-18): it nests everything under a `cds/` folder, carries `__MACOSX/` resource forks, and ships two files CDS does not want. The `.dat` is byte-identical to ours, so no science differs, but its ReadMe is the older one. Replace it with `aa52082-24_cds_members.zip` (ReadMe + ngc6383_members.dat at top level, 321 rows). The cover letter now discloses the two ReadMe corrections and that a replacement archive is enclosed; it previously said the package was unchanged, which would have left this one in place. ⚠ **Por qué este zip se versiona y `aa52082-24_source.zip` no**, siendo los dos indispensables: el de origen es un **artefacto regenerable** —`clean_source/` más el comando de abajo lo reconstruyen— y el de CDS es un **registro** de lo que NESTOR tiene hoy, que no se puede reconstruir desde nada de este repo. Un registro se versiona; un artefacto se regenera. Por eso `c_cds_claim` corre en CI y `c_zip` se omite allí.
 
 ⚠ Do **not** delete `_legacy/cds_superseded/cds.zip` while the paper is under review: `gate.py`'s `c_cds_claim` uses it as the baseline for what NESTOR actually holds, and without it nothing can check that the letter's account of the dataset is honest. It is superseded as content, not as a record. |
 
-`aanda_revised_clean.pdf` (27 pp) and `aanda_revised_marked.pdf` are local copies for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
+`aanda_revised_clean.pdf` (27 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.
@@ -50,7 +59,11 @@ manuscript and the two letters said the opposite, in three separate passes, each
 the previous pass declared itself complete. This screens the cheap class of that defect; its own
 docstring records the class it cannot see (a sentence whose subject is "these").
 
-## Rebuild the marked-changes PDF after editing clean_source/
+## Rebuild the marked-changes PDF after editing clean_source/ (HISTORICAL -- retired 2026-09-15)
+Kept as a record of how the marked PDF was built for rounds 2-3, not as an active step: the paper
+is accepted, the editor asked for a clean version only, and no check in `gate.toml` reconstructs or
+compares this document any more (`marked` was removed from the config; see the note near the top of
+this file). Do not run this recipe as part of the current workflow.
 ```
 cp clean_source/aa52082-24.tex marked_changes/new_revised.tex
 cd marked_changes

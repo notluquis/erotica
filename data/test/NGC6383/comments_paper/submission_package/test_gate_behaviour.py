@@ -107,7 +107,10 @@ def main() -> int:
     import gate
 
     rastreados = subprocess.run(["git", "ls-files"], cwd=HERE, capture_output=True, text=True).stdout.split()
-    for tex in (gate.TEX, gate.MARKED):
+    # gate.MARKED es None desde que el paso 5 retiro `marked` de gate.toml (no hay diff marcado que
+    # subir en esta ronda) -- build_paths(None) revienta, y probar la propiedad sobre un documento
+    # que ya no se construye no prueba nada de todos modos.
+    for tex in (gate.TEX, gate.MARKED) if gate.MARKED else (gate.TEX,):
         for salida in gate.build_paths(tex):
             rel = salida.relative_to(HERE).as_posix()
             if gate.BUILD_DIR not in salida.parts:
@@ -149,8 +152,12 @@ def main() -> int:
         return re.search(r"^(ok|FALLA|omite) ", salida, re.M) is None
 
     # (a) clave desconocida en not_applicable -> configure() aborta antes de correr un solo check.
+    # gate.toml YA trae una tabla [not_applicable] desde el paso 5 (siete checks retirados con el
+    # diff marcado) -- se le agrega la clave a esa tabla existente, sin repetir el encabezado: dos
+    # `[not_applicable]` en el mismo TOML es un error de sintaxis (tabla duplicada) que tomllib
+    # tambien aborta, pero por una razon distinta a la que esta sonda dice probar.
     code_a, out_a = _with_toml(
-        lambda t: t + '\n[not_applicable]\nno_existe_este_check = '
+        lambda t: t + '\nno_existe_este_check = '
                       '"prueba: clave desconocida debe abortar configure()"\n')
     if code_a == 0:
         bad.append("not_applicable con una clave desconocida no abortó (exit 0)")
@@ -167,7 +174,7 @@ def main() -> int:
     else:
         base_total = int(m_base.group(2))
         code_b, out_b = _with_toml(
-            lambda t: t + '\n[not_applicable]\nlinenumbers = '
+            lambda t: t + '\nlinenumbers = '
                           '"prueba: un n/a no debe bloquear la bendicion"\n')
         if code_b != base_code:
             bad.append(f"marcar 'linenumbers' n/a cambió el exit code: {base_code} -> {code_b}")
