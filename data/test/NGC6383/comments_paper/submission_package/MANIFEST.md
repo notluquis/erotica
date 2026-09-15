@@ -2,13 +2,39 @@
 
 A&A ROUND-3 resubmission (minor revision, decision 2026-09; **paper accepted 2026-09-15**, this
 pass is the post-acceptance layout cleanup the editorial office asked for by email the same day).
-Compiles to 27 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
-clean count dropped from 30 to 27 pp in the post-acceptance pass: the three explicit `\clearpage`
+Compiles to 26 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
+clean count dropped from 30 pages to 27 in the post-acceptance pass: the three explicit `\clearpage`
 commands between appendices were removed, Figs. B.4 and C.3 moved to `\sidecaption` at
 `0.6\textwidth`, and Fig. C.4 was regenerated as a 1x3 row instead of a 3x1 column. A single
 targeted `\FloatBarrier` (package `placeins`) was kept before Appendix D only -- without it, Fig.
 D.1 drifted five pages from the text that discusses it, undoing the exact R11 fix this same file
 documented on 2026-08-17 below; measured against the appendix pages rendered to PNG, not assumed.
+
+**2026-09-15, second compaction pass: 27 to 26 pp.** The editor's "reduce figures when needed and
+remove the empty spaces" was only partly met by the first pass above -- pp. 21-25 still had between
+~30% and ~75% of their height blank, measured with a per-page, per-column blank-row script
+(`whitespace.py`) rendering the PDF at 40 dpi, not eyeballed. Cause, confirmed by testing each lever
+in isolation and re-measuring: two-column LaTeX cannot backfill a column once text has advanced past
+it, so a short single-column figure followed by a `figure*` always strands the other column, and a
+`figure*` (needing a fresh page top) can never join a page whose earlier float already consumed it.
+Fig. C.5 (`cumulative_by_mass_and_type_mseg.pdf`) was narrowed from `\hsize` to `0.7\textwidth`,
+just enough for it to join Figs. C.3-C.4 on one page (23: 32% blank to 10% blank), eliminating a
+whole page. Fig. C.1 (`ngc6383_mass_binary.pdf`) was regenerated left/right instead of stacked
+upper/lower (`review_repo/regen_massbinary_side_by_side.py`, `conda run -n cosmic`, rasterized
+scatter markers, same ASteCA/masses data, no pipeline re-run) so it could run as a `figure*` at
+`0.9\textwidth` instead of a single column at full height; a size-only fix (shrinking the original
+stacked figure to fit a leftover column) was tried and rejected because it drove the embedded tick
+labels below 3 pt at print size -- illegible. Captions for both changed "Upper/Lower panel" to
+"Left/Right panel" to match. Tried and reverted because they cost pages or gained nothing measured:
+`stfloats` for `figure*[b]` (re-flowed the *main text*, pp. 1-18, the instant it was loaded in the
+preamble -- unshippable, confirmed by diffing the caption-to-page map before/after); removing the
+pre-Appendix-D `\FloatBarrier` (dumped every Appendix C figure after the Appendix D title, breaking
+the same ordering constraint this file's first pass fixed); shrinking Figs. B.4, C.2, C.4, C.6 below
+their first-pass or original size (each is the sole content of its page or column, so shrinking it
+only grows the blank tail below it -- measured making pp. 21/22/24 worse before being reverted).
+Remaining blank pages (21: 40%, 22: 34%, 24: 64%, both isolated single floats; 25: 34%, Appendix D
+text + Fig. D.1) are the structural floor of this mechanism, not unexamined: a short single-column
+float can never be followed, in the same twocolumn pass, by the very next `figure*` in source order.
 
 **No more marked diff, no more referee response, this round.** The paper is accepted; the editor
 asked for a clean version only, and there is no referee to answer. `gate.toml`'s `marked` key and
@@ -31,7 +57,7 @@ PDF from the zip itself, so `aa52082-24_revised_clean.pdf` is **not uploaded** �
 
 | NESTOR slot | File | Notes |
 |---|---|---|
-| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 27 pp, 0 errors, 0 undefined. |
+| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 26 pp, 0 errors, 0 undefined. |
 
 **CDS deposit is no longer a NESTOR slot.** Until 2026-09-15 this table carried a "Datasets" row
 for `aa52082-24_cds_members.zip`, uploaded to NESTOR so the journal would forward it to the CDS.
@@ -50,7 +76,7 @@ applied to the new name). It is not tracked in git, for the same reason `aa52082
 isn't: both are regenerable from tracked sources (`cds/ReadMe` + `cds/table2.dat` here, `clean_source/`
 for the .tex zip) rather than records of what a third party already received.
 
-`aa52082-24_revised_clean.pdf` (27 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
+`aa52082-24_revised_clean.pdf` (26 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.

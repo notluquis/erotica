@@ -443,6 +443,9 @@ This publication makes use of data products from the Two Micron All Sky Survey, 
 
 \begin{appendix}
 \nolinenumbers
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\dblfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
 
 \section{Historical parameters of NGC 6383}\label{app:historical}
 
@@ -531,14 +534,14 @@ Figure~\ref{fig:plot_pair_trace} shows the joint and marginal distributions of t
 
 This appendix collects the supplementary figures referenced from the main text: the masses and binarity CMD (Fig.~\ref{fig:cmd_mass_binary}); the luminosity function derived from absolute magnitudes (Fig.~\ref{fig:lf}); the on-sky distribution of the members with the derived scale radii overlaid on the DSS2-red image (Fig.~\ref{fig:real_sky}); the per-star Sagitta PMS-probability, age, and extinction distributions (Fig.~\ref{fig:pms_sagitta_stats}); the mass-segregation cumulative distributions for the segregation-time-restricted sample (Fig.~\ref{fig:mass_tseg}); and the \textit{Gaia} DR3 radial velocities and their amplitudes (Fig.~\ref{fig:radial_velocities}). These figures support, but are not essential to, the results presented in the main text.
 
-\begin{figure}
+\begin{figure*}[tb]
 	\centering
-	\resizebox{\hsize}{!}{\includegraphics{Figures/ngc6383_mass_binary.pdf}}
-	\caption{\emph{Upper panel:} CMD displaying probable members and members of NGC 6383, color-coded by total mass, ranging from lower (yellow) to higher mass (purple). The total mass is calculated as the sum of the two components if the binary probability is greater than $0.7$\@. \emph{Lower panel:} Same stars as in the upper panel, color-coded by binary probability, from low (yellow) to high (purple). The dark-gray dashed line in both panels is the best mode-fit isochrone.}%
+	\resizebox{0.9\textwidth}{!}{\includegraphics{Figures/ngc6383_mass_binary.pdf}}
+	\caption{\emph{Left panel:} CMD displaying probable members and members of NGC 6383, color-coded by total mass, ranging from lower (yellow) to higher mass (purple). The total mass is calculated as the sum of the two components if the binary probability is greater than $0.7$\@. \emph{Right panel:} Same stars as in the left panel, color-coded by binary probability, from low (yellow) to high (purple). The dark-gray dashed line in both panels is the best mode-fit isochrone.}%
 	\label{fig:cmd_mass_binary}
-\end{figure}
+\end{figure*}
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/luminosity_function.pdf}}
 		\caption{Luminosity function of NGC 6383: histogram (orange, hatched) of absolute magnitudes ($ G_{\text{abs}} $) for stars with a membership pseudo-probability of at least $0.6$.}%
@@ -560,12 +563,12 @@ This appendix collects the supplementary figures referenced from the main text: 
 
 \begin{figure*}
 	\centering
-	\resizebox{\hsize}{!}{\includegraphics{Figures/cumulative_by_mass_and_type_mseg.pdf}}
+	\resizebox{0.7\textwidth}{!}{\includegraphics{Figures/cumulative_by_mass_and_type_mseg.pdf}}
 	\caption{Same as Fig.~\ref{fig:mass_seg}, but restricted to stars whose segregation time exceeds the cluster age ($t_{\mathrm{seg}}(m)>3.53\,\mathrm{Myr}$, i.e., $M < 9.1\,M_\odot$; Sect.~\ref{subsec:lum_mass_dyn}); the mass quartiles are recomputed for this truncated sample (uppermost quartile $1.41$--$8.49\,M_\odot$).}%
 	\label{fig:mass_tseg}
 \end{figure*}
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\resizebox{\hsize}{!}{\includegraphics{Figures/radial_velocity_amplitude.pdf}}
 	\caption{Radial velocity versus $G$ magnitude for the 29 reference-sample sources with \textit{Gaia} DR3 radial velocities. Filled circles have DR3 amplitude measurements (\texttt{rv\_amplitude\_robust}, which reflects the total amplitude in the radial-velocity time series following outlier removal) and are color-coded by amplitude (viridis color bar); open gray diamonds lack amplitude measurements. Vertical bars show the radial-velocity uncertainties.}%
