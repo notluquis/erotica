@@ -19,7 +19,7 @@ PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it
 
 | NESTOR slot | File | Notes |
 |---|---|---|
-| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aanda.tex (the only .tex), aanda.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 27 pp, 0 errors, 0 undefined. |
+| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 27 pp, 0 errors, 0 undefined. |
 | Latexdiff or bold pdf (optional) | `aa52082-24_marked_changes.pdf` | 31 pp. latexdiff against the round-2 submitted version (`marked_changes/old_submitted.tex`, byte-identical to the `aanda.tex` of the round-2 source zip), so it shows round-3 changes only. The round-1 baseline is kept as `marked_changes/old_submitted_round1.tex`. |
 | Reply to the referee(s) (optional; .pdf or .txt) | `letters/response_to_referee_round3.txt` | Plain text, and now the master: the Markdown version was deleted on 2026-08-16, since NESTOR accepts only .pdf or .txt and keeping two formats had already let them drift apart once. Edit this file directly. |
 | Cover letter for the Editor (optional; .pdf or .txt) | `letters/cover_letter_round3.txt` | Lists the changes, states that the author list is unchanged, and reports the editor's three pre-submission checks. |
@@ -40,7 +40,7 @@ PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it
 - `AANDA_GUIDELINES_AUDIT.md`, A&A house-style audit.
 
 ## Before rebuilding anything: the consistency check
-ok     aanda.tex: 0
+ok     aa52082-24.tex: 0
 ok     response_to_referee_round2.txt: 0
 ok     cover_letter_round2.txt: 0
 
@@ -52,7 +52,7 @@ docstring records the class it cannot see (a sentence whose subject is "these").
 
 ## Rebuild the marked-changes PDF after editing clean_source/
 ```
-cp clean_source/aanda.tex marked_changes/new_revised.tex
+cp clean_source/aa52082-24.tex marked_changes/new_revised.tex
 cd marked_changes
 latexdiff --type=CFONT old_submitted.tex new_revised.tex > aanda_marked.tex
 python3 set_diff_markup.py aanda_marked.tex        # REQUIRED, see below
@@ -95,6 +95,6 @@ deletion still shows. Acceptance, unchanged from CHANGES.md Sect. 47: 21 unique 
 
 ## Rebuild the source zip after editing clean_source/
 ```
-cd clean_source && pdflatex aanda && bibtex aanda && pdflatex aanda && pdflatex aanda
-# zip -q -FS ../aa52082-24_source.zip aanda.tex aanda.bbl cites.bib aa.cls aa.bst linenoaa.sty Figures/*.pdf
+cd clean_source && pdflatex aa52082-24 && bibtex aa52082-24 && pdflatex aa52082-24 && pdflatex aa52082-24
+# zip -q -FS ../aa52082-24_source.zip aa52082-24.tex aa52082-24.bbl cites.bib aa.cls aa.bst linenoaa.sty Figures/*.pdf
 ```

@@ -118,11 +118,11 @@ def main() -> int:
     # Y la otra mitad del mismo defecto: las paginas se leen del log del build. Con `-outdir` la
     # linea trae el prefijo del directorio, asi que un patron anclado en "{stem}.pdf" a secas deja
     # de casar y el check informa "no se pudo leer las paginas" sobre un build correcto.
-    if gate.pages_in("Output written on _gate_build/aanda.pdf (26 pages, 5 bytes).", "aanda") != 26:
+    if gate.pages_in("Output written on _gate_build/aa52082-24.pdf (26 pages, 5 bytes).", "aa52082-24") != 26:
         bad.append("pages_in no lee la linea del log con outdir")
-    if gate.pages_in("Output written on aanda.pdf (26 pages).", "aanda") != 26:
+    if gate.pages_in("Output written on aa52082-24.pdf (26 pages).", "aa52082-24") != 26:
         bad.append("pages_in no lee la linea del log sin outdir")
-    if gate.pages_in("Output written on otro.pdf (26 pages).", "aanda") is not None:
+    if gate.pages_in("Output written on otro.pdf (26 pages).", "aa52082-24") is not None:
         bad.append("pages_in acepta un stem que no es el suyo")
 
     # not_applicable: la config puede declarar un check inaplicable a este paper, y eso tiene que
@@ -190,8 +190,11 @@ def main() -> int:
     # hueco a medio implementar (`spelling.exceptions`: "" in frag es True siempre, así que
     # eximiría cualquier forma británica). Probar sólo la primera no distingue un guardia
     # genérico -- que camina TODO el toml -- de uno que sólo mira esa lista a mano.
+    # accepted_dash pasó de una lista de una línea a una de varias (2026-09-15, se sumó el
+    # residuo de \keywords) -- la sonda muta sólo el primer elemento a "" en vez de reemplazar
+    # la lista entera, así que sigue funcionando sin que el número de entradas la rompa de nuevo.
     code_c1, out_c1 = _with_toml(
-        lambda t: t.replace('accepted_dash = ["Sh 2-012"]', 'accepted_dash = [""]'))
+        lambda t: t.replace('"Sh 2-012",', '"",', 1))
     if code_c1 == 0:
         bad.append('"" en linters.accepted_dash no abortó (exit 0)')
     if not _ningun_check_corrio(out_c1):

@@ -86,7 +86,7 @@ def append(p: Path, text: str) -> None:
 
 
 def insert_body(root: Path, text: str) -> None:
-    sub(root / "submission_package/clean_source/aanda.tex", r"(?=\\begin\{appendix\})",
+    sub(root / "submission_package/clean_source/aa52082-24.tex", r"(?=\\begin\{appendix\})",
         lambda _m: f"\n{text}\n\n")
 
 
@@ -149,7 +149,7 @@ def make_copy(dst: Path) -> Path:
 # que lo introdujo; varios checks llevan más de una porque vigilan más de un ancla.
 
 SP = "submission_package"
-TEX = f"{SP}/clean_source/aanda.tex"
+TEX = f"{SP}/clean_source/aa52082-24.tex"
 RESP = f"{SP}/letters/response_to_referee_round3.txt"
 COVER = f"{SP}/letters/cover_letter_round3.txt"
 

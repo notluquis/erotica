@@ -6,7 +6,7 @@
 # corto -- el de la funcion menos el prefijo `c_` -- que es tambien el vocabulario de
 # `not_applicable`.
 
-tex = "clean_source/aanda.tex"
+tex = "clean_source/aa52082-24.tex"
 marked = "marked_changes/aanda_marked.tex"
 # Ronda 3 (decision de 2026-09: minor revision). Las de ronda 2 quedan en letters/ como registro
 # de lo que se envio; el gate vigila las que se van a subir, no las ya subidas. letters[0] es la
@@ -154,7 +154,7 @@ anchors = [
 # Los dos primeros pares son los PDF TRACKEADOS del arbol (comparados contra el build fresco de
 # _gate_build/); los tres siguientes son las copias que de verdad se suben.
 pairs = [
-    ["limpio", "clean_source/aanda.pdf"],
+    ["limpio", "clean_source/aa52082-24.pdf"],
     ["marcado", "marked_changes/aanda_marked.pdf"],
     ["limpio", "aanda_revised_clean.pdf"],
     ["marcado", "aanda_revised_marked.pdf"],

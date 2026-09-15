@@ -88,6 +88,6 @@ jobs:
         with:
           name: manuscript-pdfs
           path: |
-            data/test/NGC6383/comments_paper/submission_package/clean_source/_gate_build/aanda.pdf
+            data/test/NGC6383/comments_paper/submission_package/clean_source/_gate_build/aa52082-24.pdf
             data/test/NGC6383/comments_paper/submission_package/marked_changes/_gate_build/aanda_marked.pdf
           if-no-files-found: warn

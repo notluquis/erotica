@@ -556,17 +556,18 @@ def c_marked_fresh():
     """The marked PDF is built from a *copy* of the manuscript, so editing one leaves the other.
 
     latexdiff runs on marked_changes/new_revised.tex, which MANIFEST.md tells you to `cp` from
-    clean_source/aanda.tex first. Skip the copy and the marked PDF silently shows the previous
-    revision -- the referee then reads a diff that omits the change they asked for. Two edits on
-    2026-08-17 (the Appendix D wording and the Sect. 8 lead-in) left it stale with every other
-    check green, which is what this catches: byte equality of the copy, and a marked source at
+    the paper's own clean_source/*.tex first (aanda.tex for NGC 6383, at the time this was
+    written). Skip the copy and the marked PDF silently shows the previous revision -- the
+    referee then reads a diff that omits the change they asked for. Two edits on 2026-08-17
+    (the Appendix D wording and the Sect. 8 lead-in) left it stale with every other check
+    green, which is what this catches: byte equality of the copy, and a marked source at
     least as new as it.
     """
     revised = MARKED.parent / "new_revised.tex"
     if not revised.exists():
         return False, "falta marked_changes/new_revised.tex"
     if revised.read_bytes() != TEX.read_bytes():
-        return False, "new_revised.tex != clean_source/aanda.tex; falta el cp del MANIFEST"
+        return False, f"new_revised.tex != {TEX.parent.name}/{TEX.name}; falta el cp del MANIFEST"
     # Esto comparaba mtimes. git no preserva mtimes, asi que en un checkout limpio el orden es
     # arbitrario: el check no podia fallar en CI por la razon correcta ni pasar por ella. El sello
     # lo escribe set_diff_markup.py, que es obligatorio en la receta y corre justo despues de
