@@ -42,11 +42,13 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TARGETS = [
-    HERE / "clean_source" / "aanda.tex",
-    HERE / "letters" / "response_to_referee_round2.txt",
-    HERE / "letters" / "cover_letter_round2.txt",
-]
+sys.path.insert(0, str(HERE))
+# Importadas del gate, no re-tecleadas: hasta 2026-09-15 esta lista nombraba las cartas de ronda 2
+# mientras el gate ya vigilaba las de ronda 3, asi que una frase ofensiva en las cartas que se suben
+# dejaba este check verde. Importar gate no corre nada: main() esta tras __name__.
+from gate import LETTERS, TEX  # noqa: E402
+
+TARGETS = [TEX, *LETTERS]
 
 # Whose "posterior" is under suspicion: the isochrone fit only. Order-agnostic -- the
 # original R17 defect put "posterior distributions" BEFORE "age parameters", so a regex that
