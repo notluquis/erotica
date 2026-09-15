@@ -48,6 +48,7 @@ verdict, so a failure says what to look at.
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -66,7 +67,15 @@ mg = importlib.util.module_from_spec(_spec)
 sys.modules["manuscript_gate"] = mg
 _spec.loader.exec_module(mg)
 
-mg.configure(HERE / "gate.toml")
+# GATE_TOML: una copia mutada del toml, para test_gate_behaviour.py. Hasta 2026-09-15 ese test
+# escribia y restauraba el gate.toml REAL, y `src/check_findings.py` del hub corre sus guardias con
+# 8 hilos: doce de ellas lanzan ese test, asi que dos corridas se pisaban (fallos espurios medidos)
+# y una podia "restaurar" la mutacion de la otra y dejar el config trackeado corrupto. Las rutas
+# siguen resolviendose contra este directorio. Se imprime, para que nunca actue en silencio.
+_toml = os.environ.get("GATE_TOML")
+if _toml:
+    print(f"config alternativa (GATE_TOML): {_toml}")
+mg.configure(Path(_toml) if _toml else HERE / "gate.toml", base=HERE)
 
 # Re-exportado para quien haga `from gate import ...` o cargue este fichero por spec y lea
 # `gate.<nombre>` -- ver "What this file is now" arriba para quien depende de cada uno.

@@ -206,7 +206,7 @@ def _no_empty_strings(node, path: str) -> None:
             _no_empty_strings(v, f"{path}.{k}" if path else k)
 
 
-def configure(toml_path: Path) -> dict:
+def configure(toml_path: Path, base: Path | None = None) -> dict:
     """Carga `gate.toml`, resuelve las rutas top-level y, si el paper lo declara, sus checks
     locales -- en ese orden, porque validar `not_applicable` necesita ver el roster COMPLETO de
     checks conocidos (los 22 genericos mas los locales), no solo los genericos.
@@ -226,7 +226,9 @@ def configure(toml_path: Path) -> dict:
     _configured = True
 
     toml_path = Path(toml_path).resolve()
-    base = toml_path.parent
+    # `base` existe para que un test pueda leer una copia mutada del toml desde otro directorio
+    # sin que sus rutas relativas dejen de apuntar al paper (ver GATE_TOML en el shim de P01).
+    base = Path(base).resolve() if base is not None else toml_path.parent
     with toml_path.open("rb") as fh:
         cfg = tomllib.load(fh)
 

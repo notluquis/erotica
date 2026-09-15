@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -132,21 +133,25 @@ def main() -> int:
     # cumplir tres promesas -- (a) una clave desconocida aborta configure() antes de correr un
     # solo check, (b) un n/a declarado no cuenta como omitido ni le cuesta la bendición al
     # paquete, (c) un "" en una lista usada como filtro aborta, porque acepta todo. Las tres se
-    # prueban mutando el gate.toml REAL y restaurándolo -- no un toml de juguete aparte, que
-    # podría divergir de lo que el gate de verdad lee.
+    # prueban sobre el texto del gate.toml REAL mutado -- no un toml de juguete, que podría
+    # divergir de lo que el gate lee --, pero escrito en un fichero temporal que el shim lee por
+    # GATE_TOML. Mutaba el fichero trackeado en sitio y lo restauraba: doce guardias del hub
+    # corren este test en paralelo, y dos corridas se pisaban (medido 2026-09-15: "el denominador
+    # no bajó" y "el n/a cambió la razón" en rojo, verdes al correr solas).
     def _with_toml(mutate) -> tuple[int, str]:
-        """Aplica `mutate(texto_original) -> texto_nuevo` a gate.toml, corre --quick, restaura
-        el fichero pase lo que pase."""
-        toml_path = HERE / "gate.toml"
-        original = toml_path.read_text()
+        """Aplica `mutate(texto_original) -> texto_nuevo` a una copia de gate.toml y corre --quick
+        contra ella. El gate.toml del árbol no se escribe."""
+        original = (HERE / "gate.toml").read_text()
         nuevo = mutate(original)
         if nuevo == original:
             raise AssertionError("la mutación de gate.toml no cambió nada; sonda rota")
-        try:
-            toml_path.write_text(nuevo)
-            return run("--quick", "--allow-skips")
-        finally:
-            toml_path.write_text(original)
+        with tempfile.TemporaryDirectory() as td:
+            alt = Path(td) / "gate.toml"
+            alt.write_text(nuevo)
+            code, out = run("--quick", "--allow-skips", env={**os.environ, "GATE_TOML": str(alt)})
+        if f"config alternativa (GATE_TOML): {alt}" not in out:
+            raise AssertionError("el gate no leyó la copia mutada; sonda rota")
+        return code, out
 
     def _ningun_check_corrio(salida: str) -> bool:
         return re.search(r"^(ok|FALLA|omite) ", salida, re.M) is None
