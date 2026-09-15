@@ -10,6 +10,10 @@ que una revisión de código encontró rotas el 2026-08-23 y que ningún check p
   como éxito y sólo un humano leyendo las dos últimas líneas se enteraba.
 - `--allow-skips` existe y es lo único que perdona una omisión, para que sea la máquina y no el
   lector quien imponga que en la máquina que sube no se omitió nada.
+- `not_applicable` (2026-09-15, refactor TOOL-gate-generalize) no es otro nombre para omitido: una
+  clave desconocida aborta `configure()` antes de correr nada, un check declarado n/a no cuenta
+  como omitido ni le cuesta la bendición al paquete, y un `""` en una lista usada como filtro
+  (aceptaría cualquier cosa) también aborta.
 
 Es barato: usa `--quick`, que no compila.
 """
@@ -17,6 +21,7 @@ Es barato: usa `--quick`, que no compila.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -120,11 +125,94 @@ def main() -> int:
     if gate.pages_in("Output written on otro.pdf (26 pages).", "aanda") is not None:
         bad.append("pages_in acepta un stem que no es el suyo")
 
+    # not_applicable: la config puede declarar un check inaplicable a este paper, y eso tiene que
+    # cumplir tres promesas -- (a) una clave desconocida aborta configure() antes de correr un
+    # solo check, (b) un n/a declarado no cuenta como omitido ni le cuesta la bendición al
+    # paquete, (c) un "" en una lista usada como filtro aborta, porque acepta todo. Las tres se
+    # prueban mutando el gate.toml REAL y restaurándolo -- no un toml de juguete aparte, que
+    # podría divergir de lo que el gate de verdad lee.
+    def _with_toml(mutate) -> tuple[int, str]:
+        """Aplica `mutate(texto_original) -> texto_nuevo` a gate.toml, corre --quick, restaura
+        el fichero pase lo que pase."""
+        toml_path = HERE / "gate.toml"
+        original = toml_path.read_text()
+        nuevo = mutate(original)
+        if nuevo == original:
+            raise AssertionError("la mutación de gate.toml no cambió nada; sonda rota")
+        try:
+            toml_path.write_text(nuevo)
+            return run("--quick", "--allow-skips")
+        finally:
+            toml_path.write_text(original)
+
+    def _ningun_check_corrio(salida: str) -> bool:
+        return re.search(r"^(ok|FALLA|omite) ", salida, re.M) is None
+
+    # (a) clave desconocida en not_applicable -> configure() aborta antes de correr un solo check.
+    code_a, out_a = _with_toml(
+        lambda t: t + '\n[not_applicable]\nno_existe_este_check = '
+                      '"prueba: clave desconocida debe abortar configure()"\n')
+    if code_a == 0:
+        bad.append("not_applicable con una clave desconocida no abortó (exit 0)")
+    if not _ningun_check_corrio(out_a):
+        bad.append("not_applicable con clave desconocida corrió algún check antes de abortar")
+
+    # (b) un n/a declarado: no debe aparecer bajo 'omitido' (eso es de Skipped, otro mecanismo),
+    # no debe cambiar el motivo del REVISADO PARCIAL (que en --quick sigue siendo sólo por los
+    # lentos), y el denominador de "N/N pasan" baja en uno -- ni pasa ni se omite, no se cuenta.
+    base_code, base_out = run("--quick", "--allow-skips")
+    m_base = re.search(r"(\d+)/(\d+) pasan", base_out)
+    if m_base is None:
+        bad.append("no pude leer 'N/N pasan' de la corrida base para comparar contra el n/a")
+    else:
+        base_total = int(m_base.group(2))
+        code_b, out_b = _with_toml(
+            lambda t: t + '\n[not_applicable]\nlinenumbers = '
+                          '"prueba: un n/a no debe bloquear la bendicion"\n')
+        if code_b != base_code:
+            bad.append(f"marcar 'linenumbers' n/a cambió el exit code: {base_code} -> {code_b}")
+        if "no aplica  numeracion de linea apagada en los apendices" not in out_b:
+            bad.append("el check marcado n/a no imprimió su línea 'no aplica'")
+        tras_omitido = out_b.split("omitido", 1)[1][:200] if "omitido" in out_b else ""
+        if "numeracion de linea" in tras_omitido:
+            bad.append("el check n/a aparece bajo 'omitido', y no debería (son mecanismos distintos)")
+        m_b = re.search(r"(\d+)/(\d+) pasan", out_b)
+        if m_b is None or int(m_b.group(2)) != base_total - 1:
+            dio = m_b.group(2) if m_b else "?"
+            bad.append(f"el denominador no bajó en uno con el n/a: base {base_total}, con n/a {dio}")
+        cola_base = base_out.strip().split("\n")[-1]
+        cola_b = out_b.strip().split("\n")[-1]
+        if not cola_b.startswith("REVISADO PARCIAL - modo --quick:") or cola_b != cola_base:
+            bad.append(f"el n/a cambió la razón del REVISADO PARCIAL: {cola_b!r} != base {cola_base!r}")
+
+    # (c) un "" en una lista usada como filtro aborta -- probado en DOS listas, no una. La que
+    # pide el plan (`linters.accepted_dash`) y la que de verdad muerde si el guardia quedara
+    # hueco a medio implementar (`spelling.exceptions`: "" in frag es True siempre, así que
+    # eximiría cualquier forma británica). Probar sólo la primera no distingue un guardia
+    # genérico -- que camina TODO el toml -- de uno que sólo mira esa lista a mano.
+    code_c1, out_c1 = _with_toml(
+        lambda t: t.replace('accepted_dash = ["Sh 2-012"]', 'accepted_dash = [""]'))
+    if code_c1 == 0:
+        bad.append('"" en linters.accepted_dash no abortó (exit 0)')
+    if not _ningun_check_corrio(out_c1):
+        bad.append('"" en linters.accepted_dash corrió algún check antes de abortar')
+
+    code_c2, out_c2 = _with_toml(lambda t: t.replace(
+        'exceptions = ["VizieR", \'"catalogue"\']',
+        'exceptions = ["", "VizieR", \'"catalogue"\']'))
+    if code_c2 == 0:
+        bad.append('"" en spelling.exceptions no abortó (exit 0)')
+    if not _ningun_check_corrio(out_c2):
+        bad.append('"" en spelling.exceptions corrió algún check antes de abortar')
+
     for line in bad:
         print(f"  - {line}")
     if bad:
         return 1
-    print("gate: --quick no bendice, una omisión no sale 0, --allow-skips la perdona,\n      el build no toca ficheros trackeados, pages_in lee el log con y sin outdir")
+    print("gate: --quick no bendice, una omisión no sale 0, --allow-skips la perdona,\n"
+          "      el build no toca ficheros trackeados, pages_in lee el log con y sin outdir,\n"
+          "      not_applicable aborta ante clave desconocida o '' en una lista-filtro, y un n/a\n"
+          "      declarado no es un omitido ni bloquea la bendición")
     return 0
 
 
