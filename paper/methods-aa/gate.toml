@@ -1,0 +1,101 @@
+# Configuracion de P02 (EROTICA methods paper, "a calibrated Bayesian pipeline for Gaia-era
+# open-cluster analysis") para tools/manuscript_gate.py.
+#
+# Primera submision: sin cartas de referee, sin deposito CDS, sin diff marcado contra una ronda
+# anterior, sin zip de entrega, sin MANIFEST, sin nota en phd-kb. Los 14 checks que sólo tienen
+# sentido cuando alguno de esos artefactos existe estan en `not_applicable`, cada uno con su
+# motivo -- no se dejan en verde a la fuerza, se declaran inaplicables. `register`/`spelling`/
+# `overclaim` quedan activos con las mismas listas que NGC 6383, porque esas listas son sobre
+# registro y ortografia cientifica en general, no sobre el contenido de ese paper.
+
+tex = "aanda.tex"
+# Sin marked (no hay ronda anterior contra la que diferenciar todavia).
+letters = []
+# Placeholders inertes: ningun check que los lea corre (ver not_applicable.cds / .cds_claim). Se
+# declaran igual porque `tex`/`letters`/`cds_dat`/`cds_readme` son claves obligatorias del motor.
+cds_dat = "cds/data.dat"
+cds_readme = "cds/ReadMe"
+
+[posterior]
+# Nadie corre este check hoy (ver not_applicable.posterior); la seccion se deja vacia a proposito
+# -- si algun dia se activa, corre sobre `tex` sin cartas.
+script = "check_posterior_claims.py"
+
+[register]
+phrases = [
+    "for our argument",
+    "should be read as such",
+    "should be read accordingly",
+    "rather than afterwards",
+    "deliberately kept apart",
+    "we make it from",
+    "requires an argument",
+    "it is worth noting",
+    "it should be emphasized",
+    "it should be emphasised",
+    "needless to say",
+    "as we have seen",
+    "in our opinion",
+    "we note two consequences",
+]
+
+[overclaim]
+words = [
+    "demonstrably",
+    "conclusively",
+    "definitively",
+    "unambiguously",
+    "artificially",
+    "indisputably",
+    "proves that",
+    "rules out",
+]
+
+[spelling]
+british = [
+    "analyse", "analysed", "analysing", "characterise", "characterised", "characterisation",
+    "normalise", "normalised", "normalisation", "minimise", "maximise", "optimise", "optimised",
+    "organise", "organised", "organisation", "recognise", "summarise", "summarised",
+    "emphasise", "emphasised", "parameterise", "parameterised", "marginalise", "marginalised",
+    "utilise", "utilised", "generalise",
+    "colour", "colours", "coloured", "behaviour", "favour", "neighbour", "neighbours",
+    "neighbouring", "labour",
+    "centre", "centres", "centred", "metre", "fibre",
+    "modelling", "modelled", "labelling", "labelled", "travelled", "cancelled", "signalled",
+    "fuelled", "totalled",
+    "catalogue", "catalogues", "catalogued", "dialogue", "analogue", "grey", "programme",
+    "defence", "licence", "ageing", "practise", "artefact", "artefacts", "sulphur", "aluminium",
+    "whilst", "amongst", "towards",
+]
+exceptions = ["VizieR", '"catalogue"']
+
+[paraphrase]
+# Sin uso (ver not_applicable.paraphrase): la formula canonica es del argumento de los 70 arcmin
+# de NGC 6383, especifico de ese paper.
+variants = []
+canonical = ""
+
+[linters]
+# Sin excepciones de guion todavia: cualquier nº8 de chktex en este manuscrito es real hasta que
+# se audite y se declare uno aca, como se hizo para NGC 6383.
+accepted_dash = []
+
+[overfull]
+# Sólo "limpio": no hay documento marcado que compilar.
+allowed = { limpio = 0 }
+
+[not_applicable]
+posterior = "sin script propio de reclamos de posterior para este paper; el de NGC 6383 esta acoplado a su propio gate (importa `from gate import LETTERS, TEX` de ESE directorio) y reutilizarlo sin adaptar apuntaria al manuscrito equivocado"
+letter_numbers = "primera submision: no hay carta de respuesta al referee que comparar contra el manuscrito"
+dropped_symbols = "primera submision: no hay cartas en texto plano de las que perder simbolos"
+section_refs = "primera submision: no hay carta que cite secciones del manuscrito"
+cds_claim = "primera submision: no hay deposito CDS ni carta de presentacion que declare un cambio en el"
+copies = "primera submision: ninguno de los pares que sincroniza (cartas, ReadMe de CDS, bib/cls/bst del diff marcado) existe todavia"
+marked_fresh = "primera submision: no hay ronda anterior contra la que mostrar un diff marcado"
+cds = "primera submision: sin deposito CDS que validar"
+paraphrase = "la formula canonica ('fitted background annulus') es del argumento de los 70 arcmin de NGC 6383; este paper no la usa"
+zip = "primera submision: no hay zip de entrega que compilar de forma aislada"
+deliverables = "primera submision: no hay copias subidas ni PDF trackeado con qué comparar (paper/methods-aa/*.pdf esta en .gitignore)"
+manifest_pages = "primera submision: no hay MANIFEST.md todavia"
+kb = "primera submision: no hay nota en phd-kb para este paper todavia"
+strip = "primera submision: no hay diff marcado del que limpiar floats movidos"
