@@ -158,7 +158,7 @@ anchors = [
 # marcado que subir, ver `not_applicable` mas abajo.
 pairs = [
     ["limpio", "clean_source/aa52082-24.pdf"],
-    ["limpio", "aanda_revised_clean.pdf"],
+    ["limpio", "aa52082-24_revised_clean.pdf"],
 ]
 
 [zip]

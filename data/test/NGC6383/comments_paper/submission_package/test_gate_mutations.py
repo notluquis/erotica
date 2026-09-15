@@ -327,7 +327,11 @@ def slow_suite(gate, root: Path) -> list[str]:
     expect("c_manifest_pages", "fail", "el MANIFEST declara otra cuenta de páginas")
     restore()
 
-    copy_over(sp / "aanda_revised_marked.pdf", sp / "aanda_revised_clean.pdf")
+    # aanda_revised_marked.pdf ya no existe (paso 5: se quito junto con el resto del diff
+    # marcado). marked_changes/aanda_marked.pdf si sigue en el arbol -- es registro, no se borra
+    # -- y su contenido es real y distinto del limpio, así que sirve igual de bien para simular
+    # una copia desactualizada.
+    copy_over(sp / "marked_changes/aanda_marked.pdf", sp / "aa52082-24_revised_clean.pdf")
     expect("c_deliverables", "fail", "el PDF limpio enviado no es el recién construido")
     restore()
 

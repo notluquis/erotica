@@ -19,7 +19,7 @@ to `not_applicable` 2026-09-15, each with its own reason. `marked_changes/` and 
 deliverable copies that only existed to be uploaded, `aa52082-24_marked_changes.pdf` and
 `aanda_revised_marked.pdf`, were removed with `git rm`: nothing in `gate.toml` compares against
 them any more, and an untracked-from-the-check binary is exactly the kind of drift this file exists
-to prevent, not something to leave sitting in the tree "just in case". `aanda_revised_clean.pdf`
+to prevent, not something to leave sitting in the tree "just in case". `aa52082-24_revised_clean.pdf`
 stays; it is still the local proof copy for the one document that is still uploaded.
 (Last full rebuild: 2026-08-17, co-author pass: 41 annotations from P. Cerulo applied - 24 figure-caption cuts, 11 wording fixes, the Table 1 caption moved to \tablefoot per A&A house style - plus four corrections to the Kalari 2019 comparison found while re-checking that source, including the adopted-distance systematic the previous version omitted. A later point-by-point re-read of the referee report found three internal contradictions, now fixed: the Table 1 \tablefoot scoped to the five rows whose intervals are not posterior widths, the 1.2 T_max prior collision stated explicitly, and the R17 element (i) no longer claiming a converged isochrone posterior; Appendix D also gained the argument for why R_t survives the contamination that biases R_c, and a \clearpage so Fig. D.1, the load-bearing evidence for R11, now sits on the same page as its text (p. 25) instead of five pages later. Both letters were then cross-checked against the manuscript and realigned, see CHANGES.md Sect. 49; a further pass on 2026-08-17 (Sect. 70) realigned R11 and the Spitzer attribution in the response letter, and added five gate checks after finding the marked PDF, the source zip and the sent PDFs all stale or broken while the gate was green. See referee_round2/PIERLUIGI_REVIEW_TRIAGE.md. Round-2 restructure + R1-R17 fixes are in CHANGES.md §42. latexdiff baseline = round-1 submitted version, so the marked PDF still shows only round-2 changes.)
 
@@ -27,16 +27,30 @@ stays; it is still the local proof copy for the one document that is still uploa
 (Round-1 letters archived in `letters/round1_archive/`, do NOT send.)
 
 NESTOR asks for a zip **containing exactly one .tex**, plus optional files. It builds the reviewer
-PDF from the zip itself, so `aanda_revised_clean.pdf` is **not uploaded** — it is our local proof.
+PDF from the zip itself, so `aa52082-24_revised_clean.pdf` is **not uploaded** — it is our local proof.
 
 | NESTOR slot | File | Notes |
 |---|---|---|
 | **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 27 pp, 0 errors, 0 undefined. |
-| Datasets | `aa52082-24_cds_members.zip` | ✅ **Resuelto (confirmado por el autor el 2026-09-14): en ronda 2 se reemplazó en NESTOR por `aa52082-24_cds_members.zip`, que es la referencia de `c_cds_claim` desde ronda 3 (`_legacy/cds_round2_submitted/cds.zip`).** Lo que sigue es el registro de por qué hizo falta: ~~The dataset currently uploaded is the wrong one.~~ NESTOR shows `cds.zip`, 81.74 Kb, which is `_legacy/cds_superseded/cds.zip` (2026-05-18): it nests everything under a `cds/` folder, carries `__MACOSX/` resource forks, and ships two files CDS does not want. The `.dat` is byte-identical to ours, so no science differs, but its ReadMe is the older one. Replace it with `aa52082-24_cds_members.zip` (ReadMe + ngc6383_members.dat at top level, 321 rows). The cover letter now discloses the two ReadMe corrections and that a replacement archive is enclosed; it previously said the package was unchanged, which would have left this one in place. ⚠ **Por qué este zip se versiona y `aa52082-24_source.zip` no**, siendo los dos indispensables: el de origen es un **artefacto regenerable** —`clean_source/` más el comando de abajo lo reconstruyen— y el de CDS es un **registro** de lo que NESTOR tiene hoy, que no se puede reconstruir desde nada de este repo. Un registro se versiona; un artefacto se regenera. Por eso `c_cds_claim` corre en CI y `c_zip` se omite allí.
 
-⚠ Do **not** delete `_legacy/cds_superseded/cds.zip` while the paper is under review: `gate.py`'s `c_cds_claim` uses it as the baseline for what NESTOR actually holds, and without it nothing can check that the letter's account of the dataset is honest. It is superseded as content, not as a record. |
+**CDS deposit is no longer a NESTOR slot.** Until 2026-09-15 this table carried a "Datasets" row
+for `aa52082-24_cds_members.zip`, uploaded to NESTOR so the journal would forward it to the CDS.
+Kept here as the record of why that replacement was needed, not deleted: NESTOR had shown `cds.zip`
+(`_legacy/cds_superseded/cds.zip`, 2026-05-18), which nested everything under a `cds/` folder,
+carried `__MACOSX/` resource forks, and shipped two files CDS does not want; the `.dat` was
+byte-identical to ours, so no science differed, but its ReadMe was the older one. The cover letter
+for that round disclosed the two ReadMe corrections and the replacement archive. ⚠ Do **not** delete
+`_legacy/cds_superseded/cds.zip` or `_legacy/cds_round2_submitted/cds.zip`: `gate.toml`'s
+`cds_claim.submitted_zip` still names the round-2 one as a record even though `c_cds_claim` itself is
+`not_applicable` now (see the note near the top of this file) -- the file staying missing would make
+that reference dangle, not the check pass differently. As of this round the CDS table is **sent
+directly to the CDS**, not via NESTOR: the ready-to-upload archive is `aa52082-24_cds_table2.zip`
+(`cds/ReadMe` + `cds/table2.dat`, flat, no `cds/` folder, no resource forks -- same lesson as above,
+applied to the new name). It is not tracked in git, for the same reason `aa52082-24_source.zip`
+isn't: both are regenerable from tracked sources (`cds/ReadMe` + `cds/table2.dat` here, `clean_source/`
+for the .tex zip) rather than records of what a third party already received.
 
-`aanda_revised_clean.pdf` (27 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
+`aa52082-24_revised_clean.pdf` (27 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.
@@ -104,7 +118,7 @@ each float relocated by the round-2 restructure leaves a struck-through caption 
 at its old position, which reads as "this figure was cut". The script removes such a span only
 when every graphic and label inside it is alive elsewhere in the *typeset* text, so a genuine
 deletion still shows. Acceptance, unchanged from CHANGES.md Sect. 47: 21 unique figures live,
-0 "??" in the compiled PDF. Round 3 (diff against the round-2 version): strips 0 spans, 31 pp.
+0 "??" in the compiled PDF. Round 3 (diff against the round-2 version): strips 0 spans, 31 pages (historical fact, not a live page count -- see the HISTORICAL note above).
 
 ## Rebuild the source zip after editing clean_source/
 ```
