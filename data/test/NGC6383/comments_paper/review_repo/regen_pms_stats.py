@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""Standalone regeneration of pms_stats.pdf (Fig. C.2), replacing the notebook
-version. Three stacked step-histogram panels of the Sagitta outputs (PMS
+"""Standalone regeneration of pms_stats.pdf (Fig. C.4), replacing the notebook
+version. Three step-histogram panels of the Sagitta outputs (PMS
 probability, log age, visual extinction A_V) for the reference sample (p>=0.6),
 split into all / PMS (>=0.6) / non-PMS (<0.6) / no-2MASS. Shares the common
-figure styling with the other regen_*.py scripts."""
+figure styling with the other regen_*.py scripts.
+
+2026-09-15 (post-acceptance layout pass): the three panels were stacked 3x1
+(upper/middle/lower), which made the appendix figure run tall and nearly bare
+on its own page. Laid out 1x3 (left/middle/right) instead, so the caption's
+"upper/middle/lower panel" wording moved to "left/middle/right panel" -- see
+aanda.tex. No hexbin or dense scatter here (step histograms only), so the
+matplotlib 3.11 rasterized-hexbin bug documented in regen_corner.py does not
+apply to this figure."""
 import numpy as np
 from astropy.table import Table
 import matplotlib; matplotlib.use("Agg")
@@ -24,7 +32,7 @@ groups = [                                            # (label, mask, color, lin
 ]
 panels = [("PMSProb", "PMS probability"), ("logAgeSag", r"$\log(\mathrm{age})$"), ("AvSag", r"$A_V$")]
 
-fig, axs = plt.subplots(3, 1, figsize=(7, 12), layout="tight")
+fig, axs = plt.subplots(1, 3, figsize=(15, 4.5), layout="tight")
 for ax, (col, xl) in zip(axs, panels):
     allv = ref[col].dropna().values
     bins = np.histogram_bin_edges(allv, bins="auto")

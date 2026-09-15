@@ -310,7 +310,12 @@ def slow_suite(gate, root: Path) -> list[str]:
         expect(fn, "ok", "sin mutar")
 
     print("lentos, mutaciones:")
-    sub(sp / "MANIFEST.md", r"\b30 pp\b", "29 pp", count=0)
+    # 27 pp desde el 2026-09-15 (pase de layout post-aceptacion: se quitaron los \clearpage
+    # entre apendices y dos figuras pasaron a \sidecaption a 0.6\textwidth). Antes eran 30 pp;
+    # la cifra se actualiza aca CADA VEZ que MANIFEST.md cambia la suya, o esta sonda deja de
+    # casar nada (re.subn con count=0 devuelve 0 reemplazos) y sale como sonda rota, no como
+    # mutacion roja.
+    sub(sp / "MANIFEST.md", r"\b27 pp\b", "26 pp", count=0)
     expect("c_manifest_pages", "fail", "el MANIFEST declara otra cuenta de páginas")
     restore()
 
