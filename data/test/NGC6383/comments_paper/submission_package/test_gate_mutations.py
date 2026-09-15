@@ -7,14 +7,18 @@ checks puede fallar** por la razón que lo justifica. Hasta 2026-09-15 esas muta
 hecho a mano, de a una, al escribir cada check, y nada las repetía.
 
 Existe para el refactor `TOOL-gate-generalize` (hub, `open-threads.md`): el gate parametrizado no
-está hecho hasta que los 26 veredictos se reproduzcan **y** estas mutaciones vuelvan a ponerse rojas
-contra él. Por eso los checks se llaman a través de un adaptador: hoy el único es `legacy`, que carga
-una copia de este `gate.py` sin modificarlo.
+estuvo hecho hasta que los 26 veredictos se reprodujeron **y** estas mutaciones se pusieron rojas
+contra el motor genérico. Por eso los checks se llaman a través de un adaptador -- `generic`, que
+carga `tools/manuscript_gate.py` y lo configura con `gate.toml`. Hasta 2026-09-15 hubo un segundo
+adaptador, `legacy`, que cargaba el `gate.py` monolítico de antes del refactor; se quitó una vez
+medida la paridad de los dos (mismo veredicto, mismo detalle, en rápido y en lento) porque `gate.py`
+ya es el shim que configura este mismo motor -- mantener `legacy` habría sido probar el motor contra
+una copia de sí mismo con otro nombre.
 
 Nunca toca el árbol trackeado. Copia `submission_package/`, `cds_final/`, `referee_round3/`, la base
-de `_legacy/` y las dos notas de `phd-kb` a un directorio temporal; el `gate.py` copiado resuelve
-`HERE` desde su propia ubicación, así que todo lo relativo apunta a la copia, y `KB_ROOT` se reasigna
-a mano porque es absoluto.
+de `_legacy/` y las dos notas de `phd-kb` a un directorio temporal, más `tools/manuscript_gate.py`
+junto al resto; el `gate.py` copiado resuelve `HERE` desde su propia ubicación, así que todo lo
+relativo apunta a la copia, y `KB_ROOT` se reasigna a mano porque es absoluto.
 
 Cada mutación exige que su ancla exista antes de mutar: una mutación que no llegó al objeto deja el
 check verde por la razón equivocada, y eso se reporta como sonda rota, no como check sordo.
@@ -93,33 +97,10 @@ def copy_over(src: Path, dst: Path) -> None:
 
 # ---------------------------------------------------------------------------------- adaptadores
 
-class Legacy:
-    """El `gate.py` de hoy, cargado desde la copia. Sus checks devuelven un bool y dejan
-    `(nombre, ok, detalle)` en `results`; una omisión queda en `skipped`."""
-
-    def __init__(self, root: Path):
-        spec = importlib.util.spec_from_file_location(
-            "gate_under_test", root / "submission_package" / "gate.py")
-        self.mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.mod)
-        kb = root / "kb"
-        self.mod.KB_NOTES = [kb / p.relative_to(self.mod.KB_ROOT) for p in self.mod.KB_NOTES]
-        self.mod.KB_ROOT = kb
-
-    def run(self, fn: str) -> tuple[str, str]:
-        n_skip = len(self.mod.skipped)
-        getattr(self.mod, fn)()
-        _, ok, detail = self.mod.results[-1]
-        if len(self.mod.skipped) > n_skip:
-            return "skip", detail
-        return ("ok" if ok else "fail"), detail
-
-
 class Generic:
     """El motor generico (`tools/manuscript_gate.py`), configurado con la copia de
     `submission_package/gate.toml`. Corre el mismo codigo que produccion -- la copia de
-    `make_copy` incluye el motor, no solo el paper -- asi que una diferencia de comportamiento
-    entre este adaptador y `Legacy` es un defecto real del refactor, no del harness."""
+    `make_copy` incluye el motor, no solo el paper."""
 
     def __init__(self, root: Path):
         engine_path = root / "tools" / "manuscript_gate.py"
@@ -141,7 +122,7 @@ class Generic:
         return ("ok" if ok else "fail"), detail
 
 
-ADAPTERS = {"legacy": Legacy, "generic": Generic}
+ADAPTERS = {"generic": Generic}
 
 
 def make_copy(dst: Path) -> Path:
@@ -265,7 +246,7 @@ def main() -> int:
     ap.add_argument("--slow", action="store_true", help="incluye los 5 checks que compilan")
     ap.add_argument("--allow-skips", action="store_true",
                     help="un check omitido no es un problema. Solo para CI, igual que en gate.py")
-    ap.add_argument("--target", choices=sorted(ADAPTERS), default="legacy")
+    ap.add_argument("--target", choices=sorted(ADAPTERS), default="generic")
     args = ap.parse_args()
 
     bad: list[str] = []
