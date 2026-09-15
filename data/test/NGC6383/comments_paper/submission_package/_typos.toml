@@ -17,4 +17,6 @@ ANID = "ANID"
 [files]
 # aa.cls, aa.bst and linenoaa.sty are vendored A&A files that must stay byte-identical, and
 # they contain LaTeX internals (the cuted package, \@Alph) that read as misspellings.
-extend-exclude = ["*.bbl", "*.bib", "Figures/", "aa.cls", "aa.bst", "linenoaa.sty", "*.log", "*.aux", "*.md", "*.py", "cds/", "marked_changes/", "round1_archive/"]
+# *.toml: added 2026-09-15 with gate.toml, the gate's own config -- a helper file in the same
+# vein as the .py scripts already excluded, written partly in Spanish, and never uploaded.
+extend-exclude = ["*.bbl", "*.bib", "Figures/", "aa.cls", "aa.bst", "linenoaa.sty", "*.log", "*.aux", "*.md", "*.py", "*.toml", "cds/", "marked_changes/", "round1_archive/"]

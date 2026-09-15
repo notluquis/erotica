@@ -1,0 +1,156 @@
+# Configuracion de NGC 6383 (aa52082-24) para tools/manuscript_gate.py.
+#
+# Todos los valores aca son copia EXACTA de las constantes y literales que gate.py traia antes del
+# 2026-09-15 (refactor TOOL-gate-generalize, hub open-threads.md). Rutas relativas a este fichero;
+# `~` se expande. Las secciones sin nombre de check propio ("kb", "linters", etc.) usan el nombre
+# corto -- el de la funcion menos el prefijo `c_` -- que es tambien el vocabulario de
+# `not_applicable`.
+
+tex = "clean_source/aanda.tex"
+marked = "marked_changes/aanda_marked.tex"
+# Ronda 3 (decision de 2026-09: minor revision). Las de ronda 2 quedan en letters/ como registro
+# de lo que se envio; el gate vigila las que se van a subir, no las ya subidas. letters[0] es la
+# carta de presentacion (la usa c_cds_claim).
+letters = [
+    "letters/cover_letter_round3.txt",
+    "letters/response_to_referee_round3.txt",
+]
+cds_dat = "../cds_final/ngc6383_members.dat"
+cds_readme = "../cds_final/ReadMe"
+local = "gate_local.py"
+
+[posterior]
+script = "check_posterior_claims.py"
+
+[register]
+# Phrases that are about how the paper argues rather than about the cluster, or that instruct
+# the reader instead of stating something. Every one was written into this manuscript during the
+# 2026-08 review and removed in Sect. 69 of CHANGES.md; the list is what that pass found, not a
+# general style opinion. It applies to the manuscript ONLY -- a response letter is legitimately
+# about how one argues, and "we now state", "our argument" belong there.
+phrases = [
+    "for our argument",
+    "should be read as such",
+    "should be read accordingly",
+    "rather than afterwards",
+    "deliberately kept apart",
+    "we make it from",
+    "requires an argument",
+    "it is worth noting",
+    "it should be emphasized",
+    "it should be emphasised",
+    "needless to say",
+    "as we have seen",
+    "in our opinion",
+    "we note two consequences",
+]
+
+[overclaim]
+# The letter may not assert more strongly than the manuscript. Not a style rule: a referee reads
+# both, and a letter that says the wider windows "demonstrably" admit contamination sends them to
+# a Sect. 3.3 that says the behavior "is consistent with" it and would require further diagnostics
+# to settle. The manuscript hedges there on purpose. Each is a claim of proof; if one is ever true
+# of this analysis it belongs in the manuscript first.
+words = [
+    "demonstrably",
+    "conclusively",
+    "definitively",
+    "unambiguously",
+    "artificially",
+    "indisputably",
+    "proves that",
+    "rules out",
+]
+
+[spelling]
+# US spelling, because the cover letter promises the editor exactly that. "towards", "whilst" and
+# "amongst" are included because A&A house style prefers the shorter forms.
+british = [
+    "analyse", "analysed", "analysing", "characterise", "characterised", "characterisation",
+    "normalise", "normalised", "normalisation", "minimise", "maximise", "optimise", "optimised",
+    "organise", "organised", "organisation", "recognise", "summarise", "summarised",
+    "emphasise", "emphasised", "parameterise", "parameterised", "marginalise", "marginalised",
+    "utilise", "utilised", "generalise",
+    "colour", "colours", "coloured", "behaviour", "favour", "neighbour", "neighbours",
+    "neighbouring", "labour",
+    "centre", "centres", "centred", "metre", "fibre",
+    "modelling", "modelled", "labelling", "labelled", "travelled", "cancelled", "signalled",
+    "fuelled", "totalled",
+    "catalogue", "catalogues", "catalogued", "dialogue", "analogue", "grey", "programme",
+    "defence", "licence", "ageing", "practise", "artefact", "artefacts", "sulphur", "aluminium",
+    "whilst", "amongst", "towards",
+]
+# The two licensed exceptions: CDS mandates the wording of the VizieR acknowledgement, and the
+# cover letter quotes the word to declare it.
+exceptions = ["VizieR", '"catalogue"']
+
+[paraphrase]
+# One fact, one phrasing. The 70 arcmin window's virtue is stated in six places -- abstract,
+# Sect. 5, Appendix D, Sect. 8.4, the conclusions and Fig. D.1's caption -- and each variant below
+# was actually written into one of them and removed, because it claims more than Appendix D
+# allows. A closed list of variants actually removed, not a style opinion.
+variants = [
+    "fully encloses the fitted profile",
+    "fully encloses the profile",
+    "genuine background annulus",
+    "genuine background level",
+    "true background annulus",
+    "real background beyond the cluster",
+    "constrain the field background",
+    "the field background beyond",
+]
+canonical = "fitted background annulus"
+
+[copies]
+# marked_changes/ carries its own copy of the bibliography and the vendored A&A class, so
+# latexdiff's output builds standalone.
+pairs = [
+    ["letters/cover_letter_round3.txt", "../referee_round3/cover_letter_round3.txt"],
+    ["letters/response_to_referee_round3.txt", "../referee_round3/response_letter.txt"],
+    ["../cds_final/ReadMe", "cds/ReadMe"],
+    ["clean_source/cites.bib", "marked_changes/cites.bib"],
+    ["clean_source/aa.cls", "marked_changes/aa.cls"],
+    ["clean_source/aa.bst", "marked_changes/aa.bst"],
+]
+
+[cds_claim]
+# Ronda 3: el autor confirmo (2026-09-14) que en ronda 2 reemplazo en NESTOR el dataset por
+# aa52082-24_cds_members.zip. Esa es ahora la referencia de lo que NESTOR tiene.
+submitted_zip = "../_legacy/cds_round2_submitted/cds.zip"
+
+[linters]
+# El 8 es el largo de guion, una regla de estilo sobre prosa cuyos casos reales ya cubre
+# DashExcpt en .chktexrc.
+accepted_dash = ["Sh 2-012"]
+
+[kb]
+root = "~/phd/kb"
+notes = [
+    "papers/2024arXiv240509145P.md",
+    "objects/ngc-6383.md",
+]
+# [label, regex en el tex (adoptado), regex en la nota (superado)]. Regex como literal strings
+# ('...'), sin doble escape.
+anchors = [
+    ["R_t", 'R_t = 54\^\{\+7\}_\{-11\}', 'R_t\s*40\.4'],
+    ["R_c", '1\.96\^\{\+0\.19\}_\{-0\.16\}', 'R_c\s*1\.95'],
+    ["age/t_rh", '0\.14', 't_rh\s*~\s*0\.19'],
+]
+
+[deliverables]
+# Los dos primeros pares son los PDF TRACKEADOS del arbol (comparados contra el build fresco de
+# _gate_build/); los tres siguientes son las copias que de verdad se suben.
+pairs = [
+    ["limpio", "clean_source/aanda.pdf"],
+    ["marcado", "marked_changes/aanda_marked.pdf"],
+    ["limpio", "aanda_revised_clean.pdf"],
+    ["marcado", "aanda_revised_marked.pdf"],
+    ["marcado", "aa52082-24_marked_changes.pdf"],
+]
+
+[zip]
+path = "aa52082-24_source.zip"
+
+[overfull]
+# El marcado carga un residuo documentado: ver MANIFEST.md / CHANGES.md. Conteo exacto, no umbral.
+allowed = { limpio = 0, marcado = 0 }
