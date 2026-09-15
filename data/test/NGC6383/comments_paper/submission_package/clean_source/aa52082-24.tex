@@ -447,14 +447,17 @@ This publication makes use of data products from the Two Micron All Sky Survey, 
 \setlength{\dblfloatsep}{8pt plus 2pt minus 2pt}
 \setlength{\intextsep}{8pt plus 2pt minus 2pt}
 
+\makeatletter
+\def\@captype{table}
+\makeatother
+\twocolumn[{%
 \section{Historical parameters of NGC 6383}\label{app:historical}
 
 Table~\ref{tab:literature} compiles the structural and fundamental parameters of NGC 6383 reported in the literature since \citet{1930LicOB..14..154T}. The wide spread of historical core and tidal radii, distances, reddenings, distance moduli, and ages, obtained with heterogeneous data and methods over nearly a century, illustrates the lack of a homogeneous determination and motivates the \textit{Gaia}-based reanalysis presented in this work. For each study we list only the quantities explicitly reported; ellipses denote parameters not provided.
 
-\begin{table*}
+\begin{center}
 \caption{Literature parameters of NGC 6383.}%
 \label{tab:literature}
-\centering
 \resizebox{\hsize}{!}{%
 \begin{tabular}{llllllllllll}
 \hline\hline
@@ -488,9 +491,9 @@ Reference & Members & Core radius & Tidal radius & Parallax & Distance & $E(B-V)
 \hline
 \end{tabular}}
 \tablefoot{For \citet{2022ApJS..262....7H}, \citet{2024arXiv240305143H}, and \citet{2024arXiv240301030P}, which publish $A_0$ or $A_V$, $E(B-V)$ is $A_V/R_V$ (or $A_0/R_V$) with $R_V=3.1$. The literature tidal radii are King tidal radii, here denoted the King outer radius $R_t$, except \citet{2005AA...438.1163K}, whose value is their empirical cluster (corona) radius; the \citet{2008AA...477..165P} value is their $r_t$ ($8.3\pm1.2$ pc at their adopted distance). The ages are not derived on a common distance scale: the distances adopted by the studies that report an age span $0.83$--$1.70\,\mathrm{kpc}$, a range of $1.6\,\mathrm{mag}$ in distance modulus, and an age obtained by placing stars on evolutionary tracks moves systematically with that choice. The listed ages should therefore be compared with the corresponding distance, not in isolation.}
-\end{table*}
+\end{center}
+}]
 
-\FloatBarrier
 \section{HDBSCAN diagnostic and ASteCA isochrone-fit corner plots}\label{app:hdbscan}
 
 This appendix documents the unsupervised-clustering diagnostics and the isochrone-fit ensemble that underpin the membership and parameter determinations of Sects.~\ref{sec:membership} and~\ref{subsec:asteca}. We first describe how the HDBSCAN configuration was selected from the proper-motion clustering sweep (Figs.~\ref{fig:min_cluster_size} and~\ref{fig:condensed_cluster_tree}), show the resulting clustering of the full sample in the proper-motion plane and on the sky (Fig.~\ref{fig:pm_overview}), and then present the joint distribution of the ASteCA isochrone fit (Fig.~\ref{fig:plot_pair_trace}).

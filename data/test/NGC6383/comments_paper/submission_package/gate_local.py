@@ -16,6 +16,27 @@ import re
 import manuscript_gate as mg
 
 
+def _table_a1_span(tex: str, i: int) -> tuple[int, int]:
+    """Start/end offsets bracketing Table A.1's own block around `\\label{tab:literature}` at i.
+
+    Table A.1 has lived in two different wrappers: a `table*` float
+    (`\\begin{table*}...\\end{table*}`) and, since the 2026-09-15 `\\twocolumn[...]` fix for the
+    "Table A.1 after Appendix B's title" defect, a non-float block that must not float past
+    Appendix A's own title (`\\begin{center}...\\end{center}`, with `\\@captype` set by hand so
+    `\\caption` works outside a float). A span anchored only to `\\begin{table`/`\\end{table`
+    silently latched onto an unrelated table (Table 1's `\\begin{table*}` before it, Table D.1's
+    `\\end{table*}` after it) the moment the wrapper changed -- wrong by hundreds of lines, not
+    caught by any assertion, just quietly comparing the wrong rows. Picking whichever wrapper is
+    *nearer* the label on each side is robust to either: the real wrapper is always the closest
+    one, and the alternative one (unused) is necessarily farther away.
+    """
+    starts = [p for p in (tex.rfind(r"\begin{table", 0, i), tex.rfind(r"\begin{center}", 0, i)) if p >= 0]
+    a = max(starts) if starts else -1
+    ends = [p for p in (tex.find(r"\end{table", i), tex.find(r"\end{center}", i)) if p >= 0]
+    b = min(ends) if ends else -1
+    return a, b
+
+
 @mg.check("Table 1 es internamente consistente")
 def c_table1():
     """Table 1 states four quantities bound by an equation, so three of them determine the fourth.
@@ -95,7 +116,7 @@ def c_literature_agreement():
     """
     tex = mg.TEX.read_text()
     i = tex.find(r"\label{tab:literature}")
-    a, b = tex.rfind(r"\begin{table", 0, i), tex.find(r"\end{table", i)
+    a, b = _table_a1_span(tex, i)
     # b is guarded too: find() returns -1 for a missing terminator, and tex[b:] is then the last
     # character of the file, which made the text-side scan run over a truncated document and pass
     # vacuously instead of reporting a malformed table.
@@ -143,8 +164,7 @@ def c_literature_span():
     """
     tex = mg.TEX.read_text()
     i = tex.find(r"\label{tab:literature}")
-    a = tex.rfind(r"\begin{table", 0, i)
-    b = tex.find(r"\end{table", i)
+    a, b = _table_a1_span(tex, i)
     if i < 0 or a < 0 or b < 0:
         return False, "no encuentro Table A.1"
     dists, aged = [], 0

@@ -2,7 +2,7 @@
 
 A&A ROUND-3 resubmission (minor revision, decision 2026-09; **paper accepted 2026-09-15**, this
 pass is the post-acceptance layout cleanup the editorial office asked for by email the same day).
-Compiles to 26 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
+Compiles to 25 pp clean / 0 errors / 0 undefined refs / 0 undefined citations. The
 clean count dropped from 30 pages to 27 in the post-acceptance pass: the three explicit `\clearpage`
 commands between appendices were removed, Figs. B.4 and C.3 moved to `\sidecaption` at
 `0.6\textwidth`, and Fig. C.4 was regenerated as a 1x3 row instead of a 3x1 column. A single
@@ -60,7 +60,8 @@ reverted. Remaining blank pages (21: 40%, Fig. B.4 + Appendix C's title and intr
 same column-backfill reason as before; 22: 34%, Figs. C.1+C.2) are the same structural floor as the
 second pass, now narrower by one page.
 
-**2026-09-15, fourth pass (independent review): 25 to 26 pp.** An outside review of the accepted,
+**2026-09-15, fourth pass (independent review): 25 to 26 pages, later reverted by the fifth pass
+below.** An outside review of the accepted,
 already-compacted manuscript found Table A.1 (`tab:literature`) landing on p. 20, in reading order
 *after* the title of Appendix B on p. 19 -- the round-3 cover letter's own promise ("Each appendix
 figure and table now appears within its own appendix") broken by the third pass above, which had
@@ -74,16 +75,65 @@ of the rendered page; (ii) a `\FloatBarrier` right before `\section{HDBSCAN diag
 the table to p. 20 (p. 19 left 85.6% blank) but lets Appendix B's title and text share p. 20 with it
 (11.6% + 23.8% blank); (iii) a `\clearpage` at the same point also reaches p. 20 but strands the
 table alone there before Appendix B starts fresh on p. 21 (64.1% + 3.8% blank) -- same page count as
-(ii), more blank. (ii) was adopted: one page more than the third pass, but the only one of the three
-that both satisfies the round-3 promise and does not spend more blank than the alternative at the
-same page count. The same pass also regenerated Fig. B.4 (`plot_pair_trace.pdf`) to prune the tick
+(ii), more blank. (ii) was adopted *at the time*: one page more than the third pass, but the only
+one of the three that both satisfies the round-3 promise and does not spend more blank than the
+alternative at the same page count. **Superseded hours later by the fifth pass below** -- (ii) never
+looked at p. 19 itself, only at where the table ended up (pp. 20-21); p. 19 was 85.6% blank, which is
+exactly the empty space the editor's instruction asked to remove, just moved one page earlier instead
+of eliminated. The same pass also regenerated Fig. B.4 (`plot_pair_trace.pdf`) to prune the tick
 labels of its bottom row and first column (`MaxNLocator(nbins=3, prune='both')`, only on the axes
 that carry a label), fixing adjacent-panel tick labels that had been rendering fused (e.g. "10.500");
-same trace data, `rasterized=True` and `dpi=300` unchanged, checked at 200 dpi. Text-only fixes from
-the same review (broken CDS URL scheme, a PyPI package name, a scope-narrowed methods sentence, an
-abbreviation-first-use cleanup, a table-footnote off-by-one between "rows" and "quantities", two
-gendered pronouns rewritten, a Spitzer, Jr. BibTeX name-field order fix, and the minor items listed
-in this repository's commit history for aa52082-24) did not move the page count on their own.
+same trace data, `rasterized=True` and `dpi=300` unchanged, checked at 200 dpi. This figure fix is
+unaffected by the fifth pass and stands as applied. Text-only fixes from the same review (broken CDS
+URL scheme, a PyPI package name, a scope-narrowed methods sentence, an abbreviation-first-use
+cleanup, a table-footnote off-by-one between "rows" and "quantities", two gendered pronouns
+rewritten, a Spitzer, Jr. BibTeX name-field order fix, and the minor items listed in this
+repository's commit history for aa52082-24) did not move the page count on their own and also stand
+as applied.
+
+**2026-09-15, fifth pass (same review, follow-up): 26 back to 25 pp, and Table A.1 no longer needs a
+page of its own.** (ii) above passed every check that was run against it, but nobody had rendered
+p. 19 and measured *it*; the editor's "remove the empty spaces" instruction caught what the gate
+script did not. Option (iv): put Appendix A's title, its one paragraph, and Table A.1 together in a
+single full-width block at the top of the appendix, using `\twocolumn[{...}]` (the same mechanism
+`\maketitle` uses to put a one-column title atop a two-column article) right after
+`\begin{appendix}\nolinenumbers`, with Table A.1 typeset as ordinary content rather than a floating
+`table*` (`\begin{center}` + `\@captype` set to `table` by hand, since `\caption` needs it and there
+is no float here to set it automatically; `\tablefoot` needs no float at all -- checked by reading
+its definition in `aa.cls` before using it, and it renders identically because it never depended on
+one). The `\FloatBarrier` from (ii) is removed: nothing floats here any more, so nothing needs
+barring. Two things had to be verified rather than assumed, and one broke on the first try: (a) the
+appendix letter must already be "A" by the time `\caption` reads it, i.e. `\section` must run before
+`\caption` inside the same block -- true here, checked against the rendered "Table A.1." (not
+"Table .1", the (i) defect from the fourth pass); (b) `\makeatletter` **does not take effect inside
+`\twocolumn[...]`'s argument** -- confirmed with a minimal `aa.cls` reproduction outside this
+document before touching the real one. `\twocolumn[#1]` grabs `#1` as a delimited macro argument,
+which tokenizes the source characters immediately, without expanding anything; `\makeatletter`'s
+catcode change is a macro *expansion*, so it never runs during that grab, and `@` is read as catcode
+12 throughout, breaking `\@captype` into `\@` plus six ordinary-text characters and producing
+`! LaTeX Error: \caption outside float.` at the end of the block regardless of where inside it
+`\makeatletter` was written. Fix: set `\@captype` in the ordinary document flow, immediately *before*
+`\twocolumn[`, not inside its argument -- `@`'s catcode is already 11 by the time the argument is
+scanned, so `\@captype` tokenizes correctly wherever it later appears inside the block, and the
+assignment survives (no group closes between the two) until `\caption` reads it. (An
+`\expandafter\def\csname @captype\endcsname{...}` form inside the argument also works, catcode-safe
+by construction, but `lacheck` flags raw `\expandafter` in a document body; the outside-the-argument
+form needs neither `\expandafter` nor `\csname` and is what shipped.) Measured result: 25 pp (one
+less than (ii), matching the pre-review page count); p. 19 (Appendix A + Table A.1 + the first
+column of Appendix B, `whitespace.py`) 14.4% blank, down from 85.6%; pp. 20-21 (rest of Appendix B)
+8.6% and 6.8%; no appendix page gained blank space relative to the original, pre-review baseline (p.
+18 22.0%, p. 22 34.4% -- both pre-existing and unrelated, the `whitespace.py` numbers match the
+baseline's pp. 18/22 exactly). `pdftotext -f/-l` confirms pp. 1-18 are byte-for-byte unchanged.
+`gate_local.py`'s `c_literature_agreement` and `c_literature_span` locate Table A.1 by scanning
+outward from `\label{tab:literature}` for `\begin{table`/`\end{table}`; with the table no longer a
+`table*` float, that anchor found nothing of its own and would have silently latched onto Table 1's
+`\begin{table*}` (before it) and Table D.1's `\end{table*}` (long after it) instead -- wrong by
+hundreds of lines, no error, just the wrong rows compared. Replaced with `_table_a1_span()`, which
+takes whichever of `\begin{table`/`\begin{center}` (and `\end{table`/`\end{center}`) is *nearer* the
+label on each side, so it tracks Table A.1 correctly regardless of which wrapper is in use. Verified
+both ways: `python3 gate.py` finds Table A.1 correctly on the live document (both checks `ok`), and
+`test_gate_mutations.py`'s existing mutations for both checks (a wrong distance, a wrong caption
+span) still turn them red -- 0 problema(s), same as before the wrapper changed.
 
 **No more marked diff, no more referee response, this round.** The paper is accepted; the editor
 asked for a clean version only, and there is no referee to answer. `gate.toml`'s `marked` key and
@@ -106,7 +156,7 @@ PDF from the zip itself, so `aa52082-24_revised_clean.pdf` is **not uploaded** �
 
 | NESTOR slot | File | Notes |
 |---|---|---|
-| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 26 pp, 0 errors, 0 undefined. |
+| **Updated source files** (mandatory) | `aa52082-24_source.zip` | aa52082-24.tex (the only .tex), aa52082-24.bbl, cites.bib, aa.cls, aa.bst, linenoaa.sty, Figures/ (21, all used). Clean version only, per the editor's instruction. Verified to compile standalone in an empty directory: 25 pp, 0 errors, 0 undefined. |
 
 **CDS deposit is no longer a NESTOR slot.** Until 2026-09-15 this table carried a "Datasets" row
 for `aa52082-24_cds_members.zip`, uploaded to NESTOR so the journal would forward it to the CDS.
@@ -125,7 +175,7 @@ applied to the new name). It is not tracked in git, for the same reason `aa52082
 isn't: both are regenerable from tracked sources (`cds/ReadMe` + `cds/table2.dat` here, `clean_source/`
 for the .tex zip) rather than records of what a third party already received.
 
-`aa52082-24_revised_clean.pdf` (26 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
+`aa52082-24_revised_clean.pdf` (25 pp) is a local copy for checking; only the files in the table above go to NESTOR. ⚠ The archive to upload is `aa52082-24_source.zip`. A byte-identical duplicate named `clean_source.zip` used to sit beside it, referenced by nothing and documented nowhere; it was deleted on 2026-08-17, because two archives with the same contents and different names is how the stale one gets uploaded the day only one of them is rebuilt.
 
 ## WORKING DIRS (NOT sent, kept for our records)
 - `clean_source/`, master LaTeX source (6 source files + Figures/ 21 used). Edit here, then rebuild the zip.
