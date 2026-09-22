@@ -50,7 +50,7 @@ Important caveats (documentation, not enforced by the metrics)
 1. SOURCE ALIGNMENT. Every probability vector passed to the metrics must be
    co-indexed: the i-th entry of each array must refer to the *same source*.
    Real pipelines drop / reorder rows (quality cuts, NaN photometry). Cross-match
-   first (see ``data/test/NGC6383/comments_paper/review_repo/cone_crossmatch.py``)
+   first (see ``paper-ngc6383-aa52082-24:review_repo/cone_crossmatch.py``)
    and pass ``ids=`` to ``build_report`` to inner-join on a shared identifier.
 2. PARAMETER-NAME NORMALIZATION. ASteCA reports ``loga`` / ``dm`` / ``Av`` /
    ``met`` (as Z); EROTICA inference reports distance in pc, linear age, etc.
@@ -64,9 +64,9 @@ Important caveats (documentation, not enforced by the metrics)
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from time import perf_counter
-from typing import Callable, Mapping, Sequence
 
 import numpy as np
 
@@ -111,7 +111,7 @@ class CalibrationCurve:
 
     bin_edges: tuple[float, ...]
     bin_centers: tuple[float, ...]
-    mean_predicted: tuple[float, ...]      # NaN in empty bins
+    mean_predicted: tuple[float, ...]  # NaN in empty bins
     empirical_frequency: tuple[float, ...]  # NaN in empty bins
     counts: tuple[int, ...]
 
@@ -161,8 +161,8 @@ class ParameterRecovery:
     truth: float
     recovered: float
     abs_error: float
-    rel_error: float   # abs_error / |truth|; NaN if truth == 0
-    z_score: float     # abs_error / uncertainty; NaN if no uncertainty given
+    rel_error: float  # abs_error / |truth|; NaN if truth == 0
+    z_score: float  # abs_error / uncertainty; NaN if no uncertainty given
 
 
 @dataclass(eq=False)  # holds numpy arrays -> element-wise __eq__ would break
@@ -205,24 +205,28 @@ class BenchmarkReport:
     def agreement_table(self):
         import pandas as pd
 
-        return pd.DataFrame(
-            {
-                "method_a": a.method_a,
-                "method_b": a.method_b,
-                "jaccard": a.jaccard,
-                "overlap_coefficient": a.overlap_coefficient,
-                "cohen_kappa": a.cohen_kappa,
-                "spearman_r": a.spearman_r,
-                "pearson_r": a.pearson_r,
-                "auc_a_scores_b": a.auc_a_scores_b,
-                "auc_b_scores_a": a.auc_b_scores_a,
-                "tp": a.tp,
-                "fp": a.fp,
-                "fn": a.fn,
-                "tn": a.tn,
-            }
-            for a in self.agreements
-        ) if self.agreements else pd.DataFrame()
+        return (
+            pd.DataFrame(
+                {
+                    "method_a": a.method_a,
+                    "method_b": a.method_b,
+                    "jaccard": a.jaccard,
+                    "overlap_coefficient": a.overlap_coefficient,
+                    "cohen_kappa": a.cohen_kappa,
+                    "spearman_r": a.spearman_r,
+                    "pearson_r": a.pearson_r,
+                    "auc_a_scores_b": a.auc_a_scores_b,
+                    "auc_b_scores_a": a.auc_b_scores_a,
+                    "tp": a.tp,
+                    "fp": a.fp,
+                    "fn": a.fn,
+                    "tn": a.tn,
+                }
+                for a in self.agreements
+            )
+            if self.agreements
+            else pd.DataFrame()
+        )
 
     def recovery_table(self):
         import pandas as pd
@@ -245,9 +249,7 @@ class BenchmarkReport:
     def runtime_table(self):
         import pandas as pd
 
-        return pd.DataFrame(
-            [{"method": m.name, "runtime_s": m.runtime_s} for m in self.methods]
-        )
+        return pd.DataFrame([{"method": m.name, "runtime_s": m.runtime_s} for m in self.methods])
 
 
 # ---------------------------------------------------------------------------
@@ -525,9 +527,7 @@ def build_report(
             else _as_member_mask(probs, threshold)
         )
         calib = (
-            compute_calibration(probs, truth_membership, n_bins=n_bins)
-            if truth_available
-            else None
+            compute_calibration(probs, truth_membership, n_bins=n_bins) if truth_available else None
         )
         recov: tuple[ParameterRecovery, ...] = ()
         if truth_params is not None and name in recovered_params:
@@ -618,7 +618,7 @@ def run_asteca_membership(
     """Run ASteCA membership and return (probabilities, seconds).
 
     ASteCA 0.6+ builds an ``asteca.Cluster`` (see
-    ``data/test/NGC6383/comments_paper/review_repo/run_asteca069.py`` for the
+    ``paper-ngc6383-aa52082-24:review_repo/run_asteca069.py`` for the
     Cluster/Isochrones/Synthetic surface actually used in this repo). The
     *membership* entry point (fastMP / Membership) is **not** exercised anywhere
     in this codebase and its exact signature is UNVERIFIED here.
@@ -628,8 +628,9 @@ def run_asteca_membership(
     wiring the version you actually have installed, e.g.::
 
         def memb(ac, clu):
-            m = ac.Membership(clu)         # verify against your ASteCA version
-            return m.fastmp()              # returns per-source probabilities
+            m = ac.Membership(clu)  # verify against your ASteCA version
+            return m.fastmp()  # returns per-source probabilities
+
 
         probs, secs = run_asteca_membership(cluster_kwargs=..., membership_fn=memb)
     """
@@ -668,16 +669,12 @@ def run_pyupmask_membership(
 
         df = pd.read_csv(results_path)
         if prob_column not in df.columns:
-            raise KeyError(
-                f"Column {prob_column!r} not in pyUPMASK output {list(df.columns)}."
-            )
+            raise KeyError(f"Column {prob_column!r} not in pyUPMASK output {list(df.columns)}.")
         return np.asarray(df[prob_column], dtype=float), perf_counter() - t0
     if membership_fn is not None:
         _require_pyupmask()  # ensure the dependency is present before calling
         return np.asarray(membership_fn(), dtype=float), perf_counter() - t0
-    raise ValueError(
-        "Provide either results_path (a pyUPMASK output file) or membership_fn."
-    )
+    raise ValueError("Provide either results_path (a pyUPMASK output file) or membership_fn.")
 
 
 __all__ = [
@@ -695,4 +692,3 @@ __all__ = [
     "run_erotica",
     "run_pyupmask_membership",
 ]
-

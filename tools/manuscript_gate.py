@@ -15,6 +15,11 @@ What did NOT move: the four checks that only make sense for NGC 6383 (Table 1's 
 consistency, the two literature-table cross-checks, the catalogue-derived numbers) stay in
 that paper's own `gate_local.py`, loaded through the `local` key in its toml.
 
+This is the canonical copy. The NGC 6383 paper repo (`paper-ngc6383-aa52082-24`, extracted
+2026-09-22) vendors a copy of this file verbatim, pinned by commit + sha256 in its own
+`tools/VENDORED.toml` -- editing this engine here does not update that copy until it is
+re-vendored on purpose.
+
 Usage (from a paper's own `gate.py` shim, never by running this file directly)
 -------------------------------------------------------------------------------
     import manuscript_gate as mg

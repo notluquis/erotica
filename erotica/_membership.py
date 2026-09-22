@@ -25,7 +25,7 @@ camino                                       columnas que quedan en ``clustering
 con ``if umbral is not None and columna in table.colnames``, o sea si la columna no estaba **se
 saltaban el filtro y devolvían la tabla entera sin decir nada**. Medido ejercitando
 :func:`erotica.selection.census_detectability_from_members` sobre
-``data/test/NGC6383/comments_paper/cluster_data.ecsv`` —331 filas, salida de ``search()``, sin
+``paper-ngc6383-aa52082-24:cluster_data.ecsv`` —331 filas, salida de ``search()``, sin
 columna ``probability``— con ``probability_threshold=0.6``:
 
 ===============================  =======================

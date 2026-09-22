@@ -19,7 +19,8 @@ FDP under a real halo and an FDP that climbs to 1 with radius give the *same* gl
 
 WHAT THE ESTIMATOR ACTUALLY CONSUMES -- WRITTEN DOWN BEFORE ANY NUMBER WAS LOOKED AT
 -----------------------------------------------------------------------------------
-The production membership (``ngc6383_radius_robustness.run_radius``) is
+The production membership (``ngc6383_radius_robustness.run_radius``, now at
+``paper-ngc6383-aa52082-24:validation/ngc6383_radius_robustness.py``) is
 
     branch(HDBSCAN sweep over pmra,pmdec)  AND  p~ >= 0.6  AND  parallax in sigma-clip band
 

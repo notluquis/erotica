@@ -1,20 +1,28 @@
-# comments_paper/ — NGC 6383 A&A revision workspace (aa52082-24)
+# Moved
 
-Round-2 state (2026-07). Map:
+The NGC 6383 A&A manuscript (aa52082-24) and its review/validation tooling moved to their own
+public repository on 2026-09-22:
 
-- submission_package/  — THE deliverables: clean_source/ (master LaTeX),
-  marked_changes/ (latexdiff vs round-1), PDFs, source zip, letters/, MANIFEST.md
-  (upload checklist), CHANGES.md (full changelog).
-- referee_round2/      — round-2 report, response letter, cover letter, backup.
-- review_repo/         — figure factory (regen_*.py), published posteriors
-  (idata_*.nc), round-1 audit notes (0*.md), provenance scripts.
-- radius_robustness/   — per-radius (40/50/60/70') production samples + dill.
-- clustering_audit/    — membership audit exports (feeds the COSMIC methods paper).
-- cds_final/           — authoritative 321-source member catalog.
-- hd159176_gaia_quality/, rauw_halpha/ — special-case analyses used in the text.
-- 6383_old_paper/      — original 2024 submission (historical record).
-- cluster_data.ecsv    — LIVE input: Sagitta columns for the CDS catalog
-  (ngc6383_generate_cds_table.py). Do not remove despite its age.
-- _legacy/             — archived pre-referee / superseded material (see its README).
+**https://github.com/notluquis/paper-ngc6383-aa52082-24**
 
-Authoritative member catalog: cds_final/ngc6383_members.ecsv (321; Ref==1 = 254).
+That repo carries `submission_package/`, `cds_final/`, `referee_round2/`, `referee_round3/`,
+`review_repo/`, this directory's former top-level files, and `validation/ngc6383_*.py`
+(extracted from `erotica/tools/validation/`).
+
+The full commit history of everything that used to live here is preserved in this repo
+(`erotica`) up to the tag `p01-pre-extraction`. The mapping from each old commit SHA in this
+history to its new SHA in the paper repo is recorded there, at
+`provenance/erotica-commit-map.txt`.
+
+The raw input data this manuscript's figures and tables were built from —
+`data/test/NGC6383/ASteCA/`, `MIST/`, `PARSEC/`, `Tex_File/`, `25/`, `data/`,
+`comparison_database/`, `NGC6383_DSS2-red.fits`, `optuna_study.db` — stays in **this** repo,
+because `erotica`'s own figure-regeneration and validation scripts (`tools/validation/*.py`,
+`tools/probes/*.py`, `tools/prototypes/*.py`) read it by path. Only the manuscript source,
+referee correspondence, and its dedicated review/validation tooling moved.
+
+A handful of ignored/untracked files under this directory (`_legacy/`, `radius_robustness/generated/`,
+`clustering_audit/generated/`, `6383_old_paper/`, `submission_package/*.zip`,
+`submission_package/**/_gate_build/`) were never tracked here and were left on disk rather than
+copied or deleted, since some of `erotica`'s own scripts still read the gitignored
+`radius_robustness/generated/` outputs at runtime.

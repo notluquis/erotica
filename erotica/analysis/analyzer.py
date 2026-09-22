@@ -78,7 +78,8 @@ class ClusterAnalyzer:
             sidecar silently shadowing an edited catalogue is a worse bug than
             the redundant read. To load a pickle, pass the ``.dill`` path itself
             as `file_obj`; to write one, call :func:`dill.dump` yourself, which
-            is what ``tools/validation/ngc6383_radius_robustness.py`` does.
+            is what ``ngc6383_radius_robustness.py`` does (now at
+            ``paper-ngc6383-aa52082-24:validation/ngc6383_radius_robustness.py``).
         search_method : str, default "optuna"
             Stored for the :class:`~erotica.core.Clustering` instances this
             object builds on demand, notably in :meth:`clusters_summary` when no

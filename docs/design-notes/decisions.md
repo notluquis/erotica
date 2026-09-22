@@ -10,6 +10,49 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-09-22 — El paper NGC 6383 (aa52082-24) sale del repo del paquete
+
+**Symptom.** `data/test/NGC6383/comments_paper/` (181 ficheros trackeados) y ocho
+`tools/validation/ngc6383_*` vivían dentro de `erotica`, el repo de un paquete Python instalable,
+junto al manuscrito A&A ya aceptado y su correspondencia con el referí. Un paquete publicado en
+PyPI no necesita cargar el LaTeX ni las cinco rondas de revisión de un paper concreto, y un
+manuscrito público no necesita el historial completo de un paquete en desarrollo.
+
+**Cause.** El paper se escribió y revisó dentro del mismo árbol que el paquete porque ahí estaban
+los datos y los scripts de análisis; nunca se separó tras la aceptación (`aa52082-24`, 2026-09).
+
+**Fix.** Extraído con historia filtrada (`git filter-repo`, sobre un clon, sin tocar la historia de
+`erotica`) al repo público `github.com/notluquis/paper-ngc6383-aa52082-24`, etiquetando el commit de
+partida acá como `p01-pre-extraction`. En `erotica`: `git rm -r` de `comments_paper/` (181
+ficheros) y de los ocho `tools/validation/ngc6383_*`, y de `.github/workflows/manuscript.yml` (CI
+que sólo verificaba ese manuscrito). Se dejó una lápida
+(`data/test/NGC6383/comments_paper/README.md`) apuntando al repo nuevo. `tools/manuscript_gate.py`
+**no se movió**: el repo nuevo lo vendoriza tal cual, con commit + sha256 declarados en su propio
+`tools/VENDORED.toml`, porque un submódulo habría arrastrado ~306 MB de historia sin filtrar.
+
+Lo que quedó en disco sin tocar, por ser ignorado/no trackeado y seguir siendo leído en tiempo de
+ejecución por scripts de `erotica` (`tools/validation/*.py`, `tools/probes/*.py`): `_legacy/`,
+`radius_robustness/generated/`, `clustering_audit/generated/`, `6383_old_paper/`, los `.zip` de
+`submission_package/`, y `review_repo/idata_king_cone70_modpriors.nc` (vía el patrón `*.nc` del
+`.gitignore`). Tres lecturas en tiempo de ejecución sí quedaron rotas y no se tocaron, a propósito
+(no es la extracción la que debe repararlas): `tools/validation/parallax_clip_selection_function.py`
+y `tools/prototypes/rederive_kalari_ctts.py` leían `cds_final/ngc6383_members.ecsv`, que estaba
+trackeado y se fue con el resto; `tools/probes/provenance_is_wired.py` recorre
+`comments_paper/review_repo/`, que también se fue entero.
+
+**Oracle.** El repo nuevo pasó su propio CI (`Manuscript`) en verde en su primer push. Acá,
+`python3 -m pytest tests/ -q` no debe mencionar NGC 6383, `comments_paper` ni `manuscript_gate`
+como causa de fallo — medido antes de la extracción: `tests/` tenía cero fixtures bajo
+`comments_paper/`, `erotica/` sólo lo citaba en docstrings, y `MANIFEST.in` ya excluía `data/`
+del sdist. Registrado internamente en el hub de investigación.
+
+**Número que se movió.** 181 + 8 + 1 = 190 ficheros trackeados salieron de `erotica` en este commit.
+El repo nuevo declara `sha256 = 61bed38c1767942b142e6b031039dafad9933559967222919d76fe813c087dbb`
+para su copia vendorizada de `tools/manuscript_gate.py`, igual al `shasum -a 256` de la copia que
+se queda acá.
+
+---
+
 ## 2026-08-26 — La rama Gamma-sobre-`r_med_geo` queda retirada, no borrada
 
 **Symptom.** `distance_model` sin `distance_lo_column`/`distance_hi_column` ajusta una `Gamma` a los

@@ -217,8 +217,9 @@ EFF slope, `γ = 2.32 ± 0.21`, with a scale radius `a = 1.65 ± 0.38′`, plus 
 
 `king_unbinned(completeness=)` folds a radial detection probability into the normalisation, and on
 synthetic data ignoring one inflates `R_c` by 50% and halves the central density. Applying it to the
-real cluster is `tools/validation/ngc6383_selection_function.py`. Two things are settled; one is
-blocked.
+real cluster is `ngc6383_selection_function.py`, now at
+`paper-ngc6383-aa52082-24:validation/ngc6383_selection_function.py`. Two things are settled; one
+is blocked.
 
 **Settled, and resolution-independent: magnitude incompleteness is not the dominant effect here.**
 The Gaia DR3 selection function at this position is correctly magnitude-sensitive —

@@ -236,7 +236,8 @@ def sigma_clip_parallax(
            of this function reaches 254**.
 
            The published 254 comes from a *different code path* —
-           ``tools/validation/ngc6383_radius_robustness.py``, which calls
+           ``ngc6383_radius_robustness.py``, now at
+           ``paper-ngc6383-aa52082-24:validation/ngc6383_radius_robustness.py``, which calls
            ``astropy.stats.sigma_clip`` on the raw parallax with
            ``cenfunc=histogram_mode, stdfunc="std"``, ``sigma=2`` and ``maxiters`` left at
            astropy's implicit 5. This function never calls astropy, so the estimators differ

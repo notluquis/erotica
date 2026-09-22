@@ -7,7 +7,7 @@
 
 | file | version | date | origin |
 |---|---|---|---|
-| `aa.cls` | **9.4** | 2025/11/27 | copied from the NGC 6383 submission package (`comments_paper/submission_package/clean_source/`) |
+| `aa.cls` | **9.4** | 2025/11/27 | copied from the NGC 6383 submission package (`paper-ngc6383-aa52082-24:submission_package/clean_source/`) |
 | `aa.bst` | — | — | same |
 | `linenoaa.sty` | — | — | same |
 

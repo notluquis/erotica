@@ -44,7 +44,7 @@ from erotica.analysis.inference import (  # noqa: E402
 )
 
 NGC = RAIZ / "data/test/NGC6383"
-# La ruta y el corte del ajuste publicado, iguales a `comments_paper/review_repo/convergence_audit.py`.
+# La ruta y el corte del ajuste publicado, iguales a `paper-ngc6383-aa52082-24:review_repo/convergence_audit.py`.
 REF = NGC / "comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv"
 CLU = NGC / "data/40/clustering_results.ecsv"
 ESCALAS = (0.025, 0.0375, 0.05, 0.075, 0.10, 0.15, 0.20)

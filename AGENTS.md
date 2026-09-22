@@ -1,11 +1,12 @@
 # EROTICA — repo guidance
 
 Python package `erotica/` (clustering, isochrone, dynamics, kinematics,
-photometry, structure, analysis) **plus** the full source of the NGC 6383 A&A
-paper (aa52082-24) under `data/test/NGC6383/`. Remote: `notluquis/erotica`,
-working branch `dev`. (Renamed COSMIC→EROTICA 2026-07-21 — package, import, PyPI
-dist, GitHub repo, and the working dir `/Users/notluquis/COSMIC` →
-`/Users/notluquis/erotica`.)
+photometry, structure, analysis). `data/test/NGC6383/` holds the raw input data
+and figure-regeneration harness for the NGC 6383 A&A paper (aa52082-24) — the
+manuscript itself and its review/validation tooling moved to their own public
+repo on 2026-09-22 (see Landmines). Remote: `notluquis/erotica`, working branch
+`dev`. (Renamed COSMIC→EROTICA 2026-07-21 — package, import, PyPI dist, GitHub
+repo, and the working dir `/Users/notluquis/COSMIC` → `/Users/notluquis/erotica`.)
 
 Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 `--add-dir`): `~/phd/PIPELINE.md` (state), `~/phd/ROADMAP.md` (plan),
@@ -42,14 +43,21 @@ the row that replaced it.
 - **~30 files hardcode `/Users/notluquis/erotica/...`** (paper figure regen). They
   were rewritten during the 2026-07-21 dir move; if this dir moves again, rewrite
   them in the same pass or they all break.
-- **Paper source of truth:**
-  `data/test/NGC6383/comments_paper/submission_package/clean_source/aanda.tex`.
-  An older working copy sits at `data/test/NGC6383/Tex_File/aanda.tex` — don't
-  edit that one by mistake. (The legacy `Tex_File/NGC6383_manuscript.tex` was
-  retired in the analysis-layer migration; state tagged
-  `ngc6383-aanda-resubmission`.)
-- `data/test/NGC6383/` is ~3.1 GB and committed to the repo (paper repro
-  artifacts, hardcoded paths). Reproducibility tag: `ngc6383-aanda-resubmission`.
+- **Paper moved 2026-09-22:** the manuscript, referee rounds, and
+  review/validation tooling formerly under `data/test/NGC6383/comments_paper/`
+  are now in `notluquis/paper-ngc6383-aa52082-24` (public). This repo's history
+  keeps everything up to the `p01-pre-extraction` tag; a tombstone is at
+  `data/test/NGC6383/comments_paper/README.md`. An old, untouched working copy
+  of the tex still sits at `data/test/NGC6383/Tex_File/aanda.tex` — it was never
+  the source of truth; don't edit it by mistake. `tools/manuscript_gate.py`
+  stays here (the new repo vendors a pinned copy). Three scripts here read paths
+  under the removed `comments_paper/` tree at runtime and are now broken by the
+  move, left broken on purpose — see the 2026-09-22 entry in
+  `docs/design-notes/decisions.md`.
+- `data/test/NGC6383/` is still ~3.1 GB on disk (ASteCA/MIST/PARSEC inputs,
+  `Tex_File/`, hardcoded paths — plus ~730 MB of never-tracked leftovers under
+  the tombstoned `comments_paper/` that erotica's own scripts still read).
+  Reproducibility tag for the pre-extraction state: `ngc6383-aanda-resubmission`.
 - **pre-commit is broken here:** the `nbstripout` hook chokes on the large
   working-tree stash and can revert unstaged changes into a `.cache/pre-commit/`
   patch. Commit with `git commit --no-verify` until the hook is fixed

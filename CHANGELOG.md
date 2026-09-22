@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **The NGC 6383 (aa52082-24) manuscript and its review tooling moved to their own public repo**,
+  `github.com/notluquis/paper-ngc6383-aa52082-24` (2026-09-22): `data/test/NGC6383/comments_paper/`
+  (181 tracked files), the eight `tools/validation/ngc6383_*` scripts, and the
+  `manuscript.yml` CI workflow that checked only that paper. `erotica`'s own git history is
+  unchanged; everything that left is preserved up to the `p01-pre-extraction` tag, with a commit
+  map in the new repo. `tools/manuscript_gate.py` stays here — the new repo vendors a pinned copy.
+  See `docs/design-notes/decisions.md` (2026-09-22 entry) for what stayed on disk unpublished and
+  which runtime reads it left broken (none in `tests/` or the package itself).
+
 ### Removed — BREAKING
 - **`dill_cache` is gone from `ClusterAnalyzer`, `load_dataset` and `_load_from_path`.** It was
   never a cache: it wrote `path.with_suffix(".dill")`, while the read fired only when the

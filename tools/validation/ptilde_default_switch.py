@@ -29,7 +29,8 @@ THE FINDING THAT REFRAMES THE QUESTION -- READ BEFORE THE NUMBERS
 -----------------------------------------------------------------
 ``recovery_frequency="target"`` is computed inside the ``if select_cluster:`` branch of
 ``Clustering._annotate_pseudoprobability_results``. **The production NGC 6383 recipe passes
-``select_cluster=False``** (``ngc6383_radius_robustness.run_radius`` line 212; ``b1_beyond_jacobi``
+``select_cluster=False``** (``ngc6383_radius_robustness.run_radius`` line 212, now at
+``paper-ngc6383-aa52082-24:validation/ngc6383_radius_robustness.py``; ``b1_beyond_jacobi``
 ``run_pipeline`` likewise). So flipping the shipped default today is a **no-op for the published
 pipeline**: ``probability`` would still be ``probabilities_ * f_any``. The question is therefore
 not "should the default move" but "moving it is inert until the wiring changes -- here is what it
