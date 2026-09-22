@@ -13,7 +13,8 @@ which GitHub renders as a *Cite this repository* button.
 **Every archived version is citable two ways.** The concept DOI
 [`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959) always resolves to the latest
 *archived* version — cite it for "whichever version I ran." Each archived version also gets its
-own version DOI to pin one exactly; v0.1.0's (released 2026-08-03) is
+own version DOI to pin one exactly: v0.2.0 (released 2026-09-22) is
+[`10.5281/zenodo.22905324`](https://doi.org/10.5281/zenodo.22905324), and v0.1.0 (2026-08-03) is
 [`10.5281/zenodo.21769960`](https://doi.org/10.5281/zenodo.21769960). `CITATION.cff`'s `version`
 and `doi` fields are the source of truth for which one is current.
 

@@ -306,7 +306,7 @@ If EROTICA contributes to work you publish, please cite it. Machine-readable met
 
 The DOI above is the **concept** DOI and always resolves to the latest archived version — cite it
 if you want "whichever version I ran." Every archived version also gets its own **version** DOI
-to pin one exactly; v0.1.0's is `10.5281/zenodo.21769960`. `CITATION.cff` is the source of truth
+to pin one exactly: v0.2.0's is `10.5281/zenodo.22905324` and v0.1.0's is `10.5281/zenodo.21769960`. `CITATION.cff` is the source of truth
 for which version DOI matches which release. The author field is spelled to match
 `CITATION.cff` — it read `Pulgar, Lucas M.` until 2026-08-04, so the two files disagreed on the
 family name and would have produced two different citations for one release.
