@@ -11,13 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`IsochroneFitter`: the model Hess had no stars brighter than the window's faint end minus the
   distance modulus.** The precomputed grid was binned in absolute magnitudes on the apparent
   window and then shifted by the full `dm + k_G A_V`; on NGC 6383 the model put zero mass
-  brighter than G = 17, where 137 of 254 members sit, and NUTS stalled against the prior walls
+  brighter than G = 17, where 129 of 254 members sit, and NUTS stalled against the prior walls
   (R-hat 1.5-2.2). The grid is now binned in a padded reference apparent frame and shifted by the
   offset. Also: the grid interpolates between isochrone nodes instead of snapping to the nearest
   one (d loglike / d met was exactly zero at 283 of 300 prior points), the two members on the
   histogram's upper edges are no longer dropped, grid caches from the old frame are refused, and
-  priors wider than the grid's padding raise. NUTS now converges on NGC 6383 (4 chains, R-hat
-  <= 1.0021, ESS_bulk >= 2523, 0 divergences).
+  priors wider than the grid's padding raise. NUTS now passes the convergence gate on NGC 6383
+  at the default grid reference (4 chains, R-hat <= 1.0021, ESS_bulk >= 2523, 0 divergences) --
+  but that pass is reference-dependent (the same fit with the grid's internal reference moved
+  half a bin gives R-hat 1.03, ESS 152) and not robust on synthetic data (6 of 16 runs fail it).
 
 ### Known issue
 - **`IsochroneFitter` is experimental and its parameters are biased.** Injection-recovery shows

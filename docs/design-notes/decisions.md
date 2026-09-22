@@ -23,7 +23,7 @@ multimodality.
 the isochrone in the **absolute** frame (dm = 0, A_V = 0) on the **apparent** observed window
 (G 5.1-20.7), and `_shift_histogram` then moved it by the whole `dm + k_G A_V` (about 11.4 mag).
 Only stars with G_abs inside the apparent window survived: at (Z 0.015, loga 6.55, dm 10.3,
-A_V 1.24) the model had **zero** mass brighter than G = 17.0, where **137 of the 254** members sit.
+A_V 1.24) the model had **zero** mass brighter than G = 17.0, where ~~137~~ **129 of the 254** members sit (137 was a mis-sum in the first version of this entry, commit `e79c42f`; the sidecar's `frame` stage gives 129).
 Only `bg` and the prior walls could absorb them, which is exactly where the June trace sat: dm
 9.54 (wall 9.5), A_V 0.58 (wall 0.5), bg 0.38 per bin against a HalfNormal(0.2) prior.
 
@@ -57,7 +57,8 @@ the 2 edge stars, so they see 252):
 
 The frame is what turns a stuck sampler into a mixing one; the node interpolation is what gets it
 through the 1.01 / 400 gate. With both, 254 stars and 4 chains: R-hat <= 1.0021, ESS_bulk >= 2523,
-0 divergences, E-BFMI 0.77-0.93. (The same configurations run from throw-away scripts gave R-hat
+0 divergences, E-BFMI 0.77-0.93 -- **at the default grid reference only**: moving the reference
+half a bin gives R-hat 1.03 (below), so this pass is not a convergence certificate for the model. (The same configurations run from throw-away scripts gave R-hat
 2.08 and 1.0045 for the first and fourth rows: numpyro runs are not bit-reproducible here, the
 verdicts are.)
 

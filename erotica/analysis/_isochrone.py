@@ -411,11 +411,12 @@ class IsochroneFitter:
     extinction, magnitude-sorted error model) without any dependency on ASteCA.
 
     .. warning::
-       **Experimental -- do not quote its parameters as measurements.** Since
-       2026-09-22 NUTS converges on real data, but the likelihood is built by
-       shifting a *precomputed* Hess grid and interpolating between isochrone
-       nodes, and injection-recovery shows the posterior locking onto the grid's
-       reference ``(dm_mu, mean(Av_range))`` and onto metallicity nodes. See
+       **Experimental -- do not quote its parameters as measurements.** The
+       likelihood is built by shifting a *precomputed* Hess grid and
+       interpolating between isochrone nodes, so it depends on the grid's
+       internal reference: injection-recovery shows the posterior locking onto
+       ``(dm_mu, mean(Av_range))`` and onto metallicity nodes, and whether NUTS
+       passes its convergence gate depends on that reference too. See
        ``docs/design-notes/decisions.md`` (2026-09-22) and the two strict-xfail
        tests in ``tests/test_isochrone.py``.
 
@@ -780,7 +781,7 @@ class IsochroneFitter:
         ``dm + k_G A_V`` (about 11.4 mag, 12 bins, for NGC 6383). Only stars with
         ``G_abs`` inside the apparent window -- ``G_abs > 5.1`` there, i.e. low-mass PMS
         stars -- survived; after the shift the model put **zero** mass brighter than
-        G = 17.0, where 137 of the 254 observed members sit. The only terms able to
+        G = 17.0, where 129 of the 254 observed members sit. The only terms able to
         absorb those stars were ``bg`` and the prior walls: the archived NUTS refit
         (2026-06-11) sat at ``dm`` = 9.54 against a 9.5 wall, ``A_V`` = 0.58 against 0.5,
         ``bg`` = 0.38 per bin against a HalfNormal(0.2) prior, with R-hat 1.5-2.2.

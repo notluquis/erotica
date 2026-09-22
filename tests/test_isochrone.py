@@ -1238,7 +1238,7 @@ def test_los_ejemplos_de_docstring_pasan_los_argumentos_que_el_metodo_exige():
 #
 # 1. FRAME. The grid was binned in the absolute frame (dm = 0, A_V = 0) on the *apparent*
 #    observed window and then shifted by the whole dm + k_G A_V: only stars with G_abs inside
-#    the apparent window survived, so the model had zero mass brighter than G = 17 while 137
+#    the apparent window survived, so the model had zero mass brighter than G = 17 while 129
 #    of the 254 members sit there.
 # 2. STAIRCASE. Each regular grid point took the nearest file isochrone, so adjacent slices
 #    were identical and d loglike / d met was exactly zero at 283 of 300 prior points.
@@ -1460,6 +1460,8 @@ def _toy_loglike(f, met, loga, dm, Av, scale=400.0):
 @requires_bayes_extra
 @pytest.mark.xfail(
     strict=True,
+    # only the assertion counts as "defect still present": a crash (import, API change) must fail
+    raises=AssertionError,
     reason=(
         "OPEN DEFECT (2026-09-22): shifting a precomputed histogram bilinearly is not binning "
         "shifted stars. The likelihood depends on the grid's internal reference: on NGC 6383 a "
@@ -1487,6 +1489,8 @@ def test_likelihood_does_not_depend_on_the_internal_reference_frame(tmp_path):
 @pytest.mark.slow
 @pytest.mark.xfail(
     strict=True,
+    # only the assertion counts as "defect still present": a crash (import, API change) must fail
+    raises=AssertionError,
     reason=(
         "OPEN DEFECT (2026-09-22): the posterior locks onto the grid's reference (dm_mu, "
         "mean(Av_range)) and onto isochrone metallicity nodes, so an injected truth off the "
