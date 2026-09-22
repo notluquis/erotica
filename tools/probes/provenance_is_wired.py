@@ -30,7 +30,8 @@ import tempfile
 RAIZ = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
 
-REVIEW = RAIZ / "data/test/NGC6383/comments_paper/review_repo"
+# review_repo/ se movio con el paper a github.com/notluquis/paper-ngc6383-aa52082-24 (2026-09-22).
+REVIEW = pathlib.Path.home() / "paper-ngc6383-aa52082-24" / "review_repo"
 ENTRADA = (
     RAIZ
     / "data/test/NGC6383/comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv"

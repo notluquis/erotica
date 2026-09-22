@@ -61,15 +61,14 @@ import json
 from pathlib import Path
 
 import numpy as np
-from astropy import units as u
 from astropy.stats import biweight_location, biweight_scale
 from astropy.table import QTable
 
 from erotica.analysis._clipping import sigma_clip_parallax
 
-MEMBERS = Path(
-    "/Users/notluquis/erotica/data/test/NGC6383/comments_paper/cds_final/ngc6383_members.ecsv"
-)
+# El paper y su catalogo se movieron a su propio repo el 2026-09-22 (github.com/notluquis/
+# paper-ngc6383-aa52082-24); se lee desde ese clon hermano.
+MEMBERS = Path.home() / "paper-ngc6383-aa52082-24" / "cds_final" / "ngc6383_members.ecsv"
 TRUE_PARALLAX = 0.90  # mas; ~1.11 kpc, the published NGC 6383 distance regime
 
 
@@ -86,8 +85,15 @@ def _clip_raw(plx, mag, sigma):
     """The pipeline's actual cut: sigma clip on the raw parallax column."""
     tab = QTable({"parallax": plx, "cluster": np.zeros(len(plx), dtype=np.int64)})
     _lo, _hi, _copy, keep, _noise = sigma_clip_parallax(
-        tab, cluster=0, sigma=sigma, use_biweight=True, in_place=False,
-        mark_label=-1, print_results=False, return_mask=True, preselector_mask=None,
+        tab,
+        cluster=0,
+        sigma=sigma,
+        use_biweight=True,
+        in_place=False,
+        mark_label=-1,
+        print_results=False,
+        return_mask=True,
+        preselector_mask=None,
     )
     return np.asarray(keep, dtype=bool)
 
@@ -115,7 +121,7 @@ def run(n_real=400, sigma=2.0, seed=20260727, intrinsic=0.0):
     keep_norm = np.zeros((n_real, n), dtype=bool)
     for i in range(n_real):
         truth = TRUE_PARALLAX + (rng.normal(0, intrinsic, n) if intrinsic else 0.0)
-        obs = truth + rng.normal(0, err)          # every star IS a member
+        obs = truth + rng.normal(0, err)  # every star IS a member
         keep_raw[i] = _clip_raw(obs, mag, sigma)
         keep_norm[i] = _clip_normalized(obs, err, sigma)
 
@@ -136,7 +142,10 @@ def run(n_real=400, sigma=2.0, seed=20260727, intrinsic=0.0):
         "median_e_plx_by_quartile": [float(np.median(err[q == k])) for k in range(4)],
         "median_gmag_by_quartile": [float(np.median(mag[q == k])) for k in range(4)],
         "raw_clip": {"overall_retention": raw_overall, "retention_by_gmag_quartile": raw_q},
-        "normalized_clip": {"overall_retention": norm_overall, "retention_by_gmag_quartile": norm_q},
+        "normalized_clip": {
+            "overall_retention": norm_overall,
+            "retention_by_gmag_quartile": norm_q,
+        },
         "gradient_raw": float(raw_q[0] - raw_q[3]),
         "gradient_normalized": float(norm_q[0] - norm_q[3]),
     }
@@ -155,17 +164,23 @@ def main():
     print(f"NGC 6383 members: {res['n_stars']} stars, {res['n_realizations']} realizations")
     print("Every simulated star is a TRUE MEMBER -> any rejection is a false rejection.\n")
     print(f"{'':22s} {'overall':>8s} {'Q1 bright':>10s} {'Q2':>7s} {'Q3':>7s} {'Q4 faint':>9s}")
-    for label, key in (("raw parallax (current)", "raw_clip"), ("normalized residual", "normalized_clip")):
+    for label, key in (
+        ("raw parallax (current)", "raw_clip"),
+        ("normalized residual", "normalized_clip"),
+    ):
         r = res[key]
         qs = r["retention_by_gmag_quartile"]
         print(
             f"{label:22s} {r['overall_retention']:7.1%} "
             f"{qs[0]:9.1%} {qs[1]:6.1%} {qs[2]:6.1%} {qs[3]:8.1%}"
         )
-    print(f"\nmedian e_Plx by quartile (mas): "
-          f"{['%.3f' % v for v in res['median_e_plx_by_quartile']]}")
-    print(f"bright->faint retention gradient: raw {res['gradient_raw']:+.1%}, "
-          f"normalized {res['gradient_normalized']:+.1%}")
+    print(
+        f"\nmedian e_Plx by quartile (mas): {[f'{v:.3f}' for v in res['median_e_plx_by_quartile']]}"
+    )
+    print(
+        f"bright->faint retention gradient: raw {res['gradient_raw']:+.1%}, "
+        f"normalized {res['gradient_normalized']:+.1%}"
+    )
 
     args.out.write_text(json.dumps(res, indent=2))
     print(f"\nwrote {args.out}")

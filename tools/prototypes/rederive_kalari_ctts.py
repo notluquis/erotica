@@ -628,8 +628,8 @@ def run(require_blue_r=True, out=None, n_strips=8):
     return good
 
 
-MEMBERS_ECSV = ("/Users/notluquis/erotica/data/test/NGC6383/comments_paper/"
-                "cds_final/ngc6383_members.ecsv")
+# Movido con el paper a github.com/notluquis/paper-ngc6383-aa52082-24 (2026-09-22).
+MEMBERS_ECSV = os.path.join(os.path.expanduser("~"), "paper-ngc6383-aa52082-24", "cds_final", "ngc6383_members.ecsv")
 
 
 def crossmatch(candidates=None, members_path=MEMBERS_ECSV, tol_arcsec=0.5):

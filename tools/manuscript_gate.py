@@ -819,9 +819,15 @@ def c_build():
         # El clean sigue siendo necesario -- sin el, c_overfull y c_manifest_pages podrian leer el
         # log de una corrida anterior -- pero ahora solo borra el directorio de build.
         run(["latexmk", "-C", f"-outdir={BUILD_DIR}", stem], cwd=tex.parent)
+        # `$bibtex_fudge=0`: bibtex corre desde el directorio del .tex, no desde BUILD_DIR. Con el
+        # default, `\bibliography{methods,../paper}` de P02 se resolvia relativo a `_gate_build/` y
+        # daba 2 citas indefinidas que un build directo no tiene (medido 2026-09-22; ni BIBINPUTS
+        # ni -auxdir lo arreglan: kpathsea no busca rutas explicitamente relativas).
         run(
             [
                 "latexmk",
+                "-e",
+                "$bibtex_fudge=0",
                 "-pdf",
                 "-bibtex",
                 "-interaction=nonstopmode",
