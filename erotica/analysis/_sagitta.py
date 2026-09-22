@@ -29,17 +29,24 @@ def _compute_table_hash(table: QTable) -> str:
 def _ensure_sagitta() -> None:
     """Verify Sagitta is importable, else raise with install instructions.
 
-    Sagitta is an optional dependency for pre-main-sequence classification. It is
-    not on PyPI, so EROTICA never installs it automatically (silently shelling out
-    to ``pip install`` a moving git ref modifies the user's environment without
-    consent and is not reproducible). Install it manually.
+    Sagitta is an optional dependency for pre-main-sequence classification, and EROTICA does
+    not declare it as an installable extra: silently shelling out to ``pip install`` a moving
+    git ref modifies the user's environment without consent and is not reproducible, and this
+    module's calls (``sagitta.data_tools.DataTools``, ``sagitta.sagitta.SagittaPipeline``) were
+    written and verified against the git HEAD specifically. A same-named ``sagitta`` package
+    does exist on PyPI (from the same authors/repo), but its internal API has not been checked
+    against what this module calls, and a direct git-URL requirement in ANY extra is rejected
+    outright by PyPI's own upload validator, which would block distributing EROTICA at all --
+    see ``[project.optional-dependencies]`` in ``pyproject.toml`` for the measured error. Install
+    it manually.
     """
     import importlib.util
 
     if importlib.util.find_spec("sagitta") is None:
         raise ImportError(
             "Sagitta is required for pre-main-sequence classification but is not "
-            "installed. EROTICA does not install it automatically. Install it with:\n"
+            "installed. EROTICA does not install it automatically. Install the version this "
+            "integration was verified against with:\n"
             "    pip install 'sagitta @ git+https://github.com/hutchresearch/Sagitta.git'"
         )
 
@@ -169,7 +176,10 @@ def pms_characterization(
             work[col] = cluster_table[col]
         else:
             work[col] = np.full(len(cluster_table), np.nan)
-            warnings.warn(f"[pms_characterization] Missing column '{col}', filled with NaN.")
+            warnings.warn(
+                f"[pms_characterization] Missing column '{col}', filled with NaN.",
+                stacklevel=2,
+            )
 
     for col in (
         "parallax_error",
@@ -184,7 +194,10 @@ def pms_characterization(
             work[col] = cluster_table[col]
         else:
             work[col] = np.full(len(cluster_table), np.nan)
-            warnings.warn(f"[pms_characterization] Missing column '{col}', filled with NaN.")
+            warnings.warn(
+                f"[pms_characterization] Missing column '{col}', filled with NaN.",
+                stacklevel=2,
+            )
 
     sagitta_input = work[
         "source_id",
@@ -252,8 +265,14 @@ def pms_characterization(
     )
 
     if run_cli:
-        _run_sagitta_pipeline(input_fits, output_fits, av_uncertainty, pms_uncertainty,
-                              age_uncertainty, av_scatter_range)
+        _run_sagitta_pipeline(
+            input_fits,
+            output_fits,
+            av_uncertainty,
+            pms_uncertainty,
+            age_uncertainty,
+            av_scatter_range,
+        )
         hash_file.write_text(current_hash)
     elif data_unchanged:
         print(
@@ -299,6 +318,7 @@ def pms_characterization(
             joined["av_sagitta"],
             joined["pms_sagitta"],
             joined["age"],
+            strict=True,  # columns of one table: equal length by construction
         )
     }
 

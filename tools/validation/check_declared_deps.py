@@ -58,6 +58,13 @@ EXENTOS = {
     # package". No hay nada que `pip install` pueda resolver, y por eso el guardia manda a correrlo
     # por fuera y pasarle la salida.
     "pyUPMASK": "se distribuye como scripts, no como paquete; no es instalable por pip",
+    # Tuvo un extra `sagitta = ["sagitta @ git+https://github.com/hutchresearch/Sagitta.git"]`
+    # (2026-08-26 a 2026-09-22), retirado tras el ensayo de v0.2.0 en TestPyPI: PyPI rechaza CUALQUIER
+    # paquete con un requisito de URL directa en CUALQUIER extra (HTTP 400 "Can't have direct
+    # dependency"), asi que declararlo asi bloqueaba subir erotica entero, no solo ese extra. Existe un
+    # paquete `sagitta` homonimo en PyPI, de los mismos autores, pero su API interna no esta verificada
+    # contra lo que `_sagitta.py` llama -- ver el comentario de `pyproject.toml`. Se instala a mano.
+    "sagitta": "requiere una URL git directa, que PyPI rechaza en cualquier extra; instalar a mano",
 }
 
 

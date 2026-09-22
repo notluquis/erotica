@@ -183,9 +183,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   write without it; `[h5py]` is load-bearing because `h5py` is an optional extra of `h5netcdf`
   rather than one of its dependencies, so a bare `h5netcdf` installs an engine with no backend.
   (`aeb60f1`, `2861be3`)
-- A `sagitta` extra (`sagitta @ git+https://github.com/hutchresearch/Sagitta.git`) now exists.
-  `erotica.analysis._sagitta`'s `ImportError` already pointed users at installing it, but there
-  was no `pip install erotica[...]` target that resolved. (`2acb827`)
 
 ### Fixed
 - **`PhotometricMassEstimator.__init__` no longer exhausts a generator or other one-shot
@@ -222,6 +219,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   favor of `king_unbinned`, where the equivalent capability already works:
   `KingPriors(tidal_prior=(mu, sigma))` does enter `_king_model` as a `TruncatedNormal` on `R_t`.
   The signature is kept only for code reproducing pre-deprecation results. (`f6972db`)
+- **`erotica.analysis._sagitta` has no installable extra**, and cannot: PyPI's own upload
+  validator rejects any package with a direct git-URL requirement in *any* extra, which is what
+  a `sagitta = ["sagitta @ git+..."]` entry would be (measured on the v0.2.0 TestPyPI rehearsal,
+  HTTP 400 `Can't have direct dependency`). Install it manually per the `ImportError` message;
+  see `pyproject.toml`'s `[project.optional-dependencies]` comment for why a bare `sagitta>=...`
+  requirement isn't a safe substitute without first verifying that release's API.
 
 ## [0.1.0] - 2026-08-03
 
