@@ -190,7 +190,7 @@
 }
 
 @article{vonhippel2006,
-  author  = {von Hippel, Ted and Jefferys, William H. and Scott, James and others},
+  author  = {{von Hippel}, Ted and Jefferys, William H. and Scott, James and others},
   title   = {Inverting Color-Magnitude Diagrams to Access Precise Star Cluster Parameters: A Bayesian Approach},
   journal = {The Astrophysical Journal},
   volume  = {645},
@@ -200,7 +200,12 @@
   note    = {bibcode 2006ApJ...645.1436V; SciX-verified 2026-08-03.
              CORRECTED TITLE. The earlier entry read "BASE-9: Bayesian Analysis
              for Stellar Evolution with nine parameters", which is the name of the
-             CODE and its manual (arXiv:1411.3786), NOT the title of this paper.}
+             CODE and its manual (arXiv:1411.3786), NOT the title of this paper.
+             2026-09-22: the built PDF (workflow run 35762522583) rendered the
+             in-text citation as "Hippel et al.", dropping "von" -- Inara's citeproc
+             was not treating "von" as a non-dropping particle from the plain
+             "von Hippel, Ted" form. {von Hippel} (outer-braced) forces the whole
+             token to be the literal family name; re-verify in the next build.}
 }
 
 @article{garling2025,
