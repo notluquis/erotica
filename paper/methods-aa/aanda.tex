@@ -2,7 +2,7 @@
 %%
 %% PROVENANCE RULE FOR THIS MANUSCRIPT, and it is not optional:
 %% every number below carries a %<- comment naming the script and JSON sidecar that produced it.
-%% A number without one is not yet evidence.  This exists because this programme has repeatedly
+%% A number without one is not yet evidence.  This exists because this program has repeatedly
 %% found hand-copied integers drifting from the builds that produced them — a test count that
 %% matched no install, commit counts stale on arrival, "docs 0 warnings" copied from a build weeks
 %% old, and a knowledge-graph size asserted in four files that could not be re-derived under any
@@ -49,10 +49,10 @@ and we measure it: against injected truth, against the reference implementations
 literature applies routinely.}
 % methods
 {Membership is a multi-resolution \textsc{hdbscan} sweep yielding a per-star pseudo-probability,
-refined by Bayesian proper-motion and parallax modelling with full per-star covariance. Structure
+refined by Bayesian proper-motion and parallax modeling with full per-star covariance. Structure
 is fitted as an unbinned inhomogeneous Poisson point process --- the continuous form of the Cash
 statistic --- for King, EFF and corona profiles, with the survey selection function foldable into
-the normalisation. Every fit returns an \textsc{ArviZ} \texttt{InferenceData} posterior.}
+the normalization. Every fit returns an \textsc{ArviZ} \texttt{InferenceData} posterior.}
 % results
 {\TODO{headline numbers --- fill from the running measurements; see \S\ref{sec:benchmark} and
 \S\ref{sec:validation}}}
@@ -71,7 +71,7 @@ the normalisation. Every fit returns an \textsc{ArviZ} \texttt{InferenceData} po
 \section{Introduction}
 \label{sec:intro}
 
-\emph{Gaia} DR3 turned open clusters from a catalogue of individually studied objects into a
+\emph{Gaia} DR3 turned open clusters from a catalog of individually studied objects into a
 statistical population: membership lists now exist for several thousand clusters, derived
 homogeneously, with astrometry precise enough that the interesting questions are about
 \emph{distributions} of structural parameters rather than about any single object.
@@ -91,7 +91,7 @@ negligible against a single object's error bar is not negligible against a distr
 thousand. Three of the systematics measured in \S\ref{sec:recoverability} have exactly this
 character: each is small for one cluster and each would be read as physics by a survey-scale
 comparison that did not correct for it. The same is true of the selection function
-(\S\ref{sec:a1}) and of the boundary between a cluster and its comoving neighbours
+(\S\ref{sec:a1}) and of the boundary between a cluster and its comoving neighbors
 (\S\ref{sec:b1}), which is invisible to every contamination metric because the stars in question
 are genuine cluster members --- of a different cluster.
 
@@ -129,14 +129,14 @@ never a candidate member.
 
 We establish this as a mechanism rather than a correlation. Let $t_i$ be the truth-free binary
 indicator that star $i$ carries the selected cluster's label. Across a $3\times2$ factorial of
-cluster-selection rule and score type, measured on 108 synthetic realisations with half the seeds
+cluster-selection rule and score type, measured on 108 synthetic realizations with half the seeds
 held out, a better selection rule improves the average precision of $t_i$ by $+0.094$ and that of
 $\tilde{p}$ by $\sim\!0.000$
 %<- tools/validation/benchmark_tgt_selector_robustness.py, tgt_selector_robustness.json
 --- $\tilde{p}$ is structurally unable to respond to a better choice of cluster. The advantage of
 $t_i$ over $\tilde{p}$ is $+0.125$ to $+0.266$ in average precision across the factorial, positive
 in every cell at $\geq3.4$ standard errors, and cell-by-cell the weakest selection rule gives the
-larger advantage in 13 of 27 informative cells, so the effect is not an artefact of a selection
+larger advantage in 13 of 27 informative cells, so the effect is not an artifact of a selection
 rule tuned on this generator.
 
 \TODO{The replacement score. Measurement running --- report what it is, what it recovers, and
@@ -169,19 +169,19 @@ Three surface-density profiles are available. The King form is
 \end{equation}
 and $\Sigma_{\rm K} = b$ beyond $R_t$ --- the truncation is explicit in the likelihood, since the
 squared bracket would otherwise turn negative and climb back up. The EFF form is
-$\Sigma_{\rm E}(r) = k\left(1 + (r/a)^2\right)^{-\gamma/2} + b$, whose normalisation
+$\Sigma_{\rm E}(r) = k\left(1 + (r/a)^2\right)^{-\gamma/2} + b$, whose normalization
 $\Lambda$ has a closed form in $z = (R_f/a)^2$ and $e = 1 - \gamma/2$ that is singular at
 $\gamma = 2$ --- exactly the value \S\ref{sec:a5} concerns --- where the integral becomes
 logarithmic; the limit is handled rather than approached numerically. A corona component adds a
 second, shallower outer term for testing whether an extended population is required.
 
-Because $\Lambda$ is available in closed form for each, the normalisation is exact rather than
+Because $\Lambda$ is available in closed form for each, the normalization is exact rather than
 quadrature-approximated, which is what makes the unbinned likelihood cheap enough to run over a
 census. When a selection function is supplied, $\Lambda$ is instead integrated against
 $S(r)$ on a fixed quadrature grid.
 
 Priors are scale-free rather than informative: half-Student-$t$ with $\nu = 1$ on $R_c$, $k$ and
-$b$, and $R_t$ parameterised as $R_c + \Delta R$ with $\Delta R$ likewise half-Student-$t$, so
+$b$, and $R_t$ parameterized as $R_c + \Delta R$ with $\Delta R$ likewise half-Student-$t$, so
 $R_t > R_c$ holds by construction instead of by rejection. A Jacobi-radius prior on $\Delta R$ can
 be supplied where an independent mass estimate exists. Model comparison between King, EFF and the
 corona uses sequential Monte Carlo for the evidence, and the log-evidence scatter across SMC
@@ -222,18 +222,18 @@ sample sizes typical of the \emph{Gaia} cluster census, and the bias shrinks mon
 $N$: at $\gamma_{\rm true} = 2$ it measures $+0.142 \pm 0.105$ at $N=20$, $+0.047 \pm 0.054$ at
 $N=60$, $+0.023 \pm 0.019$ at $N=628$ and $-0.005 \pm 0.006$ at $N=5000$
 %<- tools/validation/eff_gamma_bias.py, eff_gamma_bias_pinnedbg.json
-. A survey-scale comparison of slopes would therefore read a selection-independent artefact as
+. A survey-scale comparison of slopes would therefore read a selection-independent artifact as
 physics, with sparse clusters appearing systematically steeper than rich ones.
 
 \paragraph{A free background fabricates one.} Allowing the background amplitude to float biases
 $\gamma$ \emph{upward} even where the injected background is exactly zero. The size of the
-artefact depends on the profile being measured, so no single offset corrects it; the term must be
+artifact depends on the profile being measured, so no single offset corrects it; the term must be
 pinned, and the null cell in which this surfaced was present only as a formality.
 
 \paragraph{Circular fits to elliptical clusters bias $\gamma$ toward 2.} Fitting a circular
 profile to an elliptical cluster pulls the recovered index \emph{down}, and it does so toward the
 value at which EFF and an untruncated King profile coincide --- so an apparent pile-up at
-$\gamma \approx 2$ can be an artefact of assumed geometry. The effect is strongly
+$\gamma \approx 2$ can be an artifact of assumed geometry. The effect is strongly
 $\gamma$-dependent: $-0.364$ at $\gamma_{\rm true} = 4$, $q = 0.3$, falling to $-0.092$ at
 $\gamma = 3$ and $\leq 0.03$ at $\gamma = 2$
 %<- tools/validation/ellipticity_bias.py, ellipticity_bias.json
@@ -243,7 +243,7 @@ $\gamma \approx 2$ population, but it cannot manufacture one.
 \subsection{The EFF index across the \emph{Gaia} census}
 \label{sec:a5}
 
-We fit the EFF profile to 407 clusters from the \citet{hunt2024} catalogue; 403 converged
+We fit the EFF profile to 407 clusters from the \citet{hunt2024} catalog; 403 converged
 ($\hat{R}<1.01$, ESS $>400$, zero divergences)
 %<- tools/validation/a5_census_gamma_sweep.py + a5_census_gamma_summarise.py
 . Among the subsample whose radial lever arm permits $\gamma$ to be measured, the index
@@ -259,10 +259,10 @@ marginal correlation between the criterion and $\gamma$ is $-0.773$, but this is
 evidence of selection bias: $\gamma$ and $a$ are anticorrelated within each fit by construction
 (mean within-fit correlation $0.88$), so a marginal association is expected at zero bias.
 
-We settle it against ground truth on 192 injection realisations with $\gamma$ drawn independently
+We settle it against ground truth on 192 injection realizations with $\gamma$ drawn independently
 of geometry. Regressing recovered $\gamma$ on true $\gamma$ inside the criterion gives slope
 $+1.134 \pm 0.063$ --- tracking; compression toward 2 would give $\approx0$. The criterion admits
-99.1\% of the injected $\gamma$ range, and of the 25 admitted realisations with $\gamma_{\rm
+99.1\% of the injected $\gamma$ range, and of the 25 admitted realizations with $\gamma_{\rm
 true}>3$, all 25 recover $\gamma>3$: the criterion cannot convert a steep profile into a shallow
 one. Applied to a flat-truth population, the identical criterion yields 8.7\% of clusters in
 $1.8\le\gamma<2.2$ against the census's 35.8\%, a $4.1\times$ excess the criterion does not
@@ -273,7 +273,7 @@ A residual bias is present and we report it rather than dismiss it: relative to 
 $0.177$ at 3, and by $0.045$ at 4. A trend of $\gamma$ with $N$ survives every criterion
 ($r=+0.252$ in $\log N$) and is \emph{not} explained by the estimator: injection recovery gives
 $r=-0.033$ between $\log N$ and bias, and the fitted bias \emph{shrinks} with $N$, so an
-estimator artefact would push the opposite way. We report it uninterpreted.
+estimator artifact would push the opposite way. We report it uninterpreted.
 
 Both systematics of \S\ref{sec:recoverability} act here and they oppose: a free background pushes
 $\gamma$ \emph{up} (median paired $+0.413$ on these clusters), while a circular fit to an
@@ -297,13 +297,13 @@ proper motions only, while \asteca's \texttt{fastMP} consumes sky position, prop
 parallax, and \textsc{pyUPMASK} is configured here on the same five. Scoring two dimensions
 against five and reporting the difference as a win would be meaningless, so the headline
 \erotica\ row uses all five columns and the lower-dimensional configurations are reported as
-clearly labelled secondary rows.
+clearly labeled secondary rows.
 
-\emph{Standardisation.} \textsc{hdbscan} is called with a Euclidean metric and no internal
+\emph{Standardization.} \textsc{hdbscan} is called with a Euclidean metric and no internal
 scaling, so parallax in mas and proper motion in mas\,yr$^{-1}$ enter the distance with whichever
 has the larger numeric spread dominating. Every column is z-scored before clustering.
 
-\emph{\asteca\ is never handed the injected truth.} Its centre and member count come from its own
+\emph{\asteca\ is never handed the injected truth.} Its center and member count come from its own
 \texttt{get\_center} and \texttt{get\_nmembers} routines, not from the generator. A loss against a
 baseline given privileged information would be uninterpretable. Photometry is withheld from it
 deliberately: \texttt{fastMP} ignores it, and \asteca's magnitude cut would drop rows and break
@@ -333,7 +333,7 @@ counter-intuitive: grid coarsening alone \emph{costs} $0.0385 \pm 0.0114$, so co
 the uncoarsened configuration understates the effect rather than flattering it.
 
 \paragraph{A false-positive asymmetry.}
-On realisations with no cluster injected, \erotica's error-aware configurations select zero stars
+On realizations with no cluster injected, \erotica's error-aware configurations select zero stars
 across three seeds, while \asteca's \texttt{fastMP} selects 25, 51 and 26 stars \emph{at
 probability 1.000}
 %<- tools/validation/benchmark_erroraware.json, negative_control block
@@ -341,7 +341,7 @@ probability 1.000}
 about empty sky is not straightforwardly behind one that is confidently wrong about it.
 
 \paragraph{What the absolute values do not mean.}
-34 of 108 realisations return no cluster for any five-dimensional configuration, concentrated at
+34 of 108 realizations return no cluster for any five-dimensional configuration, concentrated at
 \emph{low} contamination --- 14 of 18 held-out cells at contamination 0.5. The sweep fails on the
 easiest fields. Paired differences are unaffected because failures cancel, but a single method's
 average precision is partly a measurement of that failure mode and we do not quote it as a
@@ -403,7 +403,7 @@ its raw calibration error.
 \subsection{Does the selection function change the core radius? Two corrections that cancel}
 \label{sec:a1}
 
-Folding the survey selection function into the likelihood normalisation suppresses the core by
+Folding the survey selection function into the likelihood normalization suppresses the core by
 $2.37\%$ within $R_c$ --- measured with an adaptive \texttt{patch} map, not the all-sky product,
 which at order 10 under-reads the real $0.32$ mag central depression \emph{six-fold}
 %<- tools/validation/a1_patch_selection_function.py, a1_patch_selection_function.json
@@ -424,18 +424,18 @@ signature of small-sample noise rather than structure. We therefore report a bou
 $1.73$--$3.4'$ rather than a null. This distinction is not pedantry: a map coarser than the
 structure it is asked about returns "flat", and flat means \emph{invisible}, not \emph{absent}.
 
-The methodological point generalises. $R_c$ responds to the \emph{shape} of the efficiency within
+The methodological point generalizes. $R_c$ responds to the \emph{shape} of the efficiency within
 a few core radii, not to its aperture-averaged value: the survey curve varies there and moves
 $R_c$ $1.6\times$ more than an aperture argument predicts, while the pipeline curve is flat below
 its innermost bin and moves it $4\times$ less.
 
-\subsection{The population beyond the Jacobi radius belongs to the neighbours}
+\subsection{The population beyond the Jacobi radius belongs to the neighbors}
 \label{sec:b1}
 
 $43\%$ of high-probability members lie outside the Jacobi radius, a figure that invites reading as
 an unbound corona. Three measurements say otherwise, and the first retires the figure itself.
 
-On realisations with no cluster injected, the membership selects $70.8\%$ of its stars beyond
+On realizations with no cluster injected, the membership selects $70.8\%$ of its stars beyond
 $r_J$ against a $70.7\%$ area fraction
 %<- tools/validation/b1_beyond_jacobi.py, b1_beyond_jacobi.json
 --- so $43\%$ is \emph{below} what pure field produces. It is an area statistic, not a halo
@@ -448,9 +448,9 @@ centroid, dispersion, parallax and photometry recovers its members with contamin
 \emph{none} beyond $r_J$.
 
 What the outer population is becomes visible only on an axis the membership never used. Of the
-271 members beyond $r_J$, \textbf{179 ($66.1\%$) fall inside catalogued comoving clusters} ---
+271 members beyond $r_J$, \textbf{179 ($66.1\%$) fall inside cataloged comoving clusters} ---
 Antalova 2 and Theia 1645, both within $0.011$ mas in parallax and $0.55$ mas\,yr$^{-1}$ in proper
-motion --- against a $33.3\%$ expectation from catalogue coverage ($p = 4.6\times10^{-28}$). On the
+motion --- against a $33.3\%$ expectation from catalog coverage ($p = 4.6\times10^{-28}$). On the
 untouched photometric axis they are indistinguishable from the inner cluster sequence
 ($p = 0.18$) and far from field ($p = 1.8\times10^{-33}$): real young stars of the same complex,
 admitted by a proper-motion-only membership. Their proper-motion coherence is \emph{not} offered as
@@ -473,9 +473,9 @@ not a win, unless the running measurement changes that.}
 \begin{acknowledgements}
   I gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI
   project 32230014, and financial support from the Direcci\'on de Postgrado, Universidad de
-  Concepci\'on, through its MSc scholarship programme. I thank N. Henr\'iquez Salgado for his
+  Concepci\'on, through its MSc scholarship program. I thank N. Henr\'iquez Salgado for his
   contribution to the companion NGC 6383 study, and P. Cerulo for guidance on machine-learning
-  methods and for discussions of Bayesian modelling with \textsc{PyMC}.
+  methods and for discussions of Bayesian modeling with \textsc{PyMC}.
   \TODO{AI-usage disclosure --- A\&A requires one; adapt the JOSS paper's, which is pinned to a
   release tag and re-derived by \texttt{tools/release/ai\_disclosure\_counts.py}.}
 \end{acknowledgements}
