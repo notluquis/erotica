@@ -1,0 +1,23 @@
+Dear Ms. Delpech,
+
+Please find attached the revised version of aa52082-24, "Characterizing NGC 6383: A study of fundamental properties, pre-main sequence stars, mass segregation, and age using Gaia DR3 and 2MASS", prepared following the layout corrections requested on 15 September 2026.
+
+- Table captions: each table has a one-sentence title above it; descriptions and references are in the Notes below the table.
+- Fig. C.3 is reduced, with the caption at the side.
+- Fig. C.4 is displayed as one row of three panels.
+- The appendices are more compact: forced page breaks were removed, Figs. B.4 and C.3 use side captions, Fig. C.1 is shown as two panels side by side, and Fig. C.5 is reduced. Each appendix figure and table still appears within its own appendix. The article now has 25 pages instead of 30.
+- The appendices use the appendix environment.
+- The TeX file is a clean version with no revision marks, highlighting, bold, or colored text; hyperlinks are no longer colored.
+- The TeX file is named aa52082-24.tex.
+- All commented text has been removed.
+- Line numbers are disabled (\nolinenumbers immediately after \maketitle).
+- The text was spell-checked for US English.
+- Italics and bold used for emphasis or to mark a specific meaning were removed, as were small capitals on software names. Italics remain only for the Gaia mission name, the panel labels in figure captions, and a book title.
+- Data availability: the section before the acknowledgements states that the full version of Table 2 is available in electronic form at the CDS. The table (table2.dat) and its ReadMe are submitted to the CDS and uploaded here as the dataset.
+
+A final proofreading pass also defined four abbreviations at their first occurrence (ASteCA, 2MASS, RUWE, IPD) and corrected a few typographical and wording details. No numerical results, conclusions, or references were changed.
+
+We also noticed that the title recorded in the submission system reads "...and age using DR3 and 2MASS Gaia". The correct title, as in the manuscript, is "...and age using Gaia DR3 and 2MASS". We would be grateful if it could be corrected in the article metadata.
+
+Best regards,
+Lucas Pulgar-Escobar, on behalf of all authors
