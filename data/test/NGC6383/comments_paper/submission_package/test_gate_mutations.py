@@ -128,6 +128,11 @@ ADAPTERS = {"generic": Generic}
 def make_copy(dst: Path) -> Path:
     ignore = shutil.ignore_patterns("_gate_build", "__pycache__")
     for d in ("submission_package", "cds_final", "referee_round3", "_legacy/cds_round2_submitted"):
+        # Un insumo ausente no revienta la copia: el check que lo necesita falla o se omite con su
+        # propio mensaje. Reventaba en CI cuando `_legacy/cds_round2_submitted` no estaba versionado.
+        if not (PAPER / d).exists():
+            print(f"falta {d}; la copia sigue sin él")
+            continue
         shutil.copytree(PAPER / d, dst / d, ignore=ignore, symlinks=True)
     (dst / "tools").mkdir(parents=True, exist_ok=True)
     shutil.copy2(ENGINE_SRC, dst / "tools" / "manuscript_gate.py")
