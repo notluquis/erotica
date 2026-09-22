@@ -61,6 +61,16 @@ repos:
         args: [--maxkb=500]
       - id: check-merge-conflict
 
+  # Ingles US en los papers (decision del autor, 2026-09-22). Sin `locale = "en-us"`, typos acepta
+  # las formas britanicas: el paper de metodos llevaba 30 y paper.md 9 sin que nada lo marcara.
+  # La config y su porque viven en paper/_typos.toml; el job `spelling` de joss-paper.yml lo repite en CI.
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.49.1
+    hooks:
+      - id: typos
+        files: ^paper/
+        args: [--config, paper/_typos.toml, --force-exclude]
+
   - repo: local
     hooks:
       # `check-json` de arriba usa `json.load`, que ACEPTA los tokens `NaN`/`Infinity` que

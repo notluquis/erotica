@@ -1,0 +1,30 @@
+# typos (crate-ci) for the papers in this repository: the JOSS paper (paper.md) and the A&A
+# methods paper (methods-aa/). Run by the pre-commit hook and by the `spelling` job of
+# .github/workflows/joss-paper.yml.
+#
+# locale = "en-us" is the point of this file. Every paper in the programme is written in US
+# English (author's decision, 2026-09-22). Without it typos accepts British forms as correct:
+# measured on 2026-09-22, the methods paper carried 30 of them ("normalisation", "realisations",
+# "artefact", ...) and paper.md 9, and nothing flagged any. With it, typos flags colour, centre,
+# analysed, normalisation, modelling, behaviour, artefact, realisations and labelled (9 of 10 in a
+# test sample); it does not flag "catalogue", which the per-paper manuscript gate still catches.
+
+[default]
+locale = "en-us"
+
+[default.extend-words]
+# Chilean funding agency (Agencia Nacional de Investigacion y Desarrollo), not a typo of "AND".
+ANID = "ANID"
+# First half of the hyphenated "mis-specification", which typos reads as a lone word.
+mis = "mis"
+
+[default.extend-identifiers]
+# A real script name quoted in a provenance comment; renaming it in the text would break the link.
+a5_census_gamma_summarise = "a5_census_gamma_summarise"
+
+[files]
+# Vendored A&A class files must stay byte-identical and contain LaTeX internals that read as
+# misspellings; gate.py/gate.toml are written partly in Spanish; the rest are build products.
+extend-exclude = ["aa.cls", "aa.bst", "linenoaa.sty", "*.bib", "gate.py", "gate.toml",
+                  "_gate_build/", "*.aux", "*.log", "*.bbl", "*.blg", "*.fls", "*.fdb_latexmk",
+                  "*.out", "*.pdf"]

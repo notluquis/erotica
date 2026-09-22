@@ -44,6 +44,20 @@ permissions:
   contents: read
 
 jobs:
+  # Ingles US (decision del autor, 2026-09-22): falla ante una forma britanica en paper.md o en el
+  # paper de metodos. Job aparte del build de Inara para que un fallo diga que es ortografia.
+  spelling:
+    name: US English in the papers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+      - uses: crate-ci/typos@1a51d4b5a03bb97576af186c813af67e9137ba7c  # master
+        with:
+          files: paper
+          config: paper/_typos.toml
+
   draft:
     name: Build the draft PDF
     runs-on: ubuntu-latest

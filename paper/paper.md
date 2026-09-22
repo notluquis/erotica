@@ -2,7 +2,7 @@
   archived DOI  10.5281/zenodo.21769959  (CONCEPT DOI — always resolves to the latest
                 version; the v0.1.0 version DOI is 10.5281/zenodo.21769960)
   author        sole author, ORCID 0009-0008-4359-2444 verified against the ORCID public API
-  licence       AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and CITATION.cff
+  license       AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and CITATION.cff
   tests + CI    482 tests at v0.1.0 under `pip install -e .[dev,bayes]` (478 without `bayes`),
                 GitHub Actions on Python 3.13 and 3.14. Measured 2026-08-04 in a clean venv from
                 `git archive v0.1.0`; this line said 488, which matches no install.
@@ -76,7 +76,7 @@ callable — on `numpy`/`scipy`/`scikit-learn` alone, so they apply to any pipel
 
 # State of the field
 
-The closest integrated tool is `ASteCA` [@perren2015], whose synthetic-CMD forward-modelling
+The closest integrated tool is `ASteCA` [@perren2015], whose synthetic-CMD forward-modeling
 design directly inspired this work; since v0.5.0 it is sampler-agnostic, exposing a Poisson
 likelihood-ratio object for a user-supplied sampler. It does contain a King-radius routine,
 private and unwired: a two-parameter least-squares fit to a binned radial profile. On the
@@ -127,7 +127,7 @@ footprint. It is unbinned because binning was tested and failed: under the *appr
 equal-count annuli the earlier implementation used, the count per bin is nearly fixed by
 construction, and the Poisson dispersion index measures 0.045 against the 1.0 a Poisson
 likelihood asserts — a roughly 25-fold mis-specification. The isochrone module samples a *binned* Hess-diagram likelihood
-[@dolphin2002]; the asymmetry is deliberate, since the colour–magnitude and sky planes pose
+[@dolphin2002]; the asymmetry is deliberate, since the color–magnitude and sky planes pose
 different problems, but it is an asymmetry rather than a unified formulation.
 
 Quantities carry `astropy` units on output, and each fit returns `InferenceData` rather than a
@@ -141,7 +141,7 @@ reorder floating-point summation.
 # Research impact statement
 
 `EROTICA` is new software and its realized external impact is limited: no downstream
-dependants, and the two NGC 6383 studies it was built for [@pulgar2024a; @pulgar2024b] are
+dependents, and the two NGC 6383 studies it was built for [@pulgar2024a; @pulgar2024b] are
 the authors' own. The evidence offered is of the other admissible kind — reproducible
 materials demonstrating capability.
 
@@ -152,15 +152,15 @@ than assumed. The yield is largely negative results, which is the point:
 
 - The EFF slope estimator is biased high at the sample sizes typical of the *Gaia* cluster
   census, and the bias shrinks as $N$ grows. A survey-scale comparison of slopes would read a
-  selection-independent artefact as physics, with sparse clusters appearing systematically
+  selection-independent artifact as physics, with sparse clusters appearing systematically
   steeper than rich ones.
 - A free background term fabricates a background where the injected truth is exactly zero, and
   biases the slope upward by 5.8$\sigma$; pinning the term removes both effects. The size of
-  the artefact depends on the shape being measured, so no single offset corrects it. It
+  the artifact depends on the shape being measured, so no single offset corrects it. It
   surfaced in the null cell of an experiment where that control was present as a formality.
 - Fitting a circular profile to an elliptical cluster biases the slope *downward*, toward the
   value at which EFF and an untruncated King profile coincide — so an apparent pile-up there
-  can be an artefact of the assumed geometry.
+  can be an artifact of the assumed geometry.
 
 The test suite runs in continuous integration on Python 3.13 and 3.14, with a separate job that
 installs the `bayes` extra: **482 tests at the v0.1.0 release** under `pip install -e
@@ -192,7 +192,7 @@ also re-derives them from `git log` and fails if this paragraph has drifted
 (`--check paper/paper.md`).
 
 **Scope.** The assistance was substantive rather than confined to language editing:
-implementation of the statistical models and their normalisations, design of the validation
+implementation of the statistical models and their normalizations, design of the validation
 experiments, literature search, drafting of the design notes and API documentation, and the
 framing of several results including the recoverability findings above.
 
@@ -218,6 +218,6 @@ I gratefully acknowledge support from the ANID BASAL project FB210003 and the SO
 project 32230014, and financial support from the Dirección de Postgrado, Universidad de
 Concepción, through its MSc scholarship programme, under which this software was developed.
 I thank P. Cerulo for guidance on machine-learning methods and for discussions of Bayesian
-modelling with PyMC during the work that led to this package.
+modeling with PyMC during the work that led to this package.
 
 # References
