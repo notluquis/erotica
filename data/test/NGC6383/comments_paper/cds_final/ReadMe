@@ -42,8 +42,8 @@ Byte-by-byte Description of file: table2.dat
  Bytes Format Units   Label     Explanations
 -------------------------------------------------------------------------------
    1-19   I19    ---     GaiaDR3   Gaia DR3 source identifier
-  21-32   F12.8  deg     RAdeg     Right ascension, ICRS, Gaia DR3
-  34-46   F13.8  deg     DEdeg     Declination, ICRS, Gaia DR3
+  21-32   F12.8  deg     RAdeg     Right ascension (ICRS, Ep=J2016.0), Gaia DR3
+  34-46   F13.8  deg     DEdeg     Declination (ICRS, Ep=J2016.0), Gaia DR3
   48-55   F8.4   mas     Plx       Zero-point corrected Gaia DR3 parallax
   57-64   F8.4   mas     e_Plx     Gaia DR3 parallax uncertainty
   66-73   F8.4   mas/yr  pmRA      Corrected proper motion in right ascension,
@@ -59,7 +59,7 @@ Byte-by-byte Description of file: table2.dat
  129-136  F8.4   mag     Jmag     ? 2MASS J magnitude
  138-145  F8.4   mag     Hmag     ? 2MASS H magnitude
  147-154  F8.4   mag     Ksmag    ? 2MASS Ks magnitude
- 156-162  F7.4   ---     Fidelity  Rybizki et al. astrometric fidelity v2
+ 156-162  F7.4   ---     Fidelity  Astrometric fidelity v2 (Rybizki+ 2022)
  164-170  F7.4   ---     pHDBSCAN  Native HDBSCAN membership probability for
                                    the selected branch
  172-178  F7.4   ---     pFreq     Fraction of HDBSCAN sweeps in which the
@@ -68,7 +68,7 @@ Byte-by-byte Description of file: table2.dat
                                    pHDBSCAN*pFreq
  188      I1     ---     Ref       Reference-sample flag: 1 if pMember >= 0.6
                                    after clipping
- 190-196  F7.4   ---     PMSProb   Sagitta PMS probability
+ 190-196  F7.4   ---     PMSProb   Sagitta PMS probability (McBride+ 2021)
  198-204  F7.4   mag     AvSag     Sagitta visual extinction estimate
  206-213  F8.4   [yr]    logAgeSag Sagitta logarithmic age estimate
 -------------------------------------------------------------------------------
@@ -81,5 +81,13 @@ Notes:
 
 Acknowledgements:
   This table uses Gaia DR3 and 2MASS data products.
+
+References:
+  Gaia Collaboration, Vallenari A. et al., 2023A&A...674A...1G  Gaia DR3
+  Lindegren L. et al., 2021A&A...649A...4L  Parallax zero point
+  Skrutskie M.F. et al., 2006AJ....131.1163S  2MASS
+  Rybizki J. et al., 2022MNRAS.510.2597R  Astrometric fidelity
+  McBride A. et al., 2021AJ....162..282M  Sagitta
+  McInnes L. et al., 2017JOSS....2..205M  HDBSCAN
 ===============================================================================
 (End)                                    L. Pulgar-Escobar [UdeC]  15-Sep-2026
