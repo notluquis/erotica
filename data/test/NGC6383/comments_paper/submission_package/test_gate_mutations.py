@@ -54,10 +54,17 @@ class ProbeMissed(Exception):
     """La mutación no encontró su ancla: no se puede concluir nada del veredicto."""
 
 
+class InputAbsent(Exception):
+    """El fichero que la mutación edita no existe en este entorno (p.ej. las notas de `kb` en CI,
+    donde `~/phd/kb` no se clona). Con `--allow-skips` es una omisión; sin él, un problema."""
+
+
 journal: dict[Path, bytes | None] = {}
 
 
 def _remember(p: Path) -> None:
+    if not p.exists():
+        raise InputAbsent(str(p))
     if p not in journal:
         journal[p] = p.read_bytes() if p.exists() else None
 
@@ -286,6 +293,13 @@ def main() -> int:
             except ProbeMissed as exc:
                 bad.append(f"{fn} [{what}]: sonda rota -> {exc}")
                 restore()
+                continue
+            except InputAbsent as exc:
+                restore()
+                if args.allow_skips:
+                    omitted.append(f"{fn} [{what}] (sin {Path(str(exc)).name})")
+                else:
+                    bad.append(f"{fn} [{what}]: falta el fichero que muta -> {exc}")
                 continue
             status, detail = gate.run(fn)
             restore()
