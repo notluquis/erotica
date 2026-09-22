@@ -1,7 +1,7 @@
 # 🚀 EROTICA Release Instructions
 
 > **Nota (2026-08-04).** Este documento se escribió como el recorrido del release **v0.0.1**.
-> La versión actual es **v0.1.0**: ya está etiquetada, publicada en
+> La última versión **publicada** es **v0.1.0**: etiquetada, publicada en
 > [PyPI](https://pypi.org/project/erotica/) y archivada en Zenodo
 > ([`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959)). Los pasos siguen
 > siendo válidos como guía general, pero **sustituye `0.0.1` por la versión que estés
@@ -12,6 +12,15 @@
 > COSMIC → EROTICA del 2026-07-21, de modo que ningún archivo listado aquí se generaba.
 > Verificado contra los artefactos reales publicados en PyPI: `erotica-0.1.0.tar.gz` y
 > `erotica-0.1.0-py3-none-any.whl`.
+>
+> **Nota de procedimiento (añadida 2026-09-22, vale para cualquier versión futura).**
+> Prepara el release como GitHub Release **`draft`**, nunca publicado directamente:
+> publicarlo dispara el job `pypi` de `publish.yml` Y el webhook de Zenodo a la vez —
+> los dos irreversibles, y PyPI nunca deja resubir un nombre de archivo ya publicado ni
+> borrado. Ensaya primero en TestPyPI (`gh workflow run publish.yml -f target=testpypi`);
+> el tag y el borrador pueden existir con normalidad sin que ninguno de los dos dispare
+> nada. `gh release edit <tag> --draft=false` (o publicarlo desde la UI) es la única
+> acción que falta, y es deliberadamente manual, para quien decida publicar de verdad.
 >
 > **Prefiere `tools/release/release.sh`**, que deriva la versión desde `pyproject.toml` en vez
 > de tenerla escrita a mano, y comprueba que `CITATION.cff` coincida.

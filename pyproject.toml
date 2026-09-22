@@ -1,10 +1,15 @@
 [build-system]
-requires = ["setuptools>=65", "wheel"]
+# setuptools>=77 is the floor, not a round number: PEP 639 license expressions (the bare SPDX
+# string in `license` below, with no accompanying classifier) are only understood from
+# setuptools 77.0.0 onward -- older setuptools raises `ValueError: invalid pyproject.toml config:
+# project.license` on this exact file. Verified against setuptools' own migration guide
+# (setuptools.pypa.io/en/latest/userguide/license_migration.html) and issue #4903.
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "erotica"
-version = "0.1.0"
+version = "0.2.0"
 description = "EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis"
 readme = "README.md"
 requires-python = ">=3.13"

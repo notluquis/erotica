@@ -253,20 +253,21 @@ pre-commit install
 
 ## 📊 Status
 
-**Current version**: **v0.1.0** — released 2026-08-03, tagged, published to
-[PyPI](https://pypi.org/project/erotica/) and archived on Zenodo
-([`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959)). This block claimed
-"v0.0.1 (Alpha) — active development for v0.1.0" until 2026-08-04, when `pyproject.toml`,
-`CITATION.cff` and `CHANGELOG.md` had all said 0.1.0 for a day.
+**Current version**: **v0.2.0** (2026-09-22) — see `CHANGELOG.md` for the full list of changes
+since v0.1.0 (released 2026-08-03, [PyPI](https://pypi.org/project/erotica/), Zenodo concept DOI
+[`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959), which always resolves to the
+latest archived version). This block claimed "v0.0.1 (Alpha) — active development for v0.1.0"
+until 2026-08-04, when `pyproject.toml`, `CITATION.cff` and `CHANGELOG.md` had all said 0.1.0 for
+a day; keep the three in step on every release.
 
-**Development status**: v0.1.0 is the version the JOSS submission describes. The API is not yet
+**Development status**: v0.2.0 is the version the JOSS submission describes. The API is not yet
 frozen; see the roadmap below.
 
 **Tests**: the full suite runs in CI on Python 3.13 and 3.14, plus a job that installs the `bayes`
 extra so the sampler paths actually execute, and a docs job that builds the site. Audited by
 mutation rather than by coverage. (No test count is quoted here on purpose — a count in prose is
 stale by the next commit. Run `pytest --collect-only -q` for the current figure; `paper/paper.md`
-quotes one pinned to the v0.1.0 tag, which is fixed and citable.)
+quotes one pinned to the v0.2.0 release, which is fixed and citable.)
 
 **Documentation**: [erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/) — API
 reference, user guides and design notes.
@@ -292,10 +293,10 @@ If EROTICA contributes to work you publish, please cite it. Machine-readable met
 
 ```bibtex
 @software{erotica,
-  author  = {Pulgar-Escobar, Lucas},
+  author  = {Pulgar-Escobar, Lucas and Cerulo, Pierluigi},
   title   = {{EROTICA}: Estimation, Recovery \& Optimization, together with Inference,
              for Cluster Analysis},
-  version = {0.1.0},
+  version = {0.2.0},
   year    = {2026},
   doi     = {10.5281/zenodo.21769959},
   url     = {https://github.com/notluquis/erotica},
@@ -303,8 +304,10 @@ If EROTICA contributes to work you publish, please cite it. Machine-readable met
 }
 ```
 
-The DOI above is the **concept** DOI and always resolves to the latest version; use
-`10.5281/zenodo.21769960` to pin v0.1.0 exactly. The author field is spelled to match
+The DOI above is the **concept** DOI and always resolves to the latest archived version — cite it
+if you want "whichever version I ran." Every archived version also gets its own **version** DOI
+to pin one exactly; v0.1.0's is `10.5281/zenodo.21769960`. `CITATION.cff` is the source of truth
+for which version DOI matches which release. The author field is spelled to match
 `CITATION.cff` — it read `Pulgar, Lucas M.` until 2026-08-04, so the two files disagreed on the
 family name and would have produced two different citations for one release.
 
@@ -333,9 +336,10 @@ EROTICA is licensed under the [GNU Affero General Public License v3.0](LICENSE).
 Universidad de Concepción, Chile (ORCID
 [0000-0003-0703-3123](https://orcid.org/0000-0003-0703-3123)) — project direction.
 
-Matches the authors of [`paper/paper.md`](paper/paper.md) as of 2026-09-22. `CITATION.cff`'s
-`authors:` list is the Zenodo/software-archive author list, decided separately, and currently
-still Pulgar-Escobar alone — see that file's own comments.
+Matches the authors of [`paper/paper.md`](paper/paper.md) and, since 2026-09-22,
+[`CITATION.cff`](CITATION.cff)'s `authors:` list — the Zenodo/software-archive author list — in
+the same order. The two lists disagreed (Pulgar-Escobar alone in `CITATION.cff`) between
+2026-08-03 and 2026-09-22; see that file's own comments for when and why Cerulo was added there.
 
 ## 🙏 Acknowledgments
 
@@ -367,7 +371,10 @@ EROTICA builds upon excellent open-source libraries:
 - [x] **v0.0.1** — Initial alpha release with core functionality
 - [x] **v0.1.0** — Comprehensive documentation, Zenodo archive, **and PyPI distribution**
       (which this list had parked under v0.2.0; `pip install erotica` works today)
-- [ ] **v0.2.0** — Additional clustering algorithms; a frozen, deprecation-policed API
+- [x] **v0.2.0** — Cluster-selector correctness fixes (BREAKING default), unified
+      membership-column semantics, a marginalized (no longer funnel-prone) `distance_model`,
+      and a second author; see `CHANGELOG.md`.
+- [ ] **v0.3.0** — Additional clustering algorithms; a frozen, deprecation-policed API
 - [ ] **v1.0.0** — Production-ready release with full validation suite
 
 ---

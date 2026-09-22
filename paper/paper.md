@@ -158,7 +158,7 @@ the point:
   can be an artifact of the assumed geometry.
 
 In continuous integration on Python 3.13 and 3.14, with a separate job for the `bayes`
-extra: **482 tests at the v0.1.0 release**, 478 without the extra.
+extra: **562 tests at the v0.2.0 release**, 558 without the extra.
 
 The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied
 to the shipping source one at a time, and 18 survived, falsifying this project's own repeated
@@ -170,10 +170,10 @@ the mutation it was written to catch.
 `EROTICA` was developed with generative-AI assistance throughout.
 
 **Tools and versions.** Anthropic's Claude, via the Claude Code command-line agent, applied
-to code, tests, documentation and this paper's text. As of commit `ee4bbe3`, 353 of the 360
-commits carry a `Co-Authored-By` trailer naming the model: Claude Opus 5 (301), Claude Opus
-4.8 (38), Claude Sonnet 4.6 (9) and Claude Sonnet 5 (5) — the git history is the authoritative
-record. The seven commits without one are early notebook-removal and housekeeping work, not
+to code, tests, documentation and this paper's text. Of the 364 commits in the v0.2.0 release,
+357 carry a `Co-Authored-By` trailer naming the model: Claude Opus 5 (301), Claude Opus 4.8 (38),
+Claude Sonnet 5 (9) and Claude Sonnet 4.6 (9) — the git history is the authoritative record.
+The seven commits without one are early notebook-removal and housekeeping work, not
 reconstructed as assisted.
 
 **Scope.** The assistance was substantive — implementation, test and experiment scaffolding,

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-22
+
 ### Removed
 - **The NGC 6383 (aa52082-24) manuscript and its review tooling moved to their own public repo**,
   `github.com/notluquis/paper-ngc6383-aa52082-24` (2026-09-22): `data/test/NGC6383/comments_paper/`
@@ -15,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unchanged; everything that left is preserved up to the `p01-pre-extraction` tag, with a commit
   map in the new repo. `tools/manuscript_gate.py` stays here — the new repo vendors a pinned copy.
   See `docs/design-notes/decisions.md` (2026-09-22 entry) for what stayed on disk unpublished and
-  which runtime reads it left broken (none in `tests/` or the package itself).
+  which runtime reads it left broken (none in `tests/` or the package itself). (`06f6556`)
 
 ### Removed — BREAKING
 - **`dill_cache` is gone from `ClusterAnalyzer`, `load_dataset` and `_load_from_path`.** It was
@@ -26,7 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stale sidecar silently shadowing an edited catalogue is a worse failure than the one being
   fixed. The keyword still accepts a value and raises `DeprecationWarning`; a sentinel default
   means `dill_cache=False` warns too, because that was the value that used to *avoid* the write.
-  Loading a path that itself ends in `.dill` is unaffected.
+  Loading a path that itself ends in `.dill` is unaffected. The `ClusterAnalyzer.dill_path`
+  property was deleted outright alongside it, then given a named `AttributeError` explaining the
+  removal instead of a bare one, so both halves of the sidecar fail the same way.
+  (`04749f6`, `76a10bf`)
+- **Five unnamespaced top-level shim modules are no longer installed.** `pyproject.toml` declared
+  `py-modules = ["clustering", "cluster_analysis", "data_loader", "data_preprocessor", "utils"]`,
+  so `pip install erotica` dropped those five names *unnamespaced* into site-packages — `utils` in
+  particular is one of the most collision-prone names on PyPI, able to shadow a user's own module
+  or another package's. This shipped in v0.1.0 and was live on PyPI. The files stay in the working
+  tree as re-export shims (`from erotica.utils.utils import compare_datasets`, 81 lines total,
+  nothing in this repository imports them) so a local notebook still runs, but `import utils`
+  after a fresh `pip install erotica` now fails; use `from erotica.utils.utils import
+  compare_datasets` etc. instead. (`71919bd`)
 
 ### Changed — BREAKING
 - **`PhotometricMassEstimator.assign_nearest` now takes arrays, not a `QTable` plus column
@@ -37,9 +51,153 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **`NaN`** — a single nearest isochrone point carries no spread, and `0.0` would assert an
   exact mass. `assign_from_samples` is unchanged, including its genuine `0.0` at `k=1`. The
   constructor now classifies the isochrone form it was given, so calling the method that does
-  not match raises by name instead of failing inside a delegate.
+  not match raises by name instead of failing inside a delegate. (`04749f6`)
+- **`Clustering.search_pseudoprobability`'s `selection` default changed from `"max_members"` to
+  `"max_persistence"`.** `"max_members"` was the argmax of condensed-tree *row* count — the same
+  unit mismatch behind the selector fix below — so at high contamination it could select a
+  `min_cluster_size` rooted in the field rather than the cluster. `"max_persistence"` scores each
+  sweep step by HDBSCAN's own `cluster_persistence_` for the cluster actually returned. Measured
+  on the existing 54-cell benchmark across all three selection rules on identical frames; a
+  coincident-row guard was added after the first measurement overstated the new rule's win (more
+  than `min_samples` near-duplicate rows drive every cluster's persistence toward an
+  indistinguishable value). An identical call to `search_pseudoprobability()` with no `selection`
+  argument now returns a different result than in v0.1.0. Pass `selection="max_members"` for the
+  old behavior, or construct `Clustering(..., legacy_cluster_selection=True)` to also restore the
+  pre-fix selector below. (`e1e1a4c`, `0d03cb4`)
+- **The cluster label selector no longer confuses condensed-tree row counts with flat-cluster
+  point counts.** `_desired_tree_branch_size` returned a count of condensed-tree rows —
+  immediate children, a mix of falling points and sub-cluster nodes — which
+  `_cluster_label_for_size` matched against flat-cluster *point* counts, different units that
+  coincided by accident in 23 of 83 benchmark cells. On the other 60, the fallback returned the
+  largest non-noise cluster, which at contamination 0.8–0.95 is the field: selected-branch purity
+  fell to 0.394 ± 0.052 despite HDBSCAN isolating the cluster at ≥0.8 purity in 96% of cells. The
+  label is now resolved from the final model's own condensed tree instead. `Clustering.__init__`
+  gained `legacy_cluster_selection: bool = False`, which exists solely to reproduce results
+  published before 2026-08-03 by restoring the old (defective) selector; there is no other reason
+  to set it. (`14454e5`)
+- **`IsochroneFitter.__init__`, `ClusterAnalyzer.fit_isochrone` and
+  `ClusterAnalyzer.prepare_isochrone_fitter` require `loga_range`, `dm_mu` and `dm_range`** —
+  they no longer default to `(6.0, 7.0)`, `10.2` and `(9.5, 10.7)`. Those were NGC 6383's own
+  fitted values, baked into the general-purpose API; a caller who omitted them got that one
+  cluster's priors for whatever cluster they were fitting, silently. `fit_isochrone` also built
+  its own `IsochroneFitter` and re-injected the same three defaults internally even after the
+  first pass removed them from the constructor, so the leak had to be closed twice. Every call
+  site that relied on the old defaults now raises `TypeError` for the missing keyword instead of
+  fitting silently against NGC 6383's numbers. (`1646656`, `a539363`)
+
+### Fixed — BREAKING
+- **A `probability_threshold` against a missing probability column now raises `KeyError` instead
+  of silently returning the unfiltered table.** Four call sites —
+  `erotica.selection.census_detectability_from_members`, `ClusterAnalyzer.center_determination`,
+  `.half_mass_radius` and `.half_light_radius` — tested `column in table.colnames` and skipped
+  the filter entirely when it was absent, returning every row with no indication that nothing had
+  been filtered. Measured on a 331-row table from `Clustering.search()` (which writes only
+  `probability_hdbscan`, not `probability`): requesting `probability_column="probability"` at
+  threshold 0.6 silently returned all 331 rows, 67 of them (20%) never checked against that
+  threshold at all. The new
+  `erotica._membership.select_by_probability` raises `KeyError` naming which method wrote which
+  column instead. A call that used to return an unfiltered table because the wrong column was
+  requested will now raise. (`a539363`)
+- **`distance_model`'s error-aware branch is now marginalized in closed form** instead of sampling
+  a per-star latent `r_true ~ Gamma(mu_r, std_r)` with `r ~ Normal(r_true, errors)`. That centred
+  hierarchy is Neal's funnel whenever `std_r` is much smaller than the catalogue errors —
+  precisely the regime the branch exists for — and is the mechanism behind v0.1.0's stated
+  limitation that no `distance_model` fit above ~250 stars should be trusted (R-hat 1.041–1.817,
+  ESS as low as 5, up to 344 divergences). With a normal population the latent integrates exactly:
+  if `r_true ~ N(mu, s)` and `r | r_true ~ N(r_true, e)`, then `r ~ N(mu, sqrt(s² + e²))`, and the
+  per-star parameters — and the funnel — are gone. Verified on the same data that showed the
+  funnel: R-hat ≤ 1.009, ESS 849–992, zero divergences across three seeds. **This changes the
+  posterior an identical error-aware call returns** — it is the fix for the v0.1.0 known
+  limitation, not a cosmetic change; the no-errors branch is unaffected and keeps sampling the
+  Gamma. `metadata["population"]` now records which family was fitted. (`f190562`, `0743ee9`)
+- **`provenance.load_results(..., only_last=True)` returned one parameter of a fit instead of the
+  whole fit.** `datetime.now().isoformat()` was evaluated inside a per-row comprehension and
+  carries microseconds, so a single call's rows each got a different `Date_Time`; filtering on the
+  maximum then kept whichever parameter serialized last. A King fit over `R_c, R_t, k, b` came
+  back as one row instead of four. Every parameter of a call now shares one timestamp. Trace-index
+  allocation is also no longer a raw clock reading: two `store_trace_results` calls landing in the
+  same wall-clock second used to get the same index and collide, and two calls a second apart used
+  to get different indices and silently duplicate an identical trace. `_allocate_trace_index` now
+  resolves against what is already on disk — free slot: take it; same trace present: reuse its
+  slot; different trace: step forward — so storing a trace twice now reuses its slot instead of
+  archiving a duplicate, and two calls in one second no longer overwrite each other.
+  (`d0fe388`, `25d9289`, `682b94a`)
+
+### Added
+- **An external oracle for `king_profile`**, which `tests/CLAUDE.md` had advertised for months
+  without one existing: a form-independent check against King (1962) Eq. 18 (always runs), plus
+  a cross-check against `ocelot`'s `king62` under a new **`oracles`** extra (skips if absent).
+  (`04749f6`, `3db1ddf`)
+- **`erotica.core.NoCandidateClusters`** (a `RuntimeError` subclass), raised when a
+  `search_pseudoprobability` sweep finds no candidate cluster. Measured over 24 field seeds: 82
+  occurrences across 70 cells of the 5D arm and 12 of the 3D arm, and zero once there is
+  structure — an unstructured field is the expected response, not a crash, but it previously
+  arrived as a bare `RuntimeError` indistinguishable from one. Inherits from `RuntimeError`, so
+  existing `except RuntimeError` callers are unaffected. (`329d3a8`)
+- **`Clustering.search_pseudoprobability` gains four keyword arguments**, all opt-in with the
+  previous hardcoded behavior as their default:
+  - `probability_method: str = "hdbscan"` — `"soft"` uses
+    `all_points_membership_vectors` instead of HDBSCAN's `probabilities_`, which clamps to
+    exactly 1.0 for 83.6% of an EOM-merged cluster's points and cannot rank them. Measured over
+    2700 fits, 15 seeds: ROC-AUC 0.9867 vs. 0.7706 for soft vs. hdbscan. Off by default.
+  - `recovery_frequency: str = "any"` — `"target"` counts recovery relative to the selected
+    cluster rather than any cluster; requesting it with `select_cluster=False` now raises
+    `ValueError` instead of being silently dropped (the target term is only defined relative to a
+    selected cluster).
+  - `approx_min_span_tree: bool = False` — exposes HDBSCAN's approximate-vs-exact
+    minimum-spanning-tree switch, which measurably changes labels when `leaf_size` varies
+    (synthetic ROC-AUC 0.8887–0.9043 by `leaf_size` under the approximate tree; byte-identical
+    labels under the exact one). A no-op under the package's default
+    `match_reference_implementation=True`, which already forces the exact tree.
+  - `match_reference_implementation: bool = True` — the flag this package has hardcoded since
+    before v0.1.0, now exposed and documented rather than buried in `base_kwargs`. It does four
+    things, not the three HDBSCAN's own source comment lists: `min_samples -= 1`,
+    `min_cluster_size += 1`, `approx_min_span_tree = False`, and an extra label reassignment in
+    `do_labelling`. Default unchanged, so this does not itself move results.
+  (`ace5283`, `bf194ce`, `a3a7f99`, `db0fafb`, `5ede087`, `962693a`)
+- **`probability_column` parameter** on `IsochroneFitter.setup`, `IsochroneFitter.cmd_distances`,
+  `ClusterAnalyzer.fit_isochrone` and `ClusterAnalyzer.prepare_isochrone_fitter`, defaulting to
+  the previously hardcoded `"probability_hdbscan"` (`erotica._membership.COLUMNA_ISOCRONA`). The
+  rest of the package reads `"probability"` (`probabilities_ × probability_times`) by default,
+  which is always ≤ `probability_hdbscan`, so the same threshold selects different members
+  depending on which path produced the table; the asymmetry is documented rather than unified,
+  because the accepted NGC 6383 manuscript's published numbers depend on the isochrone path
+  keeping its column. (`a539363`)
+- **`DistanceFitResult.mode_r`** — the closed-form mode of the predictive distribution, added
+  because the only mode the package had was a KDE estimate inside a diagnostic. Analytic rather
+  than KDE deliberately: measured, the KDE disagreed with the closed form by 0.0152/0.0049/0.0045
+  kpc at 8k/100k/2M draws, 20–70× the difference between the two priors the methods section
+  discusses. **`ParallaxFitResult.distance_mean` / `.distance_std`** — the parallax zero-point
+  floor (10.3 µas, Maíz Apellániz et al. 2021) accounts for 86.5% of the reported mean's variance,
+  and a naive standard error alone falls short by 2.7×. Both fields default to `NaN` and are
+  additive; no previously-returned field changes. (`9cc5b93`)
+
+### Changed
+- `asteca` extra floor raised to `>=0.7` from `>=0.6`. Verified that `asteca` 0.6.9 runs to
+  completion against the same calls and silently reports a *different* baseline for
+  `tools/validation/benchmark_erotica_vs_asteca.py`'s published comparison table — no error, no
+  warning, just a different number, so the floor is load-bearing rather than a routine bump.
+  (`3980e49`)
+- `h5netcdf[h5py]>=1.3` added to the `bayes` and `paper` extras. ArviZ 1.x ships no netCDF engine
+  of its own, so every `InferenceData.to_netcdf()` call and every provenance sidecar failed to
+  write without it; `[h5py]` is load-bearing because `h5py` is an optional extra of `h5netcdf`
+  rather than one of its dependencies, so a bare `h5netcdf` installs an engine with no backend.
+  (`aeb60f1`, `2861be3`)
+- A `sagitta` extra (`sagitta @ git+https://github.com/hutchresearch/Sagitta.git`) now exists.
+  `erotica.analysis._sagitta`'s `ImportError` already pointed users at installing it, but there
+  was no `pip install erotica[...]` target that resolved. (`2acb827`)
 
 ### Fixed
+- **`PhotometricMassEstimator.__init__` no longer exhausts a generator or other one-shot
+  iterator passed as isochrone points.** `_classify_isochrone_form` consumed its input with
+  `list(...)` to inspect it, then `__init__` stored the *original*, now-drained object; any
+  iterator reaching `assign_masses` had already been consumed, so the call failed with "No finite
+  isochrone points with masses were supplied" — blaming the data for a constructor defect. The
+  classifier now returns `(form, items)` and both are kept. (`76a10bf`)
+- **`assign_masses` now warns instead of silently discarding an isochrone** that lacks a mass
+  column, or a point that is not finite, rather than dropping it without notice. The only prior
+  warning fired at zero surviving points, the case that least needed one because it already fails
+  on its own. (`737c89b`)
 - **`king_profile` truncates at `r_t`.** Beyond the tidal radius the squared bracket climbed
   back toward `1/(1+(r_t/r_c)²)` — with `r_c=5, r_t=20, b=0` it returned `0` at `r=20` and then
   0.0061, 0.0205, 0.0371, 0.0564 at 30, 50, 100, 1000, i.e. more at large radius than at
@@ -47,20 +205,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   implementations in this package that already did (`_king_model`, `_king_corona_model`,
   `RDP_bayesian`, and the test oracle). **No published result changes**: `king_expected_count`
   already capped its integral at `min(R_t, field_radius)`, and no fitting path calls
-  `king_profile`.
+  `king_profile`. (`04749f6`)
 - **`eff_surface_density` and `corona_surface_density` accept a Quantity scale radius**
   (`a`, `R_2`), which `king_profile` always did. The previous failure was at `1.0 + (r/a)**2`,
-  not at the background term as the docstring claimed, so `b = 0` never avoided it.
+  not at the background term as the docstring claimed, so `b = 0` never avoided it. (`04749f6`)
 - **`compare_datasets` returns its comparison** instead of only printing. Printing is unchanged
-  and now behind `verbose=True`.
+  and now behind `verbose=True`. (`04749f6`)
 - **The docs build fails when it is broken.** `fail_on_warning: true` is on for Read the Docs
   and CI enforces zero warnings; previously the CI step piped `sphinx` through `tee` without
-  `pipefail`, so a step named "failing on errors" passed on every build that failed.
+  `pipefail`, so a step named "failing on errors" passed on every build that failed. (`0e24a07`)
 
-### Added
-- **An external oracle for `king_profile`**, which `tests/CLAUDE.md` had advertised for months
-  without one existing: a form-independent check against King (1962) Eq. 18 (always runs), plus
-  a cross-check against `ocelot`'s `king62` under a new **`oracles`** extra (skips if absent).
+### Known limitations, stated rather than deferred
+- **The deprecated `RDP_bayesian`'s `priors` / `priors_parameters` arguments remain a no-op.**
+  They read back what was passed in and never reach the PyMC model, which its King priors
+  hardcode as `Uniform`s. Not repaired, because `RDP_bayesian` is deprecated since 2026-08-02 in
+  favor of `king_unbinned`, where the equivalent capability already works:
+  `KingPriors(tidal_prior=(mu, sigma))` does enter `_king_model` as a `TruncatedNormal` on `R_t`.
+  The signature is kept only for code reproducing pre-deprecation results. (`f6972db`)
 
 ## [0.1.0] - 2026-08-03
 

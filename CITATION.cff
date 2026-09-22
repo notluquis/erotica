@@ -2,6 +2,11 @@
 # minted (10.5281/zenodo.21769959) and recorded below. The "DRAFT" header that used to sit
 # here outlived every condition it named.
 #
+# Second author added 2026-09-22, for v0.2.0: Pierluigi Cerulo, same person and same ORCID as
+# `paper/paper.md`'s co-author, added there for project direction. Zenodo takes its creators
+# list from this file, not from paper.md, so the two are kept in the same order deliberately —
+# see the `authors:` block's own comment below for why.
+#
 # Licence: AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and this
 # file — verified 2026-08-02. (The earlier note here claiming LICENSE held GPL-3.0
 # text was stale; it holds the AGPL, 661 lines with the network-server preamble.)
@@ -22,16 +27,22 @@ abstract: >-
   dynamical diagnostics, with ArviZ InferenceData provenance for every fit.
 type: software
 authors:
-  # Sole author, confirmed 2026-08-03. This list is also the Zenodo deposit's author list:
-  # the archive IS the software, so they are decided once and kept identical.
+  # This list is also the Zenodo deposit's author list: the archive IS the software, so they are
+  # decided together with paper/paper.md's author list, not independently.
   - family-names: "Pulgar-Escobar"
     given-names: "Lucas"
     affiliation: "Universidad de Concepción, Chile"
     orcid: "https://orcid.org/0009-0008-4359-2444"
+  # Added 2026-09-22, for v0.2.0: same ORCID and affiliation as paper/paper.md's co-author,
+  # added there for project direction. Order matches the paper.
+  - family-names: "Cerulo"
+    given-names: "Pierluigi"
+    affiliation: "Departamento de Ingeniería Informática y Ciencias de la Computación, Universidad de Concepción, Chile"
+    orcid: "https://orcid.org/0000-0003-0703-3123"
 repository-code: "https://github.com/notluquis/erotica"
 license: AGPL-3.0-or-later
-version: 0.1.0
-date-released: "2026-08-03"
+version: 0.2.0
+date-released: "2026-09-22"
 doi: 10.5281/zenodo.21769959   # concept DOI: always resolves to the latest version
 
 # Once the NGC 6383 A&A paper has a DOI, uncomment this block. GitHub's "Cite this

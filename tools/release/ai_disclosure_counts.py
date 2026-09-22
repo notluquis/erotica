@@ -14,21 +14,22 @@ Two things fix that, and both matter:
 1. **Count at a fixed point, not at HEAD.** A tag if one exists; otherwise a specific commit
    sha (``--tag`` accepts either -- ``git log <ref>`` does not care). Frozen, citable, and the
    point the disclosure actually describes, so the numbers stop being a moving target and a
-   referee can reproduce them. 2026-09-22: the paper was updated on ``dev`` ahead of a
-   ``v0.2.0`` tag, so it cites a commit sha instead -- ``is_commit_sha()`` picks the "as of
-   commit <sha>" sentence template over "in the <tag> release" automatically.
+   referee can reproduce them. Between 2026-09-22 (when the paper was updated on ``dev``) and
+   the ``v0.2.0`` tag landing, the paper cited a commit sha instead -- ``is_commit_sha()``
+   picks the "as of commit <sha>" sentence template over "in the <tag> release" automatically,
+   and the same template still applies to any future work-in-progress state ahead of a tag.
 2. **Compute them with a script instead of by hand**, so "is the paper still true?" is a
    command rather than an act of memory. ``--check`` answers exactly that question.
 
 Usage
 -----
-    python tools/release/ai_disclosure_counts.py                       # counts at v0.1.0
-    python tools/release/ai_disclosure_counts.py --tag v0.2.0          # counts at another tag
+    python tools/release/ai_disclosure_counts.py                       # counts at v0.2.0
+    python tools/release/ai_disclosure_counts.py --tag v0.1.0          # counts at another tag
     python tools/release/ai_disclosure_counts.py --tag ee4bbe3aeaf0d   # counts at a commit sha
     python tools/release/ai_disclosure_counts.py --paragraph           # the prose, ready to paste
     python tools/release/ai_disclosure_counts.py --check paper/paper.md   # exit 1 if stale
 
-``--check`` normalises whitespace before matching, so it is insensitive to how the paragraph
+``--check`` normalizes whitespace before matching, so it is insensitive to how the paragraph
 is line-wrapped but not to a changed integer.
 """
 
@@ -42,7 +43,7 @@ from collections import Counter
 from pathlib import Path
 
 TRAILER = "Co-Authored-By:"
-DEFAULT_TAG = "v0.1.0"
+DEFAULT_TAG = "v0.2.0"
 
 # Trailers are written as ``Claude Opus 5 (1M context) <noreply@anthropic.com>``; the paper
 # names the model as ``Claude Opus 5``. Strip the address and any parenthetical so the script's

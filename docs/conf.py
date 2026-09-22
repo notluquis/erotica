@@ -9,7 +9,7 @@ copyright = "2026, EROTICA developers"
 try:
     release = _pkg_version("erotica")  # distribution name in pyproject
 except Exception:
-    release = "0.0.1"
+    release = "0.2.0"
 version = ".".join(release.split(".")[:2])
 
 # -- General configuration ---------------------------------------------------

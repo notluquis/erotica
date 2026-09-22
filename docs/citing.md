@@ -10,18 +10,19 @@ is other people's method, implemented.**
 Machine-readable metadata lives in [`CITATION.cff`](https://github.com/notluquis/erotica/blob/dev/CITATION.cff),
 which GitHub renders as a *Cite this repository* button.
 
-**v0.1.0 is released and archived.** Cite the concept DOI
-[`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959), which always resolves to the
-latest version; the v0.1.0 version DOI is
-[`10.5281/zenodo.21769960`](https://doi.org/10.5281/zenodo.21769960) if you need to pin the exact
-release you ran.
+**Every archived version is citable two ways.** The concept DOI
+[`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959) always resolves to the latest
+*archived* version — cite it for "whichever version I ran." Each archived version also gets its
+own version DOI to pin one exactly; v0.1.0's (released 2026-08-03) is
+[`10.5281/zenodo.21769960`](https://doi.org/10.5281/zenodo.21769960). `CITATION.cff`'s `version`
+and `doi` fields are the source of truth for which one is current.
 
 ```{note}
-The author list, ORCID and DOI in `CITATION.cff` are final as of 2026-08-03 — this page carried a
-"pre-release, author list and DOI not final" warning that had outlived every condition it named.
-What is still open is the *preferred* citation: a software paper is under review, and once it has a
-DOI the `preferred-citation` field will redirect GitHub's citation button to it, which is the
-correct target for a methods paper with a companion code release.
+The author list and ORCIDs in `CITATION.cff` are current as of 2026-09-22, when Pierluigi Cerulo
+was added as a second author, matching `paper/paper.md`. What is still open is the *preferred*
+citation: a software paper is under review, and once it has a DOI the `preferred-citation` field
+will redirect GitHub's citation button to it, which is the correct target for a methods paper
+with a companion code release.
 ```
 
 ```{note}
