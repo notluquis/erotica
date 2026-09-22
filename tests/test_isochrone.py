@@ -10,6 +10,9 @@ TestMISTIsochrones     — file parsing, Z extraction, get_isochrone
 TestFitErrorModel      — quadratic log-error fit
 TestIsochroneFitter    — setup, H_grid ops, save/load, posterior_cmd
 TestPyTensorCompat     — tensor dtype / attribute consistency
+TestHessFrame          — grid frame, node interpolation, gradient, cache/padding guards
+                         (closed-form toy isochrone oracle); two strict xfails pin the open
+                         reference-locking defect
 """
 
 from __future__ import annotations
@@ -399,7 +402,8 @@ class TestIsochroneFitter:
         assert fitter._H_grid is not None
         Nm, Na = 5, 5
         Nb_m, Nb_c = fitter._Nbins
-        assert fitter._H_grid.shape == (Nm, Na, Nb_m, Nb_c)
+        pm_, pc_ = fitter._pad  # the grid is padded so a shifted model can enter the window
+        assert fitter._H_grid.shape == (Nm, Na, Nb_m + 2 * pm_, Nb_c + 2 * pc_)
 
     def test_interp_H_returns_tensor(self, fitter_and_data):
         import pytensor.tensor as pt
@@ -410,37 +414,46 @@ class TestIsochroneFitter:
         H = fitter._interp_H(met_t, loga_t)
         result = H.eval()
         Nb_m, Nb_c = fitter._Nbins
-        assert result.shape == (Nb_m, Nb_c)
+        pm_, pc_ = fitter._pad
+        assert result.shape == (Nb_m + 2 * pm_, Nb_c + 2 * pc_)
         assert np.all(np.isfinite(result))
 
     def test_shift_histogram_identity(self, fitter_and_data):
-        """Shifting by (0, 0) should return the original histogram."""
+        """At the reference shift the output is the central window of the padded grid.
+
+        The grid is binned in the apparent frame of ``(dmag_ref, dcol_ref)`` on the
+        observed window widened by ``pad`` bins; zero offset from that reference must
+        return exactly the un-padded centre.
+        """
         import pytensor.tensor as pt
 
         fitter, _ = fitter_and_data
         Nb_m, Nb_c = fitter._Nbins
-        H_np = np.random.default_rng(0).uniform(0, 1, (Nb_m, Nb_c))
-        H_t = pt.as_tensor_variable(H_np)
-        dmag = pt.as_tensor_variable(np.float64(0.0))
-        dcol = pt.as_tensor_variable(np.float64(0.0))
-        shifted = fitter._shift_histogram(H_t, dmag, dcol).eval()
-        # Zero shift: interior pixels should match (boundary may differ due to valid mask)
-        s = 1  # skip outermost ring
-        np.testing.assert_allclose(shifted[s:-s, s:-s], H_np[s:-s, s:-s], atol=1e-10)
+        pm_, pc_ = fitter._pad
+        H_np = np.random.default_rng(0).uniform(0, 1, (Nb_m + 2 * pm_, Nb_c + 2 * pc_))
+        shifted = fitter._shift_histogram(
+            pt.as_tensor_variable(H_np),
+            pt.as_tensor_variable(np.float64(fitter._dmag_ref)),
+            pt.as_tensor_variable(np.float64(fitter._dcol_ref)),
+        ).eval()
+        np.testing.assert_allclose(shifted, H_np[pm_ : pm_ + Nb_m, pc_ : pc_ + Nb_c], atol=1e-12)
 
-    def test_shift_histogram_mass_conservation(self, fitter_and_data):
-        """A small shift should not increase total mass significantly."""
+    def test_shift_histogram_whole_bin_is_a_row_offset(self, fitter_and_data):
+        """A shift of exactly one magnitude bin fainter reads the padded grid one row up."""
         import pytensor.tensor as pt
 
         fitter, _ = fitter_and_data
         Nb_m, Nb_c = fitter._Nbins
-        H_np = np.ones((Nb_m, Nb_c), dtype=float)
-        H_t = pt.as_tensor_variable(H_np)
-        bw = min(fitter._binw_mag, fitter._binw_col)
-        dmag = pt.as_tensor_variable(np.float64(bw))  # shift by 1 bin
-        dcol = pt.as_tensor_variable(np.float64(0.0))
-        shifted = fitter._shift_histogram(H_t, dmag, dcol).eval()
-        assert shifted.sum() <= H_np.sum() + 1e-6
+        pm_, pc_ = fitter._pad
+        H_np = np.random.default_rng(1).uniform(0, 1, (Nb_m + 2 * pm_, Nb_c + 2 * pc_))
+        shifted = fitter._shift_histogram(
+            pt.as_tensor_variable(H_np),
+            pt.as_tensor_variable(np.float64(fitter._dmag_ref + fitter._binw_mag)),
+            pt.as_tensor_variable(np.float64(fitter._dcol_ref)),
+        ).eval()
+        np.testing.assert_allclose(
+            shifted, H_np[pm_ - 1 : pm_ - 1 + Nb_m, pc_ : pc_ + Nb_c], atol=1e-9
+        )
 
     def test_save_load_roundtrip(self, fitter_and_data, tmp_path):
         fitter, data = fitter_and_data
@@ -952,7 +965,8 @@ class TestIsochroneFitterExtended:
         mass, G, BP, RP = iso.get_isochrone(0.0152, 6.5)
         H = setup_fitter._hess_for_isochrone(mass, G, BP, RP)
         Nb_m, Nb_c = setup_fitter._Nbins
-        assert H.shape == (Nb_m, Nb_c)
+        pm_, pc_ = setup_fitter._pad
+        assert H.shape == (Nb_m + 2 * pm_, Nb_c + 2 * pc_)
         assert np.all(H >= 0)
         assert np.all(np.isfinite(H))
 
@@ -1213,3 +1227,308 @@ def test_los_ejemplos_de_docstring_pasan_los_argumentos_que_el_metodo_exige():
                 f"el ejemplo de {nombre_metodo} no pasa {arg!r}, que es obligatorio: "
                 f"copiarlo da TypeError. Llamada del ejemplo:\n{llamada}"
             )
+
+
+# ---------------------------------------------------------------------------
+# Hess-grid frame and interpolation (2026-09-22)
+# ---------------------------------------------------------------------------
+#
+# The June 2026 NUTS refit of NGC 6383 gave R-hat 1.5-2.2. Two defects in the precomputed
+# Hess grid were measured behind it (hub finding isochrone-nuts-convergence-2026-09.md):
+#
+# 1. FRAME. The grid was binned in the absolute frame (dm = 0, A_V = 0) on the *apparent*
+#    observed window and then shifted by the whole dm + k_G A_V: only stars with G_abs inside
+#    the apparent window survived, so the model had zero mass brighter than G = 17 while 137
+#    of the 254 members sit there.
+# 2. STAIRCASE. Each regular grid point took the nearest file isochrone, so adjacent slices
+#    were identical and d loglike / d met was exactly zero at 283 of 300 prior points.
+#
+# The oracle for both is an analytic toy isochrone family: photometry is a closed-form
+# function of (mass, age, Z), so where the stars land at a given (dm, A_V) is known without
+# going through the fitter.
+
+_TOY_MASSES = np.geomspace(0.1, 8.0, 120)
+
+
+def _toy_photometry(mass, loga, Z):
+    """Closed-form (G_abs, BP-RP): younger / more metal-rich -> brighter / redder."""
+    lm = np.log10(mass)
+    G = 4.6 - 6.5 * lm - 2.0 * (7.0 - loga) / (1.0 + mass**2) + 40.0 * (Z - 0.015)
+    col = 0.8 - 1.4 * lm + 20.0 * (Z - 0.015) + 0.1 * (7.0 - loga)
+    return G, col
+
+
+def _write_toy_family(tmp_path: Path, Zs, ages) -> Path:
+    for k, Z in enumerate(Zs):
+        header = textwrap.dedent(f"""\
+            # toy isochrone family
+            # Yinit  Zinit  FeH
+            #  0.270  {Z:.6f}  0.00
+            # EEP initial_mass log10_isochrone_age_yr Gaia_G_EDR3 Gaia_BP_EDR3 Gaia_RP_EDR3
+        """)
+        rows = []
+        for loga in ages:
+            G, col = _toy_photometry(_TOY_MASSES, loga, Z)
+            for i, (m, g, c) in enumerate(zip(_TOY_MASSES, G, col, strict=True)):
+                rows.append(f"{i} {m:.6f} {loga:.4f} {g:.6f} {g + 0.6 * c:.6f} {g - 0.4 * c:.6f}")
+        (tmp_path / f"toy_{k}.iso.cmd").write_text(header + "\n".join(rows) + "\n")
+    return tmp_path
+
+
+def _toy_stars(n, loga, Z, dm, Av, rng, e=0.01):
+    """Star-level draw from the toy family: Chabrier-2014 inverse CDF on a fine mass grid,
+    photometry from the closed form (NOT from the isochrone file or the fitter), singles only."""
+    m = np.geomspace(0.1, 8.0, 20000)
+    ln = np.exp(-0.5 * ((np.log10(m) - np.log10(0.2)) / 0.55) ** 2) / m
+    pdf = np.where(m < 1.0, ln, np.exp(-0.5 * (np.log10(0.2) / 0.55) ** 2) * m**-2.35)
+    cdf = np.concatenate([[0.0], np.cumsum(0.5 * (pdf[1:] + pdf[:-1]) * np.diff(m))])
+    mass = np.interp(rng.uniform(size=n), cdf / cdf[-1], m)
+    G, col = _toy_photometry(mass, loga, Z)
+    kG, kBP, kRP = (_ccm89(lam) for lam in (6390.7, 5182.6, 7825.1))
+    Gapp = G + dm + kG * Av + rng.normal(0, e, n)
+    BP = G + 0.6 * col + dm + kBP * Av + rng.normal(0, e, n)
+    RP = G - 0.4 * col + dm + kRP * Av + rng.normal(0, e, n)
+    return QTable(
+        {
+            "Gmag": Gapp,
+            "G_BPmag": BP,
+            "G_RPmag": RP,
+            "e_Gmag": np.full(n, e),
+            "e_G_BPmag": np.full(n, e),
+            "e_G_RPmag": np.full(n, e),
+            "probability_hdbscan": np.ones(n),
+        }
+    )
+
+
+def _toy_fitter(tmp_path, *, M_met=3, M_loga=11, Zs=(0.010, 0.015, 0.020), **kw):
+    ages = kw.pop("ages", (6.3, 6.4, 6.5, 6.6, 6.7, 6.8))
+    _write_toy_family(tmp_path, Zs, ages)
+    args = dict(
+        loga_range=(6.3, 6.8),
+        Av_range=(0.2, 1.0),
+        dm_mu=10.0,
+        dm_sigma=0.3,
+        dm_range=(9.6, 10.4),
+        alpha=0.0,  # single stars only: the toy oracle has no binaries
+        beta=0.0,
+        M_met=M_met,
+        M_loga=M_loga,
+    )
+    args.update(kw)
+    return IsochroneFitter(tmp_path, **args)
+
+
+@requires_bayes_extra
+class TestHessFrame:
+    """Where the shifted model Hess puts its mass, against the closed-form toy isochrone."""
+
+    @pytest.mark.parametrize("dm,Av", [(10.0, 0.6), (10.35, 0.95), (9.65, 0.25)])
+    def test_model_mass_lands_where_the_isochrone_does(self, tmp_path, dm, Av):
+        """Oracle: the toy node's own points, moved by (dm, A_V) in closed form.
+
+        At a grid node (Z = 0.015, loga = 6.5, which the regular grid hits exactly) the
+        shifted model Hess must hold the IMF weight of exactly the isochrone points that land
+        inside the observed window, at their magnitudes. Checked at the reference shift and
+        at both prior corners, because the old defect depended on the size of the shift.
+
+        Mutation (measured 2026-09-22): binning the grid in the absolute frame and shifting
+        by the full ``dm + k_G A_V`` (the pre-2026-09-22 code) leaves 0.17-0.28 of the IMF
+        weight in the window here, against 0.90-1.00 expected, and all three cases fail.
+        """
+        import pytensor.tensor as pt
+
+        f = _toy_fitter(tmp_path)
+        f.setup(_toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
+        assert f._met_grid[1] == pytest.approx(0.015) and f._loga_grid[4] == pytest.approx(6.5)
+
+        H = f._shift_histogram(
+            f._interp_H(pt.constant(0.015), pt.constant(6.5)),
+            pt.constant(dm + f._kG * Av),
+            pt.constant(f._k_col1 * Av),
+        ).eval()
+
+        mass, G, BP, RP = f._isochs.get_isochrone(0.015, 6.5)
+        w = _chabrier2014_weights(mass)
+        g_app = G + dm + f._kG * Av
+        c_app = BP - RP + f._k_col1 * Av
+        (m0, m1), (c0, c1) = f._mag_range, f._col_range
+        inside = (g_app >= m0) & (g_app < m1) & (c_app >= c0) & (c_app < c1)
+        expected_mass = float(w[inside].sum())
+        expected_mean_g = float(np.sum(w[inside] * g_app[inside]) / expected_mass)
+
+        rows = m0 + (np.arange(f._Nbins[0]) + 0.5) * f._binw_mag
+        model_mass = float(H.sum())
+        model_mean_g = float(np.sum(H.sum(axis=1) * rows) / model_mass) if model_mass else np.inf
+
+        assert expected_mass > 0.4  # the fixture really puts stars in the window
+        # the 3x3 smoothing leaks up to one bin of mass across the window edge
+        assert model_mass == pytest.approx(expected_mass, abs=0.06)
+        assert abs(model_mean_g - expected_mean_g) < 0.5 * f._binw_mag
+
+    def test_grid_interpolates_between_isochrone_nodes(self, tmp_path):
+        """Oracle: linearity. Halfway between two metallicity nodes the grid must be the mean
+        of the two node Hess diagrams, and no two adjacent slices may be identical.
+
+        Mutation: nearest-node caching (the pre-2026-09-22 code) makes the midpoint equal to
+        one node and leaves identical adjacent slices -- zero gradient between them.
+        """
+        f = _toy_fitter(tmp_path, M_met=5, M_loga=11)  # met grid 0.010, 0.0125, 0.015, ...
+        f.setup(_toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(4)), prob_threshold=0)
+        H = f._H_grid
+        j = int(np.argmin(np.abs(f._loga_grid - 6.5)))
+        assert f._loga_grid[j] == pytest.approx(6.5)
+        np.testing.assert_allclose(H[1, j], 0.5 * (H[0, j] + H[2, j]), rtol=0, atol=1e-12)
+        for axis in (0, 1):
+            same = [
+                np.array_equal(np.take(H, k, axis), np.take(H, k + 1, axis))
+                for k in range(H.shape[axis] - 1)
+            ]
+            assert not any(same), f"identical adjacent slices along axis {axis}: {same}"
+
+    def test_loglike_gradient_is_nonzero_in_met_and_loga(self, tmp_path):
+        """NUTS needs d loglike / d(met, loga) != 0 between nodes. Measured on NGC 6383 before
+        the fix: exactly zero in met at 283 / 300 random prior points, in loga at 133 / 300."""
+        import pytensor
+        import pytensor.tensor as pt
+
+        f = _toy_fitter(tmp_path, M_met=9, M_loga=21)
+        f.setup(_toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(5)), prob_threshold=0)
+        met, loga = pt.dscalar("met"), pt.dscalar("loga")
+        lam = pt.maximum(
+            f._shift_histogram(f._interp_H(met, loga), 10.0 + f._kG * 0.6, f._k_col1 * 0.6).reshape(
+                (-1,)
+            ),
+            1e-6,
+        )
+        mu = 400.0 * lam + 0.05
+        ll = pt.sum(f._obs_hess * pt.log(mu) - mu)
+        grad = pytensor.function([met, loga], pytensor.grad(ll, [met, loga]))
+        rng = np.random.default_rng(0)
+        zero = np.zeros(2, int)
+        for _ in range(50):
+            g = grad(rng.uniform(0.0101, 0.0199), rng.uniform(6.31, 6.79))
+            zero += np.array([float(x) == 0.0 for x in g])
+        assert zero.tolist() == [0, 0]
+
+    def test_stale_grid_cache_is_refused(self, tmp_path):
+        """A cache written by the absolute-frame code must not load: its model has no bright
+        stars, and nothing downstream would notice."""
+        f = _toy_fitter(tmp_path)
+        f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(6)), prob_threshold=0)
+        good = tmp_path / "good.npz"
+        f.save_grid(good)
+        d = dict(np.load(good))
+        d.pop("frame_ref")
+        d.pop("frame_pad")
+        stale = tmp_path / "stale.npz"
+        np.savez(stale, **d)
+        with pytest.raises(ValueError, match="rebuild"):
+            f.load_grid(stale)
+
+    def test_widened_prior_beyond_the_padding_is_refused(self, tmp_path):
+        f = _toy_fitter(tmp_path)
+        f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(7)), prob_threshold=0)
+        f.set_priors({"dm_range": (7.0, 13.0)})
+        with pytest.raises(ValueError, match="padding"):
+            f.build_model()
+
+
+class _HalfBinReference(IsochroneFitter):
+    """Identical model; only the grid's internal reference frame moves by half a bin."""
+
+    def _set_reference_frame(self) -> None:
+        super()._set_reference_frame()
+        self._dmag_ref += 0.5 * self._binw_mag
+        self._dcol_ref += 0.5 * self._binw_col
+        self._pad = (self._pad[0] + 1, self._pad[1] + 1)
+
+
+def _toy_loglike(f, met, loga, dm, Av, scale=400.0):
+    import pytensor.tensor as pt
+
+    lam = pt.maximum(
+        f._shift_histogram(
+            f._interp_H(pt.constant(met), pt.constant(loga)), dm + f._kG * Av, f._k_col1 * Av
+        ).reshape((-1,)),
+        1e-6,
+    )
+    mu = scale * lam + 0.05
+    return float(pt.sum(f._obs_hess * pt.log(mu) - mu).eval())
+
+
+@requires_bayes_extra
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "OPEN DEFECT (2026-09-22): shifting a precomputed histogram bilinearly is not binning "
+        "shifted stars. The likelihood depends on the grid's internal reference: on NGC 6383 a "
+        "half-bin move of the reference changes log L by -10.5 / +4.5 at fixed parameters, and "
+        "posteriors lock onto the reference. Needs a per-evaluation deposit of shifted isochrone "
+        "points (or an unbinned likelihood); see docs/design-notes/isochrone_sampler_fix.md."
+    ),
+)
+def test_likelihood_does_not_depend_on_the_internal_reference_frame(tmp_path):
+    """Oracle: invariance. The reference frame is bookkeeping; log L at fixed parameters cannot
+    depend on it. Strict xfail, so the day the defect is fixed this turns red and must be
+    promoted to a plain test."""
+    data = _toy_stars(400, 6.55, 0.0125, 10.25, 0.7, np.random.default_rng(21))
+    lls = []
+    for cls in (IsochroneFitter, _HalfBinReference):
+        (tmp_path / cls.__name__).mkdir()
+        f = _toy_fitter(tmp_path / cls.__name__)
+        f.__class__ = cls
+        f.setup(data, prob_threshold=0)
+        lls.append(_toy_loglike(f, 0.0125, 6.55, 10.25, 0.7))
+    assert abs(lls[0] - lls[1]) < 0.5, lls
+
+
+@requires_bayes_extra
+@pytest.mark.slow
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "OPEN DEFECT (2026-09-22): the posterior locks onto the grid's reference (dm_mu, "
+        "mean(Av_range)) and onto isochrone metallicity nodes, so an injected truth off the "
+        "reference is not recovered. See the reference-invariance test above."
+    ),
+)
+def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
+    """Injection-recovery through the real sampler, with the Vehtari gate.
+
+    Oracle: stars drawn star by star from the closed-form toy family (``_toy_stars``), never
+    through the Hess grid. Truth is off the isochrone nodes and off the grid's reference. Tolerances are **absolute and tied to the
+    truth**, not to the posterior width, and the posterior is checked to be informative first
+    (tests/AGENTS.md, failure modes 2 and 4).
+
+    Mutation (measured 2026-09-22): with the absolute-frame grid, ``dm`` and ``A_V`` are
+    pulled against the lower walls of their priors and the gate fails.
+    """
+    f = _toy_fitter(tmp_path, M_met=9, M_loga=26)
+    # Off every node (met between 0.010 and 0.015, loga between 6.5 and 6.6) and off the
+    # grid's reference (dm_mu = 10.0, mean(Av_range) = 0.6) by about half a magnitude bin, so
+    # a posterior stuck on either cannot pass.
+    truth = {"met": 0.0125, "loga": 6.55, "dm": 10.25, "Av": 0.7}
+    f.setup(
+        _toy_stars(
+            500, truth["loga"], truth["met"], truth["dm"], truth["Av"], np.random.default_rng(11)
+        ),
+        prob_threshold=0,
+    )
+    idata = f.fit(draws=1000, tune=1000, chains=2, cores=1, random_seed=11, progressbar=False)
+    import arviz as az
+
+    rhat, ess = az.rhat(idata.posterior), az.ess(idata.posterior)
+    post = {p: idata.posterior[p].values.ravel() for p in truth}
+    medians = {p: round(float(np.median(post[p])), 4) for p in truth}
+    assert int(idata.sample_stats["diverging"].values.sum()) == 0
+    for p in truth:
+        assert float(rhat[p]) < 1.01, (p, float(rhat[p]), medians)
+        assert float(ess[p]) > 400, (p, float(ess[p]), medians)
+    # informative: at most half the prior sd, or the recovery below means nothing
+    assert np.std(post["loga"]) < 0.5 * 0.5 / np.sqrt(12)
+    assert np.std(post["Av"]) < 0.5 * 0.8 / np.sqrt(12)
+    assert np.std(post["dm"]) < 0.5 * 0.3
+    tol = {"met": 0.002, "loga": 0.1, "dm": 0.12, "Av": 0.08}
+    misses = {p: (medians[p], t) for p, t in truth.items() if abs(medians[p] - t) >= tol[p]}
+    assert not misses, f"median vs truth outside the absolute tolerance: {misses}"

@@ -410,6 +410,15 @@ class IsochroneFitter:
     Replicates ASteCA's forward model (Chabrier IMF, D&K binaries, CCM89
     extinction, magnitude-sorted error model) without any dependency on ASteCA.
 
+    .. warning::
+       **Experimental -- do not quote its parameters as measurements.** Since
+       2026-09-22 NUTS converges on real data, but the likelihood is built by
+       shifting a *precomputed* Hess grid and interpolating between isochrone
+       nodes, and injection-recovery shows the posterior locking onto the grid's
+       reference ``(dm_mu, mean(Av_range))`` and onto metallicity nodes. See
+       ``docs/design-notes/decisions.md`` (2026-09-22) and the two strict-xfail
+       tests in ``tests/test_isochrone.py``.
+
     Notes
     -----
     Workflow:
@@ -559,6 +568,10 @@ class IsochroneFitter:
         self._J_tensor: Any = None  # precomputed bin-index tensor (1, Nb_col)
         self._H_tensor: Any = None  # pytensor.shared wrapping _H_grid
         self._obs_hess: np.ndarray | None = None  # flat observed Hess (Nb_mag*Nb_col,)
+        # reference apparent-frame shift of the precomputed grid, and its padding (bins)
+        self._dmag_ref: float | None = None
+        self._dcol_ref: float | None = None
+        self._pad: tuple[int, int] | None = None
 
     # ------------------------------------------------------------------
     # Setup
@@ -667,10 +680,19 @@ class IsochroneFitter:
         ref_app_mag = ref_G + self.dm_mu + self._kG * Av_mid
         ref_app_col = (ref_BP - ref_RP) + self._k_col1 * Av_mid
 
+        # The faint edge is the faintest *observed* star, not the reference isochrone's
+        # faint end: model mass fainter than every observed star is incompleteness, and
+        # cropping the shifted model Hess at this edge is what implements ASteCA's
+        # ``cut_max_mag`` -- at the sampled (dm, A_V), not at a fixed reference.
         mag_min = float(min(obs_mag.min(), np.nanmin(ref_app_mag)))
-        mag_max = float(max(obs_mag.max(), np.nanmax(ref_app_mag)))
+        mag_max = float(obs_mag.max())
         col_min = float(min(obs_col.min(), np.nanmin(ref_app_col)))
         col_max = float(max(obs_col.max(), np.nanmax(ref_app_col)))
+        # Histogram ranges are half-open, so a star sitting exactly on the upper edge -- which
+        # the faintest and the reddest member always do, since the edges are built from them --
+        # was silently dropped: 252 of 254 NGC 6383 members entered the likelihood.
+        mag_max += 1e-9 * (mag_max - mag_min)
+        col_max += 1e-9 * (col_max - col_min)
         self._mag_range = (mag_min, mag_max)
         self._col_range = (col_min, col_max)
 
@@ -743,6 +765,49 @@ class IsochroneFitter:
     # Hess grid precomputation  (matches ASteCA's generate() in expectation)
     # ------------------------------------------------------------------
 
+    def _set_reference_frame(self) -> None:
+        """Fix the reference shift and the padding of the precomputed Hess grid.
+
+        The grid is binned in the **apparent** frame of a reference population at
+        ``(dm_mu, mean(Av_range))``, on the observed window widened by ``pad`` bins on
+        each side. :meth:`_shift_histogram` then moves it by the *offset* of the sampled
+        ``(dm, A_V)`` from that reference and crops the central window.
+
+        Notes
+        -----
+        Before 2026-09-22 the grid was binned in the **absolute** frame (dm = 0, A_V = 0)
+        but on the *apparent* observed window, and then shifted by the full
+        ``dm + k_G A_V`` (about 11.4 mag, 12 bins, for NGC 6383). Only stars with
+        ``G_abs`` inside the apparent window -- ``G_abs > 5.1`` there, i.e. low-mass PMS
+        stars -- survived; after the shift the model put **zero** mass brighter than
+        G = 17.0, where 137 of the 254 observed members sit. The only terms able to
+        absorb those stars were ``bg`` and the prior walls: the archived NUTS refit
+        (2026-06-11) sat at ``dm`` = 9.54 against a 9.5 wall, ``A_V`` = 0.58 against 0.5,
+        ``bg`` = 0.38 per bin against a HalfNormal(0.2) prior, with R-hat 1.5-2.2.
+        """
+        Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
+        Av_mid = float(np.mean(self.Av_range))
+        self._dmag_ref = float(self.dm_mu + self._kG * Av_mid)  # type: ignore[operator]
+        self._dcol_ref = float(self._k_col1 * Av_mid)  # type: ignore[operator]
+        dmag_lo, dmag_hi, dcol_lo, dcol_hi = self._shift_bounds()
+        pad_m = int(np.ceil(max(abs(dmag_lo), abs(dmag_hi)) / self._binw_mag)) + 1  # type: ignore[operator]
+        pad_c = int(np.ceil(max(abs(dcol_lo), abs(dcol_hi)) / self._binw_col)) + 1  # type: ignore[operator]
+        self._pad = (pad_m, pad_c)
+
+    def _shift_bounds(self) -> tuple[float, float, float, float]:
+        """Range of the (mag, colour) offset from the grid's reference that the priors allow.
+
+        Evaluated against the *current* priors, so a :meth:`set_priors` after the grid
+        was built is checked against the padding the grid actually has.
+        """
+        kG, kc = self._kG, self._k_col1
+        return (
+            self.dm_range[0] + kG * self.Av_range[0] - self._dmag_ref,  # type: ignore[operator]
+            self.dm_range[1] + kG * self.Av_range[1] - self._dmag_ref,  # type: ignore[operator]
+            kc * self.Av_range[0] - self._dcol_ref,  # type: ignore[operator]
+            kc * self.Av_range[1] - self._dcol_ref,  # type: ignore[operator]
+        )
+
     def _hess_for_isochrone(
         self,
         mass: np.ndarray,
@@ -750,10 +815,19 @@ class IsochroneFitter:
         BP_abs: np.ndarray,
         RP_abs: np.ndarray,
     ) -> np.ndarray:
-        """Build a Hess diagram at dm=0, Av=0, matching ASteCA's expected CMD."""
+        """Expected Hess diagram in the reference apparent frame, on the padded window.
+
+        The reference frame is ``(dm_mu, mean(Av_range))``; see
+        :meth:`_set_reference_frame` for why it is not the absolute frame.
+        """
         Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
+        pad_m, pad_c = self._pad
         mag_min, mag_max = self._mag_range  # type: ignore[misc]
         col_min, col_max = self._col_range  # type: ignore[misc]
+        # padded window, same bin width
+        mag_min, mag_max = mag_min - pad_m * self._binw_mag, mag_max + pad_m * self._binw_mag  # type: ignore[operator]
+        col_min, col_max = col_min - pad_c * self._binw_col, col_max + pad_c * self._binw_col  # type: ignore[operator]
+        Nb_mag, Nb_col = Nb_mag + 2 * pad_m, Nb_col + 2 * pad_c
         Av_mid = float(np.mean(self.Av_range))
 
         # IMF weights
@@ -777,32 +851,29 @@ class IsochroneFitter:
         col_comb = BP_comb - RP_comb
         col_sing = BP_abs - RP_abs
 
-        # Cut at max(obs_mag) in apparent magnitude (like ASteCA's cut_max_mag)
-        max_app = self._obs_mag.max()  # type: ignore[union-attr]
-        app_G_sing = G_abs + self.dm_mu + self._kG * Av_mid  # type: ignore[operator]
-        cut = app_G_sing < max_app
+        # Reference apparent frame. No magnitude cut here: the faint edge of the window
+        # is the faintest observed star, and :meth:`_shift_histogram` crops the shifted
+        # grid to the window -- so the cut follows the sampled (dm, A_V).
+        dmag_ref, dcol_ref = self._dmag_ref, self._dcol_ref
+        rng2d = [[mag_min, mag_max], [col_min, col_max]]
 
         # ---- Build weighted histogram ----------------------------------
         # Single-star contribution
-        w_sing = w_imf * (1.0 - b_p) * cut
         H_sing, _, _ = np.histogram2d(
-            G_abs,
-            col_sing,
+            G_abs + dmag_ref,
+            col_sing + dcol_ref,
             bins=[Nb_mag, Nb_col],
-            range=[[mag_min, mag_max], [col_min, col_max]],
-            weights=w_sing,
+            range=rng2d,
+            weights=w_imf * (1.0 - b_p),
         )
 
         # Binary contribution
-        app_G_comb = G_comb + self.dm_mu + self._kG * Av_mid
-        cut_b = app_G_comb < max_app
-        w_bin = w_imf * b_p * cut_b
         H_bin, _, _ = np.histogram2d(
-            G_comb,
-            col_comb,
+            G_comb + dmag_ref,
+            col_comb + dcol_ref,
             bins=[Nb_mag, Nb_col],
-            range=[[mag_min, mag_max], [col_min, col_max]],
-            weights=w_bin,
+            range=rng2d,
+            weights=w_imf * b_p,
         )
 
         H = H_sing + H_bin
@@ -823,6 +894,19 @@ class IsochroneFitter:
         return _smooth2d(H)
 
     def _precompute_H_grid(self) -> None:
+        """Fill the regular ``(M_met, M_loga)`` grid by bilinear interpolation between
+        Hess diagrams computed at the **true** isochrone nodes.
+
+        Notes
+        -----
+        Before 2026-09-22 each regular grid point took the Hess of the *nearest* file
+        isochrone. With 15 metallicity files and 107 ages, the 200 x 200 grid held
+        only 11 distinct metallicity slices and 107 distinct age slices: 189/199
+        adjacent met slices and 93/199 age slices were identical, so the bilinear
+        interpolation in :meth:`_interp_H` had an exactly-zero gradient in ``met`` at
+        283/300 random prior points and in ``loga`` at 133/300. Interpolating between
+        nodes makes the grid continuous and its gradient non-zero between nodes.
+        """
         met_arr = self._isochs.met_age_dict["met"]  # type: ignore[union-attr]
         loga_arr = self._isochs.met_age_dict["loga"]  # type: ignore[union-attr]
         met_grid = np.linspace(float(met_arr[0]), float(met_arr[-1]), self.M_met)
@@ -830,38 +914,49 @@ class IsochroneFitter:
         self._met_grid = met_grid
         self._loga_grid = loga_grid
 
+        self._set_reference_frame()
+        pad_m, pad_c = self._pad
         Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
-        H_grid = np.zeros((self.M_met, self.M_loga, Nb_mag, Nb_col), dtype=np.float64)
-        total = self.M_met * self.M_loga
-        done = 0
+        shape = (Nb_mag + 2 * pad_m, Nb_col + 2 * pad_c)
 
-        # Cache by actual nearest-neighbor file indices — many linspace points
-        # map to the same file isochrone, so this avoids redundant Hess builds.
-        file_met = self._isochs._met_values  # type: ignore[union-attr]
-        file_loga = self._isochs._loga_values  # type: ignore[union-attr]
-        _hess_cache: dict[tuple[int, int], np.ndarray] = {}
+        file_met = np.asarray(self._isochs._met_values, dtype=float)  # type: ignore[union-attr]
+        file_loga = np.asarray(self._isochs._loga_values, dtype=float)  # type: ignore[union-attr]
 
-        for i, met in enumerate(met_grid):
-            mi = int(np.argmin(np.abs(file_met - met)))
-            for j, loga in enumerate(loga_grid):
-                ai = int(np.argmin(np.abs(file_loga - loga)))
-                cache_key = (mi, ai)
-                if cache_key not in _hess_cache:
-                    mass, G, BP, RP = self._isochs.get_isochrone(  # type: ignore[union-attr]
-                        float(met), float(loga)
-                    )
-                    _hess_cache[cache_key] = (
-                        self._hess_for_isochrone(mass, G, BP, RP)
-                        if len(mass) >= 2
-                        else np.zeros((Nb_mag, Nb_col), dtype=np.float64)
-                    )
-                H_grid[i, j] = _hess_cache[cache_key]
-                done += 1
-                if done % 1000 == 0:
-                    print(f"  H_grid: {done}/{total} ({100 * done / total:.0f}%)")
+        def _bracket(nodes: np.ndarray, x: float) -> tuple[int, int, float]:
+            if nodes.size == 1:
+                return 0, 0, 0.0
+            k = int(np.clip(np.searchsorted(nodes, x, side="right") - 1, 0, nodes.size - 2))
+            w = float(np.clip((x - nodes[k]) / (nodes[k + 1] - nodes[k]), 0.0, 1.0))
+            return k, k + 1, w
+
+        _node_cache: dict[tuple[int, int], np.ndarray] = {}
+
+        def _node(mi: int, ai: int) -> np.ndarray:
+            if (mi, ai) not in _node_cache:
+                mass, G, BP, RP = self._isochs.get_isochrone(  # type: ignore[union-attr]
+                    float(file_met[mi]), float(file_loga[ai])
+                )
+                _node_cache[(mi, ai)] = (
+                    self._hess_for_isochrone(mass, G, BP, RP)
+                    if len(mass) >= 2
+                    else np.zeros(shape, dtype=np.float64)
+                )
+            return _node_cache[(mi, ai)]
+
+        H_grid = np.zeros((self.M_met, self.M_loga, *shape), dtype=np.float64)
+        met_br = [_bracket(file_met, float(m)) for m in met_grid]
+        age_br = [_bracket(file_loga, float(a)) for a in loga_grid]
+        for i, (m0, m1, wm) in enumerate(met_br):
+            for j, (a0, a1, wa) in enumerate(age_br):
+                H_grid[i, j] = (
+                    (1 - wm) * (1 - wa) * _node(m0, a0)
+                    + wm * (1 - wa) * _node(m1, a0)
+                    + (1 - wm) * wa * _node(m0, a1)
+                    + wm * wa * _node(m1, a1)
+                )
 
         self._H_grid = H_grid
-        print(f"  H_grid complete: {H_grid.shape}")
+        print(f"  H_grid complete: {H_grid.shape} from {len(_node_cache)} isochrone nodes")
 
     # ------------------------------------------------------------------
     # Prior configuration
@@ -939,12 +1034,22 @@ class IsochroneFitter:
             mag_range=np.array(self._mag_range),
             col_range=np.array(self._col_range),
             ext_coefs=np.array([self._kG, self._kBP, self._kRP]),
+            frame_ref=np.array([self._dmag_ref, self._dcol_ref]),
+            frame_pad=np.array(self._pad),
         )
 
     def load_grid(self, path: str | Path) -> None:
         import pytensor.tensor as pt
 
         d = np.load(path)
+        if "frame_ref" not in d.files:
+            raise ValueError(
+                f"{path} was built before 2026-09-22, when the Hess grid was binned in the "
+                "absolute frame and the shifted model had no stars brighter than "
+                "mag_min + dm + k_G*A_V. It cannot be reused; rebuild it with build_grid()."
+            )
+        self._dmag_ref, self._dcol_ref = (float(x) for x in d["frame_ref"])
+        self._pad = tuple(int(x) for x in d["frame_pad"])
         self._H_grid = d["H_grid"]
         self._met_grid = d["met_grid"]
         self._loga_grid = d["loga_grid"]
@@ -999,13 +1104,24 @@ class IsochroneFitter:
         )
 
     def _shift_histogram(self, H: Any, dmag: Any, dcol: Any) -> Any:
+        """Move a padded reference-frame Hess to apparent offsets ``(dmag, dcol)`` and crop.
+
+        ``H`` has shape ``(Nb_mag + 2*pad_m, Nb_col + 2*pad_c)`` and is binned in the
+        apparent frame of the reference ``(dmag_ref, dcol_ref)``; ``dmag = dm + k_G A_V``
+        and ``dcol = k_(BP-RP) A_V`` are the *total* shifts of the sampled population.
+        Output bin ``(I, J)`` of the observed window reads the padded grid at
+        ``(I + pad_m - su, J + pad_c - sv)`` with ``su, sv`` the offsets in bins,
+        bilinearly -- so the result is continuous and piecewise linear in both shifts.
+        """
         import pytensor.tensor as pt
 
-        su = dmag / self._binw_mag
-        sv = dcol / self._binw_col
+        pad_m, pad_c = self._pad
+        su = (dmag - self._dmag_ref) / self._binw_mag
+        sv = (dcol - self._dcol_ref) / self._binw_col
         Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
+        Np_mag, Np_col = Nb_mag + 2 * pad_m, Nb_col + 2 * pad_c
 
-        U, V = self._I_tensor - su, self._J_tensor - sv
+        U, V = self._I_tensor + pad_m - su, self._J_tensor + pad_c - sv
         u0, v0 = pt.floor(U), pt.floor(V)
         fu = pt.cast(U - u0, "float64")
         fv = pt.cast(V - v0, "float64")
@@ -1014,11 +1130,11 @@ class IsochroneFitter:
         u1i = u0i + 1
         v1j = v0j + 1
 
-        valid = pt.cast((U >= 0) & (U <= Nb_mag - 1) & (V >= 0) & (V <= Nb_col - 1), "float64")
+        valid = pt.cast((U >= 0) & (U <= Np_mag - 1) & (V >= 0) & (V <= Np_col - 1), "float64")
 
         def _g(A: Any, r: Any, c: Any) -> Any:
-            r = pt.cast(pt.clip(r, 0, Nb_mag - 1), "int64")
-            c = pt.cast(pt.clip(c, 0, Nb_col - 1), "int64")
+            r = pt.cast(pt.clip(r, 0, Np_mag - 1), "int64")
+            c = pt.cast(pt.clip(c, 0, Np_col - 1), "int64")
             return A[r, c]
 
         return (
@@ -1044,6 +1160,20 @@ class IsochroneFitter:
         met_arr = self._isochs.met_age_dict["met"]  # type: ignore[union-attr]
         met_min, met_max = float(met_arr[0]), float(met_arr[-1])
         loga_min, loga_max = self.loga_range
+
+        # The grid's padding was sized from the priors at build time. A prior widened
+        # afterwards (set_priors) could shift the model off the padded grid, which would
+        # silently zero part of the window again -- the defect the padding exists to stop.
+        pad_m, pad_c = self._pad
+        dmag_lo, dmag_hi, dcol_lo, dcol_hi = self._shift_bounds()
+        if (
+            max(abs(dmag_lo), abs(dmag_hi)) > (pad_m - 1) * self._binw_mag  # type: ignore[operator]
+            or max(abs(dcol_lo), abs(dcol_hi)) > (pad_c - 1) * self._binw_col  # type: ignore[operator]
+        ):
+            raise ValueError(
+                "The dm / A_V priors reach beyond the padding of the precomputed Hess grid "
+                f"(pad = {self._pad} bins). Rebuild the grid after set_priors()."
+            )
 
         with pm.Model() as model:
             met = pm.Uniform("met", lower=met_min, upper=met_max)
@@ -1601,15 +1731,10 @@ class IsochroneFitter:
         med = {
             v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
         }
-        H0 = self._interp_H(med["met"], med["loga"]).eval()
         dmag = med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
         dcol = self._k_col1 * med["Av"]  # type: ignore[operator]
-        # Use scipy.ndimage.shift for the numpy context (avoids PyTensor indexing)
-        from scipy.ndimage import shift as _ndshift
-
-        su = dmag / self._binw_mag  # type: ignore[operator]
-        sv = dcol / self._binw_col  # type: ignore[operator]
-        Hsyn = _ndshift(H0, [su, sv], order=1, mode="constant", cval=0.0)
+        # Same shift-and-crop as the likelihood, so the panel shows what was fitted
+        Hsyn = self._shift_histogram(self._interp_H(med["met"], med["loga"]), dmag, dcol).eval()
 
         # Scale synthetic to observed counts
         scale = H_obs.sum() / max(Hsyn.sum(), 1e-12)

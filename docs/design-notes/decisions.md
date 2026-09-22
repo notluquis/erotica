@@ -10,6 +10,89 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-09-22 — isochrone NUTS: two grid bugs fixed, one likelihood defect left open
+
+**Symptom.** The only 4 x 2000 NUTS run of the isochrone model on NGC 6383 (2026-06-11,
+`idata_isochrone_nuts.nc`) gave R-hat 1.87 / 1.465 / 2.18 / 2.207 on loga / met / dm / A_V with
+0 divergences. Reproduced with numpyro (blackjax is broken on pymc 6, see `pyproject.toml`), 2
+chains: R-hat 1.19 / 1.26 / 2.08 / 1.98, ESS_bulk 2-8, tree depth saturated at 10, step size
+1e-4. Starting every chain at the same point still gives R-hat 1.81 on dm, so it is not
+multimodality.
+
+**Cause 1 -- the grid's frame (not in the 2026-07-21 diagnosis).** `_hess_for_isochrone` binned
+the isochrone in the **absolute** frame (dm = 0, A_V = 0) on the **apparent** observed window
+(G 5.1-20.7), and `_shift_histogram` then moved it by the whole `dm + k_G A_V` (about 11.4 mag).
+Only stars with G_abs inside the apparent window survived: at (Z 0.015, loga 6.55, dm 10.3,
+A_V 1.24) the model had **zero** mass brighter than G = 17.0, where **137 of the 254** members sit.
+Only `bg` and the prior walls could absorb them, which is exactly where the June trace sat: dm
+9.54 (wall 9.5), A_V 0.58 (wall 0.5), bg 0.38 per bin against a HalfNormal(0.2) prior.
+
+**Cause 2 -- the staircase (the 2026-07-21 diagnosis, `isochrone_sampler_fix.md`).** Nearest-node
+caching left 189/199 identical adjacent met slices and 93/199 loga slices; d loglike / d met was
+exactly zero at 283 of 300 random prior points, d / d loga at 133 of 300.
+
+**Cause 3 -- an edge bug.** Histogram ranges are half-open and the upper edges are built from the
+faintest and reddest members, so those two stars were dropped: 252 of 254 entered the likelihood.
+
+**Fix.** The grid is binned in the apparent frame of a reference `(dm_mu, mean(Av_range))` on the
+observed window padded by enough bins to cover the priors, `_shift_histogram` moves it by the
+*offset* from the reference and crops; the faint edge of the window is the faintest observed star,
+so the magnitude cut follows the sampled dm. The regular (met, loga) grid is filled by bilinear
+interpolation between Hess diagrams at the true isochrone nodes. Upper edges are nudged by 1e-9 of
+the range. `load_grid` refuses a cache written before this change (no `frame_ref` key) -- so
+`data/40/hgrid_paper254.npz` and the P01 repo's `review_repo/isochrone_nuts_refit.py`, which
+loads it, now fail on purpose -- and `build_model` refuses priors wider than the grid's padding.
+
+**Ablation on NGC 6383** (`tools/validation/isochrone_nuts_convergence.py`, stage `ablation`,
+sidecar `.json`; numpyro, 2 chains x 2000, seed 42, ESS is bulk; the old-frame variants still drop
+the 2 edge stars, so they see 252):
+
+| frame | grid | R-hat worst | ESS worst | divergences | tree depth |
+|---|---|---|---|---|---|
+| old | nearest node | 1.83 (dm) | 3 | 0 | 10 |
+| old | node interpolation | 2.11 (bg) | 3 | 0 | 8.4-10 |
+| old, every chain started at one point | nearest node | 1.58 (A_V) | 4 | 0 | 10 |
+| **new** | nearest node | 1.019 (A_V) | 120 (met) | 0 | 5.3-7.3 |
+| **new** | node interpolation | 1.0018 (loga) | 1159 (A_V) | 0 | 3.7-4.3 |
+
+The frame is what turns a stuck sampler into a mixing one; the node interpolation is what gets it
+through the 1.01 / 400 gate. With both, 254 stars and 4 chains: R-hat <= 1.0021, ESS_bulk >= 2523,
+0 divergences, E-BFMI 0.77-0.93. (The same configurations run from throw-away scripts gave R-hat
+2.08 and 1.0045 for the first and fourth rows: numpyro runs are not bit-reproducible here, the
+verdicts are.)
+
+**What is still wrong -- converged is not correct.** Shifting a precomputed histogram bilinearly is
+not the histogram of shifted stars, and a mixture of two node Hess diagrams is not the Hess of an
+intermediate isochrone. Measured:
+
+- Moving the grid's internal reference by half a bin changes log L at fixed parameters by -10.5,
+  -10.6 and +4.5 at three parameter points on NGC 6383 (stage `refinv`), and the 4-chain refit
+  loses convergence (R-hat 1.03, ESS 152) and moves loga from 6.29 [6.22, 6.39] to 6.42 [6.12,
+  6.51] (90 %).
+- Injection-recovery on star-level synthetic clusters from MIST (independent generator; stage
+  `recovery`, 16 runs, 2 chains x 1000 draws): the injected dm (10.45 with binaries, 10.47 singles
+  only) is outside the 90 % interval in **16 of 16**; in the 14 runs whose dm chains mixed (the other two
+  have R-hat 1.52 and 1.83 on dm) the median is 10.297-10.324 -- the reference is 10.30. With A_V injected off the reference (1.10,
+  singles) the median is 1.248-1.250 in 5 of 6 -- the reference is 1.25; the sixth has R-hat 1.83.
+  Met piles onto the Z nodes: 44.6 % (singles) and 45.7 % (binaries) of pooled samples lie within
+  3e-4 of a node, against about 15 % for a flat posterior over the same range. Convergence is not
+  robust on synthetic data either: 6 of the 16 runs have some R-hat > 1.01.
+- The toy-family recovery test converges (R-hat < 1.01, ESS > 400, 0 divergences) to dm 10.0009,
+  A_V 0.6003 and met 0.0151 -- the reference and a node -- against a truth of 10.25, 0.7, 0.0125.
+
+So the NGC 6383 numbers from this model (loga 6.29) are not an age. The remaining fix is a
+per-evaluation deposit of the shifted, EEP-interpolated isochrone points (or the unbinned mixture)
+already specified in `isochrone_sampler_fix.md`; that is a redesign, not a patch, and is left open.
+
+**Oracle.** A closed-form toy isochrone family (`tests/test_isochrone.py::TestHessFrame`): mass in
+the window and its mean magnitude against the isochrone points moved by (dm, A_V) in closed form;
+exact linearity of the grid between nodes; non-zero gradient in met and loga. Mutations, each seen
+red: absolute frame (window mass 0.17-0.28 against 0.90-1.00), nearest node, no stale-cache guard,
+no padding guard. The open defect is pinned by two `xfail(strict=True)` tests -- reference
+invariance (13.5 log-units on the toy) and the slow toy recovery -- which turn red when it is fixed.
+
+---
+
 ## 2026-09-22 — El paper NGC 6383 (aa52082-24) sale del repo del paquete
 
 **Symptom.** `data/test/NGC6383/comments_paper/` (181 ficheros trackeados) y ocho

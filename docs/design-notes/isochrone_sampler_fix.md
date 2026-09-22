@@ -5,6 +5,15 @@ prior edges) and the golden-standard fix. Confirmed empirically + grounded in th
 literature. This is **next-paper (P02/P05) infrastructure**; the published P01 numbers stand
 on the validated gradient-free DEMetropolis ensemble (see descope below)._
 
+> **2026-09-22 — this diagnosis was incomplete, and the part it missed was the dominant one.** The
+> staircase below is real, but fixing it alone leaves R-hat at 1.7-2.1. The dominant defect was the
+> grid's frame: it was binned in absolute magnitudes on the apparent window, so the model had no
+> stars brighter than G = 17 on NGC 6383. Both are fixed; NUTS now converges on NGC 6383, **and the
+> likelihood is still not correct** -- it depends on the grid's internal reference and locks onto
+> it and onto the isochrone nodes. The redesign below is still the fix for that. Numbers and
+> ablation: `decisions.md`, entry "isochrone NUTS: two grid bugs fixed, one likelihood defect left
+> open".
+
 ## Confirmed root cause (empirical)
 
 The binned Poisson-Hess likelihood is **piecewise-constant** → NUTS gets no gradient and
