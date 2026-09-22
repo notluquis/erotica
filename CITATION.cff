@@ -10,12 +10,16 @@
 cff-version: 1.2.0
 message: "If you use EROTICA, please cite it using these metadata."
 title: "EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis"
+# "calibrated" dropped from the abstract below 2026-09-22 to match paper/paper.md: the
+# package ships calibration diagnostics (reliability checks), it does not assert its own
+# output is calibrated -- that is an empirical claim the companion methods paper has to
+# make, not this metadata file.
 abstract: >-
-  An integrated, calibrated Bayesian Python pipeline for identifying and
-  characterizing open clusters in Gaia data: HDBSCAN pseudo-probability
-  membership with Bayesian PM/parallax refinement, Bayesian King structural
-  fitting, NUTS Poisson-Hess isochrone fitting, and dynamical diagnostics,
-  with ArviZ InferenceData provenance for every fit.
+  An integrated Bayesian Python pipeline for identifying and characterizing
+  open clusters in Gaia data: HDBSCAN pseudo-probability membership with
+  Bayesian PM/parallax refinement, Bayesian King structural fitting, NUTS
+  Poisson-Hess isochrone fitting, membership-calibration diagnostics, and
+  dynamical diagnostics, with ArviZ InferenceData provenance for every fit.
 type: software
 authors:
   # Sole author, confirmed 2026-08-03. This list is also the Zenodo deposit's author list:

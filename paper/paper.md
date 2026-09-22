@@ -1,14 +1,3 @@
-<!-- SUBMITTABLE as of 2026-08-03. Every JOSS hard requirement is met:
-  archived DOI  10.5281/zenodo.21769959  (CONCEPT DOI — always resolves to the latest
-                version; the v0.1.0 version DOI is 10.5281/zenodo.21769960)
-  author        sole author, ORCID 0009-0008-4359-2444 verified against the ORCID public API
-  license       AGPL-3.0-or-later, consistent across LICENSE, pyproject.toml and CITATION.cff
-  tests + CI    482 tests at v0.1.0 under `pip install -e .[dev,bayes]` (478 without `bayes`),
-                GitHub Actions on Python 3.13 and 3.14. Measured 2026-08-04 in a clean venv from
-                `git archive v0.1.0`; this line said 488, which matches no install.
-Read the state-of-the-field section against ~/phd/software-landscape.md before submitting:
-several novelty claims in this programme have been falsified, and the surviving claim here is
-deliberately narrow. -->
 ---
 title: 'EROTICA: an integrated Bayesian pipeline for Gaia-era open-cluster analysis'
 tags:
@@ -19,19 +8,23 @@ tags:
   - Bayesian inference
   - stellar populations
 authors:
-  # Sole author, confirmed by the author 2026-08-03. All 159 commits in the v0.1.0 release are
-  # from a single contributor (measured by tools/release/ai_disclosure_counts.py, which reports
-  # the author breakdown alongside the AI-trailer counts), and JOSS holds that "purely financial
-  # ... and organizational (such as general supervision of a research group) contributions are
-  # not considered sufficient for co-authorship". Those who supported the companion science
-  # paper are acknowledged instead.
+  # L.P.-E.: sole implementer; ORCID verified against the ORCID public API 2026-08-03.
+  # P.C.: added 2026-09-22 for project direction -- JOSS (submitting.html) counts "active
+  # project direction" as authorship, distinct from the purely financial/organizational
+  # contributions it excludes. Affiliation confirmed against \institute in the co-authored
+  # A&A manuscript (aa52082-24.tex); ORCID verified against the public ORCID registry.
   - name: Lucas Pulgar-Escobar
     orcid: 0009-0008-4359-2444
     affiliation: 1
+  - name: Pierluigi Cerulo
+    orcid: 0000-0003-0703-3123
+    affiliation: 2
 affiliations:
   - name: Universidad de Concepción, Chile
     index: 1
-date: 3 August 2026
+  - name: Departamento de Ingeniería Informática y Ciencias de la Computación, Universidad de Concepción, Chile
+    index: 2
+date: 22 September 2026
 bibliography: paper.bib
 ---
 
@@ -44,7 +37,8 @@ Bayesian proper-motion and parallax refinement), Bayesian structural fitting of 
 and corona profiles, gradient-based isochrone fitting, and dynamical diagnostics behind a
 single API that returns an ArviZ `InferenceData` posterior for every fit. It also ships
 diagnostics for asking whether its own membership probabilities are calibrated. It was
-developed for and validated on the young cluster NGC 6383 [@pulgar2024a; @pulgar2024b].
+developed for, and used in, the NGC 6383 studies [@pulgar2024a; @pulgar2024b], the second
+now accepted at Astronomy & Astrophysics.
 
 # Statement of need
 
@@ -58,8 +52,8 @@ analysis means glue code that discards each stage's uncertainty before the next 
 The first is integration: one path from a *Gaia* catalogue to a characterized cluster, with
 every intermediate posterior retained rather than collapsed to a point estimate.
 
-The second is calibration, and it needs stating precisely, because most of the adjacent
-ground is already occupied. Scoring membership output is not new here — `pyUPMASK` grades
+The second is calibration, stated precisely because most of the adjacent ground is already
+occupied. Scoring membership output is not new here — `pyUPMASK` grades
 itself with six metrics for the accuracy of probabilistic classification across 600 synthetic
 clusters [@pera2021] — and @olivares2018 propagate
 observational uncertainties into per-star membership probabilities. What we could not find
@@ -82,11 +76,14 @@ likelihood-ratio object for a user-supplied sampler. It does contain a King-radi
 private and unwired: a two-parameter least-squares fit to a binned radial profile. On the
 structural axis `EROTICA` fits King, EFF and corona profiles as an unbinned Bayesian point
 process; the closest prior art is @pera2021king, who fit an elliptical rotated King profile
-to spatial data by Bayesian inference.
+to spatial data by Bayesian inference. Neither is an extension point: a bring-your-own-sampler
+interface and an unwired King routine are architectural constraints, not omissions, and
+`pyUPMASK` has no structural or isochrone stage at all — so this pipeline was built rather
+than added to either.
 
 For isochrones, `EROTICA` samples the binned Poisson Hess-diagram likelihood [@dolphin2002]
-with a No-U-Turn Sampler. Bayesian single-cluster CMD fitting is established (`BASE-9`,
-@vonhippel2006, non-gradient MCMC), and the gradient-based combination is recent and cited
+with a No-U-Turn Sampler. `BASE-9` established Bayesian single-cluster CMD fitting with
+non-gradient MCMC [@vonhippel2006]; the gradient-based combination is recent and cited
 head-on: @chi2026 apply a No-U-Turn Sampler to differentiable PARSEC isochrones for an open
 cluster, and @garling2025 sample a Poisson Hess-diagram likelihood with Hamiltonian Monte
 Carlo — both on different likelihoods from the one used here. The isochrone module is
@@ -97,27 +94,25 @@ reference implementations in this field, and they are the baselines `EROTICA` ha
 measured against. That comparison ships as software: an `ASteCA` adapter
 (`erotica.analysis.external.asteca`) wrapping its isochrone and synthetic-cluster machinery,
 and a harness scoring `EROTICA`, `ASteCA` and `pyUPMASK` on membership agreement, parameter
-recovery against synthetic truth, runtime and calibration. Benchmark results belong to a
+recovery, runtime and calibration. Benchmark results belong to a
 companion methods paper and are not reported here.
 
 Where `EROTICA` goes beyond the baselines is a claim about capability, not a measured win: an
-end-to-end path that retains every intermediate posterior; an unbinned point-process
-structural fit, where the released `ASteCA` routine fits a binned profile by least squares;
-and per-star calibration as a first-class, reported output. Calibration is computable for any
-method that emits membership probabilities, and the harness computes it for the baselines too
-— they are not incapable of reporting it.
+end-to-end path that retains every intermediate posterior, and per-star calibration as a
+first-class, reported output. Calibration is computable for any method that emits membership
+probabilities, and the harness computes it for the baselines too — they are not incapable of
+reporting it.
 
 # Software design
 
 `EROTICA` is a library, and its governing constraint is that the expensive parts stay
-optional. The core install needs only `numpy`, `scipy`, `scikit-learn`, `astropy` and
-`hdbscan`; everything requiring a probabilistic-programming stack sits behind a `bayes` extra,
-and `import erotica` succeeds with `pymc`, `pytensor`, `arviz`, `numpyro`, `jax` and
-`blackjax` all absent. This is enforced rather than asserted: submodules resolve lazily
-through a module-level `__getattr__` (PEP 562), each sampler entry point is guarded by a check
-that names the missing extra, and continuous integration runs the suite in a job that installs
-the package *without* it. The cost is that the dependency graph is no longer readable from the
-import statements.
+optional. The core install carries no probabilistic-programming stack; everything requiring
+one sits behind a `bayes` extra, and `import erotica` succeeds with `pymc`, `pytensor`,
+`arviz`, `numpyro`, `jax` and `blackjax` all absent. This is enforced rather than asserted:
+submodules resolve lazily through a module-level `__getattr__` (PEP 562), each sampler entry
+point is guarded by a check that names the missing extra, and continuous integration runs the
+suite in a job that installs the package *without* it. The cost is that the dependency graph
+is no longer readable from the import statements.
 
 The two fitting modules make different likelihood choices, for a measured reason. The
 structural fit treats sky positions as an inhomogeneous Poisson point process with intensity
@@ -135,20 +130,20 @@ summary row, so convergence diagnostics stay attached to the numbers they descri
 trace is saved, a sidecar record captures the git commit and dirty flag, the random seeds, the
 tracked dependency versions, and a blake2b checksum of every input file. The dependency list
 is curated rather than locked, deliberately: the package is imported rather than deployed, and
-bit-identical cross-machine results are unattainable once BLAS threading and XLA fusion
-reorder floating-point summation.
+bit-identical cross-machine results are unattainable anyway.
 
 # Research impact statement
 
-`EROTICA` is new software and its realized external impact is limited: no downstream
-dependents, and the two NGC 6383 studies it was built for [@pulgar2024a; @pulgar2024b] are
-the authors' own. The evidence offered is of the other admissible kind — reproducible
-materials demonstrating capability.
+`EROTICA` is new software: it has no downstream dependents, and its use to date is
+Pulgar-Escobar's own — the NGC 6383 studies [@pulgar2024a; @pulgar2024b], the second of
+which, co-authored with Cerulo, is now accepted at Astronomy & Astrophysics. The evidence
+offered here is of the other admissible kind: reproducible materials demonstrating
+capability.
 
-The repository carries a validation programme of 22 scripts under `tools/validation/`. The 13
-that produce quoted numbers each commit a JSON sidecar holding the full result, a docstring
-stating what would falsify the conclusion, and their negative controls run and reported rather
-than assumed. The yield is largely negative results, which is the point:
+The repository carries a validation programme of 40 scripts under `tools/validation/`, 26 of
+which commit a JSON sidecar with the full result, a falsification criterion, and a negative
+control run and reported rather than assumed. The yield is largely negative results, which is
+the point:
 
 - The EFF slope estimator is biased high at the sample sizes typical of the *Gaia* cluster
   census, and the bias shrinks as $N$ grows. A survey-scale comparison of slopes would read a
@@ -162,62 +157,54 @@ than assumed. The yield is largely negative results, which is the point:
   value at which EFF and an untruncated King profile coincide — so an apparent pile-up there
   can be an artifact of the assumed geometry.
 
-The test suite runs in continuous integration on Python 3.13 and 3.14, with a separate job that
-installs the `bayes` extra: **482 tests at the v0.1.0 release** under `pip install -e
-.[dev,bayes]`, and 478 without the extra. The count is quoted against the tag rather than
-against the current source because it is not a fixed property of the project — it moves with
-every commit, and it depends on which optional dependencies are installed, since tests whose
-imports are unavailable are never collected.
+In continuous integration on Python 3.13 and 3.14, with a separate job for the `bayes`
+extra: **482 tests at the v0.1.0 release**, 478 without the extra.
 
-The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied to
-the shipping source one at a time, and 18 survived. That falsified this project's own repeated
-claim that every test carried an oracle independent of the code under test. Each repair is
-verified by re-applying the mutation it was written to catch — including, in one case, an
-oracle this project's own testing guide had advertised for months without it existing.
+The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied
+to the shipping source one at a time, and 18 survived, falsifying this project's own repeated
+claim that every test carried an independent oracle. Each repair is verified by re-applying
+the mutation it was written to catch.
 
 # AI usage disclosure
 
-Development of `EROTICA` was assisted by large language models throughout; this section states
-the tools, the scope and the review process.
+`EROTICA` was developed with generative-AI assistance throughout.
 
-**Tools.** Anthropic's Claude, accessed through the Claude Code command-line agent. Of the 159
-commits in the v0.1.0 release, 152 carry a `Co-Authored-By` trailer naming the model: Claude
-Opus 5 (105), Claude Opus 4.8 (38) and Claude Sonnet 4.6 (9). The trailers are in the git
-history and are the authoritative record. The seven without one are early notebook-removal and
-housekeeping commits; we have not reconstructed whether they were assisted. These counts are
-taken at the tagged release rather than at the branch head, deliberately: a head count is stale
-the moment it is written, and this paragraph previously quoted three integers measured at a head
-that no longer exists. They are regenerated by `tools/release/ai_disclosure_counts.py`, which
-also re-derives them from `git log` and fails if this paragraph has drifted
-(`--check paper/paper.md`).
+**Tools and versions.** Anthropic's Claude, via the Claude Code command-line agent, applied
+to code, tests, documentation and this paper's text. As of commit `ee4bbe3`, 353 of the 360
+commits carry a `Co-Authored-By` trailer naming the model: Claude Opus 5 (301), Claude Opus
+4.8 (38), Claude Sonnet 4.6 (9) and Claude Sonnet 5 (5) — the git history is the authoritative
+record. The seven commits without one are early notebook-removal and housekeeping work, not
+reconstructed as assisted.
 
-**Scope.** The assistance was substantive rather than confined to language editing:
-implementation of the statistical models and their normalizations, design of the validation
-experiments, literature search, drafting of the design notes and API documentation, and the
-framing of several results including the recoverability findings above.
+**Scope.** The assistance was substantive — implementation, test and experiment scaffolding,
+literature search, and drafting of design notes, documentation and this paper's prose — but
+under review throughout: models proposed, implemented and drafted; the authors decided what
+to measure and what to adopt or publish, including narrowing or withdrawing claims a model
+had drafted (below).
 
-**Verification, because it is the material point.** AI-generated code produced several results
-that were plausible and wrong, and the project adopted a verification discipline in response:
-every generator is checked against an external, parameter-free oracle — a closed form, an
-analytic limit, or an independent implementation — and every test is verified by re-applying
-the bug it is meant to catch. That discipline caught, among others, a synthetic-cluster
-generator that filled a cube rather than a sphere; an experiment degenerate with its own
-control, which would have supported a clean but false conclusion; a unit error that made a
-profile wrong by a factor of 480 with no exception raised; and several novelty claims —
-including an earlier and broader version of this paper's own calibration claim — that were
-falsified on checking and then narrowed or withdrawn. Each is recorded in the design notes,
-which keep the wrong number beside the correction.
+**Verification, because it is the material point.** AI-generated code produced several
+results that were plausible and wrong, and the project adopted a verification discipline in
+response: every generator is checked against an external, parameter-free oracle — a closed
+form, an analytic limit, or an independent implementation — and every test is verified by
+re-applying the bug it is meant to catch. That discipline caught, among others, a
+synthetic-cluster generator that filled a cube rather than a sphere; an experiment degenerate
+with its own control; a unit error that made a profile wrong by a factor of 480 with no
+exception raised; and several novelty claims — including an earlier, broader version of this
+paper's own calibration claim — that were falsified on checking and then narrowed or
+withdrawn.
 
-**Responsibility.** All scientific claims, the interpretation of every result, and the
-decision to publish rest with the authors. Every number reported here is produced by a script
-committed to the repository; none originates from a model's assertion.
+**Responsibility.** The authors assert that human authors reviewed, edited and validated all
+AI-assisted outputs and made the core design decisions, and take responsibility for every
+scientific claim and the decision to publish; every number reported here comes from a script
+committed to the repository, not a model's assertion.
 
 # Acknowledgements
 
-I gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI
-project 32230014, and financial support from the Dirección de Postgrado, Universidad de
-Concepción, through its MSc scholarship programme, under which this software was developed.
-I thank P. Cerulo for guidance on machine-learning methods and for discussions of Bayesian
-modeling with PyMC during the work that led to this package.
+We gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI
+project 32230014. L.P.-E. acknowledges financial support from the Dirección de Postgrado,
+Universidad de Concepción, through its MSc scholarship programme, under which this software
+was developed. P.C. acknowledges support from the UdeC VRID Iniciación fund 2025001386INI.
+The funders had no role in the design of the software, the analyses, or the writing of this
+paper.
 
 # References

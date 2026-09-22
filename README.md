@@ -308,8 +308,10 @@ The DOI above is the **concept** DOI and always resolves to the latest version; 
 `CITATION.cff` — it read `Pulgar, Lucas M.` until 2026-08-04, so the two files disagreed on the
 family name and would have produced two different citations for one release.
 
-> A software paper is under review. Once it has a DOI, `CITATION.cff`'s `preferred-citation`
-> field will redirect GitHub's citation button to it and supersede this entry.
+> A software paper describing EROTICA is prepared for submission to the Journal of Open
+> Source Software ([`paper/paper.md`](paper/paper.md)). Once it is accepted and has a DOI,
+> `CITATION.cff`'s `preferred-citation` field will redirect GitHub's citation button to it
+> and supersede this entry.
 
 **Please also cite the methods you actually used**, which are not ours: King (1962) or Elson, Fall &
 Freeman (1987) for the profile you fitted, Hunt & Reffert (2024) for census cross-matches,
@@ -321,27 +323,30 @@ is cited at the point of use in the API documentation.
 
 EROTICA is licensed under the [GNU Affero General Public License v3.0](LICENSE). This ensures that any modifications or derivative works remain open source.
 
-## 👥 Author
+## 👥 Authors
 
 **Lucas Pulgar-Escobar** — Universidad de Concepción, Chile
 ([lescobar2019@udec.cl](mailto:lescobar2019@udec.cl), ORCID
-[0009-0008-4359-2444](https://orcid.org/0009-0008-4359-2444))
+[0009-0008-4359-2444](https://orcid.org/0009-0008-4359-2444)) — sole implementer.
 
-Sole author, matching [`CITATION.cff`](CITATION.cff) and [`paper/paper.md`](paper/paper.md). This
-section read "Team" and listed two people until 2026-08-04, contradicting both — the kind of
-discrepancy a JOSS editor queries. Every commit in the v0.1.0 release is from a single contributor,
-and JOSS holds that financial and organizational contributions are not sufficient for co-authorship;
-those who supported the work are acknowledged below instead.
+**Pierluigi Cerulo** — Departamento de Ingeniería Informática y Ciencias de la Computación,
+Universidad de Concepción, Chile (ORCID
+[0000-0003-0703-3123](https://orcid.org/0000-0003-0703-3123)) — project direction.
+
+Matches the authors of [`paper/paper.md`](paper/paper.md) as of 2026-09-22. `CITATION.cff`'s
+`authors:` list is the Zenodo/software-archive author list, decided separately, and currently
+still Pulgar-Escobar alone — see that file's own comments.
 
 ## 🙏 Acknowledgments
 
-I thank **Nicolás Henríquez Salgado** (Universidad de Concepción) for his contribution to the
-companion NGC 6383 science paper, and **P. Cerulo** for guidance on machine-learning methods and for
-discussions of Bayesian modelling with PyMC during the work that led to this package.
+We thank **Nicolás Henríquez Salgado** (Universidad de Concepción) for his contribution to the
+companion NGC 6383 science paper.
 
-I gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI project
-32230014, and financial support from the Dirección de Postgrado, Universidad de Concepción, through
-its MSc scholarship programme.
+We gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI
+project 32230014. L.P.-E. acknowledges financial support from the Dirección de Postgrado,
+Universidad de Concepción, through its MSc scholarship programme. P.C. acknowledges support
+from the UdeC VRID Iniciación fund 2025001386INI. The funders had no role in the design of the
+software, the analyses, or the writing of the paper.
 
 EROTICA builds upon excellent open-source libraries:
 - [HDBSCAN](https://github.com/scikit-learn-contrib/hdbscan) for density-based clustering
@@ -367,6 +372,6 @@ EROTICA builds upon excellent open-source libraries:
 
 ---
 
-**Citation**: If you use EROTICA in your research, please cite our paper (in preparation) and acknowledge the underlying libraries.
+**Citation**: If you use EROTICA in your research, please cite it via [`CITATION.cff`](CITATION.cff) (see "Citing EROTICA" above) and acknowledge the underlying libraries.
 
 *Made with ❤️ for the astronomical community*

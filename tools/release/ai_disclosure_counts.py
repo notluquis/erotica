@@ -11,17 +11,21 @@ no longer reproduces either -- the branch is at 186 as of 2026-08-04.
 
 Two things fix that, and both matter:
 
-1. **Count at a tag, not at HEAD.** ``v0.1.0`` is frozen, citable, and the version the JOSS
-   submission actually describes, so the numbers stop being a moving target and a referee can
-   reproduce them.
+1. **Count at a fixed point, not at HEAD.** A tag if one exists; otherwise a specific commit
+   sha (``--tag`` accepts either -- ``git log <ref>`` does not care). Frozen, citable, and the
+   point the disclosure actually describes, so the numbers stop being a moving target and a
+   referee can reproduce them. 2026-09-22: the paper was updated on ``dev`` ahead of a
+   ``v0.2.0`` tag, so it cites a commit sha instead -- ``is_commit_sha()`` picks the "as of
+   commit <sha>" sentence template over "in the <tag> release" automatically.
 2. **Compute them with a script instead of by hand**, so "is the paper still true?" is a
    command rather than an act of memory. ``--check`` answers exactly that question.
 
 Usage
 -----
-    python tools/release/ai_disclosure_counts.py                 # counts at v0.1.0
-    python tools/release/ai_disclosure_counts.py --tag v0.2.0    # counts at another tag
-    python tools/release/ai_disclosure_counts.py --paragraph     # the prose, ready to paste
+    python tools/release/ai_disclosure_counts.py                       # counts at v0.1.0
+    python tools/release/ai_disclosure_counts.py --tag v0.2.0          # counts at another tag
+    python tools/release/ai_disclosure_counts.py --tag ee4bbe3aeaf0d   # counts at a commit sha
+    python tools/release/ai_disclosure_counts.py --paragraph           # the prose, ready to paste
     python tools/release/ai_disclosure_counts.py --check paper/paper.md   # exit 1 if stale
 
 ``--check`` normalises whitespace before matching, so it is insensitive to how the paragraph
@@ -109,12 +113,29 @@ def model_phrase(models: Counter[str]) -> str:
     return ", ".join(parts[:-1]) + " and " + parts[-1]
 
 
+_COMMIT_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+
+
+def is_commit_sha(tag: str) -> bool:
+    """A branch that never gets a release tag (JOSS paper prep on ``dev`` before ``v0.2.0``
+    exists, e.g.) still needs a citable, non-moving reference point. ``git log <ref>`` already
+    works for either kind of ref -- this only decides which sentence template to render.
+    """
+    return bool(_COMMIT_SHA.match(tag))
+
+
 def paragraph(stats: dict) -> str:
-    return (
-        f"Of the {stats['total']} commits in the {stats['tag']} release, "
+    trailer_clause = (
         f"{stats['with_trailer']} carry a `Co-Authored-By` trailer naming the model: "
         f"{model_phrase(stats['models'])}."
     )
+    if is_commit_sha(stats["tag"]):
+        return (
+            f"As of commit `{stats['tag'][:7]}`, {stats['with_trailer']} of the "
+            f"{stats['total']} commits carry a `Co-Authored-By` trailer naming the model: "
+            f"{model_phrase(stats['models'])}."
+        )
+    return f"Of the {stats['total']} commits in the {stats['tag']} release, {trailer_clause}"
 
 
 def report(stats: dict) -> str:
@@ -145,9 +166,18 @@ def check(stats: dict, path: Path) -> int:
     # Collapse whitespace so line wrapping in the Markdown source cannot cause a false failure.
     haystack = " ".join(path.read_text(encoding="utf-8").split())
 
+    if is_commit_sha(stats["tag"]):
+        commit_needle = (
+            f"As of commit `{stats['tag'][:7]}`, {stats['with_trailer']} of the "
+            f"{stats['total']} commits carry a `Co-Authored-By` trailer"
+        )
+    else:
+        commit_needle = (
+            f"Of the {stats['total']} commits in the {stats['tag']} release, "
+            f"{stats['with_trailer']} carry a `Co-Authored-By` trailer"
+        )
     needles = {
-        "commit total": f"Of the {stats['total']} commits in the {stats['tag']} release",
-        "trailer count": f"{stats['with_trailer']} carry a `Co-Authored-By` trailer",
+        "commit total": commit_needle,
         "model breakdown": model_phrase(stats["models"]),
     }
     failures = [label for label, needle in needles.items() if needle not in haystack]
