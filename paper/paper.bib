@@ -42,9 +42,14 @@
              sequence stars, mass segregation, and age using {Gaia} DR3 and 2MASS},
   journal = {Astronomy \& Astrophysics},
   year    = {2026},
+  pubstate = {inpress},
   note    = {in press. Title, author list and journal verified 2026-09-22 against the
              accepted manuscript source (aa52082-24.tex), not SciX -- not yet indexed
-             there under the A\&A record. arXiv id retained pending the A\&A DOI.},
+             there under the A\&A record. arXiv id retained pending the A\&A DOI.
+             2026-09-22: `note` does not render in Inara's CSL output (verified: no bib
+             entry's `note` ever prints, only journal/volume/page/DOI do) -- added
+             `pubstate` to try to surface "in press" in print; re-verify in the next
+             build, and if it still does not render, fall back to `year = {in press}`.},
   doi     = {10.48550/arXiv.2405.09145},
   eprint  = {2405.09145},
   archivePrefix = {arXiv},
