@@ -654,7 +654,10 @@ def c_cds():
     if len(cols) > 1:
         problems.append(f"columna Label desalineada: {sorted(cols)}")
     for a, b, lab, expl, _ in rows:
-        nulls = sum(1 for d in dat if d[a - 1 : b].strip() == "...")
+        # Nulo = campo en blanco (el estandar del CDS: '?' en la explicacion) o '...' (lo que usaba
+        # aa52082-24 hasta 2026-09-22, cuando el validador del upload de VizieR lo rechazo en F8.4
+        # con "Bad decimal point").
+        nulls = sum(1 for d in dat if d[a - 1 : b].strip() in ("", "..."))
         if bool(nulls) != expl.lstrip().startswith("?"):
             problems.append(f"{lab}: {nulls} nulos, marca '?' = {expl.lstrip()[:1]!r}")
     return (
