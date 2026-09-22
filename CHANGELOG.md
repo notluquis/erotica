@@ -99,8 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   column instead. A call that used to return an unfiltered table because the wrong column was
   requested will now raise. (`a539363`)
 - **`distance_model`'s error-aware branch is now marginalized in closed form** instead of sampling
-  a per-star latent `r_true ~ Gamma(mu_r, std_r)` with `r ~ Normal(r_true, errors)`. That centred
-  hierarchy is Neal's funnel whenever `std_r` is much smaller than the catalogue errors —
+  a per-star latent `r_true ~ Gamma(mu_r, std_r)` with `r ~ Normal(r_true, errors)`. That centered
+  hierarchy is Neal's funnel whenever `std_r` is much smaller than the catalog errors —
   precisely the regime the branch exists for — and is the mechanism behind v0.1.0's stated
   limitation that no `distance_model` fit above ~250 stars should be trusted (R-hat 1.041–1.817,
   ESS as low as 5, up to 344 divergences). With a normal population the latent integrates exactly:

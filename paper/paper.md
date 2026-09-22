@@ -170,9 +170,9 @@ the mutation it was written to catch.
 `EROTICA` was developed with generative-AI assistance throughout.
 
 **Tools and versions.** Anthropic's Claude, via the Claude Code command-line agent, applied
-to code, tests, documentation and this paper's text. Of the 364 commits in the v0.2.0 release,
-357 carry a `Co-Authored-By` trailer naming the model: Claude Opus 5 (301), Claude Opus 4.8 (38),
-Claude Sonnet 5 (9) and Claude Sonnet 4.6 (9) — the git history is the authoritative record.
+to code, tests, documentation and this paper's text. Of the 365 commits in the v0.2.0 release,
+358 carry a `Co-Authored-By` trailer naming the model: Claude Opus 5 (301), Claude Opus 4.8 (38),
+Claude Sonnet 5 (10) and Claude Sonnet 4.6 (9) — the git history is the authoritative record.
 The seven commits without one are early notebook-removal and housekeeping work, not
 reconstructed as assisted.
 

@@ -20,9 +20,9 @@ and `doi` fields are the source of truth for which one is current.
 ```{note}
 The author list and ORCIDs in `CITATION.cff` are current as of 2026-09-22, when Pierluigi Cerulo
 was added as a second author, matching `paper/paper.md`. What is still open is the *preferred*
-citation: a software paper is under review, and once it has a DOI the `preferred-citation` field
-will redirect GitHub's citation button to it, which is the correct target for a methods paper
-with a companion code release.
+citation: a JOSS software paper is in preparation (`paper/paper.md`), and once it is submitted,
+accepted and has a DOI, the `preferred-citation` field will redirect GitHub's citation button to
+it, which is the correct target for a methods paper with a companion code release.
 ```
 
 ```{note}
