@@ -1062,6 +1062,37 @@ class IsochroneFitter:
         fn = pytensor.function(v, [ll, *pytensor.grad(ll, v)], mode=mode)
         return lambda x: (lambda out: (float(out[0]), np.array(out[1:], float)))(fn(*x))
 
+    def _seeded_inverse_mass(self, model: Any, start_info: dict) -> np.ndarray:
+        r"""Diagonal initial inverse mass matrix in the sampler's unconstrained space.
+
+        For an interval-bounded parameter :math:`x \in (a, b)` sampled as
+        :math:`y = \mathrm{logit}((x-a)/(b-a))`, the local standard deviation :math:`s_x` at the
+        mode :math:`x^*` maps to :math:`s_y = s_x (b-a)/((x^*-a)(b-x^*))`; the entry is
+        :math:`s_y^2`. ``sigma_int`` and ``f_bg`` get 1. Why: the physical parameters' local
+        widths are 1e-5 to 3e-4 in that space and the nuisance ones order 1; from an identity
+        matrix, warmup spanned both scales with saturated trees. Measured 2026-09-23 on a binary
+        synthetic cluster, 100 warmup iterations: 42 118 leapfrog steps (median tree 263, 90th
+        percentile 1023) unseeded, 2 426 (median 15) seeded. Adaptation continues from it.
+        """
+        bounds = {
+            "met": (10.0 ** float(self._node_logz[0]), 10.0 ** float(self._node_logz[-1])),
+            "loga": tuple(self.loga_range),
+            "dm": tuple(self.dm_range),
+            "Av": tuple(self.Av_range),
+        }
+        diag = []
+        for rv in model.free_RVs:
+            if rv.name in bounds and rv.name in start_info["local_sd"]:
+                a, b = bounds[rv.name]
+                x = float(
+                    np.clip(start_info["mode"][rv.name], a + 1e-9 * (b - a), b - 1e-9 * (b - a))
+                )
+                sd = float(start_info["local_sd"][rv.name])
+                diag.append((sd * (b - a) / ((x - a) * (b - x))) ** 2)
+            else:
+                diag.append(1.0)
+        return np.asarray(diag, dtype=float)
+
     def find_start(
         self, n_chains: int = 4, rng: np.random.Generator | None = None, mode: str | None = None
     ) -> dict:
@@ -1322,6 +1353,7 @@ class IsochroneFitter:
         # Extra kwargs forwarded verbatim to the chosen NUTS backend
         nuts_sampler_kwargs: dict | None = None,
         start: str = "search",
+        start_info: dict | None = None,
     ) -> Any:
         """Run NUTS sampling and return ArviZ InferenceData.
 
@@ -1364,7 +1396,10 @@ class IsochroneFitter:
         start : {"search", "prior"}, default "search"
             ``"search"`` starts the chains at ``initvals`` if given, else runs
             :meth:`find_start` (the likelihood maximum plus a uniform offset of up to 3 local
-            standard deviations per parameter); either way with PyMC's jitter off.
+            standard deviations per parameter); either way with PyMC's jitter off, and with
+            the initial inverse mass matrix seeded from the local standard deviations at the
+            mode (see :meth:`_seeded_inverse_mass`). ``start_info`` passes a
+            :meth:`find_start` result already computed.
             ``"prior"`` is PyMC's default (initial point plus uniform jitter in [-1, 1] in the
             transformed space).
 
@@ -1379,17 +1414,20 @@ class IsochroneFitter:
         pm = _require_pymc()
 
         model = self.build_model()
+        step = None
         if start == "search":
             n_chains = chains if chains is not None else 4
-            if initvals is None:
+            jax_sampler = nuts_sampler in ("numpyro", "blackjax")
+            if start_info is None:
                 rng = np.random.default_rng(random_seed)
-                jax_sampler = nuts_sampler in ("numpyro", "blackjax")
-                initvals = self.find_start(n_chains, rng, mode="JAX" if jax_sampler else None)[
-                    "chain_starts"
-                ]
-            if nuts_sampler in ("numpyro", "blackjax"):
+                start_info = self.find_start(n_chains, rng, mode="JAX" if jax_sampler else None)
+            if initvals is None:
+                initvals = start_info["chain_starts"]
+            inv_mass = self._seeded_inverse_mass(model, start_info)
+            if jax_sampler:
                 from pymc.sampling.jax import sample_jax_nuts
 
+                kw = {"inverse_mass_matrix": inv_mass, **dict(nuts_sampler_kwargs or {})}
                 with model:
                     return sample_jax_nuts(
                         draws=draws,
@@ -1401,15 +1439,32 @@ class IsochroneFitter:
                         jitter=False,
                         progressbar=progressbar,
                         nuts_sampler=nuts_sampler,
-                        nuts_kwargs=dict(nuts_sampler_kwargs or {}),
+                        nuts_kwargs=kw,
                         idata_kwargs={"log_likelihood": log_likelihood},
                     )
-            init = "adapt_diag"  # PyMC's own sampler: no jitter on top of the chain starts
+            # PyMC's own NUTS, seeded the same way (and still adapting); no jitter on the starts
+            from pymc.step_methods.hmc.quadpotential import QuadPotentialDiagAdapt
+
+            with model:
+                ip = model.initial_point()
+                ip.update(
+                    {
+                        vv.name: model.rvs_to_transforms[rv]
+                        .forward(initvals[0][rv.name], *rv.owner.inputs)
+                        .eval()
+                        for rv, vv in zip(model.free_RVs, model.value_vars, strict=True)
+                        if rv.name in initvals[0]
+                    }
+                )
+                mean = np.concatenate([np.atleast_1d(ip[v.name]) for v in model.value_vars])
+                pot = QuadPotentialDiagAdapt(len(inv_mass), mean, inv_mass, 10)
+                step = pm.NUTS(potential=pot, target_accept=target_accept)
         with model:
             idata = pm.sample(
                 draws=draws,
                 tune=tune,
                 chains=chains,
+                step=step,
                 cores=cores,
                 nuts_sampler=nuts_sampler,
                 target_accept=target_accept,

@@ -198,6 +198,7 @@ def run(batch: str, i: int) -> dict:
             random_seed=42,
             progressbar=False,
             initvals=found["chain_starts"] if found else None,
+            start_info=found,
             start=start,
         )
         res = {
@@ -225,6 +226,7 @@ def run(batch: str, i: int) -> dict:
             random_seed=tr["seed"],
             progressbar=False,
             initvals=found["chain_starts"],
+            start_info=found,
         )
         truth = {"met": tr["Z"], "loga": tr["loga"], "dm": tr["dm"], "Av": tr["Av"]}
         # Diagnostic only (the chains start from the search, never from the truth): polish from
