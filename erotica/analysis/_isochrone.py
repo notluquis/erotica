@@ -1012,32 +1012,25 @@ class IsochroneFitter:
         sc = xp.sqrt(self._e_obs_col**2 + s2)
         G, col, Gq, cq = d["G"], d["col"], d["Gq"], d["cq"]
 
-        dens = xp.dot(
-            _segment_density(xg, xc, sg, sc, G[:-1], col[:-1], G[1:], col[1:], xp), d["w_single"]
-        )
-        F = xp.sum(d["w_single"] * self._p_observed(0.5 * (G[1:] + G[:-1]), s2, xp))
-        # alpha = beta = 0 is decided at build time, not sampled: skip the binary locus entirely
-        for k, wk in enumerate(d["w_bin"] if (self.alpha or self.beta) else []):
-            dens = dens + xp.dot(
-                _segment_density(
-                    xg,
-                    xc,
-                    sg,
-                    sc,
-                    Gq[k],
-                    cq[k],
-                    Gq[k + 1],
-                    cq[k + 1],
-                    xp,
-                    smear=(
-                        (0.5 * (d["vq"][k] + d["vq"][k + 1]), 0.5 * (d["vc"][k] + d["vc"][k + 1]))
-                        if self.BINARY_SMEAR
-                        else None
-                    ),
-                ),
-                wk,
-            )
-            F = F + xp.sum(wk * self._p_observed(0.5 * (Gq[k] + Gq[k + 1]), s2, xp))
+        # Every segment -- singles along the isochrone, binaries along q -- in ONE call: a
+        # Python loop over q pieces multiplied the symbolic graph, and PyTensor's rewrite of it
+        # took ~20 min before the first sample (measured 2026-09-23). Singles get no smear.
+        Ag, Ac, Bg, Bc, w = [G[:-1]], [col[:-1]], [G[1:]], [col[1:]], [d["w_single"]]
+        vg, vc = [0.0 * G[:-1]], [0.0 * G[:-1]]
+        if self.alpha or self.beta:  # decided at build time, not sampled
+            nq = len(d["w_bin"])
+            Ag.append(Gq[:-1].reshape((-1,)))
+            Ac.append(cq[:-1].reshape((-1,)))
+            Bg.append(Gq[1:].reshape((-1,)))
+            Bc.append(cq[1:].reshape((-1,)))
+            w.append(xp.stack(d["w_bin"]).reshape((-1,)))
+            on = 1.0 if self.BINARY_SMEAR else 0.0
+            vg.append(on * (0.5 * (d["vq"][:nq] + d["vq"][1:])).reshape((-1,)))
+            vc.append(on * (0.5 * (d["vc"][:nq] + d["vc"][1:])).reshape((-1,)))
+        cat = xp.concatenate
+        Ag, Ac, Bg, Bc, w, vg, vc = (cat(x) for x in (Ag, Ac, Bg, Bc, w, vg, vc))
+        dens = xp.dot(_segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w)
+        F = xp.sum(w * self._p_observed(0.5 * (Ag + Bg), s2, xp))
         return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
 
     def _p_observed(self, G: Any, s2: Any, xp: Any) -> Any:
