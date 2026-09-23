@@ -606,6 +606,8 @@ class IsochroneFitter:
     BINARY_SUBSAMPLE = 1
     BINARY_SMEAR = True
     BINARY_STRIDE = 3
+    # candidates of the lattice stage polished with the full model (find_start)
+    SEARCH_POLISH = 5
     LIKELIHOOD_VERSION = "unbinned-eep-v1"
 
     def __init__(
@@ -1066,8 +1068,8 @@ class IsochroneFitter:
         """Locate the dominant likelihood mode and draw chain starts around it.
 
         1. Every (Z, age) node inside the priors, with ``(dm, A_V)`` optimised at a wide
-           intrinsic width (0.05 mag), where the likelihood is smooth.
-        2. The three best nodes are polished (L-BFGS-B, bounded) on all six parameters of the
+           intrinsic width (0.05 mag), where the likelihood is smooth, single stars only.
+        2. The ``SEARCH_POLISH`` best nodes are polished (L-BFGS-B, bounded) on all six parameters of the
            full model; the best is the mode.
         3. Local standard deviations from the curvature of log L at the mode; each chain
            starts at the mode plus a uniform offset of up to 3 of them (clipped to the prior).
@@ -1090,9 +1092,15 @@ class IsochroneFitter:
         if len(self._node_logz) == 1:
             lo[0] = hi[0] = zlo
 
-        # full model (binaries included): a single-star proxy missed the dominant mode on 2 of 4
-        # binary synthetic clusters (measured 2026-09-22)
-        f1 = self._compiled_loglike(mode)
+        # Stage 1 uses the single-star model at a wide width: 4-10x cheaper per gradient than
+        # with the binary sheet, and the stage the cost lives in (315 optimisations on
+        # NGC 6383's priors). With binaries on it took > 60 min per fit (measured 2026-09-23).
+        alpha, beta = self.alpha, self.beta
+        self.alpha = self.beta = 0.0
+        try:
+            f1 = self._compiled_loglike(mode)
+        finally:
+            self.alpha, self.beta = alpha, beta
         cands = []
         ages = [a for a in self._node_loga if lo[1] <= a <= hi[1]] or [
             float(np.mean(self.loga_range))
@@ -1111,6 +1119,7 @@ class IsochroneFitter:
                     jac=True,
                     method="L-BFGS-B",
                     bounds=list(zip(lo[2:4], hi[2:4], strict=True)),
+                    options={"maxiter": 60},
                 )
                 cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
         cands.sort(key=lambda c: c[0])
@@ -1122,7 +1131,7 @@ class IsochroneFitter:
             return -v, -g
 
         polished = []
-        for c in cands[:3]:
+        for c in cands[: self.SEARCH_POLISH]:
             y0 = np.clip(np.array([*c[1:], 0.03, 0.02]), lo, hi)
             r = minimize(
                 nll6, y0, jac=True, method="L-BFGS-B", bounds=list(zip(lo, hi, strict=True))

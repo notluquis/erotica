@@ -16,6 +16,8 @@ This script runs the success criterion pre-registered in the hub finding
 * ``B``   -- diagnostic: 16 singles with truths drawn from the prior (seeds 101-116).
 * ``loo`` -- C4: 6 singles (A's singles truth, seeds 1-6) fitted with the Z = 0.014286 file
              removed; pass if the pooled posterior fraction within 3e-4 of a remaining node < 5 %.
+* ``refinv`` -- C2 on NGC 6383: log L at fixed parameters with the prior centre moved (the old
+             grid's reference) by a full and by a half bin; must be exactly unchanged.
 * ``ngc`` -- C1: NGC 6383, 4 chains x 2000 after 2000 tune, search start.
 * ``ngc_prior`` -- 4 chains x 500 after 1500, started from PyMC's jittered prior centre: where
                    chains end up without the search.
@@ -225,11 +227,30 @@ def run(batch: str, i: int) -> dict:
             initvals=found["chain_starts"],
         )
         truth = {"met": tr["Z"], "loga": tr["loga"], "dm": tr["dm"], "Av": tr["Av"]}
+        # Diagnostic only (the chains start from the search, never from the truth): polish from
+        # the truth too, so a search that missed the dominant mode shows up here, not in coverage.
+        from scipy.optimize import minimize
+
+        f6 = f._compiled_loglike("JAX")
+        met_lo = 10 ** float(f._node_logz[0]) * (1 + 1e-9)
+        met_hi = 10 ** float(f._node_logz[-1]) * (1 - 1e-9)
+        bounds = [(met_lo, met_hi), f.loga_range, f.dm_range, f.Av_range, (1e-4, 0.5), (1e-4, 0.5)]
+        y0 = np.clip([tr["Z"], tr["loga"], tr["dm"], tr["Av"], 0.01, 0.01], *np.array(bounds).T)
+        r = minimize(
+            lambda y: tuple(-np.asarray(v) for v in f6(y)),
+            y0,
+            jac=True,
+            method="L-BFGS-B",
+            bounds=bounds,
+        )
+        truth_polish = {"loglike": -float(r.fun), "x": [float(v) for v in r.x]}
         res = {
             "batch": batch,
             "index": i,
             "truth_cfg": tr,
             "search": {k: found[k] for k in ("mode", "loglike", "runner_up", "local_sd")},
+            "truth_polish": truth_polish,
+            "search_missed_mode": bool(truth_polish["loglike"] > found["loglike"] + 1.0),
         }
         res.update(_summ(idata, truth))
         if batch == "loo":
@@ -244,13 +265,43 @@ def run(batch: str, i: int) -> dict:
     return res
 
 
+def refinv() -> dict:
+    """The test that killed the grid likelihood, on NGC 6383: move the prior centre (the old grid
+    reference) and evaluate log L at the three points of the old ``refinv`` stage. The old code
+    changed by -10.45 / -10.59 / +4.49 under a half-bin move; this must be exactly zero."""
+    data = QTable(Table.read(SAMPLE))
+    pts = [(0.00536, 6.292, 10.01, 0.553), (0.0143, 6.55, 10.3, 1.24), (0.0143, 6.55, 10.1, 1.0)]
+    out = {"points": pts}
+    for name, kw in (
+        ("default", {}),
+        ("moved", {"dm_mu": 10.6, "Av_range": (0.6, 2.1)}),
+        ("moved_half_bin", {"dm_mu": 10.3 + 0.349, "Av_range": (0.5 + 0.134, 2.0 + 0.134)}),
+    ):
+        f = IsochroneFitter(isochs_path=MIST, **{**PRIORS, **kw})
+        f.setup(data, prob_threshold=0.0)
+        out[name] = [f.loglike(*p, 0.02, 0.05) for p in pts]
+    out["max_abs_diff_moved"] = max(
+        abs(a - b) for a, b in zip(out["default"], out["moved"], strict=True)
+    )
+    out["max_abs_diff_half_bin"] = max(
+        abs(a - b) for a, b in zip(out["default"], out["moved_half_bin"], strict=True)
+    )
+    OUT_DIR.mkdir(exist_ok=True)
+    (OUT_DIR / "refinv.json").write_text(json.dumps(out, indent=1) + "\n")
+    return out
+
+
 def summarize() -> dict:
     out = {}
     for batch in ("A", "B", "loo"):
         runs = [json.loads(p.read_text()) for p in sorted(OUT_DIR.glob(f"{batch}_*.json"))]
         if not runs:
             continue
-        s = {"n_runs": len(runs), "gate_pass": sum(r["gate"] for r in runs)}
+        s = {
+            "n_runs": len(runs),
+            "gate_pass": sum(r["gate"] for r in runs),
+            "search_missed_mode": sum(r.get("search_missed_mode", False) for r in runs),
+        }
         for p in ("met", "loga", "dm", "Av"):
             # a run failing the gate is a miss on every parameter (pre-registered, §9.5)
             s[f"{p}_in90"] = sum(r[p]["in90"] and r["gate"] for r in runs)
@@ -278,12 +329,17 @@ def summarize() -> dict:
                 "medians": {q: r[q]["q05_16_50_84_95"][2] for q in PARAMS},
                 "chain_means": {q: r[q]["chain_means"] for q in PARAMS},
             }
+    if (OUT_DIR / "refinv.json").exists():
+        r = json.loads((OUT_DIR / "refinv.json").read_text())
+        out["refinv"] = {k: r[k] for k in ("max_abs_diff_moved", "max_abs_diff_half_bin")}
     SUMMARY.write_text(json.dumps(out, indent=1) + "\n")
     return out
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "run":
+    if sys.argv[1] == "refinv":
+        print(json.dumps(refinv(), indent=1))
+    elif sys.argv[1] == "run":
         print(json.dumps(run(sys.argv[2], int(sys.argv[3])), default=float)[:2000])
     else:
         print(json.dumps(summarize(), indent=1))
