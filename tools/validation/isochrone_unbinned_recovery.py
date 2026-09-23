@@ -17,8 +17,10 @@ This script runs the success criterion pre-registered in the hub finding
 * ``loo`` -- C4: 6 singles (A's singles truth, seeds 1-6) fitted with the Z = 0.014286 file
              removed; pass if the pooled posterior fraction within 3e-4 of a remaining node < 5 %.
 * ``ngc`` -- C1: NGC 6383, 4 chains x 2000 after 2000 tune, search start.
-* ``ngc_prior`` -- the same, started from PyMC's jittered prior centre (what the search hides).
-* ``ngc_fine``  -- the same as ``ngc`` with the representation refined (15 q nodes, stride 1).
+* ``ngc_prior`` -- 4 chains x 500 after 1500, started from PyMC's jittered prior centre: where
+                   chains end up without the search.
+* ``ngc_fine``  -- 2 chains x 1000 after 1500 with the representation refined (15 q nodes,
+                   stride 1): a robustness check, ~3x the cost per gradient.
 
 The generator is ``synthetic_cluster`` of ``isochrone_nuts_convergence.py``: star-level draws
 from a MIST node with its own IMF inverse CDF, per-star D&K q draws and Gaussian errors, written
@@ -176,11 +178,19 @@ def run(batch: str, i: int) -> dict:
             f.BINARY_STRIDE = 1
         f.setup(data, prob_threshold=0.0)
         start = "prior" if batch == "ngc_prior" else "search"
-        found = f.find_start(4, np.random.default_rng(42), mode="JAX") if start == "search" else None
+        n_ch = 2 if batch == "ngc_fine" else 4
+        found = (
+            f.find_start(n_ch, np.random.default_rng(42), mode="JAX") if start == "search" else None
+        )
+        # C1 is the 4 x 2000 certificate; ngc_prior only reports where jittered chains end up,
+        # and ngc_fine is a robustness check at ~3x the cost per gradient
+        draws, tune, chains = {"ngc": (2000, 2000, 4), "ngc_prior": (500, 1500, 4)}.get(
+            batch, (1000, 1500, 2)
+        )
         idata = f.fit(
-            draws=2000,
-            tune=2000,
-            chains=4,
+            draws=draws,
+            tune=tune,
+            chains=chains,
             target_accept=0.9,
             nuts_sampler="numpyro",
             random_seed=42,
