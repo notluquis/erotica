@@ -431,7 +431,7 @@ class ClusterAnalyzer:
         ...     dm_range=(9.5, 10.7),
         ... )
         >>> fitter.set_priors({"dm_mu": 10.2, "dm_sigma": 0.3, "loga_range": (6.0, 7.0)})
-        >>> fitter.build_grid(M_met=200, M_loga=200, grid_cache="./data/40/hgrid.npz")
+        >>> fitter.build_grid(grid_cache="./data/40/isochrone_nodes.npz")
         >>> idata = fitter.fit(draws=2000, tune=1000, chains=4)
         """
 
@@ -493,7 +493,7 @@ class ClusterAnalyzer:
         Returns
         -------
         fitter : IsochroneFitter
-            Configured fitter (holds grid, synthcl, extinction coefficients).
+            Configured fitter (holds the EEP node table and extinction coefficients).
         idata : arviz.InferenceData
             Full posterior, including diagnostics.
 
@@ -529,7 +529,7 @@ class ClusterAnalyzer:
         )
 
         if grid_cache is not None and _Path(grid_cache).exists():
-            print(f"Loading H_grid from cache: {grid_cache}")
+            print(f"Loading isochrone node table from cache: {grid_cache}")
             fitter.setup(
                 cluster_data,
                 prob_threshold=prob_threshold,
@@ -545,7 +545,7 @@ class ClusterAnalyzer:
             )
             if grid_cache is not None:
                 fitter.save_grid(grid_cache)
-                print(f"H_grid saved to: {grid_cache}")
+                print(f"Isochrone node table saved to: {grid_cache}")
 
         idata = fitter.fit(
             draws=draws,

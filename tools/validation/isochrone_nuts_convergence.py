@@ -52,7 +52,6 @@ from pathlib import Path
 import numpy as np
 from astropy.table import QTable, Table
 
-from erotica.analysis import _isochrone as new
 from erotica.analysis._isochrone import MISTIsochrones, _ccm89
 
 HERE = Path(__file__).resolve().parent
@@ -62,6 +61,10 @@ B = Path("/Users/notluquis/erotica/data/test/NGC6383")
 MIST = B / "MIST" / "UBVRIplus"
 SAMPLE = B / "comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv"
 PRE_FIX_COMMIT = "f4ce09a"  # dev head before the 2026-09-22 fix
+# The five stages below measure the *precomputed-Hess* likelihood as fixed on 2026-09-22. It was
+# replaced the same day by the unbinned one, so they import the module at that commit, exactly as
+# they import the pre-fix module at PRE_FIX_COMMIT.
+GRID_COMMIT = "507f779"
 PRIORS = dict(
     loga_range=(6.0, 7.0),
     Av_range=(0.5, 2.0),
@@ -75,22 +78,27 @@ PARAMS = ["met", "loga", "dm", "Av", "log_s", "bg"]
 
 
 # ---------------------------------------------------------------------------- variants
-def _old_module():
+def _module_at(commit, name):
     src = subprocess.run(
-        ["git", "-C", str(REPO), "show", f"{PRE_FIX_COMMIT}:erotica/analysis/_isochrone.py"],
+        ["git", "-C", str(REPO), "show", f"{commit}:erotica/analysis/_isochrone.py"],
         check=True,
         capture_output=True,
         text=True,
     ).stdout
-    tmp = Path(tempfile.mkdtemp()) / "_isochrone_prefix.py"
+    tmp = Path(tempfile.mkdtemp()) / f"{name}.py"
     tmp.write_text(src)
-    spec = importlib.util.spec_from_file_location("erotica.analysis._isochrone_prefix", tmp)
+    spec = importlib.util.spec_from_file_location(f"erotica.analysis.{name}", tmp)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
 
 
+def _old_module():
+    return _module_at(PRE_FIX_COMMIT, "_isochrone_prefix")
+
+
 OLD = _old_module()
+new = _module_at(GRID_COMMIT, "_isochrone_grid")
 
 
 def _bracket(nodes, x):

@@ -1,10 +1,10 @@
 """Isochrone fitting: native MIST reader + PyMC NUTS.
 
-Matches ASteCA's forward model:
-  - Linear-Z metallicity (Zinit) as stored in MIST files
+Forward model with ASteCA's ingredients, likelihood unbinned per star (since 2026-09-22):
+  - Linear-Z metallicity (Zinit) as stored in MIST files; isochrones interpolated at fixed EEP
   - Chabrier (2014) IMF
-  - Duchêne & Kraus (2013) binary fraction + mass-ratio distribution
-  - Magnitude-sorted observational error model
+  - Offner binary fraction + Duchêne & Kraus (2013) mass-ratio distribution, marginalised
+  - Per-star photometric errors, a fitted error model for the completeness cut
   - Cardelli, Clayton & Mathis (1989) + O'Donnell (1994) extinction law
 """
 
@@ -17,7 +17,6 @@ from typing import Any
 
 import numpy as np
 from astropy.table import QTable
-from scipy.ndimage import convolve, gaussian_filter
 
 from .._membership import COLUMNA_ISOCRONA, select_by_probability
 
@@ -176,6 +175,8 @@ class MISTIsochrones:
             tuple[float, float],
             tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
         ] = {}
+        # (Z, loga) -> EEP of each point, same order as ``_grid`` (empty if the file has no EEP)
+        self._eep: dict[tuple[float, float], np.ndarray] = {}
         self._met_values: np.ndarray | None = None
         self._loga_values: np.ndarray | None = None
         self._load()
@@ -291,6 +292,7 @@ class MISTIsochrones:
         i_BP = col_idx[self.color_col1]
         i_RP = col_idx[self.color_col2]
         i_mass = col_idx.get(self.mass_col)
+        i_eep = col_idx.get("EEP")
 
         if not rows:
             return
@@ -301,6 +303,7 @@ class MISTIsochrones:
         BP_all = data[:, i_BP]
         RP_all = data[:, i_RP]
         mass_all = data[:, i_mass] if i_mass is not None else np.ones(len(data))
+        eep_all = data[:, i_eep] if i_eep is not None else np.full(len(data), np.nan)
 
         for loga_val in np.unique(np.round(loga_all, 4)):
             mask = np.round(loga_all, 4) == loga_val
@@ -313,13 +316,15 @@ class MISTIsochrones:
             )
             if valid.sum() < 2:
                 continue
-            sidx = np.argsort(mass[valid])
+            # stable sort, so equal masses (MIST repeats a few near the ZAMS) keep EEP order
+            sidx = np.argsort(mass[valid], kind="stable")
             self._grid[(Z, float(loga_val))] = (
                 mass[valid][sidx],
                 G[valid][sidx],
                 BP[valid][sidx],
                 RP[valid][sidx],
             )
+            self._eep[(Z, float(loga_val))] = eep_all[mask][valid][sidx]
 
     def _load(self) -> None:
         seen: set[Path] = set()
@@ -352,16 +357,46 @@ class MISTIsochrones:
         key = (float(self._met_values[mi]), float(self._loga_values[ai]))  # type: ignore[index]
         return self._grid[key]
 
+    def get_isochrone_eep(
+        self, met: float, loga: float
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Return ``(eep, mass, G_abs, BP_abs, RP_abs)`` at the nearest node, ordered by EEP.
+
+        :meth:`get_isochrone` orders by mass, which callers rely on for ``np.interp``; this
+        accessor orders by the equivalent evolutionary phase, the coordinate in which MIST
+        isochrones are interpolated (Dotter 2016, ``2016ApJS..222....8D``; Choi et al. 2016,
+        ``2016ApJ...823..102C``). Raises ``ValueError`` if the file had no ``EEP`` column.
+        """
+        mi = int(np.argmin(np.abs(self._met_values - met)))  # type: ignore[arg-type]
+        ai = int(np.argmin(np.abs(self._loga_values - loga)))  # type: ignore[arg-type]
+        key = (float(self._met_values[mi]), float(self._loga_values[ai]))  # type: ignore[index]
+        eep = self._eep[key]
+        if not np.all(np.isfinite(eep)):
+            raise ValueError(f"isochrone {key} was read without an EEP column")
+        o = np.argsort(eep, kind="stable")
+        mass, G, BP, RP = self._grid[key]
+        return eep[o], mass[o], G[o], BP[o], RP[o]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _smooth2d(H: np.ndarray) -> np.ndarray:
-    ker = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]], dtype=float)
-    ker /= ker.sum()
-    return convolve(H.astype(float), ker, mode="constant", cval=0.0)
+def _error_poly(obs_mag: np.ndarray, e: np.ndarray) -> np.ndarray:
+    """Coefficients ``(c0, c1, c2)`` of ``log10 e = c0 + c1 m + c2 m**2``.
+
+    Falls back to a constant (the median error) when there is not enough information to
+    constrain a quadratic: a degree-2 fit needs at least three *distinct* magnitudes, and with
+    fewer the Vandermonde matrix is rank-deficient and the polynomial arbitrary.
+    """
+    from numpy.polynomial.polynomial import Polynomial
+
+    ok = np.isfinite(obs_mag) & np.isfinite(e) & (e > 0)
+    if np.unique(obs_mag[ok]).size < 3:
+        # the median of the column as given, as before 2026-09-22 (a test pins it)
+        return np.array([np.log10(float(np.nanmedian(e))), 0.0, 0.0])
+    return np.asarray(Polynomial.fit(obs_mag[ok], np.log10(e[ok]), 2).convert().coef, float)
 
 
 def _fit_error_model(obs_mag: np.ndarray, e_mag: np.ndarray, e_col: np.ndarray) -> tuple[Any, Any]:
@@ -382,21 +417,119 @@ def _fit_error_model(obs_mag: np.ndarray, e_mag: np.ndarray, e_col: np.ndarray) 
     accepted silently: NumPy's ``RankWarning`` was swallowed by a blanket
     ``ignore::RuntimeWarning`` in ``pytest.ini``. Both are fixed.
     """
-    from numpy.polynomial.polynomial import Polynomial
 
-    valid_m = np.isfinite(obs_mag) & np.isfinite(e_mag) & (e_mag > 0)
-    valid_c = np.isfinite(obs_mag) & np.isfinite(e_col) & (e_col > 0)
+    def _callable(coef: np.ndarray) -> Any:
+        return lambda m: (
+            10 ** np.polynomial.polynomial.polyval(np.atleast_1d(m).astype(float), coef)
+        )
 
-    def _fit(mag_ok, e_ok, fallback):
-        # count *distinct* points, not the sum of their magnitudes
-        if np.unique(mag_ok).size < 3:
-            return lambda m: np.full_like(np.atleast_1d(m), fallback, dtype=float)
-        poly = Polynomial.fit(mag_ok, np.log10(e_ok), 2)
-        return lambda m: 10 ** poly(np.atleast_1d(m).astype(float))
+    return _callable(_error_poly(obs_mag, e_mag)), _callable(_error_poly(obs_mag, e_col))
 
-    f_emag = _fit(obs_mag[valid_m], e_mag[valid_m], float(np.nanmedian(e_mag)))
-    f_ecol = _fit(obs_mag[valid_c], e_col[valid_c], float(np.nanmedian(e_col)))
-    return f_emag, f_ecol
+
+def _chabrier2014_xi(m: Any, xp: Any = np) -> Any:
+    r"""Chabrier (2014) system IMF :math:`\xi(m) = dN/dm`, unnormalised; ``xp`` is numpy or
+    ``pytensor.tensor``. Same constants and continuity at :math:`m_0` as
+    :func:`_chabrier2014_weights`."""
+    mc, sigma, m0 = 0.20, 0.55, 1.0
+    scale = float(np.exp(-0.5 * (np.log10(mc) / sigma) ** 2))  # xi_ln(m0) / m0**-2.35, m0 = 1
+    lm = xp.log10(m)
+    xi_ln = xp.exp(-0.5 * ((lm - np.log10(mc)) / sigma) ** 2) / m
+    return xp.where(m < m0, xi_ln, scale * m**-2.35)
+
+
+# Duchêne & Kraus (2013) Table 1: f(q) ∝ q**gamma, gamma by primary-mass range. The model uses
+# a logistic step of 0.005 dex so the likelihood stays differentiable when an interpolated
+# primary mass crosses a range boundary; the synthetic-cluster generators use the exact step.
+_DK_EDGES = (0.1, 0.6, 1.4, 6.5)
+_DK_GAMMAS = (4.2, 0.4, 0.3, -0.5, 0.0)
+_DK_WIDTH_DEX = 0.005
+# Mass-ratio nodes. Dense near q = 1, where the combined magnitude changes fastest, and at
+# small q, where f(q) ∝ q**-0.5 (1.4-6.5 Msun primaries) piles the pairs up: with a single
+# [0, 0.3] piece the uniform deposit along it misplaced them, and a Monte Carlo of the toy
+# family at 0.01 mag errors gave chi2/dof 2.45 (1.17 with these nodes; measured 2026-09-23).
+_Q_NODES = np.array([0.0, 0.1, 0.2, 0.3, 0.5, 0.65, 0.75, 0.85, 0.93, 1.0])
+
+
+def _dk_gamma(mass: Any, xp: Any = np, smooth: bool = False) -> Any:
+    """Power-law index of the D&K (2013) mass-ratio distribution for each primary mass."""
+    if not smooth:
+        m = np.asarray(mass, float)
+        return np.select([m <= e for e in _DK_EDGES], list(_DK_GAMMAS[:-1]), default=_DK_GAMMAS[-1])
+    lm = xp.log10(mass)
+    g = _DK_GAMMAS[0]
+    for edge, g0, g1 in zip(_DK_EDGES, _DK_GAMMAS[:-1], _DK_GAMMAS[1:], strict=True):
+        x = xp.clip((lm - np.log10(edge)) / _DK_WIDTH_DEX, -50.0, 50.0)
+        g = g + (g1 - g0) / (1.0 + xp.exp(-x))
+    return g
+
+
+def _erfc_np(x: Any) -> Any:
+    from scipy.special import erfc
+
+    return erfc(x)
+
+
+def _segment_density(
+    xg: Any,
+    xc: Any,
+    sg: Any,
+    sc: Any,
+    Ag: Any,
+    Ac: Any,
+    Bg: Any,
+    Bc: Any,
+    xp: Any = np,
+    smear: tuple[Any, Any] | None = None,
+) -> Any:
+    r"""Density of star ``i`` from a uniform deposit along the segment ``A_k -> B_k``.
+
+    .. math::
+       d_{ik} = \int_0^1 \mathcal{N}_2\!\left(x_i;\ A_k + t\,(B_k - A_k),\ \Sigma_{ik}\right) dt
+       = \frac{e^{-\rho_{ik}^2/2}}{2\pi \sqrt{|\Sigma_{ik}|}}\,
+         \frac{\sqrt{2\pi}}{L_{ik}}\left[\Phi\!\big(L_{ik}(1-t^*_{ik})\big)
+         - \Phi\!\big(-L_{ik} t^*_{ik}\big)\right],
+
+    in coordinates whitened by :math:`\Sigma_{ik}` (Cholesky): :math:`L` is the whitened
+    segment length, :math:`t^*` the parameter of closest approach and :math:`\rho` the
+    whitened perpendicular distance. Exact for a straight segment. :math:`\Sigma_{ik}` is
+    the star's own ``diag(sg_i**2, sc_i**2)``, plus, if ``smear = (vg_k, vc_k)`` is given,
+    :math:`v_k v_k^\top/12` -- the covariance of a uniform spread along :math:`v_k` (used for
+    the primary-mass direction of the binary sheet). Stars ``(N,)``, segments ``(S,)``;
+    returns ``(N, S)``.
+    """
+    s11 = (sg**2)[:, None]
+    s22 = (sc**2)[:, None]
+    s12 = 0.0 * s11
+    if smear is not None:
+        vg, vc = smear
+        s11 = s11 + (vg**2 / 12.0)[None, :]
+        s22 = s22 + (vc**2 / 12.0)[None, :]
+        s12 = s12 + (vg * vc / 12.0)[None, :]
+    # Cholesky of [[s11, s12], [s12, s22]]: whitened u1 = dg / l11, u2 = (dc - l21 u1) / l22
+    l11 = xp.sqrt(s11)
+    l21 = s12 / l11
+    l22 = xp.sqrt(s22 - l21**2)
+    ag = (Ag[None, :] - xg[:, None]) / l11
+    ac = ((Ac[None, :] - xc[:, None]) - l21 * ag) / l22
+    dg = (Bg - Ag)[None, :] / l11
+    dc = ((Bc - Ac)[None, :] - l21 * dg) / l22
+    L2 = dg**2 + dc**2
+    long_ = L2 > 1e-8
+    L2s = xp.where(long_, L2, 1.0)  # safe value: no NaN in the branch not taken, nor its grad
+    L = xp.sqrt(L2s)
+    t0 = -(ag * dg + ac * dc) / L2s
+    perp2 = (ag + t0 * dg) ** 2 + (ac + t0 * dc) ** 2
+    erf = xp.erf if xp is not np else _erf_np
+    cdf_diff = 0.5 * (erf(L * (1 - t0) / np.sqrt(2.0)) - erf(-L * t0 / np.sqrt(2.0)))
+    seg = xp.exp(-0.5 * perp2) * np.sqrt(2 * np.pi) / L * cdf_diff
+    point = xp.exp(-0.5 * (ag**2 + ac**2))
+    return xp.where(long_, seg, point) / (2 * np.pi * l11 * l22)
+
+
+def _erf_np(x: Any) -> Any:
+    from scipy.special import erf
+
+    return erf(x)
 
 
 # ---------------------------------------------------------------------------
@@ -405,20 +538,48 @@ def _fit_error_model(obs_mag: np.ndarray, e_mag: np.ndarray, e_col: np.ndarray) 
 
 
 class IsochroneFitter:
-    """Bayesian isochrone fitting using a MIST forward model and PyMC NUTS.
+    r"""Bayesian isochrone fitting: unbinned per-star likelihood over EEP-interpolated MIST
+    isochrones, sampled with NUTS (PyMC).
 
-    Replicates ASteCA's forward model (Chabrier IMF, D&K binaries, CCM89
-    extinction, magnitude-sorted error model) without any dependency on ASteCA.
+    Forward model (ASteCA's ingredients, without the binned Hess):
 
-    .. warning::
-       **Experimental -- do not quote its parameters as measurements.** The
-       likelihood is built by shifting a *precomputed* Hess grid and
-       interpolating between isochrone nodes, so it depends on the grid's
-       internal reference: injection-recovery shows the posterior locking onto
-       ``(dm_mu, mean(Av_range))`` and onto metallicity nodes, and whether NUTS
-       passes its convergence gate depends on that reference too. See
-       ``docs/design-notes/decisions.md`` (2026-09-22) and the two strict-xfail
-       tests in ``tests/test_isochrone.py``.
+    * **Isochrone at any (Z, log t).** Bilinear interpolation between the four bracketing MIST
+      nodes, in :math:`\log_{10} Z` and :math:`\log_{10} t`, **at fixed EEP** -- the equivalent
+      evolutionary phase, the coordinate MIST isochrones are built to be interpolated in
+      (Dotter 2016, ``2016ApJS..222....8D``). Points whose EEP a node lacks are clamped to that
+      node's last point, so their mass step and hence IMF weight go to zero continuously.
+    * **Single stars** are a uniform deposit along each segment between consecutive EEP points,
+      weighted by the Chabrier (2014) IMF, :math:`w_k = \xi(\bar m_k)\,\Delta m_k`.
+    * **Unresolved binaries**: fraction :math:`b(m) = \alpha + \beta/(1 + 1.4/m)` (Offner et al.
+      2023, ``2023ASPC..534..275O``, as in ASteCA), mass ratio marginalised over
+      :math:`f(q \mid m) \propto q^{\gamma(m)}` (Duchêne & Kraus 2013,
+      ``2013ARA&A..51..269D``, Table 1) by a uniform deposit along the binary locus between
+      the mass-ratio nodes ``_Q_NODES``, each piece weighted by its exact probability
+      :math:`q_{j+1}^{\gamma+1} - q_j^{\gamma+1}`.
+    * **Extinction**: CCM89 + O'Donnell (1994), :math:`A_\lambda = k_\lambda A_V`.
+
+    Likelihood, for star :math:`i` with photometric errors :math:`(e_{G,i}, e_{c,i})`:
+
+    .. math::
+       \ln\mathcal{L} = \sum_i \omega_i \ln\!\left[(1 - f_{\rm bg})\,
+       \frac{\sum_k w_k\, d_{ik}(\theta)}{F(\theta)} + \frac{f_{\rm bg}}{A}\right],
+       \qquad s_{\cdot,i}^2 = e_{\cdot,i}^2 + \sigma_{\rm floor}^2 + \sigma_{\rm int}^2,
+
+    with :math:`d_{ik}` the segment density of :func:`_segment_density`,
+    :math:`F(\theta) = \sum_k w_k\,\Phi\big((G_{\lim} - G_k)/s(G_k)\big)` the probability that a
+    model star is observed brighter than the faintest member (the completeness cut, as ASteCA's
+    ``cut_max_mag``), :math:`A` the area of the members' CMD bounding box, :math:`f_{\rm bg}` a
+    uniform field fraction, :math:`\sigma_{\rm int}` a free intrinsic width and
+    :math:`\sigma_{\rm floor} = 0.005` mag a fixed floor that covers the mass-ratio node
+    spacing. :math:`\omega_i` are the optional MS/PMS weights of :meth:`setup` (1 by default).
+    The likelihood is conditioned on the number of members, so there is no amplitude parameter.
+
+    Why not the binned Hess that stood here until 2026-09-22: it shifted a *precomputed*
+    histogram, so log L depended on the grid's internal reference and posteriors locked onto
+    ``(dm_mu, mean(Av_range))`` and onto metallicity nodes. A per-evaluation binned deposit was
+    measured as the alternative and rejected: the bin-scale smoothing it needs for smooth
+    gradients biased ``dm`` by about -0.25 mag on synthetic clusters, and without it the
+    likelihood was rough. See ``docs/design-notes/decisions.md`` (2026-09-22/23).
 
     Notes
     -----
@@ -426,10 +587,26 @@ class IsochroneFitter:
 
     1. ``fitter = IsochroneFitter(isochs_path, ...)``
     2. ``fitter.setup(cluster_data, prob_threshold=0.6)``
-    3. ``fitter.save_grid(path)``  /  ``fitter.load_grid(path)``  ← optional
+    3. ``fitter.save_grid(path)``  /  ``fitter.load_grid(path)``  ← optional (node table)
     4. ``idata = fitter.fit(draws=2000, tune=1000, chains=4)``
     5. ``obs_mag, obs_col, cmds = fitter.posterior_cmd(idata, num_samples=30)``
     """
+
+    # Width floor, in magnitudes, in quadrature with each star's errors: the forward model's own
+    # approximation error. IMF-weighted 68th percentile of the leave-one-node-out residual of
+    # the EEP interpolation, over the stars visible at NGC 6383's priors: 0.016-0.026 mag in
+    # age (at 0.10 dex, twice the native step), 0.025-0.032 in Z (0.5 dex, twice native);
+    # scaled to the native steps as the square of the step, 0.005 and 0.008. Measured
+    # 2026-09-23 (tools/validation/isochrone_likelihood_d1/budget.py).
+    SIGMA_FLOOR = 0.01
+    # The binary sheet over (primary, q): exact along q between _Q_NODES; along the primary it
+    # is built on every BINARY_STRIDE-th EEP point, BINARY_SUBSAMPLE points per coarse segment,
+    # each spread uniformly along the primary step (moment-matched Gaussian) when BINARY_SMEAR.
+    # Without the spread the sheet is a set of ridges that stars with mmag errors fall between.
+    BINARY_SUBSAMPLE = 1
+    BINARY_SMEAR = True
+    BINARY_STRIDE = 3
+    LIKELIHOOD_VERSION = "unbinned-eep-v1"
 
     def __init__(
         self,
@@ -458,7 +635,7 @@ class IsochroneFitter:
         ----------
         isochs_path : str or Path
             Location of the theoretical isochrone files. Stored only; the read
-            happens in :meth:`setup`.
+            happens in :meth:`setup`. The files must carry an ``EEP`` column.
         magnitude : str, default "Gaia_G_EDR3"
             Name of the magnitude column in the isochrone files.
         magnitude_effl : float, default 6390.7
@@ -484,12 +661,11 @@ class IsochroneFitter:
             :math:`M_\odot` and the result clipped to :math:`[0, 1]`. The
             defaults are the Offner et al. (2022) relation, matching ASteCA, so
             the binary fraction **rises with mass** instead of being one number
-            for the whole cluster.
+            for the whole cluster. ``alpha = beta = 0`` fits single stars only.
         loga_range : tuple of float
-            Prior bounds on :math:`\log_{10}(\mathrm{age}/\mathrm{yr})`, i.e. 1
-            to 10 Myr. This is a young-cluster window and it is narrow: an older
-            cluster piles up against the upper edge rather than fitting, so
-            check the posterior against these bounds before believing an age.
+            Prior bounds on :math:`\log_{10}(\mathrm{age}/\mathrm{yr})`. The node table
+            holds the isochrones that bracket this range, so widening it after
+            :meth:`setup` requires rebuilding the table.
         Av_range : tuple of float, default (0.0, 3.0)
             Prior bounds on :math:`A_V`, in **magnitudes**.
         dm_mu : float
@@ -508,20 +684,18 @@ class IsochroneFitter:
             las líneas de visión, y ``Rv = 3.1`` es el valor estándar del medio
             interestelar.
 
-            It is **not only a prior**: it is also the fixed
-            reference used when building the Hess-diagram binning and the
-            magnitude-dependent error model, so a badly wrong value degrades the
-            precomputed grid itself, not just the sampler's starting point.
+            Since 2026-09-22 it is **only a prior**. Until then it was also the reference
+            frame of the precomputed Hess grid, of the Hess window and of the error kernel,
+            and the posterior locked onto it; ``tests/test_isochrone.py`` now checks that the
+            likelihood does not depend on it.
         dm_sigma : float, default 0.3
             Prior standard deviation of the distance modulus, in magnitudes.
         dm_range : tuple of float
             Hard truncation bounds on the distance modulus, in magnitudes.
         M_met, M_loga : int, default 200
-            Grid resolution in metallicity and in :math:`\log_{10}` age. The
-            precomputed Hess grid has shape
-            ``(M_met, M_loga, Nb_mag, Nb_col)``, so setup cost and memory scale
-            with their **product** -- the defaults already mean 40 000 synthetic
-            populations. Both can be overridden at :meth:`setup` time.
+            **Unused since 2026-09-22**, kept so existing calls do not break. They set the
+            resolution of the precomputed regular Hess grid, which no longer exists: the
+            isochrone is interpolated between the MIST nodes at every evaluation.
 
         Notes
         -----
@@ -549,30 +723,24 @@ class IsochroneFitter:
         self._isochs: MISTIsochrones | None = None
         self._obs_mag: np.ndarray | None = None
         self._obs_col: np.ndarray | None = None
-        self._e_mag_fn: Any = None  # callable: apparent_mag → error
+        self._e_obs_mag: np.ndarray | None = None  # per-star errors that enter the likelihood
+        self._e_obs_col: np.ndarray | None = None
+        self._star_weights: np.ndarray | None = None
+        self._e_mag_fn: Any = None  # callable: apparent_mag -> error (posterior_cmd)
         self._e_col_fn: Any = None
+        self._e_mag_coef: np.ndarray | None = None  # same model, as coefficients (F(theta))
         self._N_obs: int | None = None
-        self._obs_tensor: Any = None
-        self._H_grid: np.ndarray | None = None
-        self._met_grid: np.ndarray | None = None
-        self._loga_grid: np.ndarray | None = None
-        self._mag_range: tuple[float, float] | None = None
-        self._col_range: tuple[float, float] | None = None
-        self._Nbins: tuple[int, int] | None = None
-        self._binw_mag: float | None = None
-        self._binw_col: float | None = None
+        self._mag_lim: float | None = None  # completeness cut: the faintest member
+        self._box_area: float | None = None
         self._kG: float | None = None
         self._kBP: float | None = None
         self._kRP: float | None = None
         self._k_col1: float | None = None  # = kBP - kRP
-        self._I_tensor: Any = None  # precomputed bin-index tensor (Nb_mag, 1)
-        self._J_tensor: Any = None  # precomputed bin-index tensor (1, Nb_col)
-        self._H_tensor: Any = None  # pytensor.shared wrapping _H_grid
-        self._obs_hess: np.ndarray | None = None  # flat observed Hess (Nb_mag*Nb_col,)
-        # reference apparent-frame shift of the precomputed grid, and its padding (bins)
-        self._dmag_ref: float | None = None
-        self._dcol_ref: float | None = None
-        self._pad: tuple[int, int] | None = None
+        # node table: (n_Z, n_age, rows, n_eep); rows = mass, G, colour, then per q node G, colour
+        self._nodes: np.ndarray | None = None
+        self._node_logz: np.ndarray | None = None
+        self._node_loga: np.ndarray | None = None
+        self._nodes_tensor: Any = None
 
     # ------------------------------------------------------------------
     # Setup
@@ -589,7 +757,7 @@ class IsochroneFitter:
         pms_max: float = 0.5,
         ms_weight: float = 1.0,
     ) -> None:
-        """Prepare binning, error model, and optionally the H_grid.
+        """Read the isochrones, select the members, and (optionally) build the node table.
 
         Parameters
         ----------
@@ -600,19 +768,19 @@ class IsochroneFitter:
         prob_threshold : float
             Minimum membership probability.
         precompute_grid : bool
-            ``False`` skips the expensive H_grid build; use when loading from cache.
+            ``False`` skips building the EEP node table; :meth:`build_grid` or
+            :meth:`load_grid` does it later. (The name predates the 2026-09-22 rewrite.)
         pms_column : str, optional
             Column name with PMS probability (e.g. ``"pms_sagitta"``).
-            Used together with ``ms_weight`` to upweight MS stars in the Hess.
+            Used together with ``ms_weight`` to upweight MS stars.
         pms_max : float
             Stars with ``pms_column >= pms_max`` are treated as PMS (weight 1).
             Stars below this threshold are treated as MS (weight ``ms_weight``).
         ms_weight : float
-            Multiplicative weight applied to MS stars in the Hess histogram.
-            ``ms_weight=1`` (default) → uniform weights, no preference.
-            ``ms_weight=3`` → MS stars count 3× more than PMS in the likelihood,
-            anchoring the isochrone fit to the main sequence while still
-            allowing PMS stars to contribute.
+            Multiplicative weight :math:`\\omega_i` on the log-likelihood of MS stars.
+            ``ms_weight=1`` (default) is the likelihood; any other value makes it a
+            weighted pseudo-likelihood, which anchors the fit to the main sequence but
+            whose posterior width is no longer calibrated.
         """
         col1_name, col2_name = self.color
         self._isochs = MISTIsochrones(
@@ -625,125 +793,51 @@ class IsochroneFitter:
         members = select_by_probability(cluster_data, probability_column, prob_threshold)
         self._N_obs = len(members)
 
-        # Per-star Hess weights: MS stars get ms_weight, PMS stars get 1.0.
-        # When pms_column is None or ms_weight==1, all weights are uniform.
-        hess_weights = np.ones(len(members), dtype=float)
+        weights = np.ones(len(members), dtype=float)
         if pms_column is not None and pms_column in members.colnames and ms_weight != 1.0:
             pms_prob = np.asarray(members[pms_column], dtype=float)
             is_ms = ~(np.isfinite(pms_prob) & (pms_prob >= pms_max))
-            hess_weights[is_ms] = ms_weight
-            n_ms = int(is_ms.sum())
-            n_pms = int((~is_ms).sum())
+            weights[is_ms] = ms_weight
             print(
-                f"[setup] Weighted Hess: {n_ms} MS stars (w={ms_weight}) + "
-                f"{n_pms} PMS stars (w=1.0)."
+                f"[setup] Weighted likelihood: {int(is_ms.sum())} MS stars (w={ms_weight}) + "
+                f"{int((~is_ms).sum())} PMS stars (w=1.0)."
             )
-        ms_members = members  # all stars still enter the histogram
+        self._star_weights = weights
 
-        # Use ALL members for range, error model, and posterior_cmd
         obs_mag = np.asarray(members["Gmag"], dtype=float)
-        bp = np.asarray(members["G_BPmag"], dtype=float)
-        rp = np.asarray(members["G_RPmag"], dtype=float)
-        obs_col = bp - rp
-
+        obs_col = np.asarray(members["G_BPmag"], dtype=float) - np.asarray(
+            members["G_RPmag"], dtype=float
+        )
         e_mag = np.asarray(members["e_Gmag"], dtype=float)
         if "e_BP_RP" in members.colnames:
             e_col = np.asarray(members["e_BP_RP"], dtype=float)
         else:
-            e_bp = np.asarray(members["e_G_BPmag"], dtype=float)
-            e_rp = np.asarray(members["e_G_RPmag"], dtype=float)
-            e_col = np.hypot(e_bp, e_rp)
-
-        self._obs_mag = obs_mag
-        self._obs_col = obs_col
-        # Error model fitted on all members (wider magnitude baseline)
+            e_col = np.hypot(
+                np.asarray(members["e_G_BPmag"], dtype=float),
+                np.asarray(members["e_G_RPmag"], dtype=float),
+            )
+        self._obs_mag, self._obs_col = obs_mag, obs_col
         self._e_mag_fn, self._e_col_fn = _fit_error_model(obs_mag, e_mag, e_col)
+        self._e_mag_coef = _error_poly(obs_mag, e_mag)
+        # a missing or non-positive per-star error is replaced by the error model at that star
+        bad_m = ~(np.isfinite(e_mag) & (e_mag > 0))
+        bad_c = ~(np.isfinite(e_col) & (e_col > 0))
+        e_mag = np.where(bad_m, self._e_mag_fn(obs_mag), e_mag)
+        e_col = np.where(bad_c, self._e_col_fn(obs_mag), e_col)
+        self._e_obs_mag, self._e_obs_col = e_mag, e_col
 
-        # MS-only photometry for the Hess histogram (the fit target)
-        ms_obs_mag = np.asarray(ms_members["Gmag"], dtype=float)
-        ms_bp = np.asarray(ms_members["G_BPmag"], dtype=float)
-        ms_rp = np.asarray(ms_members["G_RPmag"], dtype=float)
-        ms_obs_col = ms_bp - ms_rp
+        # Window, from the data only: the completeness cut is the faintest member (ASteCA's
+        # ``cut_max_mag``); the field component is uniform over the members' bounding box.
+        self._mag_lim = float(obs_mag.max())
+        span_m = max(float(np.ptp(obs_mag)), 1e-3)
+        span_c = max(float(np.ptp(obs_col)), 1e-3)
+        self._box_area = span_m * span_c
 
-        # Extinction coefficients (A_lambda / A_V)
         self._kG, self._kBP, self._kRP = self._compute_ext_coefs()
         self._k_col1 = self._kBP - self._kRP
 
-        # Histogram range: observed + reference synthetic at (dm_mu, Av_mean).
-        # Use the midpoint of the *prior* loga_range (not the full file range) so
-        # that the reference isochrone has the right age — otherwise a young-cluster
-        # prior (loga~6) gets compared against a median-file isochrone (loga~7.6),
-        # which misses the bright OB sequence and sets mag_min too faint.
-        Av_mid = float(np.mean(self.Av_range))
-        met_arr = self._isochs.met_age_dict["met"]
-        loga_mid = float(np.mean(self.loga_range))
-        _, ref_G, ref_BP, ref_RP = self._isochs.get_isochrone(float(np.median(met_arr)), loga_mid)
-        ref_app_mag = ref_G + self.dm_mu + self._kG * Av_mid
-        ref_app_col = (ref_BP - ref_RP) + self._k_col1 * Av_mid
-
-        # The faint edge is the faintest *observed* star, not the reference isochrone's
-        # faint end: model mass fainter than every observed star is incompleteness, and
-        # cropping the shifted model Hess at this edge is what implements ASteCA's
-        # ``cut_max_mag`` -- at the sampled (dm, A_V), not at a fixed reference.
-        mag_min = float(min(obs_mag.min(), np.nanmin(ref_app_mag)))
-        mag_max = float(obs_mag.max())
-        col_min = float(min(obs_col.min(), np.nanmin(ref_app_col)))
-        col_max = float(max(obs_col.max(), np.nanmax(ref_app_col)))
-        # Histogram ranges are half-open, so a star sitting exactly on the upper edge -- which
-        # the faintest and the reddest member always do, since the edges are built from them --
-        # was silently dropped: 252 of 254 NGC 6383 members entered the likelihood.
-        mag_max += 1e-9 * (mag_max - mag_min)
-        col_max += 1e-9 * (col_max - col_min)
-        self._mag_range = (mag_min, mag_max)
-        self._col_range = (col_min, col_max)
-
-        Nb_mag, Nb_col = self._compute_nbins(obs_mag, obs_col)
-        self._Nbins = (Nb_mag, Nb_col)
-        self._binw_mag = (mag_max - mag_min) / Nb_mag
-        self._binw_col = (col_max - col_min) / Nb_col
-
-        import pytensor.tensor as pt
-
-        self._I_tensor = pt.constant(
-            np.arange(Nb_mag, dtype="float64").reshape(Nb_mag, 1), name="I_bins"
-        )
-        self._J_tensor = pt.constant(
-            np.arange(Nb_col, dtype="float64").reshape(1, Nb_col), name="J_bins"
-        )
-
-        # Build weighted Hess: numpy.histogram2d supports weights;
-        # fast_histogram does not, so we only fall back to it for the uniform case.
-        if np.all(hess_weights == 1.0):
-            from fast_histogram import histogram2d as _h2d
-
-            cl_histo = _h2d(
-                ms_obs_mag,
-                ms_obs_col,
-                bins=[Nb_mag, Nb_col],
-                range=[[mag_min, mag_max], [col_min, col_max]],
-            ).astype(np.float64)
-        else:
-            cl_histo, _, _ = np.histogram2d(
-                ms_obs_mag,
-                ms_obs_col,
-                bins=[Nb_mag, Nb_col],
-                range=[[mag_min, mag_max], [col_min, col_max]],
-                weights=hess_weights,
-            )
-            cl_histo = cl_histo.astype(np.float64)
-        # Store as plain numpy — passed directly to pm.Poisson(observed=...)
-        # so PyMC wraps it in ConstantData internally (idiomatic, no graph bloat).
-        self._obs_hess = cl_histo.ravel()
-
         if precompute_grid:
-            self._precompute_H_grid()
-
-        if self._H_grid is not None:
-            import pytensor
-
-            # pytensor.shared → JAX/blackjax receives array as a runtime input
-            # rather than baking it into the JIT trace as a literal constant.
-            self._H_tensor = pytensor.shared(self._H_grid, name="H_grid")
+            self._build_nodes()
 
     def _compute_ext_coefs(self) -> tuple[float, float, float]:
         kG = _ccm89(self.magnitude_effl, self.Rv)
@@ -751,213 +845,338 @@ class IsochroneFitter:
         kRP = _ccm89(self.color_effl[1], self.Rv)
         return kG, kBP, kRP
 
-    def _compute_nbins(self, mag: np.ndarray, col: np.ndarray) -> tuple[int, int]:
-        try:
-            from astropy.stats import knuth_bin_width
-
-            _, bm = knuth_bin_width(mag, return_bins=True)
-            _, bc = knuth_bin_width(col, return_bins=True)
-            return max(int(len(bm) - 1), 5), max(int(len(bc) - 1), 5)
-        except Exception:
-            nb = max(int(np.ceil(len(mag) ** (1 / 3))), 5)
-            return nb, nb
-
     # ------------------------------------------------------------------
-    # Hess grid precomputation  (matches ASteCA's generate() in expectation)
+    # EEP node table
     # ------------------------------------------------------------------
 
-    def _set_reference_frame(self) -> None:
-        """Fix the reference shift and the padding of the precomputed Hess grid.
+    def _build_nodes(self) -> None:
+        """Stack every (Z, age) node that can bracket the prior on one EEP axis.
 
-        The grid is binned in the **apparent** frame of a reference population at
-        ``(dm_mu, mean(Av_range))``, on the observed window widened by ``pad`` bins on
-        each side. :meth:`_shift_histogram` then moves it by the *offset* of the sampled
-        ``(dm, A_V)`` from that reference and crops the central window.
-
-        Notes
-        -----
-        Before 2026-09-22 the grid was binned in the **absolute** frame (dm = 0, A_V = 0)
-        but on the *apparent* observed window, and then shifted by the full
-        ``dm + k_G A_V`` (about 11.4 mag, 12 bins, for NGC 6383). Only stars with
-        ``G_abs`` inside the apparent window -- ``G_abs > 5.1`` there, i.e. low-mass PMS
-        stars -- survived; after the shift the model put **zero** mass brighter than
-        G = 17.0, where 129 of the 254 observed members sit. The only terms able to
-        absorb those stars were ``bg`` and the prior walls: the archived NUTS refit
-        (2026-06-11) sat at ``dm`` = 9.54 against a 9.5 wall, ``A_V`` = 0.58 against 0.5,
-        ``bg`` = 0.38 per bin against a HalfNormal(0.2) prior, with R-hat 1.5-2.2.
+        Rows per node: initial mass, ``G``, colour, then ``G`` and colour of the unresolved
+        pair at each mass-ratio node in ``_Q_NODES`` (companion mass clipped to the node's
+        lowest mass, as the generators do). EEPs a node lacks are clamped to its first/last
+        point, where the mass step is zero, so they carry no IMF weight.
         """
-        Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
-        Av_mid = float(np.mean(self.Av_range))
-        self._dmag_ref = float(self.dm_mu + self._kG * Av_mid)  # type: ignore[operator]
-        self._dcol_ref = float(self._k_col1 * Av_mid)  # type: ignore[operator]
-        dmag_lo, dmag_hi, dcol_lo, dcol_hi = self._shift_bounds()
-        pad_m = int(np.ceil(max(abs(dmag_lo), abs(dmag_hi)) / self._binw_mag)) + 1  # type: ignore[operator]
-        pad_c = int(np.ceil(max(abs(dcol_lo), abs(dcol_hi)) / self._binw_col)) + 1  # type: ignore[operator]
-        self._pad = (pad_m, pad_c)
+        iso = self._isochs
+        if iso is None:
+            raise RuntimeError("Call setup() first.")
+        zs = np.asarray(iso._met_values, float)
+        ages = np.asarray(iso._loga_values, float)
+        lo, hi = self.loga_range
+        a0 = int(np.clip(np.searchsorted(ages, lo, side="right") - 1, 0, len(ages) - 1))
+        a1 = int(np.clip(np.searchsorted(ages, hi, side="left"), 0, len(ages) - 1))
+        ages = ages[a0 : a1 + 1]
+        if lo < ages[0] - 1e-9 or hi > ages[-1] + 1e-9:
+            raise ValueError(
+                f"loga_range {self.loga_range} is outside the isochrone ages "
+                f"[{ages[0]}, {ages[-1]}] in {self.isochs_path}"
+            )
 
-    def _shift_bounds(self) -> tuple[float, float, float, float]:
-        """Range of the (mag, colour) offset from the grid's reference that the priors allow.
+        per_node = {}
+        e_lo, e_hi = np.inf, -np.inf
+        for z in zs:
+            for a in ages:
+                eep, mass, G, BP, RP = iso.get_isochrone_eep(float(z), float(a))
+                ms = np.argsort(mass, kind="stable")
+                rows = [mass, G, BP - RP]
+                for q in _Q_NODES:
+                    m2 = np.clip(q * mass, mass.min(), None)
+                    G2, BP2, RP2 = (np.interp(m2, mass[ms], x[ms]) for x in (G, BP, RP))
+                    rows += [
+                        _mag_combine(G, G2),
+                        _mag_combine(BP, BP2) - _mag_combine(RP, RP2),
+                    ]
+                per_node[(z, a)] = (eep, rows)
+                e_lo, e_hi = min(e_lo, eep.min()), max(e_hi, eep.max())
 
-        Evaluated against the *current* priors, so a :meth:`set_priors` after the grid
-        was built is checked against the padding the grid actually has.
-        """
-        kG, kc = self._kG, self._k_col1
+        axis = np.arange(int(e_lo), int(e_hi) + 1, dtype=float)
+        T = np.empty((len(zs), len(ages), 3 + 2 * len(_Q_NODES), len(axis)))
+        for i, z in enumerate(zs):
+            for j, a in enumerate(ages):
+                eep, rows = per_node[(z, a)]
+                for r, x in enumerate(rows):
+                    T[i, j, r] = np.interp(axis, eep, x)  # clamps outside the node's EEPs
+        if np.any(np.diff(T[:, :, 0], axis=-1) < 0):
+            raise ValueError("initial mass decreases along EEP in some isochrone node")
+        self._set_nodes(T, np.log10(zs), ages)
+        print(f"  EEP node table: {T.shape} (Z x age x rows x EEP)")
+
+    def _set_nodes(self, T: np.ndarray, logz: np.ndarray, loga: np.ndarray) -> None:
+        import pytensor
+
+        self._nodes, self._node_logz, self._node_loga = T, logz, loga
+        # static shape: slicing rows of a shape-less shared variable gives JAX a traced length
+        self._nodes_tensor = pytensor.shared(T, name="isochrone_nodes", shape=T.shape)
+
+    @staticmethod
+    def _bracket(nodes: np.ndarray, x: Any, xp: Any) -> tuple[Any, Any, Any]:
+        """Lower index, upper index and weight of ``x`` between sorted ``nodes``."""
+        n = len(nodes)
+        if n == 1:
+            zero = 0 if xp is np else xp.constant(0, dtype="int64")
+            return zero, zero, x * 0.0
+        if xp is np:
+            k = int(np.clip(np.searchsorted(nodes, x, side="right") - 1, 0, n - 2))
+            return k, k + 1, float(np.clip((x - nodes[k]) / (nodes[k + 1] - nodes[k]), 0, 1))
+        nt = xp.constant(nodes)
+        k = xp.clip(xp.sum(xp.le(nt, x)) - 1, 0, n - 2).astype("int64")
+        w = xp.clip((x - nt[k]) / (nt[k + 1] - nt[k]), 0.0, 1.0)
+        return k, k + 1, w
+
+    def _interp_isochrone(self, met: Any, loga: Any, xp: Any = np) -> Any:
+        """Isochrone rows (mass, G, colour, q-node photometry) at ``(met, loga)``, at fixed EEP."""
+        if self._nodes is None:
+            raise RuntimeError("No node table: call setup() or build_grid() first.")
+        T = self._nodes if xp is np else self._nodes_tensor
+        i0, i1, wz = self._bracket(self._node_logz, xp.log10(met), xp)
+        j0, j1, wa = self._bracket(self._node_loga, loga, xp)
         return (
-            self.dm_range[0] + kG * self.Av_range[0] - self._dmag_ref,  # type: ignore[operator]
-            self.dm_range[1] + kG * self.Av_range[1] - self._dmag_ref,  # type: ignore[operator]
-            kc * self.Av_range[0] - self._dcol_ref,  # type: ignore[operator]
-            kc * self.Av_range[1] - self._dcol_ref,  # type: ignore[operator]
+            (1 - wz) * (1 - wa) * T[i0, j0]
+            + wz * (1 - wa) * T[i1, j0]
+            + (1 - wz) * wa * T[i0, j1]
+            + wz * wa * T[i1, j1]
         )
 
-    def _hess_for_isochrone(
+    # ------------------------------------------------------------------
+    # Likelihood
+    # ------------------------------------------------------------------
+
+    def _deposit(self, met: Any, loga: Any, dm: Any, Av: Any, xp: Any = np) -> dict:
+        """Segments and weights of the model population at the sampled parameters."""
+        X = self._interp_isochrone(met, loga, xp)
+        mass = xp.maximum(X[0], 1e-9)
+        dmag, dcol = dm + self._kG * Av, self._k_col1 * Av
+        G, col = X[1] + dmag, X[2] + dcol
+        Gq, cq = X[3::2] + dmag, X[4::2] + dcol  # (n_q, n_eep)
+
+        # IMF weight per segment and per point (each segment split between its two ends)
+        m_mid = 0.5 * (mass[1:] + mass[:-1])
+        w_seg = _chabrier2014_xi(m_mid, xp) * (mass[1:] - mass[:-1])
+        w_norm = xp.sum(w_seg)
+        w_seg = w_seg / w_norm
+        # Binaries: the pair's locus is a sheet over (primary mass, q). Along q it is deposited
+        # exactly (segments between the q nodes); along the primary it is sampled at K points
+        # per EEP segment, because a sheet sampled only at the EEP points is a set of ridges
+        # 0.02-0.07 mag apart, which stars with mmag errors fall between (measured 2026-09-22:
+        # with K = 1 the likelihood preferred a mode 0.11 mag off in dm on a synthetic cluster).
+        K = self.BINARY_SUBSAMPLE
+        t = (np.arange(K) + 0.5) / K
+        n_e = self._nodes.shape[-1]
+        idx = np.unique(np.r_[np.arange(0, n_e, self.BINARY_STRIDE), n_e - 1])
+
+        def _sub(A: Any) -> Any:  # (..., n_coarse) -> (..., (n_coarse - 1) * K), linear in EEP
+            a0, a1 = A[..., :-1], A[..., 1:]
+            out = a0[..., None] + (a1 - a0)[..., None] * t
+            return out.reshape((-1,)) if A.ndim == 1 else out.reshape((A.shape[0], -1))
+
+        def _step(A: Any) -> Any:  # same shape as _sub(A): the sub-primary spacing
+            d = (A[..., 1:] - A[..., :-1]) / K
+            out = d[..., None] + 0.0 * t
+            return out.reshape((-1,)) if A.ndim == 1 else out.reshape((A.shape[0], -1))
+
+        # the binary sheet on a coarser EEP axis (every BINARY_STRIDE-th point), its IMF weight
+        # per coarse segment normalised like the singles', so the two populations sum to one
+        mass_c, Gq_c, cq_c = mass[idx], Gq[:, idx], cq[:, idx]
+        w_c = _chabrier2014_xi(0.5 * (mass_c[1:] + mass_c[:-1]), xp) * (mass_c[1:] - mass_c[:-1])
+        w_c = w_c / w_norm
+        m_b = _sub(mass_c)
+        b_sub = xp.clip(self.alpha + self.beta / (1.0 + 1.4 / m_b), 0.0, 1.0)
+        w_rep = (w_c[:, None] * np.ones(K)).reshape((-1,)) / K
+        b = xp.clip(self.alpha + self.beta / (1.0 + 1.4 / mass), 0.0, 1.0)
+
+        # mass-ratio probabilities per q piece: q_{j+1}**(g+1) - q_j**(g+1), q_0 = 0
+        g1 = _dk_gamma(m_b, xp, smooth=True) + 1.0
+        cdf = [m_b * 0.0] + [m_b * 0.0 + 1.0 if q == 1.0 else q**g1 for q in _Q_NODES[1:]]
+        pq = [cdf[k + 1] - cdf[k] for k in range(len(_Q_NODES) - 1)]
+        return dict(
+            G=G,
+            col=col,
+            Gq=_sub(Gq_c),
+            cq=_sub(cq_c),
+            # step between neighbouring sub-primaries along the primary direction, per q node
+            vq=_step(Gq_c),
+            vc=_step(cq_c),
+            m_b=m_b,
+            w_single=w_seg * (1 - 0.5 * (b[1:] + b[:-1])),
+            w_bin=[w_rep * b_sub * p for p in pq],
+        )
+
+    def _star_loglike(
+        self, met: Any, loga: Any, dm: Any, Av: Any, sigma_int: Any, f_bg: Any, xp: Any = np
+    ) -> Any:
+        """Per-star log-likelihood vector ``(N,)`` (weights :math:`\\omega_i` not applied)."""
+        d = self._deposit(met, loga, dm, Av, xp)
+        s2 = self.SIGMA_FLOOR**2 + sigma_int**2
+        xg, xc = self._obs_mag, self._obs_col
+        sg = xp.sqrt(self._e_obs_mag**2 + s2)
+        sc = xp.sqrt(self._e_obs_col**2 + s2)
+        G, col, Gq, cq = d["G"], d["col"], d["Gq"], d["cq"]
+
+        dens = xp.dot(
+            _segment_density(xg, xc, sg, sc, G[:-1], col[:-1], G[1:], col[1:], xp), d["w_single"]
+        )
+        F = xp.sum(d["w_single"] * self._p_observed(0.5 * (G[1:] + G[:-1]), s2, xp))
+        # alpha = beta = 0 is decided at build time, not sampled: skip the binary locus entirely
+        for k, wk in enumerate(d["w_bin"] if (self.alpha or self.beta) else []):
+            dens = dens + xp.dot(
+                _segment_density(
+                    xg,
+                    xc,
+                    sg,
+                    sc,
+                    Gq[k],
+                    cq[k],
+                    Gq[k + 1],
+                    cq[k + 1],
+                    xp,
+                    smear=(
+                        (0.5 * (d["vq"][k] + d["vq"][k + 1]), 0.5 * (d["vc"][k] + d["vc"][k + 1]))
+                        if self.BINARY_SMEAR
+                        else None
+                    ),
+                ),
+                wk,
+            )
+            F = F + xp.sum(wk * self._p_observed(0.5 * (Gq[k] + Gq[k + 1]), s2, xp))
+        return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
+
+    def _p_observed(self, G: Any, s2: Any, xp: Any) -> Any:
+        """Probability that a model star of apparent magnitude ``G`` is observed brighter than
+        the completeness cut, with the error model at ``G`` (clipped to the observed range,
+        because the quadratic log-error fit diverges when extrapolated)."""
+        c = self._e_mag_coef
+        Gc = xp.clip(G, float(self._obs_mag.min()), float(self._obs_mag.max()))
+        e = 10.0 ** (c[0] + c[1] * Gc + c[2] * Gc**2)
+        z = (self._mag_lim - G) / xp.sqrt(e**2 + s2)
+        erfc = xp.erfc if xp is not np else _erfc_np
+        return 0.5 * erfc(-z / np.sqrt(2.0))
+
+    def _compiled_loglike(self, mode: str | None = None) -> Any:
+        """Compiled ``(log L, d log L / d params)`` of the six parameters, for optimisation."""
+        import importlib.util
+
+        import pytensor
+        import pytensor.tensor as pt
+
+        v = [pt.dscalar(n) for n in ("met", "loga", "dm", "Av", "sigma_int", "f_bg")]
+        ll = pt.sum(self._star_weights * self._star_loglike(*v, pt))
+        # JAX only when asked: initialising it in a process that later forks (PyMC's
+        # multiprocess sampler) raises JAX's fork warning, an error under a strict policy
+        if mode == "JAX" and importlib.util.find_spec("jax") is None:
+            mode = None
+        fn = pytensor.function(v, [ll, *pytensor.grad(ll, v)], mode=mode)
+        return lambda x: (lambda out: (float(out[0]), np.array(out[1:], float)))(fn(*x))
+
+    def find_start(
+        self, n_chains: int = 4, rng: np.random.Generator | None = None, mode: str | None = None
+    ) -> dict:
+        """Locate the dominant likelihood mode and draw chain starts around it.
+
+        1. Every (Z, age) node inside the priors, with ``(dm, A_V)`` optimised at a wide
+           intrinsic width (0.05 mag), where the likelihood is smooth.
+        2. The three best nodes are polished (L-BFGS-B, bounded) on all six parameters of the
+           full model; the best is the mode.
+        3. Local standard deviations from the curvature of log L at the mode; each chain
+           starts at the mode plus a uniform offset of up to 3 of them (clipped to the prior).
+
+        Returns a dict with ``mode``, ``loglike``, ``runner_up`` (the other polished maxima,
+        with their log L), ``local_sd`` and ``chain_starts`` (list of dicts for ``initvals``).
+        """
+        from scipy.optimize import minimize
+
+        rng = np.random.default_rng() if rng is None else rng
+        if self._nodes is None:
+            raise RuntimeError("Call setup() or build_grid() first.")
+        zlo, zhi = 10 ** float(self._node_logz[0]), 10 ** float(self._node_logz[-1])
+        lo = np.array(
+            [zlo * (1 + 1e-9), self.loga_range[0], self.dm_range[0], self.Av_range[0], 1e-4, 1e-4]
+        )
+        hi = np.array(
+            [zhi * (1 - 1e-9), self.loga_range[1], self.dm_range[1], self.Av_range[1], 0.5, 0.5]
+        )
+        if len(self._node_logz) == 1:
+            lo[0] = hi[0] = zlo
+
+        # full model (binaries included): a single-star proxy missed the dominant mode on 2 of 4
+        # binary synthetic clusters (measured 2026-09-22)
+        f1 = self._compiled_loglike(mode)
+        cands = []
+        ages = [a for a in self._node_loga if lo[1] <= a <= hi[1]] or [
+            float(np.mean(self.loga_range))
+        ]
+        for z in np.clip(10.0**self._node_logz, lo[0], hi[0]):
+            for a in ages:
+
+                def nll2(y: np.ndarray, z: float = float(z), a: float = float(a)) -> tuple:
+                    v, g = f1([z, a, y[0], y[1], 0.05, 0.02])
+                    return -v, -g[2:4]
+
+                y0 = [self.dm_mu, float(np.mean(self.Av_range))]
+                r = minimize(
+                    nll2,
+                    y0,
+                    jac=True,
+                    method="L-BFGS-B",
+                    bounds=list(zip(lo[2:4], hi[2:4], strict=True)),
+                )
+                cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
+        cands.sort(key=lambda c: c[0])
+
+        f6 = self._compiled_loglike(mode)
+
+        def nll6(y: np.ndarray) -> tuple:
+            v, g = f6(y)
+            return -v, -g
+
+        polished = []
+        for c in cands[:3]:
+            y0 = np.clip(np.array([*c[1:], 0.03, 0.02]), lo, hi)
+            r = minimize(
+                nll6, y0, jac=True, method="L-BFGS-B", bounds=list(zip(lo, hi, strict=True))
+            )
+            polished.append((-float(r.fun), np.asarray(r.x, float)))
+        polished.sort(key=lambda p: -p[0])
+        best_ll, best = polished[0]
+
+        sd = np.empty(4)
+        for k in range(4):
+            h = 1e-4 * max(abs(best[k]), 1e-3)
+            yp, ym = best.copy(), best.copy()
+            yp[k] += h
+            ym[k] -= h
+            curv = -(f6(yp)[1][k] - f6(ym)[1][k]) / (2 * h)  # -d2 logL / dx2
+            sd[k] = 1 / np.sqrt(curv) if curv > 0 else 0.1 * (hi[k] - lo[k])
+        names = ("met", "loga", "dm", "Av")
+        starts = []
+        for _ in range(n_chains):
+            x = np.clip(best[:4] + rng.uniform(-3, 3, 4) * sd, lo[:4], hi[:4])
+            st = {n: float(v) for n, v in zip(names, x, strict=True)}
+            st["sigma_int"] = float(max(best[4], 1e-3) * rng.uniform(0.7, 1.4))
+            st["f_bg"] = float(np.clip(best[5], 1e-3, 0.5) * rng.uniform(0.7, 1.4))
+            if len(self._node_logz) == 1:
+                st.pop("met")
+            starts.append(st)
+        return {
+            "mode": dict(zip((*names, "sigma_int", "f_bg"), best.tolist(), strict=True)),
+            "loglike": float(best_ll),
+            "local_sd": dict(zip(names, sd.tolist(), strict=True)),
+            "runner_up": [(float(ll), x.tolist()) for ll, x in polished[1:]],
+            "chain_starts": starts,
+        }
+
+    def loglike(
         self,
-        mass: np.ndarray,
-        G_abs: np.ndarray,
-        BP_abs: np.ndarray,
-        RP_abs: np.ndarray,
-    ) -> np.ndarray:
-        """Expected Hess diagram in the reference apparent frame, on the padded window.
-
-        The reference frame is ``(dm_mu, mean(Av_range))``; see
-        :meth:`_set_reference_frame` for why it is not the absolute frame.
-        """
-        Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
-        pad_m, pad_c = self._pad
-        mag_min, mag_max = self._mag_range  # type: ignore[misc]
-        col_min, col_max = self._col_range  # type: ignore[misc]
-        # padded window, same bin width
-        mag_min, mag_max = mag_min - pad_m * self._binw_mag, mag_max + pad_m * self._binw_mag  # type: ignore[operator]
-        col_min, col_max = col_min - pad_c * self._binw_col, col_max + pad_c * self._binw_col  # type: ignore[operator]
-        Nb_mag, Nb_col = Nb_mag + 2 * pad_m, Nb_col + 2 * pad_c
-        Av_mid = float(np.mean(self.Av_range))
-
-        # IMF weights
-        w_imf = _chabrier2014_weights(mass)
-
-        # ---- Binary photometry ----------------------------------------
-        # Per-star binary probability (Offner et al. 2022)
-        b_p = np.clip(self.alpha + self.beta / (1.0 + 1.4 / np.clip(mass, 1e-9, None)), 0.0, 1.0)
-        # Expected mass-ratio from D&K (2013)
-        q = _dk_mean_q(mass)
-        M2 = q * mass
-
-        # Interpolate secondary G, BP, RP onto the same isochrone
-        G2 = np.interp(M2, mass, G_abs, left=G_abs[0], right=G_abs[-1])
-        BP2 = np.interp(M2, mass, BP_abs, left=BP_abs[0], right=BP_abs[-1])
-        RP2 = np.interp(M2, mass, RP_abs, left=RP_abs[0], right=RP_abs[-1])
-
-        G_comb = _mag_combine(G_abs, G2)
-        BP_comb = _mag_combine(BP_abs, BP2)
-        RP_comb = _mag_combine(RP_abs, RP2)
-        col_comb = BP_comb - RP_comb
-        col_sing = BP_abs - RP_abs
-
-        # Reference apparent frame. No magnitude cut here: the faint edge of the window
-        # is the faintest observed star, and :meth:`_shift_histogram` crops the shifted
-        # grid to the window -- so the cut follows the sampled (dm, A_V).
-        dmag_ref, dcol_ref = self._dmag_ref, self._dcol_ref
-        rng2d = [[mag_min, mag_max], [col_min, col_max]]
-
-        # ---- Build weighted histogram ----------------------------------
-        # Single-star contribution
-        H_sing, _, _ = np.histogram2d(
-            G_abs + dmag_ref,
-            col_sing + dcol_ref,
-            bins=[Nb_mag, Nb_col],
-            range=rng2d,
-            weights=w_imf * (1.0 - b_p),
-        )
-
-        # Binary contribution
-        H_bin, _, _ = np.histogram2d(
-            G_comb + dmag_ref,
-            col_comb + dcol_ref,
-            bins=[Nb_mag, Nb_col],
-            range=rng2d,
-            weights=w_imf * b_p,
-        )
-
-        H = H_sing + H_bin
-
-        # ---- Convolve with magnitude-dependent errors ------------------
-        # Evaluate errors at apparent magnitude ≈ abs_mag + dm_mu + kG*Av_mid
-        app_mag_rep = G_abs + self.dm_mu + self._kG * Av_mid  # type: ignore[operator]
-        e_m = self._e_mag_fn(app_mag_rep)  # type: ignore[misc]
-        e_c = self._e_col_fn(app_mag_rep)  # type: ignore[misc]
-        # IMF-weighted mean errors
-        e_m_eff = float(np.sum(w_imf * e_m) / np.sum(w_imf))
-        e_c_eff = float(np.sum(w_imf * e_c) / np.sum(w_imf))
-        sig_m_px = e_m_eff / self._binw_mag  # type: ignore[operator]
-        sig_c_px = e_c_eff / self._binw_col  # type: ignore[operator]
-        if sig_m_px > 0.1 or sig_c_px > 0.1:
-            H = gaussian_filter(H, sigma=[sig_m_px, sig_c_px])
-
-        return _smooth2d(H)
-
-    def _precompute_H_grid(self) -> None:
-        """Fill the regular ``(M_met, M_loga)`` grid by bilinear interpolation between
-        Hess diagrams computed at the **true** isochrone nodes.
-
-        Notes
-        -----
-        Before 2026-09-22 each regular grid point took the Hess of the *nearest* file
-        isochrone. With 15 metallicity files and 107 ages, the 200 x 200 grid held
-        only 11 distinct metallicity slices and 107 distinct age slices: 189/199
-        adjacent met slices and 93/199 age slices were identical, so the bilinear
-        interpolation in :meth:`_interp_H` had an exactly-zero gradient in ``met`` at
-        283/300 random prior points and in ``loga`` at 133/300. Interpolating between
-        nodes makes the grid continuous and its gradient non-zero between nodes.
-        """
-        met_arr = self._isochs.met_age_dict["met"]  # type: ignore[union-attr]
-        loga_arr = self._isochs.met_age_dict["loga"]  # type: ignore[union-attr]
-        met_grid = np.linspace(float(met_arr[0]), float(met_arr[-1]), self.M_met)
-        loga_grid = np.linspace(float(loga_arr[0]), float(loga_arr[-1]), self.M_loga)
-        self._met_grid = met_grid
-        self._loga_grid = loga_grid
-
-        self._set_reference_frame()
-        pad_m, pad_c = self._pad
-        Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
-        shape = (Nb_mag + 2 * pad_m, Nb_col + 2 * pad_c)
-
-        file_met = np.asarray(self._isochs._met_values, dtype=float)  # type: ignore[union-attr]
-        file_loga = np.asarray(self._isochs._loga_values, dtype=float)  # type: ignore[union-attr]
-
-        def _bracket(nodes: np.ndarray, x: float) -> tuple[int, int, float]:
-            if nodes.size == 1:
-                return 0, 0, 0.0
-            k = int(np.clip(np.searchsorted(nodes, x, side="right") - 1, 0, nodes.size - 2))
-            w = float(np.clip((x - nodes[k]) / (nodes[k + 1] - nodes[k]), 0.0, 1.0))
-            return k, k + 1, w
-
-        _node_cache: dict[tuple[int, int], np.ndarray] = {}
-
-        def _node(mi: int, ai: int) -> np.ndarray:
-            if (mi, ai) not in _node_cache:
-                mass, G, BP, RP = self._isochs.get_isochrone(  # type: ignore[union-attr]
-                    float(file_met[mi]), float(file_loga[ai])
-                )
-                _node_cache[(mi, ai)] = (
-                    self._hess_for_isochrone(mass, G, BP, RP)
-                    if len(mass) >= 2
-                    else np.zeros(shape, dtype=np.float64)
-                )
-            return _node_cache[(mi, ai)]
-
-        H_grid = np.zeros((self.M_met, self.M_loga, *shape), dtype=np.float64)
-        met_br = [_bracket(file_met, float(m)) for m in met_grid]
-        age_br = [_bracket(file_loga, float(a)) for a in loga_grid]
-        for i, (m0, m1, wm) in enumerate(met_br):
-            for j, (a0, a1, wa) in enumerate(age_br):
-                H_grid[i, j] = (
-                    (1 - wm) * (1 - wa) * _node(m0, a0)
-                    + wm * (1 - wa) * _node(m1, a0)
-                    + (1 - wm) * wa * _node(m0, a1)
-                    + wm * wa * _node(m1, a1)
-                )
-
-        self._H_grid = H_grid
-        print(f"  H_grid complete: {H_grid.shape} from {len(_node_cache)} isochrone nodes")
+        met: float,
+        loga: float,
+        dm: float,
+        Av: float,
+        sigma_int: float = 0.0,
+        f_bg: float = 0.0,
+    ) -> float:
+        """Total (weighted) log-likelihood at fixed parameters, in NumPy -- for profiles,
+        diagnostics and tests; the sampler uses the PyTensor graph of the same function."""
+        v = self._star_loglike(met, loga, dm, Av, sigma_int, f_bg, np)
+        return float(np.sum(self._star_weights * v))
 
     # ------------------------------------------------------------------
     # Prior configuration
@@ -980,7 +1199,7 @@ class IsochroneFitter:
             setattr(self, k, v)
 
     # ------------------------------------------------------------------
-    # Grid construction (step 3 of the step-by-step workflow)
+    # Node table: build / cache
     # ------------------------------------------------------------------
 
     def build_grid(
@@ -990,160 +1209,43 @@ class IsochroneFitter:
         *,
         grid_cache: str | Path | None = None,
     ) -> None:
-        """Precompute (or load from cache) the H_grid and set up tensors.
+        """Build (or load from cache) the EEP node table.
 
-        Call this after ``setup(precompute_grid=False)`` and (optionally)
-        ``set_priors()``.  Loading from cache is much faster than recomputing.
-
-        Parameters
-        ----------
-        M_met, M_loga : int, optional
-            Override the grid resolution set in ``__init__``.
-        grid_cache : path, optional
-            If the file exists, load from it; otherwise compute and save.
+        Call this after ``setup(precompute_grid=False)`` and (optionally) ``set_priors()``.
+        ``M_met`` / ``M_loga`` are accepted and ignored (see :meth:`__init__`).
         """
-        import pytensor
-
-        if M_met is not None:
-            self.M_met = M_met
-        if M_loga is not None:
-            self.M_loga = M_loga
-
         if grid_cache is not None and Path(grid_cache).exists():
-            print(f"Loading H_grid from cache: {grid_cache}")
+            print(f"Loading isochrone node table from cache: {grid_cache}")
             self.load_grid(grid_cache)
         else:
-            self._precompute_H_grid()
-            self._H_tensor = pytensor.shared(self._H_grid, name="H_grid")
+            self._build_nodes()
             if grid_cache is not None:
                 self.save_grid(grid_cache)
-                print(f"H_grid saved to: {grid_cache}")
-
-    # ------------------------------------------------------------------
-    # Grid cache
-    # ------------------------------------------------------------------
+                print(f"Isochrone node table saved to: {grid_cache}")
 
     def save_grid(self, path: str | Path) -> None:
-        if self._H_grid is None:
-            raise RuntimeError("No H_grid to save. Run setup() first.")
+        if self._nodes is None:
+            raise RuntimeError("No node table to save. Run setup() first.")
         np.savez_compressed(
             path,
-            H_grid=self._H_grid,
-            met_grid=self._met_grid,
-            loga_grid=self._loga_grid,
-            Nbins=np.array(self._Nbins),
-            mag_range=np.array(self._mag_range),
-            col_range=np.array(self._col_range),
-            ext_coefs=np.array([self._kG, self._kBP, self._kRP]),
-            frame_ref=np.array([self._dmag_ref, self._dcol_ref]),
-            frame_pad=np.array(self._pad),
+            likelihood=np.array(self.LIKELIHOOD_VERSION),
+            nodes=self._nodes,
+            node_logz=self._node_logz,
+            node_loga=self._node_loga,
+            q_nodes=_Q_NODES,
         )
 
     def load_grid(self, path: str | Path) -> None:
-        import pytensor.tensor as pt
-
         d = np.load(path)
-        if "frame_ref" not in d.files:
+        if "likelihood" not in d.files or str(d["likelihood"]) != self.LIKELIHOOD_VERSION:
             raise ValueError(
-                f"{path} was built before 2026-09-22, when the Hess grid was binned in the "
-                "absolute frame and the shifted model had no stars brighter than "
-                "mag_min + dm + k_G*A_V. It cannot be reused; rebuild it with build_grid()."
+                f"{path} is a precomputed Hess grid from before 2026-09-22, whose likelihood "
+                "depended on the grid's internal reference and locked the posterior onto it. "
+                "It cannot be reused; rebuild the node table with build_grid()."
             )
-        self._dmag_ref, self._dcol_ref = (float(x) for x in d["frame_ref"])
-        self._pad = tuple(int(x) for x in d["frame_pad"])
-        self._H_grid = d["H_grid"]
-        self._met_grid = d["met_grid"]
-        self._loga_grid = d["loga_grid"]
-        self._Nbins = tuple(d["Nbins"].tolist())
-        self._mag_range = tuple(d["mag_range"].tolist())
-        self._col_range = tuple(d["col_range"].tolist())
-        self._kG = float(d["ext_coefs"][0])
-        self._kBP = float(d["ext_coefs"][1])
-        self._kRP = float(d["ext_coefs"][2])
-        self._k_col1 = self._kBP - self._kRP
-        Nb_mag, Nb_col = self._Nbins
-        self._binw_mag = (self._mag_range[1] - self._mag_range[0]) / Nb_mag
-        self._binw_col = (self._col_range[1] - self._col_range[0]) / Nb_col
-        import pytensor
-
-        # Rebuild PyTensor tensors so build_model() works after load_grid()
-        self._I_tensor = pt.constant(
-            np.arange(Nb_mag, dtype="float64").reshape(Nb_mag, 1), name="I_bins"
-        )
-        self._J_tensor = pt.constant(
-            np.arange(Nb_col, dtype="float64").reshape(1, Nb_col), name="J_bins"
-        )
-        self._H_tensor = pytensor.shared(self._H_grid, name="H_grid")
-
-    # ------------------------------------------------------------------
-    # PyTensor ops (differentiable)
-    # ------------------------------------------------------------------
-
-    def _interp_H(self, met_v: Any, loga_v: Any) -> Any:
-        import pytensor.tensor as pt
-
-        H_t = self._H_tensor  # pt.constant set during setup() / load_grid()
-        met0 = float(self._met_grid[0])  # type: ignore[index]
-        dmet = float(self._met_grid[1] - self._met_grid[0])  # type: ignore[index]
-        loga0 = float(self._loga_grid[0])  # type: ignore[index]
-        dloga = float(self._loga_grid[1] - self._loga_grid[0])  # type: ignore[index]
-
-        mpos = (met_v - met0) / dmet
-        apos = (loga_v - loga0) / dloga
-
-        i0 = pt.cast(pt.clip(pt.floor(mpos), 0, self.M_met - 2), "int64")
-        j0 = pt.cast(pt.clip(pt.floor(apos), 0, self.M_loga - 2), "int64")
-        i1, j1 = i0 + 1, j0 + 1
-        wm = mpos - pt.cast(i0, "float64")
-        wa = apos - pt.cast(j0, "float64")
-
-        return (
-            (1 - wm) * (1 - wa) * H_t[i0, j0]
-            + wm * (1 - wa) * H_t[i1, j0]
-            + (1 - wm) * wa * H_t[i0, j1]
-            + wm * wa * H_t[i1, j1]
-        )
-
-    def _shift_histogram(self, H: Any, dmag: Any, dcol: Any) -> Any:
-        """Move a padded reference-frame Hess to apparent offsets ``(dmag, dcol)`` and crop.
-
-        ``H`` has shape ``(Nb_mag + 2*pad_m, Nb_col + 2*pad_c)`` and is binned in the
-        apparent frame of the reference ``(dmag_ref, dcol_ref)``; ``dmag = dm + k_G A_V``
-        and ``dcol = k_(BP-RP) A_V`` are the *total* shifts of the sampled population.
-        Output bin ``(I, J)`` of the observed window reads the padded grid at
-        ``(I + pad_m - su, J + pad_c - sv)`` with ``su, sv`` the offsets in bins,
-        bilinearly -- so the result is continuous and piecewise linear in both shifts.
-        """
-        import pytensor.tensor as pt
-
-        pad_m, pad_c = self._pad
-        su = (dmag - self._dmag_ref) / self._binw_mag
-        sv = (dcol - self._dcol_ref) / self._binw_col
-        Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
-        Np_mag, Np_col = Nb_mag + 2 * pad_m, Nb_col + 2 * pad_c
-
-        U, V = self._I_tensor + pad_m - su, self._J_tensor + pad_c - sv
-        u0, v0 = pt.floor(U), pt.floor(V)
-        fu = pt.cast(U - u0, "float64")
-        fv = pt.cast(V - v0, "float64")
-        u0i = pt.cast(u0, "int64")
-        v0j = pt.cast(v0, "int64")
-        u1i = u0i + 1
-        v1j = v0j + 1
-
-        valid = pt.cast((U >= 0) & (U <= Np_mag - 1) & (V >= 0) & (V <= Np_col - 1), "float64")
-
-        def _g(A: Any, r: Any, c: Any) -> Any:
-            r = pt.cast(pt.clip(r, 0, Np_mag - 1), "int64")
-            c = pt.cast(pt.clip(c, 0, Np_col - 1), "int64")
-            return A[r, c]
-
-        return (
-            (1 - fu) * (1 - fv) * _g(H, u0i, v0j)
-            + fu * (1 - fv) * _g(H, u1i, v0j)
-            + (1 - fu) * fv * _g(H, u0i, v1j)
-            + fu * fv * _g(H, u1i, v1j)
-        ) * valid
+        if not np.array_equal(d["q_nodes"], _Q_NODES):
+            raise ValueError(f"{path} was built with other mass-ratio nodes; rebuild it.")
+        self._set_nodes(d["nodes"], d["node_logz"], d["node_loga"])
 
     # ------------------------------------------------------------------
     # PyMC model
@@ -1153,31 +1255,24 @@ class IsochroneFitter:
         pm = _require_pymc()
         import pytensor.tensor as pt
 
-        if self._H_grid is None or self._obs_hess is None:
+        if self._nodes is None or self._obs_mag is None:
             raise RuntimeError(
-                "Call setup() (or setup(precompute_grid=False) + load_grid()) first."
+                "Call setup() (or setup(precompute_grid=False) + build_grid()/load_grid()) first."
             )
-
-        met_arr = self._isochs.met_age_dict["met"]  # type: ignore[union-attr]
-        met_min, met_max = float(met_arr[0]), float(met_arr[-1])
         loga_min, loga_max = self.loga_range
-
-        # The grid's padding was sized from the priors at build time. A prior widened
-        # afterwards (set_priors) could shift the model off the padded grid, which would
-        # silently zero part of the window again -- the defect the padding exists to stop.
-        pad_m, pad_c = self._pad
-        dmag_lo, dmag_hi, dcol_lo, dcol_hi = self._shift_bounds()
-        if (
-            max(abs(dmag_lo), abs(dmag_hi)) > (pad_m - 1) * self._binw_mag  # type: ignore[operator]
-            or max(abs(dcol_lo), abs(dcol_hi)) > (pad_c - 1) * self._binw_col  # type: ignore[operator]
-        ):
+        if loga_min < self._node_loga[0] - 1e-9 or loga_max > self._node_loga[-1] + 1e-9:
             raise ValueError(
-                "The dm / A_V priors reach beyond the padding of the precomputed Hess grid "
-                f"(pad = {self._pad} bins). Rebuild the grid after set_priors()."
+                f"loga_range {self.loga_range} reaches beyond the node table "
+                f"[{self._node_loga[0]}, {self._node_loga[-1]}]; rebuild it with build_grid()."
             )
+        met_min, met_max = 10.0 ** float(self._node_logz[0]), 10.0 ** float(self._node_logz[-1])
+        weights = self._star_weights
 
         with pm.Model() as model:
-            met = pm.Uniform("met", lower=met_min, upper=met_max)
+            if len(self._node_logz) > 1:
+                met = pm.Uniform("met", lower=met_min, upper=met_max)
+            else:  # one metallicity file: Uniform(Z, Z) has no density, so Z is fixed
+                met = pm.Deterministic("met", pt.as_tensor_variable(met_min))
             loga = pm.Uniform("loga", lower=loga_min, upper=loga_max)
             dm = pm.TruncatedNormal(
                 "dm",
@@ -1187,23 +1282,25 @@ class IsochroneFitter:
                 upper=self.dm_range[1],
             )
             Av = pm.Uniform("Av", lower=self.Av_range[0], upper=self.Av_range[1])
+            # intrinsic width: unmodelled spread (differential reddening, rotation, model error)
+            sigma_int = pm.HalfNormal("sigma_int", sigma=0.05)
+            # field fraction among the selected members, uniform over the CMD box
+            f_bg = pm.Beta("f_bg", alpha=1.0, beta=19.0)
 
-            H0 = self._interp_H(met, loga)
-            dmag = dm + self._kG * Av
-            dcol = self._k_col1 * Av
-            Hsyn = self._shift_histogram(H0, dmag, dcol)
+            def _logp(value: Any, met: Any, loga: Any, dm: Any, Av: Any, s: Any, f: Any) -> Any:
+                return weights * self._star_loglike(met, loga, dm, Av, s, f, pt)
 
-            lam = pt.maximum(Hsyn.reshape((-1,)), 1e-6)
-            # log_s scales the normalized Hess (sum ≈ 1) to match N_obs counts.
-            # Centering at log(N_obs) gives NUTS a sensible starting region.
-            log_s = pm.Normal("log_s", mu=float(np.log(self._N_obs)), sigma=1.0)
-            bg = pm.HalfNormal("bg", sigma=0.2)
-            mu = pt.exp(log_s) * lam + bg
-
-            # Pass raw numpy array — PyMC wraps it in ConstantData internally,
-            # which is the idiomatic pattern and avoids embedding it in the graph.
-            pm.Poisson("y", mu=mu, observed=self._obs_hess)
-
+            pm.CustomDist(
+                "y",
+                met,
+                loga,
+                dm,
+                Av,
+                sigma_int,
+                f_bg,
+                logp=_logp,
+                observed=np.zeros(self._N_obs),
+            )
         return model
 
     # ------------------------------------------------------------------
@@ -1228,6 +1325,7 @@ class IsochroneFitter:
         log_likelihood: bool = False,
         # Extra kwargs forwarded verbatim to the chosen NUTS backend
         nuts_sampler_kwargs: dict | None = None,
+        start: str = "search",
     ) -> Any:
         """Run NUTS sampling and return ArviZ InferenceData.
 
@@ -1262,15 +1360,55 @@ class IsochroneFitter:
         log_likelihood : bool
             Store the pointwise log-likelihood in ``idata``.  Required for
             ``az.loo()`` / ``az.waic()`` model comparison.  Adds memory and
-            post-processing time proportional to ``draws × Nb_mag × Nb_col``.
+            post-processing time proportional to ``draws × N_members``.
         nuts_sampler_kwargs : dict, optional
             Extra keyword arguments forwarded verbatim to the backend sampler.
             For blackjax: ``{"step_size": 0.01}`` to override the initial
             step size.
+        start : {"search", "prior"}, default "search"
+            ``"search"`` starts the chains at ``initvals`` if given, else runs
+            :meth:`find_start` (the likelihood maximum plus a uniform offset of up to 3 local
+            standard deviations per parameter); either way with PyMC's jitter off.
+            ``"prior"`` is PyMC's default (initial point plus uniform jitter in [-1, 1] in the
+            transformed space).
+
+            Why the default is not PyMC's: the per-star likelihood is sharp, and away from
+            the dominant mode it has local maxima in (Z, log t). Measured 2026-09-22 on a
+            synthetic cluster (Z 0.0143, log t 6.55, dm 10.47, A_V 1.10): a chain from the
+            prior centre settled at Z 0.0237, log t 6.886, dm 10.37, A_V 1.34 with a field
+            fraction of 0.12, 242 log-units below the truth. **So with ``"search"`` R-hat
+            certifies mixing within the mode the search found, not that no other mode
+            exists**; :meth:`find_start` returns the runner-up modes so that can be checked.
         """
         pm = _require_pymc()
 
         model = self.build_model()
+        if start == "search":
+            n_chains = chains if chains is not None else 4
+            if initvals is None:
+                rng = np.random.default_rng(random_seed)
+                jax_sampler = nuts_sampler in ("numpyro", "blackjax")
+                initvals = self.find_start(n_chains, rng, mode="JAX" if jax_sampler else None)[
+                    "chain_starts"
+                ]
+            if nuts_sampler in ("numpyro", "blackjax"):
+                from pymc.sampling.jax import sample_jax_nuts
+
+                with model:
+                    return sample_jax_nuts(
+                        draws=draws,
+                        tune=tune,
+                        chains=n_chains,
+                        target_accept=target_accept,
+                        random_seed=random_seed,
+                        initvals=initvals,
+                        jitter=False,
+                        progressbar=progressbar,
+                        nuts_sampler=nuts_sampler,
+                        nuts_kwargs=dict(nuts_sampler_kwargs or {}),
+                        idata_kwargs={"log_likelihood": log_likelihood},
+                    )
+            init = "adapt_diag"  # PyMC's own sampler: no jitter on top of the chain starts
         with model:
             idata = pm.sample(
                 draws=draws,
@@ -1293,9 +1431,14 @@ class IsochroneFitter:
     # ------------------------------------------------------------------
 
     def posterior_cmd(
-        self, idata: Any, *, num_samples: int = 20
+        self, idata: Any, *, num_samples: int = 20, rng: np.random.Generator | None = None
     ) -> tuple[np.ndarray, np.ndarray, list[tuple[np.ndarray, np.ndarray]]]:
-        """Generate synthetic CMDs drawn from the posterior.
+        """Generate synthetic CMDs drawn from the posterior, with the likelihood's forward model.
+
+        Each draw samples ``N_members`` stars from the EEP-interpolated isochrone at a posterior
+        sample: mass uniformly within IMF-weighted segments, binaries with the Offner fraction and
+        a D&K mass ratio (interpolated between the same mass-ratio nodes the likelihood uses),
+        errors from the fitted error model, and the completeness cut.
 
         Returns
         -------
@@ -1305,92 +1448,83 @@ class IsochroneFitter:
         """
         import arviz as az
 
+        rng = np.random.default_rng() if rng is None else rng
         ds = az.extract(idata, num_samples=num_samples, var_names=["met", "loga", "dm", "Av"])
-        # Use .values.flat to iterate regardless of the ArviZ sample-dim name
-        met_vals = np.asarray(ds["met"]).ravel()
-        loga_vals = np.asarray(ds["loga"]).ravel()
-        dm_vals = np.asarray(ds["dm"]).ravel()
-        Av_vals = np.asarray(ds["Av"]).ravel()
-
+        cols = [np.asarray(ds[v]).ravel() for v in ("met", "loga", "dm", "Av")]
+        sint = (
+            np.asarray(az.extract(idata, num_samples=num_samples, var_names=["sigma_int"])).ravel()
+            if "sigma_int" in idata.posterior
+            else np.zeros(len(cols[0]))
+        )
         N_out = self._N_obs if self._N_obs else 500
-        max_app = float(self._obs_mag.max())  # type: ignore[union-attr]
-
         cmds: list[tuple[np.ndarray, np.ndarray]] = []
-        for met_v, loga_v, dm_v, Av_v in zip(met_vals, loga_vals, dm_vals, Av_vals, strict=True):
-            met_v = float(met_v)
-            loga_v = float(loga_v)
-            dm_v = float(dm_v)
-            Av_v = float(Av_v)
-
-            mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(  # type: ignore[union-attr]
-                met_v, loga_v
+        for (met_v, loga_v, dm_v, Av_v), s_v in zip(zip(*cols, strict=True), sint, strict=True):
+            mag_s, col_s = self._draw_stars(
+                float(met_v), float(loga_v), float(dm_v), float(Av_v), float(s_v), N_out, rng
             )
-            if len(mass) < 2:
-                continue
-
-            # Apply distance modulus and per-band extinction
-            G_app = G_abs + dm_v + self._kG * Av_v  # type: ignore[operator]
-            BP_app = BP_abs + dm_v + self._kBP * Av_v  # type: ignore[operator]
-            RP_app = RP_abs + dm_v + self._kRP * Av_v  # type: ignore[operator]
-            col_app = BP_app - RP_app
-
-            # Cut at max observed magnitude (ASteCA: cut_max_mag)
-            cut = G_app < max_app
-
-            # Binary contribution — draw q from D&K power-law f(q) ∝ q^γ
-            # Inverse CDF: q = u^{1/(γ+1)} for u ~ Uniform(0,1), γ > -1.
-            gamma_q = np.where(
-                mass <= 0.1,
-                4.2,
-                np.where(
-                    mass <= 0.6, 0.4, np.where(mass <= 1.4, 0.3, np.where(mass <= 6.5, -0.5, 0.0))
-                ),
-            )
-            u_q = np.random.uniform(size=len(mass))
-            q = np.clip(u_q ** (1.0 / (gamma_q + 1.0)), 0.0, 1.0)
-            M2 = mass * q
-            G2 = np.interp(M2, mass, G_abs, left=G_abs[0], right=G_abs[-1])
-            BP2 = np.interp(M2, mass, BP_abs, left=BP_abs[0], right=BP_abs[-1])
-            RP2 = np.interp(M2, mass, RP_abs, left=RP_abs[0], right=RP_abs[-1])
-
-            # Combined apparent magnitudes — shift property ensures correct extinction
-            G_comb = _mag_combine(G_abs, G2) + dm_v + self._kG * Av_v  # type: ignore[operator]
-            BP_comb = _mag_combine(BP_abs, BP2) + dm_v + self._kBP * Av_v  # type: ignore[operator]
-            RP_comb = _mag_combine(RP_abs, RP2) + dm_v + self._kRP * Av_v  # type: ignore[operator]
-            col_comb = BP_comb - RP_comb
-
-            b_p = np.clip(
-                self.alpha + self.beta / (1.0 + 1.4 / np.clip(mass, 1e-9, None)), 0.0, 1.0
-            )
-            is_binary = (np.random.uniform(size=len(mass)) < b_p) & cut
-
-            G_use = np.where(is_binary, G_comb, G_app)
-            col_use = np.where(is_binary, col_comb, col_app)
-
-            # Sample N_out stars from Chabrier IMF
-            w = _chabrier2014_weights(mass)
-            idx = np.random.choice(len(mass), size=N_out, replace=True, p=w)
-
-            mag_s = G_use[idx]
-            col_s = col_use[idx]
-
-            # Add magnitude-sorted errors (like ASteCA's add_errors)
-            e_m = self._e_mag_fn(mag_s)  # type: ignore[misc]
-            e_c = self._e_col_fn(mag_s)  # type: ignore[misc]
-            # Sort by magnitude descending (faintest first), like ASteCA
-            sidx = np.argsort(-mag_s)
-            mag_s = mag_s[sidx] + np.random.normal(0.0, 1.0, N_out) * e_m[sidx]
-            col_s = col_s[sidx] + np.random.normal(0.0, 1.0, N_out) * e_c[sidx]
-
-            valid = (
-                (mag_s >= self._mag_range[0])
-                & (mag_s <= self._mag_range[1])  # type: ignore[index]
-                & (col_s >= self._col_range[0])
-                & (col_s <= self._col_range[1])  # type: ignore[index]
-            )
-            cmds.append((mag_s[valid], col_s[valid]))
-
+            cmds.append((mag_s, col_s))
         return self._obs_mag, self._obs_col, cmds  # type: ignore[return-value]
+
+    def _draw_stars(
+        self,
+        met: float,
+        loga: float,
+        dm: float,
+        Av: float,
+        sigma_int: float,
+        n: int,
+        rng: np.random.Generator,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """``n`` observed stars (after the completeness cut) from the forward model."""
+        d = self._deposit(met, loga, dm, Av, np)
+        g1 = _dk_gamma(d["m_b"]) + 1.0
+        w_single = d["w_single"]
+        w_pt_bin = sum(d["w_bin"])  # weight of each binary sub-primary, all q
+        p = np.concatenate([w_single, w_pt_bin])
+        p = np.clip(p, 0, None) / np.clip(p, 0, None).sum()
+        out_m, out_c = [], []
+        s2 = self.SIGMA_FLOOR**2 + sigma_int**2
+        for _ in range(100):  # a model entirely beyond the cut returns what it has, not a hang
+            if sum(len(x) for x in out_m) >= n:
+                break
+            k = rng.choice(len(p), size=4 * n, p=p)
+            single = k < len(w_single)
+            G = np.empty(k.size)
+            C = np.empty(k.size)
+            ks, t = k[single], rng.uniform(size=int(single.sum()))
+            G[single] = d["G"][ks] + t * (d["G"][ks + 1] - d["G"][ks])
+            C[single] = d["col"][ks] + t * (d["col"][ks + 1] - d["col"][ks])
+            kb = k[~single] - len(w_single)
+            q = rng.uniform(size=kb.size) ** (1.0 / g1[kb])
+            j = np.clip(np.searchsorted(_Q_NODES, q, side="right") - 1, 0, len(_Q_NODES) - 2)
+            f = (q - _Q_NODES[j]) / (_Q_NODES[j + 1] - _Q_NODES[j])
+            G[~single] = d["Gq"][j, kb] + f * (d["Gq"][j + 1, kb] - d["Gq"][j, kb])
+            C[~single] = d["cq"][j, kb] + f * (d["cq"][j + 1, kb] - d["cq"][j, kb])
+            eg = np.sqrt(
+                self._e_mag_fn(np.clip(G, self._obs_mag.min(), self._obs_mag.max())) ** 2 + s2
+            )
+            ec = np.sqrt(
+                self._e_col_fn(np.clip(G, self._obs_mag.min(), self._obs_mag.max())) ** 2 + s2
+            )
+            Go = G + rng.normal(size=G.size) * eg
+            Co = C + rng.normal(size=G.size) * ec
+            keep = Go <= self._mag_lim
+            out_m.append(Go[keep])
+            out_c.append(Co[keep])
+        return np.concatenate(out_m)[:n], np.concatenate(out_c)[:n]
+
+    def _median_isochrone(self, idata: Any) -> tuple[dict, np.ndarray, np.ndarray, np.ndarray]:
+        """Posterior-median parameters and the apparent single-star isochrone there."""
+        import arviz as az
+
+        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
+        med = {
+            v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
+        }
+        X = self._interp_isochrone(med["met"], med["loga"], np)
+        G_app = X[1] + med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
+        col_app = X[2] + self._k_col1 * med["Av"]  # type: ignore[operator]
+        return med, X[0], G_app, col_app
 
     # ------------------------------------------------------------------
     # Diagnostic plots
@@ -1438,23 +1572,10 @@ class IsochroneFitter:
             - ``pms_score`` — combined score = pms_prob / (1 + d_cmd)
                               (higher → better PMS candidate)
         """
-        import arviz as az
         import pandas as pd
 
-        # Posterior median parameters
-        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
-        med = {
-            v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
-        }
-
-        # Apparent isochrone at posterior median
-        mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(  # type: ignore[union-attr]
-            med["met"], med["loga"]
-        )
-        G_app = G_abs + med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
-        BP_app = BP_abs + med["dm"] + self._kBP * med["Av"]  # type: ignore[operator]
-        RP_app = RP_abs + med["dm"] + self._kRP * med["Av"]  # type: ignore[operator]
-        col_app = BP_app - RP_app
+        # Apparent isochrone at the posterior median (EEP-interpolated, as in the likelihood)
+        _, mass, G_app, col_app = self._median_isochrone(idata)
 
         # Observed members
         members = select_by_probability(cluster_table, probability_column, prob_threshold)
@@ -1543,17 +1664,7 @@ class IsochroneFitter:
             pms_column=pms_column,
         )
 
-        import arviz as az
-
-        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
-        med = {
-            v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
-        }
-        mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(  # type: ignore[union-attr]
-            med["met"], med["loga"]
-        )
-        G_app = G_abs + med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
-        col_app = (BP_abs - RP_abs) + self._k_col1 * med["Av"]  # type: ignore[operator]
+        _, _, G_app, col_app = self._median_isochrone(idata)
         cut = G_app < float(df["Gmag"].max()) + 0.5
 
         # Separate MS and PMS stars
@@ -1652,7 +1763,6 @@ class IsochroneFitter:
         save : str, optional
             File path to save the figure (e.g. ``"cmd.pdf"``).
         """
-        import arviz as az
         import matplotlib.pyplot as plt
 
         obs_kw = {"s": 8, "alpha": 0.6, "color": "steelblue", "zorder": 3, **(obs_kw or {})}
@@ -1662,15 +1772,7 @@ class IsochroneFitter:
         obs_mag, obs_col, cmds = self.posterior_cmd(idata, num_samples=num_samples)
 
         # Median posterior isochrone (noiseless, no IMF sampling)
-        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
-        med = {
-            v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
-        }
-        mass, G_abs, BP_abs, RP_abs = self._isochs.get_isochrone(med["met"], med["loga"])  # type: ignore[union-attr]
-        G_med = G_abs + med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
-        col_med = (BP_abs + med["dm"] + self._kBP * med["Av"]) - (
-            RP_abs + med["dm"] + self._kRP * med["Av"]
-        )
+        _, _, G_med, col_med = self._median_isochrone(idata)
         cut = G_med < self._obs_mag.max() + 0.5  # type: ignore[union-attr]
 
         fig, ax = plt.subplots(figsize=figsize)
@@ -1697,78 +1799,52 @@ class IsochroneFitter:
         figsize: tuple[float, float] = (13, 4),
         cmap_hess: str = "Blues",
         cmap_residual: str = "RdBu_r",
+        n_draw: int = 200_000,
         save: str | None = None,
     ) -> None:
-        """Three-panel Hess diagram: observed | synthetic | residuals.
+        """Three-panel Hess diagram: observed | model at the posterior median | residuals.
 
-        Parameters
-        ----------
-        idata : arviz.InferenceData
-            Posterior from ``fit()``.
-        save : str, optional
-            File path to save the figure.
+        The likelihood is unbinned; this is a diagnostic only. The model panel histograms
+        ``n_draw`` stars from the forward model (:meth:`_draw_stars`), scaled to the members.
         """
-        import arviz as az
         import matplotlib.pyplot as plt
-        from fast_histogram import histogram2d as _h2d
+        from astropy.stats import knuth_bin_width
 
-        if self._obs_hess is None or self._H_grid is None:
+        if self._obs_mag is None or self._nodes is None:
             raise RuntimeError("Call setup() and build_grid() first.")
-
-        Nb_mag, Nb_col = self._Nbins  # type: ignore[misc]
-        mag_min, mag_max = self._mag_range  # type: ignore[misc]
-        col_min, col_max = self._col_range  # type: ignore[misc]
-
-        # Observed Hess (2-D, not flat)
-        H_obs = _h2d(
-            self._obs_mag,
-            self._obs_col,  # type: ignore[arg-type]
-            bins=[Nb_mag, Nb_col],
-            range=[[mag_min, mag_max], [col_min, col_max]],
-        ).astype(np.float64)
-
-        # Synthetic Hess @ posterior median
-        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
-        med = {
-            v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
-        }
-        dmag = med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
-        dcol = self._k_col1 * med["Av"]  # type: ignore[operator]
-        # Same shift-and-crop as the likelihood, so the panel shows what was fitted
-        Hsyn = self._shift_histogram(self._interp_H(med["met"], med["loga"]), dmag, dcol).eval()
-
-        # Scale synthetic to observed counts
-        scale = H_obs.sum() / max(Hsyn.sum(), 1e-12)
-        Hsyn_scaled = Hsyn * scale
-
-        residual = H_obs - Hsyn_scaled
+        med, _, _, _ = self._median_isochrone(idata)
+        _, bm = knuth_bin_width(self._obs_mag, return_bins=True)
+        _, bc = knuth_bin_width(self._obs_col, return_bins=True)
+        H_obs, em, ec = np.histogram2d(self._obs_mag, self._obs_col, bins=[bm, bc])
+        g, c = self._draw_stars(
+            med["met"], med["loga"], med["dm"], med["Av"], 0.0, n_draw, np.random.default_rng(0)
+        )
+        H_syn, _, _ = np.histogram2d(g, c, bins=[em, ec])
+        H_syn = H_syn * self._N_obs / n_draw
+        residual = H_obs - H_syn
         vlim = np.nanpercentile(np.abs(residual), 98)
 
         fig, axes = plt.subplots(1, 3, figsize=figsize, sharex=True, sharey=True)
-
-        extent = [col_min, col_max, mag_max, mag_min]  # imshow: origin top-left → invert Y
-
-        im0 = axes[0].imshow(H_obs, extent=extent, aspect="auto", cmap=cmap_hess, origin="upper")
-        im1 = axes[1].imshow(
-            Hsyn_scaled, extent=extent, aspect="auto", cmap=cmap_hess, origin="upper"
-        )
-        im2 = axes[2].imshow(
-            residual,
-            extent=extent,
-            aspect="auto",
-            cmap=cmap_residual,
-            origin="upper",
-            vmin=-vlim,
-            vmax=vlim,
-        )
-
-        titles = ["Observed", "Synthetic @ median", "Obs − Syn"]
-        ims = [im0, im1, im2]
-        for ax, title, im in zip(axes, titles, ims, strict=True):
+        extent = [ec[0], ec[-1], em[-1], em[0]]
+        ims = [
+            axes[0].imshow(H_obs, extent=extent, aspect="auto", cmap=cmap_hess, origin="upper"),
+            axes[1].imshow(H_syn, extent=extent, aspect="auto", cmap=cmap_hess, origin="upper"),
+            axes[2].imshow(
+                residual,
+                extent=extent,
+                aspect="auto",
+                cmap=cmap_residual,
+                origin="upper",
+                vmin=-vlim,
+                vmax=vlim,
+            ),
+        ]
+        for ax, title, im in zip(
+            axes, ["Observed", "Model @ median", "Obs − Model"], ims, strict=True
+        ):
             ax.set_title(title)
             ax.set_xlabel("BP − RP")
             fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-
         axes[0].set_ylabel("G")
         fig.tight_layout()
         if save:

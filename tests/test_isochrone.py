@@ -33,7 +33,6 @@ from erotica.analysis._isochrone import (
     _dk_mean_q,
     _fit_error_model,
     _mag_combine,
-    _smooth2d,
 )
 
 _BAYES_EXTRA_MISSING = [
@@ -377,8 +376,6 @@ class TestIsochroneFitter:
             dm_mu=10.0,
             dm_sigma=0.3,
             dm_range=(9.0, 11.0),
-            M_met=5,
-            M_loga=5,
         )
         fitter.setup(data, prob_threshold=0.5)
         return fitter, data
@@ -388,6 +385,7 @@ class TestIsochroneFitter:
         assert fitter._obs_mag is not None
         assert fitter._obs_col is not None
         assert len(fitter._obs_mag) > 0
+        assert fitter._e_obs_mag.shape == fitter._obs_mag.shape
 
     def test_setup_sets_ext_coefs(self, fitter_and_data):
         fitter, _ = fitter_and_data
@@ -397,67 +395,17 @@ class TestIsochroneFitter:
         # BP band has more extinction than G and RP in optical
         assert fitter._kBP > fitter._kG > fitter._kRP
 
-    def test_setup_H_grid_shape(self, fitter_and_data):
-        fitter, _ = fitter_and_data
-        assert fitter._H_grid is not None
-        Nm, Na = 5, 5
-        Nb_m, Nb_c = fitter._Nbins
-        pm_, pc_ = fitter._pad  # the grid is padded so a shifted model can enter the window
-        assert fitter._H_grid.shape == (Nm, Na, Nb_m + 2 * pm_, Nb_c + 2 * pc_)
-
-    def test_interp_H_returns_tensor(self, fitter_and_data):
-        import pytensor.tensor as pt
+    def test_node_table_shape(self, fitter_and_data):
+        """(n_Z, n_age, 3 + 2 x q-nodes, n_EEP): one Z file, three ages, EEP 100..105."""
+        from erotica.analysis._isochrone import _Q_NODES
 
         fitter, _ = fitter_and_data
-        met_t = pt.as_tensor_variable(np.float64(0.0152))
-        loga_t = pt.as_tensor_variable(np.float64(6.5))
-        H = fitter._interp_H(met_t, loga_t)
-        result = H.eval()
-        Nb_m, Nb_c = fitter._Nbins
-        pm_, pc_ = fitter._pad
-        assert result.shape == (Nb_m + 2 * pm_, Nb_c + 2 * pc_)
-        assert np.all(np.isfinite(result))
-
-    def test_shift_histogram_identity(self, fitter_and_data):
-        """At the reference shift the output is the central window of the padded grid.
-
-        The grid is binned in the apparent frame of ``(dmag_ref, dcol_ref)`` on the
-        observed window widened by ``pad`` bins; zero offset from that reference must
-        return exactly the un-padded centre.
-        """
-        import pytensor.tensor as pt
-
-        fitter, _ = fitter_and_data
-        Nb_m, Nb_c = fitter._Nbins
-        pm_, pc_ = fitter._pad
-        H_np = np.random.default_rng(0).uniform(0, 1, (Nb_m + 2 * pm_, Nb_c + 2 * pc_))
-        shifted = fitter._shift_histogram(
-            pt.as_tensor_variable(H_np),
-            pt.as_tensor_variable(np.float64(fitter._dmag_ref)),
-            pt.as_tensor_variable(np.float64(fitter._dcol_ref)),
-        ).eval()
-        np.testing.assert_allclose(shifted, H_np[pm_ : pm_ + Nb_m, pc_ : pc_ + Nb_c], atol=1e-12)
-
-    def test_shift_histogram_whole_bin_is_a_row_offset(self, fitter_and_data):
-        """A shift of exactly one magnitude bin fainter reads the padded grid one row up."""
-        import pytensor.tensor as pt
-
-        fitter, _ = fitter_and_data
-        Nb_m, Nb_c = fitter._Nbins
-        pm_, pc_ = fitter._pad
-        H_np = np.random.default_rng(1).uniform(0, 1, (Nb_m + 2 * pm_, Nb_c + 2 * pc_))
-        shifted = fitter._shift_histogram(
-            pt.as_tensor_variable(H_np),
-            pt.as_tensor_variable(np.float64(fitter._dmag_ref + fitter._binw_mag)),
-            pt.as_tensor_variable(np.float64(fitter._dcol_ref)),
-        ).eval()
-        np.testing.assert_allclose(
-            shifted, H_np[pm_ - 1 : pm_ - 1 + Nb_m, pc_ : pc_ + Nb_c], atol=1e-9
-        )
+        assert fitter._nodes.shape == (1, 3, 3 + 2 * len(_Q_NODES), 6)
+        assert np.all(np.isfinite(fitter._nodes))
 
     def test_save_load_roundtrip(self, fitter_and_data, tmp_path):
         fitter, data = fitter_and_data
-        cache = tmp_path / "hgrid.npz"
+        cache = tmp_path / "nodes.npz"
         fitter.save_grid(cache)
 
         fitter2 = IsochroneFitter(
@@ -467,16 +415,14 @@ class TestIsochroneFitter:
             dm_mu=fitter.dm_mu,
             dm_sigma=fitter.dm_sigma,
             dm_range=fitter.dm_range,
-            M_met=fitter.M_met,
-            M_loga=fitter.M_loga,
         )
         fitter2.setup(data, prob_threshold=0.5, precompute_grid=False)
+        assert fitter2._nodes is None
         fitter2.load_grid(cache)
 
-        np.testing.assert_array_equal(fitter._H_grid, fitter2._H_grid)
-        assert fitter2._kG == pytest.approx(fitter._kG)
-        assert fitter2._kBP == pytest.approx(fitter._kBP)
-        assert fitter2._kRP == pytest.approx(fitter._kRP)
+        np.testing.assert_array_equal(fitter._nodes, fitter2._nodes)
+        args = (0.0152, 6.6, 10.0, 0.3, 0.05, 0.02)
+        assert fitter2.loglike(*args) == fitter.loglike(*args)
 
     def test_posterior_cmd_shape(self, fitter_and_data):
         """posterior_cmd should return obs arrays and a list of (mag, col) tuples."""
@@ -511,7 +457,7 @@ class TestIsochroneFitter:
 
 @requires_bayes_extra
 class TestPyTensorCompat:
-    """Verify PyTensor tensors are correctly initialized in all code paths."""
+    """The sampler's PyTensor graph and the NumPy evaluation are the same function."""
 
     @pytest.fixture
     def base_fitter(self, tmp_path):
@@ -523,100 +469,54 @@ class TestPyTensorCompat:
             dm_mu=10.0,
             dm_sigma=0.3,
             dm_range=(9.0, 11.0),
-            M_met=4,
-            M_loga=4,
         )
 
-    def test_tensors_set_after_setup(self, base_fitter, tmp_path):
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        assert base_fitter._I_tensor is not None
-        assert base_fitter._J_tensor is not None
-        assert base_fitter._H_tensor is not None
-        assert base_fitter._obs_hess is not None
+    def test_nodes_tensor_matches_nodes(self, base_fitter):
+        base_fitter.setup(_make_cluster_data(n=40), prob_threshold=0.0)
+        np.testing.assert_array_equal(base_fitter._nodes_tensor.get_value(), base_fitter._nodes)
+        # a static shape, or slicing its rows gives JAX a traced length (measured 2026-09-22)
+        assert base_fitter._nodes_tensor.type.shape == base_fitter._nodes.shape
 
-    def test_tensors_set_after_load_grid(self, base_fitter, tmp_path):
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        cache = tmp_path / "hgrid.npz"
-        base_fitter.save_grid(cache)
-
-        fitter2 = IsochroneFitter(
-            isochs_path=base_fitter.isochs_path,
-            loga_range=base_fitter.loga_range,
-            Av_range=base_fitter.Av_range,
-            dm_mu=base_fitter.dm_mu,
-            dm_sigma=base_fitter.dm_sigma,
-            dm_range=base_fitter.dm_range,
-            M_met=base_fitter.M_met,
-            M_loga=base_fitter.M_loga,
-        )
-        fitter2.setup(data, prob_threshold=0.0, precompute_grid=False)
-        fitter2.load_grid(cache)
-
-        # All three tensors must be non-None so build_model() doesn't crash
-        assert fitter2._I_tensor is not None, "_I_tensor missing after load_grid"
-        assert fitter2._J_tensor is not None, "_J_tensor missing after load_grid"
-        assert fitter2._H_tensor is not None, "_H_tensor missing after load_grid"
-
-    def test_I_J_tensor_shapes(self, base_fitter, tmp_path):
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        Nb_m, Nb_c = base_fitter._Nbins
-        i_tensor = base_fitter._I_tensor.eval()
-        j_tensor = base_fitter._J_tensor.eval()
-        assert i_tensor.shape == (Nb_m, 1)
-        assert j_tensor.shape == (1, Nb_c)
-
-    def test_I_J_tensor_values(self, base_fitter, tmp_path):
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        Nb_m, Nb_c = base_fitter._Nbins
-        np.testing.assert_array_equal(
-            base_fitter._I_tensor.eval()[:, 0],
-            np.arange(Nb_m, dtype="float64"),
-        )
-        np.testing.assert_array_equal(
-            base_fitter._J_tensor.eval()[0, :],
-            np.arange(Nb_c, dtype="float64"),
-        )
-
-    def test_shift_histogram_int64_dtypes(self, base_fitter, tmp_path):
-        """Floor-based indices must be int64 to avoid JAX int32 warnings."""
+    def test_pytensor_graph_equals_numpy(self, base_fitter):
+        import pytensor
         import pytensor.tensor as pt
 
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        Nb_m, Nb_c = base_fitter._Nbins
-        H_t = pt.as_tensor_variable(np.zeros((Nb_m, Nb_c)))
-        dmag = pt.as_tensor_variable(np.float64(0.1))
-        dcol = pt.as_tensor_variable(np.float64(0.05))
-        # Building the expression should not raise a dtype error
-        result = base_fitter._shift_histogram(H_t, dmag, dcol)
-        out = result.eval()
-        assert out.dtype == np.float64
+        base_fitter.setup(_make_cluster_data(n=40), prob_threshold=0.0)
+        v = [pt.dscalar(n) for n in ("met", "loga", "dm", "Av", "s", "f")]
+        fn = pytensor.function(v, pt.sum(base_fitter._star_loglike(*v, pt)))
+        x = (0.0152, 6.55, 10.1, 0.4, 0.03, 0.02)
+        assert float(fn(*x)) == pytest.approx(base_fitter.loglike(*x), rel=1e-10, abs=1e-8)
 
-    def test_H_tensor_matches_H_grid(self, base_fitter, tmp_path):
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        # pytensor.shared exposes .get_value() as well as .eval()
-        np.testing.assert_array_equal(
-            base_fitter._H_tensor.get_value(),
-            base_fitter._H_grid,
-        )
+    def test_jax_graph_equals_numpy(self, base_fitter, tmp_path):
+        """The sampler numpyro compiles is the JAX graph. Run in a subprocess: initialising
+        JAX here would make later forking tests raise JAX's fork warning (an error under this
+        suite's warning policy -- measured 2026-09-23, two test_structure tests)."""
+        import subprocess
+        import sys
 
-    def test_obs_hess_shape(self, base_fitter, tmp_path):
-        data = _make_cluster_data(n=40)
-        base_fitter.setup(data, prob_threshold=0.0)
-        Nb_m, Nb_c = base_fitter._Nbins
-        assert base_fitter._obs_hess.shape == (Nb_m * Nb_c,)
-        assert base_fitter._obs_hess.dtype == np.float64
+        pytest.importorskip("jax")
+        code = textwrap.dedent(f"""
+            import numpy as np, pytensor, pytensor.tensor as pt
+            from tests.test_isochrone import _make_cluster_data
+            from erotica.analysis._isochrone import IsochroneFitter
+            f = IsochroneFitter(isochs_path={str(base_fitter.isochs_path)!r}, loga_range=(6.5, 6.6),
+                                Av_range=(0.0, 1.0), dm_mu=10.0, dm_sigma=0.3, dm_range=(9.0, 11.0))
+            f.setup(_make_cluster_data(n=40), prob_threshold=0.0)
+            v = [pt.dscalar(n) for n in ("met", "loga", "dm", "Av", "s", "f")]
+            fn = pytensor.function(v, pt.sum(f._star_loglike(*v, pt)), mode="JAX")
+            x = (0.0152, 6.55, 10.1, 0.4, 0.03, 0.02)
+            print(repr(float(fn(*x))), repr(f.loglike(*x)))
+        """)
+        root = Path(__file__).resolve().parent.parent
+        out = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, text=True, cwd=root, check=True
+        ).stdout.split()
+        assert float(out[-2]) == pytest.approx(float(out[-1]), rel=1e-10, abs=1e-8)
 
     def test_build_model_after_load_grid_does_not_crash(self, base_fitter, tmp_path):
-        """Regression: _I/_J/_H_tensor were None after load_grid → crash in build_model."""
         data = _make_cluster_data(n=40)
         base_fitter.setup(data, prob_threshold=0.0)
-        cache = tmp_path / "hgrid_bm.npz"
+        cache = tmp_path / "nodes_bm.npz"
         base_fitter.save_grid(cache)
 
         fitter2 = IsochroneFitter(
@@ -626,17 +526,17 @@ class TestPyTensorCompat:
             dm_mu=base_fitter.dm_mu,
             dm_sigma=base_fitter.dm_sigma,
             dm_range=base_fitter.dm_range,
-            M_met=base_fitter.M_met,
-            M_loga=base_fitter.M_loga,
         )
         fitter2.setup(data, prob_threshold=0.0, precompute_grid=False)
         fitter2.load_grid(cache)
         model = fitter2.build_model()
-        assert model is not None
-        # Should expose the four astrophysical parameters
         free_names = {v.name for v in model.free_RVs}
-        for param in ("met", "loga", "dm", "Av"):
+        for param in ("loga", "dm", "Av", "sigma_int", "f_bg"):
             assert any(param in n for n in free_names), f"{param} missing from model"
+        # one metallicity file: Z is fixed, not a free parameter with a zero-width prior
+        assert "met" in model.named_vars and "met" not in free_names
+        # the model's log-density is finite at its initial point
+        assert np.isfinite(model.compile_logp()(model.initial_point()))
 
 
 # ---------------------------------------------------------------------------
@@ -783,34 +683,6 @@ class TestMagCombineExtended:
 
 
 # ---------------------------------------------------------------------------
-# TestSmooth2D
-# ---------------------------------------------------------------------------
-
-
-class TestSmooth2D:
-    def test_preserves_shape(self):
-        H = np.ones((10, 8))
-        assert _smooth2d(H).shape == (10, 8)
-
-    def test_non_negative_input_non_negative_output(self):
-        H = np.random.default_rng(0).uniform(0, 5, (12, 10))
-        assert np.all(_smooth2d(H) >= 0)
-
-    def test_all_zeros_stays_zero(self):
-        H = np.zeros((8, 6))
-        np.testing.assert_array_equal(_smooth2d(H), np.zeros((8, 6)))
-
-    def test_smoothing_reduces_peak(self):
-        H = np.zeros((15, 15))
-        H[7, 7] = 100.0
-        smoothed = _smooth2d(H)
-        # Peak value should decrease after smoothing
-        assert smoothed.max() < 100.0
-        # Total mass should be approximately conserved (boundary effects aside)
-        assert smoothed.sum() <= H.sum() + 1e-6
-
-
-# ---------------------------------------------------------------------------
 # TestFitErrorModelExtended
 # ---------------------------------------------------------------------------
 
@@ -952,32 +824,21 @@ class TestIsochroneFitterExtended:
             setup_fitter._kBP - setup_fitter._kRP, rel=1e-10
         )
 
-    def test_precompute_false_leaves_H_grid_none(self, setup_fitter):
+    def test_precompute_false_leaves_nodes_none(self, setup_fitter):
         data = _make_cluster_data(n=40)
         setup_fitter.setup(data, prob_threshold=0.0, precompute_grid=False)
-        assert setup_fitter._H_grid is None
-        assert setup_fitter._H_tensor is None
+        assert setup_fitter._nodes is None
+        assert setup_fitter._nodes_tensor is None
 
-    def test_hess_for_isochrone_shape_and_sign(self, setup_fitter):
+    def test_star_loglike_finite(self, setup_fitter):
         data = _make_cluster_data(n=40)
         setup_fitter.setup(data, prob_threshold=0.0)
-        iso = setup_fitter._isochs
-        mass, G, BP, RP = iso.get_isochrone(0.0152, 6.5)
-        H = setup_fitter._hess_for_isochrone(mass, G, BP, RP)
-        Nb_m, Nb_c = setup_fitter._Nbins
-        pm_, pc_ = setup_fitter._pad
-        assert H.shape == (Nb_m + 2 * pm_, Nb_c + 2 * pc_)
-        assert np.all(H >= 0)
-        assert np.all(np.isfinite(H))
+        v = setup_fitter._star_loglike(0.0152, 6.55, 10.0, 0.3, 0.02, 0.05)
+        assert v.shape == (40,)
+        assert np.all(np.isfinite(v))
 
-    def test_H_grid_non_negative_finite(self, setup_fitter):
-        data = _make_cluster_data(n=40)
-        setup_fitter.setup(data, prob_threshold=0.0)
-        assert np.all(setup_fitter._H_grid >= 0)
-        assert np.all(np.isfinite(setup_fitter._H_grid))
-
-    def test_save_grid_raises_when_no_H_grid(self, setup_fitter, tmp_path):
-        with pytest.raises(RuntimeError, match="No H_grid"):
+    def test_save_grid_raises_when_no_nodes(self, setup_fitter, tmp_path):
+        with pytest.raises(RuntimeError, match="No node table"):
             setup_fitter.save_grid(tmp_path / "never.npz")
 
     def test_build_model_raises_before_setup(self, setup_fitter):
@@ -989,11 +850,12 @@ class TestIsochroneFitterExtended:
         setup_fitter.setup(data, prob_threshold=0.0)
         model = setup_fitter.build_model()
         free_names = {v.name for v in model.free_RVs}
-        for param in ("met", "loga", "dm", "Av", "log_s", "bg"):
+        for param in ("loga", "dm", "Av", "sigma_int", "f_bg"):
             assert any(param in n for n in free_names), f"'{param}' not in free_RVs"
+        assert "met" in model.named_vars  # fixed: the fixture has one metallicity file
 
     def test_posterior_cmd_mag_within_range(self, setup_fitter):
-        """All returned magnitudes must lie within the histogram range."""
+        """Every returned star passes the completeness cut (the faintest member)."""
         import arviz as az
 
         data = _make_cluster_data(n=40)
@@ -1010,11 +872,9 @@ class TestIsochroneFitterExtended:
             }
         )
         obs_mag, obs_col, cmds = setup_fitter.posterior_cmd(idata, num_samples=3)
-        mag_lo, mag_hi = setup_fitter._mag_range
-        col_lo, col_hi = setup_fitter._col_range
         for mag_s, col_s in cmds:
-            assert np.all(mag_s >= mag_lo) and np.all(mag_s <= mag_hi)
-            assert np.all(col_s >= col_lo) and np.all(col_s <= col_hi)
+            assert np.all(mag_s <= setup_fitter._mag_lim)
+            assert np.all(np.isfinite(col_s))
 
     def test_posterior_cmd_obs_unchanged(self, setup_fitter):
         """posterior_cmd should not mutate _obs_mag / _obs_col."""
@@ -1230,22 +1090,21 @@ def test_los_ejemplos_de_docstring_pasan_los_argumentos_que_el_metodo_exige():
 
 
 # ---------------------------------------------------------------------------
-# Hess-grid frame and interpolation (2026-09-22)
+# The likelihood against closed-form oracles (2026-09-22)
 # ---------------------------------------------------------------------------
 #
-# The June 2026 NUTS refit of NGC 6383 gave R-hat 1.5-2.2. Two defects in the precomputed
-# Hess grid were measured behind it (hub finding isochrone-nuts-convergence-2026-09.md):
+# Until 2026-09-22 the likelihood shifted a precomputed Hess grid. Its frame bug and staircase
+# were fixed first (commits e79c42f, 507f779), and what remained was measured to be unfixable
+# inside that design: log L depended on the grid's internal reference, and posteriors locked
+# onto (dm_mu, mean(Av_range)) and onto metallicity nodes (hub finding
+# isochrone-nuts-convergence-2026-09.md). The likelihood is now unbinned per star over
+# EEP-interpolated isochrones, and these tests hold it to oracles that do not go through it:
 #
-# 1. FRAME. The grid was binned in the absolute frame (dm = 0, A_V = 0) on the *apparent*
-#    observed window and then shifted by the whole dm + k_G A_V: only stars with G_abs inside
-#    the apparent window survived, so the model had zero mass brighter than G = 17 while 129
-#    of the 254 members sit there.
-# 2. STAIRCASE. Each regular grid point took the nearest file isochrone, so adjacent slices
-#    were identical and d loglike / d met was exactly zero at 283 of 300 prior points.
-#
-# The oracle for both is an analytic toy isochrone family: photometry is a closed-form
-# function of (mass, age, Z), so where the stars land at a given (dm, A_V) is known without
-# going through the fitter.
+# * an analytic toy isochrone family, photometry closed-form in (mass, age, Z), drawn star by
+#   star (with its own binaries) -- the Monte Carlo oracle for the deposit;
+# * invariance: the likelihood cannot depend on the prior's centre (the old defect);
+# * the node itself: at a node the interpolated isochrone is the file;
+# * injection-recovery through NUTS with the Vehtari gate.
 
 _TOY_MASSES = np.geomspace(0.1, 8.0, 120)
 
@@ -1258,7 +1117,9 @@ def _toy_photometry(mass, loga, Z):
     return G, col
 
 
-def _write_toy_family(tmp_path: Path, Zs, ages) -> Path:
+def _write_toy_family(tmp_path: Path, Zs, ages, trim_per_age: int = 0) -> Path:
+    """One file per Z. ``trim_per_age = k`` drops the k·j lowest and highest EEPs of the j-th
+    age, so the EEP range changes from node to node as it does in MIST."""
     for k, Z in enumerate(Zs):
         header = textwrap.dedent(f"""\
             # toy isochrone family
@@ -1267,27 +1128,48 @@ def _write_toy_family(tmp_path: Path, Zs, ages) -> Path:
             # EEP initial_mass log10_isochrone_age_yr Gaia_G_EDR3 Gaia_BP_EDR3 Gaia_RP_EDR3
         """)
         rows = []
-        for loga in ages:
+        for j, loga in enumerate(ages):
             G, col = _toy_photometry(_TOY_MASSES, loga, Z)
             for i, (m, g, c) in enumerate(zip(_TOY_MASSES, G, col, strict=True)):
+                if i < trim_per_age * j or i >= len(_TOY_MASSES) - trim_per_age * j:
+                    continue
                 rows.append(f"{i} {m:.6f} {loga:.4f} {g:.6f} {g + 0.6 * c:.6f} {g - 0.4 * c:.6f}")
         (tmp_path / f"toy_{k}.iso.cmd").write_text(header + "\n".join(rows) + "\n")
     return tmp_path
 
 
-def _toy_stars(n, loga, Z, dm, Av, rng, e=0.01):
+def _toy_stars(n, loga, Z, dm, Av, rng, e=0.01, binaries=False, alpha=0.09, beta=0.94):
     """Star-level draw from the toy family: Chabrier-2014 inverse CDF on a fine mass grid,
-    photometry from the closed form (NOT from the isochrone file or the fitter), singles only."""
+    photometry from the closed form (NOT from the isochrone file or the fitter). With
+    ``binaries``: Offner fraction, D&K power-law q drawn per star with the exact step in
+    primary mass, companion mass floored at 0.1 Msun, fluxes summed in closed form."""
     m = np.geomspace(0.1, 8.0, 20000)
     ln = np.exp(-0.5 * ((np.log10(m) - np.log10(0.2)) / 0.55) ** 2) / m
     pdf = np.where(m < 1.0, ln, np.exp(-0.5 * (np.log10(0.2) / 0.55) ** 2) * m**-2.35)
     cdf = np.concatenate([[0.0], np.cumsum(0.5 * (pdf[1:] + pdf[:-1]) * np.diff(m))])
     mass = np.interp(rng.uniform(size=n), cdf / cdf[-1], m)
     G, col = _toy_photometry(mass, loga, Z)
+    BP0, RP0 = G + 0.6 * col, G - 0.4 * col
+    if binaries:
+        isb = rng.uniform(size=n) < np.clip(alpha + beta / (1 + 1.4 / mass), 0, 1)
+        gam = np.where(
+            mass <= 0.1,
+            4.2,
+            np.where(
+                mass <= 0.6, 0.4, np.where(mass <= 1.4, 0.3, np.where(mass <= 6.5, -0.5, 0.0))
+            ),
+        )
+        m2 = np.maximum(rng.uniform(size=n) ** (1 / (gam + 1)) * mass, 0.1)
+        G2, col2 = _toy_photometry(m2, loga, Z)
+        flux = lambda x: 10 ** (-0.4 * x)  # noqa: E731
+        comb = lambda a, b: -2.5 * np.log10(flux(a) + flux(b))  # noqa: E731
+        BP0 = np.where(isb, comb(BP0, G2 + 0.6 * col2), BP0)
+        RP0 = np.where(isb, comb(RP0, G2 - 0.4 * col2), RP0)
+        G = np.where(isb, comb(G, G2), G)
     kG, kBP, kRP = (_ccm89(lam) for lam in (6390.7, 5182.6, 7825.1))
     Gapp = G + dm + kG * Av + rng.normal(0, e, n)
-    BP = G + 0.6 * col + dm + kBP * Av + rng.normal(0, e, n)
-    RP = G - 0.4 * col + dm + kRP * Av + rng.normal(0, e, n)
+    BP = BP0 + dm + kBP * Av + rng.normal(0, e, n)
+    RP = RP0 + dm + kRP * Av + rng.normal(0, e, n)
     return QTable(
         {
             "Gmag": Gapp,
@@ -1301,108 +1183,152 @@ def _toy_stars(n, loga, Z, dm, Av, rng, e=0.01):
     )
 
 
-def _toy_fitter(tmp_path, *, M_met=3, M_loga=11, Zs=(0.010, 0.015, 0.020), **kw):
+def _toy_fitter(tmp_path, *, Zs=(0.010, 0.015, 0.020), trim_per_age=0, **kw):
     ages = kw.pop("ages", (6.3, 6.4, 6.5, 6.6, 6.7, 6.8))
-    _write_toy_family(tmp_path, Zs, ages)
+    _write_toy_family(tmp_path, Zs, ages, trim_per_age=trim_per_age)
     args = dict(
         loga_range=(6.3, 6.8),
         Av_range=(0.2, 1.0),
         dm_mu=10.0,
         dm_sigma=0.3,
         dm_range=(9.6, 10.4),
-        alpha=0.0,  # single stars only: the toy oracle has no binaries
+        alpha=0.0,  # single stars unless a test asks for the toy binaries
         beta=0.0,
-        M_met=M_met,
-        M_loga=M_loga,
     )
     args.update(kw)
     return IsochroneFitter(tmp_path, **args)
 
 
+def _set_probes(f, g, c, e):
+    """Replace the fitter's stars by probe points with photometric error ``e`` (colour error
+    ``sqrt(2) e``, as ``hypot(e_BP, e_RP)`` gives for the toy tables)."""
+    f._obs_mag, f._obs_col = np.asarray(g, float), np.asarray(c, float)
+    f._e_obs_mag = np.full(f._obs_mag.shape, e)
+    f._e_obs_col = np.full(f._obs_mag.shape, np.sqrt(2) * e)
+    f._star_weights = np.ones(f._obs_mag.shape)
+
+
 @requires_bayes_extra
-class TestHessFrame:
-    """Where the shifted model Hess puts its mass, against the closed-form toy isochrone."""
+class TestUnbinnedLikelihood:
+    """The per-star likelihood against oracles that do not go through it."""
 
-    @pytest.mark.parametrize("dm,Av", [(10.0, 0.6), (10.35, 0.95), (9.65, 0.25)])
-    def test_model_mass_lands_where_the_isochrone_does(self, tmp_path, dm, Av):
-        """Oracle: the toy node's own points, moved by (dm, A_V) in closed form.
-
-        At a grid node (Z = 0.015, loga = 6.5, which the regular grid hits exactly) the
-        shifted model Hess must hold the IMF weight of exactly the isochrone points that land
-        inside the observed window, at their magnitudes. Checked at the reference shift and
-        at both prior corners, because the old defect depended on the size of the shift.
-
-        Mutation (measured 2026-09-22): binning the grid in the absolute frame and shifting
-        by the full ``dm + k_G A_V`` (the pre-2026-09-22 code) leaves 0.17-0.28 of the IMF
-        weight in the window here, against 0.90-1.00 expected, and all three cases fail.
-        """
-        import pytensor.tensor as pt
-
+    def test_interpolated_isochrone_at_a_node_is_the_file(self, tmp_path):
+        """Oracle: the node's own file rows. At a node the interpolation must return them
+        exactly; halfway between two Z nodes in log Z, the mean of the two (linearity at
+        fixed EEP). Mutation: interpolating in linear Z moves the midpoint off the mean."""
         f = _toy_fitter(tmp_path)
-        f.setup(_toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
-        assert f._met_grid[1] == pytest.approx(0.015) and f._loga_grid[4] == pytest.approx(6.5)
+        f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(1)), prob_threshold=0)
+        X = f._interp_isochrone(0.015, 6.5)
+        G_file, col_file = _toy_photometry(_TOY_MASSES, 6.5, 0.015)
+        np.testing.assert_allclose(X[0], _TOY_MASSES, rtol=0, atol=1e-6)
+        np.testing.assert_allclose(X[1], G_file, atol=2e-6)  # the file keeps 6 decimals
+        np.testing.assert_allclose(X[2], col_file, atol=2e-6)
+        z_mid = float(np.sqrt(0.010 * 0.015))
+        np.testing.assert_allclose(
+            f._interp_isochrone(z_mid, 6.5),
+            0.5 * (f._interp_isochrone(0.010, 6.5) + f._interp_isochrone(0.015, 6.5)),
+            atol=1e-12,
+        )
 
-        H = f._shift_histogram(
-            f._interp_H(pt.constant(0.015), pt.constant(6.5)),
-            pt.constant(dm + f._kG * Av),
-            pt.constant(f._k_col1 * Av),
-        ).eval()
+    def test_likelihood_does_not_depend_on_the_prior_centre(self, tmp_path):
+        """Oracle: invariance -- the defect that killed the precomputed-grid likelihood, where
+        ``dm_mu`` and ``mean(Av_range)`` fixed the grid's frame, the Hess window and the error
+        kernel. Same data, two fitters differing only in those prior settings: the likelihood
+        at fixed parameters must be identical (the priors legitimately differ; they are not
+        part of it). Mutations seen red 2026-09-22: error model evaluated at ``G - dm + dm_mu``
+        in the completeness term; completeness cut taken from a reference isochrone at
+        ``dm_mu``."""
+        data = _toy_stars(300, 6.55, 0.0125, 10.25, 0.7, np.random.default_rng(21))
+        lls = []
+        for k, (dm_mu, av) in enumerate([(10.0, (0.2, 1.0)), (10.3, (0.5, 1.4))]):
+            (tmp_path / str(k)).mkdir()
+            f = _toy_fitter(tmp_path / str(k), dm_mu=dm_mu, Av_range=av)
+            f.setup(data, prob_threshold=0)
+            lls.append([f.loglike(0.0125, 6.55, dm, 0.7, 0.01, 0.01) for dm in (10.15, 10.25)])
+        assert lls[0][0] != pytest.approx(lls[0][1], abs=1.0)  # the probe does move log L
+        assert lls[0] == pytest.approx(lls[1], rel=0, abs=1e-9), lls
 
-        mass, G, BP, RP = f._isochs.get_isochrone(0.015, 6.5)
-        w = _chabrier2014_weights(mass)
-        g_app = G + dm + f._kG * Av
-        c_app = BP - RP + f._k_col1 * Av
-        (m0, m1), (c0, c1) = f._mag_range, f._col_range
-        inside = (g_app >= m0) & (g_app < m1) & (c_app >= c0) & (c_app < c1)
-        expected_mass = float(w[inside].sum())
-        expected_mean_g = float(np.sum(w[inside] * g_app[inside]) / expected_mass)
+    @pytest.mark.parametrize("binaries", [False, True])
+    @pytest.mark.parametrize("dm,Av", [(10.0, 0.6), (10.35, 0.95), (9.65, 0.25)])
+    def test_density_matches_monte_carlo_stars(self, tmp_path, dm, Av, binaries):
+        """Oracle: 400 000 toy stars drawn star by star in closed form (``_toy_stars``, own
+        IMF inverse CDF, own binaries), observed with Gaussian errors and the completeness cut.
+        The model's per-star likelihood with ``f_bg = 0`` is the density of *detected* stars,
+        so on probe points it must match the Monte Carlo cell fractions. Checked at a node,
+        at the prior centre and at both prior corners, singles and binaries.
 
-        rows = m0 + (np.arange(f._Nbins[0]) + 0.5) * f._binw_mag
-        model_mass = float(H.sum())
-        model_mean_g = float(np.sum(H.sum(axis=1) * rows) / model_mass) if model_mass else np.inf
-
-        assert expected_mass > 0.4  # the fixture really puts stars in the window
-        # the 3x3 smoothing leaks up to one bin of mass across the window edge
-        assert model_mass == pytest.approx(expected_mass, abs=0.06)
-        assert abs(model_mean_g - expected_mean_g) < 0.5 * f._binw_mag
-
-    def test_grid_interpolates_between_isochrone_nodes(self, tmp_path):
-        """Oracle: linearity. Halfway between two metallicity nodes the grid must be the mean
-        of the two node Hess diagrams, and no two adjacent slices may be identical.
-
-        Mutation: nearest-node caching (the pre-2026-09-22 code) makes the midpoint equal to
-        one node and leaves identical adjacent slices -- zero gradient between them.
+        What it catches (mutations seen red 2026-09-22): the 1/L of the segment integral,
+        IMF weights without the mass step, the completeness term with the wrong sign,
+        mass-ratio probabilities not normalised, binaries deposited at q = 1 only.
         """
-        f = _toy_fitter(tmp_path, M_met=5, M_loga=11)  # met grid 0.010, 0.0125, 0.015, ...
-        f.setup(_toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(4)), prob_threshold=0)
-        H = f._H_grid
-        j = int(np.argmin(np.abs(f._loga_grid - 6.5)))
-        assert f._loga_grid[j] == pytest.approx(6.5)
-        np.testing.assert_allclose(H[1, j], 0.5 * (H[0, j] + H[2, j]), rtol=0, atol=1e-12)
-        for axis in (0, 1):
-            same = [
-                np.array_equal(np.take(H, k, axis), np.take(H, k + 1, axis))
-                for k in range(H.shape[axis] - 1)
-            ]
-            assert not any(same), f"identical adjacent slices along axis {axis}: {same}"
+        e = 0.08
+        kw = {"alpha": 0.09, "beta": 0.94} if binaries else {}
+        f = _toy_fitter(tmp_path, **kw)
+        f.setup(
+            _toy_stars(
+                400, 6.5, 0.015, dm, Av, np.random.default_rng(5), e=e, binaries=binaries, **kw
+            ),
+            prob_threshold=0,
+        )
+        mc = _toy_stars(
+            400_000, 6.5, 0.015, dm, Av, np.random.default_rng(6), e=e, binaries=binaries, **kw
+        )
+        g = np.asarray(mc["Gmag"])
+        c = np.asarray(mc["G_BPmag"]) - np.asarray(mc["G_RPmag"])
+        det = g <= f._mag_lim
+        g, c = g[det], c[det]
+        # cells of 0.25 mag x 0.1 mag; model integrated with a 5 x 5 midpoint rule per cell
+        ge = np.arange(np.floor(g.min()), f._mag_lim + 0.25, 0.25)
+        ce = np.arange(np.floor(10 * c.min()) / 10, c.max() + 0.1, 0.1)
+        H, _, _ = np.histogram2d(g, c, bins=[ge, ce])
+        busy = np.argwhere(H >= 2000)
+        sub = (np.arange(5) + 0.5) / 5
+        pg = (ge[busy[:, 0], None, None] + 0.25 * sub[None, :, None]) * np.ones((1, 1, 5))
+        pc = (ce[busy[:, 1], None, None] + 0.1 * sub[None, None, :]) * np.ones((1, 5, 1))
+        _set_probes(f, pg.ravel(), pc.ravel(), e)
+        dens = np.exp(f._star_loglike(0.015, 6.5, dm, Av, 0.0, 0.0)).reshape(len(busy), 25)
+        model = dens.mean(axis=1) * 0.25 * 0.1 * g.size
+        obs = H[busy[:, 0], busy[:, 1]]
+        assert len(busy) >= 15
+        # measured 2026-09-22 on the correct code: chi2/dof 0.87-1.17, max |pull| 2.2-3.6 over
+        # 74-79 cells in the six cases -- Poisson noise. chi2/dof sd is ~0.16 at 77 dof.
+        pull = (obs - model) / np.sqrt(model)
+        assert np.mean(pull**2) < 1.5 and np.max(np.abs(pull)) < 5, np.round(pull, 1)
+
+    def test_eeps_a_node_lacks_carry_no_weight_there(self, tmp_path):
+        """MIST isochrones change EEP range with age. The node table puts every node on one
+        EEP axis and clamps the EEPs a node lacks to its first/last point; at that node their
+        mass step, hence IMF weight, must be exactly zero -- otherwise phantom stars appear.
+        Mutation: extrapolating the missing EEPs linearly gives them weight."""
+        f = _toy_fitter(tmp_path, trim_per_age=4)  # 6.3 keeps all EEPs, 6.8 loses 20 per end
+        f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(2)), prob_threshold=0)
+        d = f._deposit(0.015, 6.8, 10.0, 0.6)
+        lacks = np.r_[np.arange(20), np.arange(len(_TOY_MASSES) - 21, len(_TOY_MASSES) - 1)]
+        assert np.all(d["w_single"][lacks] == 0.0)
+        assert d["w_single"][25:95].min() > 0.0
+
+    def test_loglike_is_continuous_across_nodes(self, tmp_path):
+        """At an age or Z node the two brackets on either side must give the same log L,
+        including where the EEP range changes between nodes."""
+        f = _toy_fitter(tmp_path, trim_per_age=4)
+        f.setup(_toy_stars(300, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(8)), prob_threshold=0)
+        for met, loga in ((0.013, 6.5), (0.015, 6.55)):
+            eps = (0.0, 1e-12) if met == 0.013 else (1e-14, 0.0)
+            lo = f.loglike(met - eps[0], loga - eps[1], 10.0, 0.6, 0.01, 0.01)
+            hi = f.loglike(met + eps[0], loga + eps[1], 10.0, 0.6, 0.01, 0.01)
+            assert hi == pytest.approx(lo, abs=1e-6)
 
     def test_loglike_gradient_is_nonzero_in_met_and_loga(self, tmp_path):
-        """NUTS needs d loglike / d(met, loga) != 0 between nodes. Measured on NGC 6383 before
-        the fix: exactly zero in met at 283 / 300 random prior points, in loga at 133 / 300."""
+        """NUTS needs d loglike / d(met, loga) != 0. Measured on NGC 6383 with the
+        nearest-node Hess grid: exactly zero in met at 283 / 300 prior points, in loga at
+        133 / 300."""
         import pytensor
         import pytensor.tensor as pt
 
-        f = _toy_fitter(tmp_path, M_met=9, M_loga=21)
+        f = _toy_fitter(tmp_path)
         f.setup(_toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(5)), prob_threshold=0)
         met, loga = pt.dscalar("met"), pt.dscalar("loga")
-        lam = pt.maximum(
-            f._shift_histogram(f._interp_H(met, loga), 10.0 + f._kG * 0.6, f._k_col1 * 0.6).reshape(
-                (-1,)
-            ),
-            1e-6,
-        )
-        mu = 400.0 * lam + 0.05
-        ll = pt.sum(f._obs_hess * pt.log(mu) - mu)
+        ll = pt.sum(f._star_loglike(met, loga, 10.0, 0.6, 0.01, 0.01, pt))
         grad = pytensor.function([met, loga], pytensor.grad(ll, [met, loga]))
         rng = np.random.default_rng(0)
         zero = np.zeros(2, int)
@@ -1411,107 +1337,51 @@ class TestHessFrame:
             zero += np.array([float(x) == 0.0 for x in g])
         assert zero.tolist() == [0, 0]
 
-    def test_stale_grid_cache_is_refused(self, tmp_path):
-        """A cache written by the absolute-frame code must not load: its model has no bright
-        stars, and nothing downstream would notice."""
+    def test_stale_hess_grid_cache_is_refused(self, tmp_path):
+        """A cache from the precomputed-Hess likelihood must not load as a node table."""
         f = _toy_fitter(tmp_path)
         f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(6)), prob_threshold=0)
-        good = tmp_path / "good.npz"
-        f.save_grid(good)
-        d = dict(np.load(good))
-        d.pop("frame_ref")
-        d.pop("frame_pad")
-        stale = tmp_path / "stale.npz"
-        np.savez(stale, **d)
+        stale = tmp_path / "hgrid.npz"
+        np.savez(stale, H_grid=np.zeros((2, 2, 3, 3)), frame_ref=np.zeros(2), frame_pad=np.ones(2))
         with pytest.raises(ValueError, match="rebuild"):
             f.load_grid(stale)
 
-    def test_widened_prior_beyond_the_padding_is_refused(self, tmp_path):
-        f = _toy_fitter(tmp_path)
+    def test_age_prior_beyond_the_node_table_is_refused(self, tmp_path):
+        f = _toy_fitter(tmp_path, ages=(6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9))
         f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(7)), prob_threshold=0)
-        f.set_priors({"dm_range": (7.0, 13.0)})
-        with pytest.raises(ValueError, match="padding"):
+        f.set_priors({"loga_range": (6.3, 6.9)})
+        with pytest.raises(ValueError, match="rebuild"):
             f.build_model()
+        f.set_priors({"dm_range": (7.0, 13.0), "loga_range": (6.3, 6.8)})  # dm: no padding now
+        assert f.build_model() is not None
 
 
-class _HalfBinReference(IsochroneFitter):
-    """Identical model; only the grid's internal reference frame moves by half a bin."""
-
-    def _set_reference_frame(self) -> None:
-        super()._set_reference_frame()
-        self._dmag_ref += 0.5 * self._binw_mag
-        self._dcol_ref += 0.5 * self._binw_col
-        self._pad = (self._pad[0] + 1, self._pad[1] + 1)
-
-
-def _toy_loglike(f, met, loga, dm, Av, scale=400.0):
-    import pytensor.tensor as pt
-
-    lam = pt.maximum(
-        f._shift_histogram(
-            f._interp_H(pt.constant(met), pt.constant(loga)), dm + f._kG * Av, f._k_col1 * Av
-        ).reshape((-1,)),
-        1e-6,
-    )
-    mu = scale * lam + 0.05
-    return float(pt.sum(f._obs_hess * pt.log(mu) - mu).eval())
-
-
-@requires_bayes_extra
-@pytest.mark.xfail(
-    strict=True,
-    # only the assertion counts as "defect still present": a crash (import, API change) must fail
-    raises=AssertionError,
-    reason=(
-        "OPEN DEFECT (2026-09-22): shifting a precomputed histogram bilinearly is not binning "
-        "shifted stars. The likelihood depends on the grid's internal reference: on NGC 6383 a "
-        "half-bin move of the reference changes log L by -10.5 / +4.5 at fixed parameters, and "
-        "posteriors lock onto the reference. Needs a per-evaluation deposit of shifted isochrone "
-        "points (or an unbinned likelihood); see docs/design-notes/isochrone_sampler_fix.md."
-    ),
-)
-def test_likelihood_does_not_depend_on_the_internal_reference_frame(tmp_path):
-    """Oracle: invariance. The reference frame is bookkeeping; log L at fixed parameters cannot
-    depend on it. Strict xfail, so the day the defect is fixed this turns red and must be
-    promoted to a plain test."""
-    data = _toy_stars(400, 6.55, 0.0125, 10.25, 0.7, np.random.default_rng(21))
-    lls = []
-    for cls in (IsochroneFitter, _HalfBinReference):
-        (tmp_path / cls.__name__).mkdir()
-        f = _toy_fitter(tmp_path / cls.__name__)
-        f.__class__ = cls
-        f.setup(data, prob_threshold=0)
-        lls.append(_toy_loglike(f, 0.0125, 6.55, 10.25, 0.7))
-    assert abs(lls[0] - lls[1]) < 0.5, lls
+# The strict xfail ``test_likelihood_does_not_depend_on_the_internal_reference_frame`` (2026-09-22)
+# moved the precomputed grid's reference via ``_set_reference_frame``. That method no longer
+# exists, so the test would pass by construction; it is replaced by
+# ``TestUnbinnedLikelihood.test_likelihood_does_not_depend_on_the_prior_centre``, which checks
+# the three routes by which the prior centre used to reach the likelihood.
 
 
 @requires_bayes_extra
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    # only the assertion counts as "defect still present": a crash (import, API change) must fail
-    raises=AssertionError,
-    reason=(
-        "OPEN DEFECT (2026-09-22): the posterior locks onto the grid's reference (dm_mu, "
-        "mean(Av_range)) and onto isochrone metallicity nodes, so an injected truth off the "
-        "reference is not recovered. See the reference-invariance test above."
-    ),
-)
 def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
     """Injection-recovery through the real sampler, with the Vehtari gate.
 
     Oracle: stars drawn star by star from the closed-form toy family (``_toy_stars``), never
-    through the Hess grid. Truth is off the isochrone nodes and off the grid's reference. Tolerances are **absolute and tied to the
-    truth**, not to the posterior width, and the posterior is checked to be informative first
-    (tests/AGENTS.md, failure modes 2 and 4).
+    through the likelihood. Truth is off the isochrone nodes and off the prior centre.
+    Tolerances are **absolute and tied to the truth**, not to the posterior width, and the
+    posterior is checked to be informative first (tests/AGENTS.md, failure modes 2 and 4).
 
-    Mutation (measured 2026-09-22): with the absolute-frame grid, ``dm`` and ``A_V`` are
-    pulled against the lower walls of their priors and the gate fails.
+    History: a strict xfail from 2026-09-22 until the unbinned likelihood replaced the
+    precomputed Hess grid the same day. With the grid, NUTS converged here to dm 10.0009,
+    A_V 0.6003, met 0.0151 -- the grid's reference (10.0, 0.6) and a node (0.015) -- against
+    this truth. Tolerances unchanged from that version.
     """
-    f = _toy_fitter(tmp_path, M_met=9, M_loga=26)
+    f = _toy_fitter(tmp_path)
     # Off every node (met between 0.010 and 0.015, loga between 6.5 and 6.6) and off the
-    # grid's reference (dm_mu = 10.0, mean(Av_range) = 0.6) by about half a magnitude bin, so
-    # a posterior stuck on either cannot pass.
+    # prior centre (dm_mu = 10.0, mean(Av_range) = 0.6), so a posterior stuck on either
+    # cannot pass.
     truth = {"met": 0.0125, "loga": 6.55, "dm": 10.25, "Av": 0.7}
     f.setup(
         _toy_stars(
