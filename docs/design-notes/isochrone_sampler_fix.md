@@ -5,6 +5,17 @@ prior edges) and the golden-standard fix. Confirmed empirically + grounded in th
 literature. This is **next-paper (P02/P05) infrastructure**; the published P01 numbers stand
 on the validated gradient-free DEMetropolis ensemble (see descope below)._
 
+> **2026-09-23 — the likelihood this note specifies now exists, as option 2 (unbinned per star).**
+> `IsochroneFitter` evaluates each star against the isochrone interpolated at fixed EEP between the
+> four bracketing MIST nodes: exact integral of its error Gaussian along each EEP segment, binaries
+> with q marginalised, completeness term, field fraction, free intrinsic width, 0.01 mag floor.
+> Option 3 (a binned Gaussian deposit, the smaller change) was measured first and rejected: the
+> bin-scale smoothing it needs for smooth gradients biased dm by -0.2 to -0.3 mag on synthetic
+> clusters, and without it the likelihood was rough. The "σ ≳ bin width" gotcha below is exactly
+> that. Not adopted from this note: the JAX/NumPyro rewrite (the model stays in PyMC; numpyro is
+> the backend) and the per-star mass latents (mass is integrated along the isochrone instead).
+> Measurements, oracles and what R-hat certifies: `decisions.md`, 2026-09-23 entry.
+
 > **2026-09-22 — this diagnosis was incomplete, and the part it missed was the dominant one.** The
 > staircase below is real, but fixing it alone leaves R-hat at 1.7-2.1. The dominant defect was the
 > grid's frame: it was binned in absolute magnitudes on the apparent window, so the model had no

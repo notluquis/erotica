@@ -10,6 +10,81 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-09-23 — isochrone likelihood rewritten: unbinned per star over EEP-interpolated isochrones
+
+**Symptom.** The entry below left one defect open: the precomputed-Hess likelihood depended on the
+grid's internal reference (a half-bin move changed log L by -10.5 / -10.6 / +4.5 at fixed
+parameters on NGC 6383) and injection-recovery failed (injected dm outside the 90 % interval in
+16 of 16 synthetic clusters; posteriors at `dm_mu` = 10.30 and at metallicity nodes).
+
+**Cause.** Shifting a precomputed histogram bilinearly is not binning shifted stars, and a mixture
+of two node Hess diagrams is broader than either node. The prior centre also reached the
+likelihood through two more routes: the Hess window (widened by a reference isochrone at `dm_mu`)
+and the error kernel (evaluated at `dm_mu`).
+
+**Choice, and the measurement that made it** (`tools/validation/isochrone_likelihood_d1/`). Two
+repairs were on the table: a binned deposit of the shifted, EEP-interpolated isochrone at every
+evaluation, or an unbinned per-star likelihood. The binned deposit was measured first, because it
+is the smaller change, and it failed:
+
+| binned deposit | dm MLE, singles (truth 10.47), seeds 1-3 |
+|---|---|
+| with the bin-scale smoothing the old model applied (needed for smooth gradients) | 10.183 / 10.216 / 10.266 -- biased, and σ_dm 0.15-0.34 |
+| without it | 10.362 / 10.275 / 10.561 -- unbiased, but the MLE sits 41-134 log-units above the truth: rough |
+
+The smoothing is the bias: the model is blurrier than the stars. The unbinned likelihood recovered
+10.468 / 10.473 / 10.476. It is what `erotica/analysis/AGENTS.md` asks of every likelihood here
+anyway ("Likelihoods are unbinned point processes").
+
+**Fix.** Each star is evaluated against the isochrone interpolated at fixed EEP between the four
+bracketing MIST nodes (in log Z and log t), as the exact integral of its error Gaussian along each
+segment between consecutive EEP points, weighted by the Chabrier-2014 IMF; binaries by the Offner
+fraction with q marginalised over D&K (exact along q between mass-ratio nodes, spread along the
+primary); a completeness term at the faintest member; a uniform field fraction; a free intrinsic
+width; and a 0.01 mag floor. Nothing in the likelihood depends on `dm_mu` or `Av_range` now.
+
+**Three defects found while building it, each measured before it was fixed:**
+
+1. *Binary sheet as ridges.* Deposited only at the EEP points along the primary (0.02-0.07 mag
+   apart), the pair sheet is a set of ridges that mmag-error stars fall between. On a binary
+   synthetic the maximum sat 0.11 mag off in dm, 140 log-units above the truth's mode. Fixed by a
+   uniform spread along the primary step (moment-matched), on every 3rd EEP point for cost.
+2. *Small-q pairs misplaced.* f(q) ∝ q^-0.5 piles pairs near q = 0; one [0, 0.3] piece spread them
+   uniformly. Monte Carlo oracle at 0.01 mag errors: χ²/dof 2.45 → 1.17 with nodes at 0.1 and 0.2.
+3. *Cost.* 689 ms per gradient with four exact sub-primaries; 56 ms with the representation above
+   (13 ms without binaries).
+
+**Width floor, 0.01 mag.** The forward model's own approximation error
+(`isochrone_likelihood_d1/budget.py`): IMF-weighted 68th percentile of the leave-one-node-out
+EEP-interpolation residual, 0.016-0.026 mag in age and 0.025-0.032 in Z at twice the native
+steps; scaled to native as the square of the step, 0.005 and 0.008. Fixed before any recovery run.
+
+**Multimodality.** Away from the dominant mode the per-star likelihood has local maxima in
+(Z, log t): a chain from the prior centre settled 242 log-units below the truth's mode. `fit()`
+starts chains from a global search by default (`start="search"`), so **R-hat certifies mixing
+within the mode the search found, not the absence of other modes**.
+
+**Oracles** (`tests/test_isochrone.py::TestUnbinnedLikelihood`), each seen red under its mutation:
+Monte Carlo of the toy family (400 000 stars drawn in closed form, singles and binaries, three
+shifts) -- 1/L dropped, IMF weights without the mass step, completeness sign flipped, q pieces
+unnormalised, binaries at q = 1 only; invariance to the prior centre -- error kernel at `dm_mu`,
+field box or completeness cut moved with `dm_mu`; the interpolated isochrone at a node is the file;
+EEPs a node lacks carry no weight there; continuity across nodes.
+
+**Retired.** `TestHessFrame` (its oracles were for the grid's frame), `_smooth2d` and its tests,
+`_H_grid` / `_interp_H` / `_shift_histogram` and their tests. The strict xfail
+`test_likelihood_does_not_depend_on_the_internal_reference_frame` moved the grid reference through
+`_set_reference_frame`; with no grid it would pass by construction, so it is replaced by the
+prior-centre invariance test. The strict xfail `test_nuts_recovers_an_injected_toy_cluster` is a
+plain test again, tolerances unchanged. `M_met` / `M_loga` are accepted and ignored. Grid caches
+from before are refused on load. `tools/prototypes/emulator/gradient_audit.py` reads an old
+`H_grid` npz file directly; it is a prototype record and was left as is.
+
+**Result against the pre-registered criterion:** see the next section of this entry (filled when
+`tools/validation/isochrone_unbinned_recovery.py` finished).
+
+---
+
 ## 2026-09-22 — isochrone NUTS: two grid bugs fixed, one likelihood defect left open
 
 **Symptom.** The only 4 x 2000 NUTS run of the isochrone model on NGC 6383 (2026-06-11,
