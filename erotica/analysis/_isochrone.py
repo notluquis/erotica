@@ -1068,7 +1068,7 @@ class IsochroneFitter:
         """Locate the dominant likelihood mode and draw chain starts around it.
 
         1. Every (Z, age) node inside the priors, with ``(dm, A_V)`` optimised at a wide
-           intrinsic width (0.05 mag), where the likelihood is smooth, single stars only.
+           intrinsic width (0.05 mag), where the likelihood is smooth.
         2. The ``SEARCH_POLISH`` best nodes are polished (L-BFGS-B, bounded) on all six parameters of the
            full model; the best is the mode.
         3. Local standard deviations from the curvature of log L at the mode; each chain
@@ -1092,15 +1092,10 @@ class IsochroneFitter:
         if len(self._node_logz) == 1:
             lo[0] = hi[0] = zlo
 
-        # Stage 1 uses the single-star model at a wide width: 4-10x cheaper per gradient than
-        # with the binary sheet, and the stage the cost lives in (315 optimisations on
-        # NGC 6383's priors). With binaries on it took > 60 min per fit (measured 2026-09-23).
-        alpha, beta = self.alpha, self.beta
-        self.alpha = self.beta = 0.0
-        try:
-            f1 = self._compiled_loglike(mode)
-        finally:
-            self.alpha, self.beta = alpha, beta
+        # Stage 1 uses the full model. A single-star proxy was tried on 2026-09-23 to save time
+        # and put binary seed 1 on a local maximum 14.6 log-units below the full-model one
+        # (-88.34 vs -73.75); the time it saved was not the bottleneck (sampling is).
+        f1 = self._compiled_loglike(mode)
         cands = []
         ages = [a for a in self._node_loga if lo[1] <= a <= hi[1]] or [
             float(np.mean(self.loga_range))
@@ -1119,7 +1114,6 @@ class IsochroneFitter:
                     jac=True,
                     method="L-BFGS-B",
                     bounds=list(zip(lo[2:4], hi[2:4], strict=True)),
-                    options={"maxiter": 60},
                 )
                 cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
         cands.sort(key=lambda c: c[0])
