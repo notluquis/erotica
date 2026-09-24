@@ -22,8 +22,10 @@ choice — naming what you rejected. An `UNSURVEYED` row is a recorded liability
   observations discards the parallax errors entirely.
 - **Models return the trace.** Collapsing a posterior to mean±sd on exit is how `dynamics.py` ended
   up with uncertainty-free tidal radii.
-- **Fixed-`ν` HalfStudentT, not HalfCauchy** — see the warning in `KingPriors`; a PyTensor numba
-  `CauchyRV` bug (issue #2308, PR #2309) makes the two non-identical in sampling.
+- **`pm.HalfCauchy` directly, since 2026-09-24 (F1)** — see the note in `KingPriors`. From
+  2026-07-27 to then this was built as fixed-`ν` `HalfStudentT` instead, working around a PyTensor
+  numba `CauchyRV` bug (issue #2308, fixed by PR #2309 in `rel-3.2.4`, now the pinned floor). The
+  model builders raise `RuntimeError` below that floor rather than silently reproducing the bug.
 
 ## Things that are easy to get wrong here, because they already were
 

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **King/EFF/corona model builders now use `pm.HalfCauchy` directly, dropping the
+  `HalfStudentT(nu=1)` workaround** for pytensor#2308 (numba `CauchyRV` drew with location
+  `loc/scale` and scale `1/scale` instead of `loc, scale`; `logp`/NUTS were unaffected but
+  `sample_prior_predictive` was silently wrong). Fixed upstream in PR #2309, released
+  `rel-3.2.4` (2026-08-01); `pytensor>=3.2.4` and `pymc>=6.2` are now the floor in `[bayes]`
+  and `[paper]`, and the builders raise `RuntimeError` below that floor instead of silently
+  reproducing the bug. Closes hub thread F1. See `docs/design-notes/decisions.md` (2026-09-24).
 - **`IsochroneFitter`: single stars are deposited with a density continuous along the track**
   (linear within each segment between EEP points) instead of each segment's IMF weight spread
   uniformly. Where MIST's EEP points are sparse and slide fast along the track with age, the

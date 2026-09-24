@@ -89,6 +89,12 @@ dependencies:
   - adjusttext>=1.4
 
   # --- [bayes] ---
+  # pytensor>=3.2.4, declared explicitly and not left to come in transitively via pymc: it fixes
+  # pytensor#2308 (numba CauchyRV corrupts pm.HalfCauchy draws), and structure.py's model
+  # builders now call pm.HalfCauchy directly and raise below this floor (F1, closed 2026-09-24;
+  # see pyproject.toml [bayes] and docs/design-notes/decisions.md). The 2026-08-03 solve already
+  # resolved pytensor 3.2.4 with pymc 6.2.0, so this floor matches what pymc>=6.2 already pulls.
+  - pytensor>=3.2.4
   - pymc>=6.2
   - arviz>=1.2
   - xarray>=2026.7

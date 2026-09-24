@@ -84,8 +84,23 @@ examples = [
 bayes = [
     # `pytensor` viene por `pymc`, pero `_isochrone.py` lo importa DIRECTO y sin guardia
     # (lineas 680, 717, 907): lo que se importa se declara, no se hereda.
-    "pytensor",
-    "pymc>=6",
+    #
+    # >=3.2.4, no bare: pytensor#2308 (numba CauchyRV computes (loc+z)/scale instead of
+    # loc+scale*z, corrupting pm.HalfCauchy's DRAWS -- logp and NUTS posteriors are unaffected)
+    # is fixed by PR #2309 in rel-3.2.4 (2026-08-01). structure.py's King/EFF/corona model
+    # builders call pm.HalfCauchy directly (F1, closed 2026-09-24) and raise RuntimeError below
+    # this floor rather than silently reproducing the bug -- see
+    # `erotica/analysis/structure.py::_assert_pytensor_cauchy_fixed` and
+    # `docs/design-notes/decisions.md` (2026-09-24 entry).
+    "pytensor>=3.2.4",
+    # >=6.2: the first pymc release whose OWN pytensor pin (`pytensor<3.3,>=3.2.2`) admits
+    # 3.2.4; pymc 6.0.1/6.1.0 pin pytensor below the fix and cannot be installed alongside it.
+    # Verified against `pypi.org/pypi/pymc/<ver>/json` -> info.requires_dist, 2026-09-24.
+    "pymc>=6.2",
+    # `_assert_pytensor_cauchy_fixed` (structure.py) imports `packaging.version.Version` inside a
+    # function, not at module level, but `tools/validation/check_declared_deps.py` still requires
+    # anything imported to be declared somewhere -- it was missing entirely from this file.
+    "packaging",
   "arviz>=1",
   "xarray>=2023",
   # numpyro is the NUTS backend the validation sweeps use: measured 2.71x faster than the
@@ -143,7 +158,13 @@ selection = [
   "hr-selection-function>=1.0",
 ]
 paper = [
-  "pymc>=6",
+  # Same floors and the same reason as [bayes]: this extra regenerates the King/EFF/corona
+  # figures, calling the same _king_model / _eff_model / _king_corona_model builders, so an
+  # unpinned pytensor here would let the pytensor#2308 CauchyRV bug back in for exactly the
+  # numbers that get published.
+  "pytensor>=3.2.4",
+  "pymc>=6.2",
+  "packaging",  # _assert_pytensor_cauchy_fixed imports packaging.version -- see [bayes]
   "arviz>=1",
   "xarray>=2023",
   "numpyro>=0.15",

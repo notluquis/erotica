@@ -1643,3 +1643,71 @@ leaves that test **green**: both parameterisations identify `std_r` equally well
 one broke was the geometry, not the identification. The R-hat and ESS assertions in
 `_assert_no_divergences` are what guard the geometry. The two mutations that do turn the prior test
 red are the ones that remove `std_r` from the likelihood.
+
+
+## 2026-09-24 — F1 closed: the `HalfStudentT(nu=1)` workaround is dropped, pytensor 3.2.4 fixed it
+
+**What changed.** The 2026-07-27 entry above (`## 2026-07-27 — the King fit is now unbinned...`
+warning block) recorded that `pm.HalfCauchy`'s numba draws were wrong by `1/beta` in scale and
+`loc/beta` in location, and routed around it in `KingPriors`/`EFFPriors`/`CoronaPriors` by building
+every half-Cauchy prior as `pm.HalfStudentT(nu=1, sigma=...)` — mathematically identical, but on a
+different numba code path. Upstream `pytensor` PR #2309 (fixing issue #2308) released in
+`rel-3.2.4` on 2026-08-01. `_king_model`, `_eff_model` and `_king_corona_model` now call
+`pm.HalfCauchy` directly.
+
+**Measured, not assumed, before touching the code.** `pm.HalfCauchy(beta=scale)` was drawn
+(200,000 draws, seed 0) at every scale erotica's shipped priors actually use, against
+`scipy.stats.halfcauchy`, on both the pytensor installed in the `cosmic` conda env and an isolated
+scratch venv (`uv venv --python 3.13`, `pytensor==3.2.4`, `pymc==6.3.2`, the first pymc release
+whose own pin admits it):
+
+| scale | param | pytensor 3.0.7 (`cosmic`) rel. IQR err | pytensor 3.2.4 (venv) rel. IQR err |
+|---|---|---|---|
+| 5.0 | `r_c_scale` | 96.00% | 0.08% |
+| 10.0 | `corona.k_scale` | 99.00% | 0.08% |
+| 20.0 | `r_t_scale` | 99.75% | 0.08% |
+| 30.0 | `corona.r_t_scale` | 99.89% | 0.08% |
+| 60.0 | `corona.r_2_scale` | 99.97% | 0.08% |
+| 0.01 | `corona.delta_scale` | 1,000,651% | 0.08% |
+
+The `delta_scale = 0.01` row is the sharpest: the bug's `1/beta` inversion turns a scale of 0.01
+into an effective 100, a four-order-of-magnitude blowup — exactly the "an order-of-magnitude error
+in the scale costs little" heavy-tail property of the half-Cauchy working against detection, because
+the corrupted draws still *look* like a plausible half-Cauchy, just the wrong one.
+
+**Why `k_scale`/`b_scale` = 1.0 could not be used as the falsifier.** King's and EFF's shipped
+defaults are `k_scale = 1.0`, `b_scale = 1.0` — and the bug's inversion is `scale -> 1/scale`, whose
+only fixed point is 1. A test built on those two parameters alone would read green on both the
+broken and the fixed pytensor. `tests/test_structure.py::test_half_cauchy_priors_draw_correctly_in_the_real_models`
+therefore asserts on `R_c`/`dR`/`a` (scale 5, 20, 5) and, for the corona model, `k`/`R_2`/`delta_f`
+(scale 10, 60, 0.01) — every non-unit-scale parameter the three real model builders expose.
+
+**Floor, and the edge it does not cover by itself.** `pyproject.toml` `[bayes]` and `[paper]` now
+pin `pytensor>=3.2.4` and `pymc>=6.2` (verified against `pypi.org/pypi/pymc/<ver>/json` that 6.0.1
+and 6.1.0 pin pytensor below the fix and 6.2.0 is the first to admit 3.2.4); `environment.yml`
+gained an explicit `pytensor>=3.2.4` line rather than leaving it transitive through `pymc>=6.2`, per
+the existing "what is imported directly is declared directly, not inherited" rule already applied
+there to `_isochrone.py`. **A floor in `pyproject.toml` binds `pip install`, not an environment that
+already has an old pytensor installed** — `cosmic` (the shared conda env, another session's batch
+running in it at the time of this entry) still carries pytensor 3.0.7 and was deliberately **not**
+upgraded here. Because the model builders now call `pm.HalfCauchy` directly, running them unupgraded
+would silently reproduce the exact bug this entry closes — the pip floor alone is invisible to an
+env that never reinstalls. `_assert_pytensor_cauchy_fixed()` (called at the top of all three
+builders) turns that into a loud `RuntimeError` naming the bug and the fix, instead of a silently
+wrong prior-predictive draw.
+
+**Why not an op-type check.** A guard of the form `isinstance(model["R_c"].owner.op, HalfCauchyRV)`
+would pass on the exact broken combination — new code, old pytensor — because it inspects which
+distribution was *requested*, not what it *drew*. The regression test instead measures the drawn
+IQR against the `scipy.stats.halfcauchy` oracle, the same falsifier used above, so it fails on the
+behaviour and not on the diff.
+
+**Mutated.** Reverting `_king_model` to `pm.HalfStudentT(nu=1, ...)` leaves the new test green on
+both pytensor versions — the harmless direction, since the two forms are equivalent once the bug is
+fixed and `HalfStudentT` was never broken. Running the same IQR assertions against raw
+`pm.HalfCauchy.dist` on `cosmic`'s pytensor 3.0.7 reproduces the red in the table above; that run
+*is* the mutation this entry is closing, not a hypothetical one.
+
+Hub: closes `state/programme.yaml` node F1 and its row in `open-threads.md`. No `state/findings.yaml`
+entry cited this workaround (checked; F1's only other mention, at a different YAML line, is about
+the roadmap renderer's "puede empezar hoy" list, unrelated).

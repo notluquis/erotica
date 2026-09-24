@@ -578,18 +578,42 @@ def king_profile(radius, *args, core_radius=None, tidal_radius=None, background=
 # ---------------------------------------------------------------------------
 
 
+def _assert_pytensor_cauchy_fixed():
+    """Refuse to build a half-Cauchy-prior model on a pytensor with the numba CauchyRV bug.
+
+    Below pytensor 3.2.4 (pytensor#2308, fixed by PR #2309), the numba backend's ``CauchyRV``
+    draws with location ``loc/scale`` and scale ``1/scale`` instead of ``loc, scale`` -- ``logp``
+    is unaffected so NUTS posteriors are fine, but ``sample_prior_predictive`` /
+    ``sample_posterior_predictive`` read the draws and would be silently wrong. From 2026-07-27 to
+    2026-09-24 this was routed around with ``pm.HalfStudentT(nu=1, ...)`` (see the ``KingPriors``
+    docstring); now that the model builders call ``pm.HalfCauchy`` directly, an environment with an
+    unupgraded pytensor must fail loudly here rather than reproduce that exact silent bug.
+    """
+    import pytensor
+    from packaging.version import Version
+
+    if Version(pytensor.__version__) < Version("3.2.4"):
+        raise RuntimeError(
+            f"pytensor {pytensor.__version__} is older than 3.2.4: pm.HalfCauchy's numba draws are "
+            "silently wrong on this version (pytensor#2308, fixed by PR #2309 in rel-3.2.4, "
+            "2026-08-01). Upgrade pytensor (`pip install 'erotica[bayes]'` or `[paper]` picks up "
+            "the floor in pyproject.toml) before sampling from these priors."
+        )
+
+
 def _king_model(pm, r, field_radius, priors, tidal_prior, completeness):
+    _assert_pytensor_cauchy_fixed()
     with pm.Model() as model:
-        R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
+        R_c = pm.HalfCauchy("R_c", beta=priors.r_c_scale)
         if tidal_prior is None:
-            R_t = pm.Deterministic("R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale))
+            R_t = pm.Deterministic("R_t", R_c + pm.HalfCauchy("dR", beta=priors.r_t_scale))
         else:
             mu, sigma = tidal_prior
             R_t = pm.Deterministic(
                 "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
             )
-        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
-        b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
+        k = pm.HalfCauchy("k", beta=priors.k_scale)
+        b = pm.HalfCauchy("b", beta=priors.b_scale)
 
         core = 1.0 / pm.math.sqrt(1.0 + (r / R_c) ** 2)
         edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)
@@ -606,10 +630,11 @@ def _king_model(pm, r, field_radius, priors, tidal_prior, completeness):
 
 
 def _eff_model(pm, r, field_radius, priors, gamma, completeness=None):
+    _assert_pytensor_cauchy_fixed()
     with pm.Model() as model:
-        a = pm.HalfStudentT("a", nu=1, sigma=priors.a_scale)
-        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
-        b = pm.HalfStudentT("b", nu=1, sigma=priors.b_scale)
+        a = pm.HalfCauchy("a", beta=priors.a_scale)
+        k = pm.HalfCauchy("k", beta=priors.k_scale)
+        b = pm.HalfCauchy("b", beta=priors.b_scale)
         if gamma is None:
             g = pm.TruncatedNormal("gamma", mu=priors.gamma_mu, sigma=priors.gamma_sigma, lower=0.1)
         else:
@@ -652,18 +677,24 @@ class KingPriors:
     are scale-free and heavy-tailed, so an order-of-magnitude error in the scale
     costs little.
 
-    .. warning::
-       The half-Cauchy is built as ``pm.HalfStudentT(nu=1, sigma=...)``, **not**
-       ``pm.HalfCauchy(beta=...)``, which they are mathematically identical to.
-       The cause is in **PyTensor**, not PyMC: ``pytensor/link/numba/dispatch/
-       random.py`` implements ``CauchyRV`` as ``(loc + z) / scale`` instead of
-       ``loc + scale * z``, so numba-backed draws get location ``loc/scale`` and
-       scale ``1/scale``. numba is the *default* linker; the scipy and JAX paths
-       are correct, as is ``logp``. NUTS reads ``logp``, so posteriors are
-       unaffected -- but ``sample_prior_predictive`` reads the draws, so every
-       prior-predictive check built on ``HalfCauchy`` is silently wrong.
-       ``HalfStudentT`` is correct in both paths. Full analysis and a one-line
-       patch: ``tools/validation/pytensor_cauchy_bug_report.md``.
+    .. note::
+       Built directly as ``pm.HalfCauchy(beta=...)`` since 2026-09-24 (F1, hub
+       ``state/programme.yaml``). From 2026-07-27 to then it was built as
+       ``pm.HalfStudentT(nu=1, sigma=...)`` instead -- mathematically identical,
+       but a workaround for a **PyTensor** bug, not a PyMC one:
+       ``pytensor/link/numba/dispatch/random.py`` implemented ``CauchyRV`` as
+       ``(loc + z) / scale`` instead of ``loc + scale * z``, so numba-backed
+       draws (numba is the *default* linker) got location ``loc/scale`` and
+       scale ``1/scale``; ``logp`` was always correct, so NUTS posteriors were
+       never affected, but ``sample_prior_predictive`` reads the draws, so every
+       prior-predictive check built on ``HalfCauchy`` was silently wrong.
+       Fixed upstream in ``pytensor`` PR #2309 (issue #2308), released in
+       ``rel-3.2.4`` (2026-08-01) -- now the pinned floor (see ``pyproject.toml``).
+       ``_king_model``, ``_eff_model`` and ``_king_corona_model`` raise
+       ``RuntimeError`` at build time on an older pytensor rather than silently
+       reproducing the bug. Full analysis, the falsifying measurement and the
+       mutation record: ``tools/validation/pytensor_cauchy_bug_report.md`` and
+       ``docs/design-notes/decisions.md`` (2026-09-24 entry).
 
     WHERE THE NUMBERS COME FROM
     ---------------------------
@@ -1371,18 +1402,19 @@ def _king_corona_model(pm, r, field_radius, priors, tidal_prior, completeness):
             "completeness weighting is not implemented for the corona model; the "
             "weighted normalisation would need its own quadrature."
         )
+    _assert_pytensor_cauchy_fixed()
     with pm.Model() as model:
-        R_c = pm.HalfStudentT("R_c", nu=1, sigma=priors.r_c_scale)
+        R_c = pm.HalfCauchy("R_c", beta=priors.r_c_scale)
         if tidal_prior is None:
-            R_t = pm.Deterministic("R_t", R_c + pm.HalfStudentT("dR", nu=1, sigma=priors.r_t_scale))
+            R_t = pm.Deterministic("R_t", R_c + pm.HalfCauchy("dR", beta=priors.r_t_scale))
         else:
             mu, sigma = tidal_prior
             R_t = pm.Deterministic(
                 "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
             )
-        k = pm.HalfStudentT("k", nu=1, sigma=priors.k_scale)
-        R_2 = pm.HalfStudentT("R_2", nu=1, sigma=priors.r_2_scale)
-        delta_f = pm.HalfStudentT("delta_f", nu=1, sigma=priors.delta_scale)
+        k = pm.HalfCauchy("k", beta=priors.k_scale)
+        R_2 = pm.HalfCauchy("R_2", beta=priors.r_2_scale)
+        delta_f = pm.HalfCauchy("delta_f", beta=priors.delta_scale)
 
         core = 1.0 / pm.math.sqrt(1.0 + (r / R_c) ** 2)
         edge = 1.0 / pm.math.sqrt(1.0 + (R_t / R_c) ** 2)

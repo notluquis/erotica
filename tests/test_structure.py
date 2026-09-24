@@ -484,13 +484,23 @@ def test_too_few_stars_is_an_error():
 
 @requires_bayes_extra
 def test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug():
-    """PyMC 6.1.0: ``HalfCauchy`` draws and logp disagree. Pin the workaround.
+    """Historical pin of the raw pytensor#2308 bug at the PyMC-distribution level.
 
     ``HalfCauchy(beta)`` has the correct ``logp`` (scale = beta, matching its own
-    docstring) but its random draws use ``1/beta`` as the scale. NUTS reads logp,
-    so posteriors are right; ``sample_prior_predictive`` reads the draws, so every
-    prior-predictive check built on it is wrong. ``HalfStudentT(nu=1, sigma)`` is
-    the same distribution and is correct in both paths.
+    docstring) but on pytensor < 3.2.4 its random draws use ``1/beta`` as the
+    scale. NUTS reads logp, so posteriors are right; ``sample_prior_predictive``
+    reads the draws, so every prior-predictive check built on it was wrong.
+    ``HalfStudentT(nu=1, sigma)`` is the same distribution and is correct in
+    both paths -- it was erotica's workaround from 2026-07-27 to 2026-09-24 (F1).
+
+    The workaround is dropped: ``_king_model``/``_eff_model``/``_king_corona_model``
+    call ``pm.HalfCauchy`` directly again, and ``[bayes]``/``[paper]`` pin
+    ``pytensor>=3.2.4``. This test does NOT guard that -- its version-conditional
+    assertion below is written so it can never fail on an upgrade (seeing that
+    behaviour go from "wrong" to "right" is not a regression), which also means
+    it cannot fail if the workaround were carelessly reintroduced or a future
+    pytensor regressed. That guard is
+    ``test_half_cauchy_priors_draw_correctly_in_the_real_models``, directly below.
 
     Oracle: ``scipy.stats.halfcauchy``, for both the density and the IQR.
     """
@@ -529,6 +539,98 @@ def test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug():
             f"pytensor {pytensor.__version__} is below 3.2.4 but no longer shows the 1/beta scale "
             "bug -- re-check whether the HalfStudentT workaround is still needed"
         )
+
+
+@requires_bayes_extra
+def test_half_cauchy_priors_draw_correctly_in_the_real_models():
+    """F1 (hub ``state/programme.yaml``): guards the drop of the ``HalfStudentT(nu=1)``
+    workaround in ``_king_model``/``_eff_model``/``_king_corona_model``.
+
+    Measures prior-predictive draws from the ACTUAL shipping model builders, not a
+    reimplementation -- same discipline as ``test_priors_do_not_depend_on_the_data``
+    above -- against the ``scipy.stats.halfcauchy`` oracle. This is the guard against
+    the bug this workaround existed for (pytensor#2308: numba ``CauchyRV`` draws with
+    scale ``1/beta`` instead of ``beta``), not against the code diff: a check of
+    *which* distribution class was requested (e.g. ``isinstance(..., HalfCauchyRV)``)
+    would stay green on exactly the broken combination -- new code, old pytensor --
+    because it inspects intent, not the drawn numbers.
+
+    Only NON-unit scales are asserted. ``scale -> 1/scale`` has a fixed point at
+    ``scale = 1``, and King's/EFF's shipped ``k_scale``/``b_scale`` defaults are
+    exactly 1.0 -- a real, measured property of this bug (not an oversight here),
+    so those two parameters cannot distinguish broken from fixed and are skipped.
+    ``CoronaPriors`` supplies every other parameter at a genuinely different scale
+    (5, 10, 30, 60, 0.01), which is why it, not just ``KingPriors``, is exercised.
+
+    Mutation record (measured 2026-09-24, before this fix, in
+    ``docs/design-notes/decisions.md``): on the pytensor installed in the shared
+    ``cosmic`` conda env (3.0.7), the equivalent raw ``pm.HalfCauchy.dist(beta=scale)``
+    draws were off by 96-99.97% at these scales, and by a factor of >10000 at
+    ``delta_scale = 0.01`` (the bug's ``1/beta`` inversion turns 0.01 into 100). On
+    pytensor 3.2.4 the same draws were off by 0.08%. Re-run that raw comparison
+    (not this test, which exercises the guarded code) to reproduce the mutation.
+    """
+    import pymc as pm
+    from scipy import stats
+
+    from erotica.analysis.structure import (
+        CoronaPriors,
+        EFFPriors,
+        _eff_model,
+        _king_corona_model,
+        _king_model,
+    )
+
+    radii = np.array([5.0, 10.0, 20.0, 40.0, 80.0])  # dummy: prior predictive ignores the Potential
+    field = 200.0
+    draws = 100_000
+    tol = 0.05  # measured worst case at draws=100_000 on a fixed pytensor was 0.94%
+
+    def iqr_of(values):
+        return float(np.subtract(*np.percentile(values, [75, 25])))
+
+    def assert_matches_halfcauchy(idata, rv_name, scale):
+        ref = stats.halfcauchy(scale=scale)
+        measured = iqr_of(np.asarray(idata.prior[rv_name].values).ravel())
+        expected = ref.ppf(0.75) - ref.ppf(0.25)
+        assert measured == pytest.approx(expected, rel=tol), (
+            f"{rv_name} (scale={scale}): drawn IQR {measured:.4g} vs scipy.stats.halfcauchy "
+            f"{expected:.4g} -- pm.HalfCauchy is not drawing correctly on this pytensor "
+            "(pytensor#2308: numba CauchyRV wrong below 3.2.4)"
+        )
+
+    king_priors = KingPriors()
+    with _king_model(pm, radii, field, king_priors, None, None):
+        idata = pm.sample_prior_predictive(draws=draws, random_seed=0)
+    assert_matches_halfcauchy(idata, "R_c", king_priors.r_c_scale)
+    assert_matches_halfcauchy(idata, "dR", king_priors.r_t_scale)
+
+    eff_priors = EFFPriors()
+    with _eff_model(pm, radii, field, eff_priors, gamma=2.0, completeness=None):
+        idata = pm.sample_prior_predictive(draws=draws, random_seed=0)
+    assert_matches_halfcauchy(idata, "a", eff_priors.a_scale)
+
+    corona_priors = CoronaPriors()
+    with _king_corona_model(pm, radii, field, corona_priors, None, None):
+        idata = pm.sample_prior_predictive(draws=draws, random_seed=0)
+    assert_matches_halfcauchy(idata, "R_c", corona_priors.r_c_scale)
+    assert_matches_halfcauchy(idata, "dR", corona_priors.r_t_scale)
+    assert_matches_halfcauchy(idata, "k", corona_priors.k_scale)
+    assert_matches_halfcauchy(idata, "R_2", corona_priors.r_2_scale)
+    assert_matches_halfcauchy(idata, "delta_f", corona_priors.delta_scale)
+
+
+@requires_bayes_extra
+def test_structure_models_refuse_a_below_floor_pytensor(monkeypatch):
+    """The loud half of the guard: below pytensor 3.2.4, building must raise, not draw wrong."""
+    import pymc as pm
+    import pytensor
+
+    from erotica.analysis.structure import _king_model
+
+    monkeypatch.setattr(pytensor, "__version__", "3.2.3")
+    with pytest.raises(RuntimeError, match="3.2.4"):
+        _king_model(pm, np.array([1.0, 2.0]), 50.0, KingPriors(), None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -865,10 +967,12 @@ def test_corona_normalisation_matches_quadrature():
             # delta_f and R_2 are bound as defaults, not captured: a bare closure over the
             # loop variables would make every iteration integrate the LAST parameter pair
             # once quad deferred the call, and the test would still pass on the final case.
-            lambda x, delta_f=delta_f, R_2=R_2: 2
-            * np.pi
-            * x
-            * float(corona_surface_density(np.array([x]), delta_f=delta_f, R_2=R_2)[0]),
+            lambda x, delta_f=delta_f, R_2=R_2: (
+                2
+                * np.pi
+                * x
+                * float(corona_surface_density(np.array([x]), delta_f=delta_f, R_2=R_2)[0])
+            ),
             0.0,
             field,
             limit=400,

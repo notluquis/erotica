@@ -1,14 +1,21 @@
-> **Status:** filed as [pymc-devs/pytensor#2308](https://github.com/pymc-devs/pytensor/issues/2308),
-> fix submitted as [PR #2309](https://github.com/pymc-devs/pytensor/pull/2309).
-> Maintainer response (ricardoV94): *"yeah I hate tests with scale=1, loc=0 precisely because of that."*
+> **Status: CLOSED, 2026-09-24.** Filed as [pymc-devs/pytensor#2308](https://github.com/pymc-devs/pytensor/issues/2308),
+> fixed by [PR #2309](https://github.com/pymc-devs/pytensor/pull/2309), released in `rel-3.2.4`
+> (2026-08-01). Maintainer response (ricardoV94): *"yeah I hate tests with scale=1, loc=0 precisely
+> because of that."*
 >
 > PR also un-degenerates the `gumbel` GOF case (`scale=1.0` → `4.0`); an audit of every
 > hand-written numba RV core against scipy with non-degenerate parameters found `cauchy` was the
 > only real bug.
 >
-> Once released, drop the `HalfStudentT(nu=1)` workaround in `analysis/structure.py` —
-> `tests/test_structure.py::test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug`
-> fails when the upstream fix lands, which is the signal.
+> The `HalfStudentT(nu=1)` workaround in `analysis/structure.py` is **dropped** (hub thread F1;
+> `docs/design-notes/decisions.md`, 2026-09-24 entry). ⚠ The line below turned out to be wrong and
+> is kept as a record of the mistake: `test_half_cauchy_prior_is_built_without_the_pymc_halfcauchy_bug`
+> was later given a version split (`pytensor.__version__ >= "3.2.4"`) specifically so it would
+> **not** fail on upgrade — the opposite of what this note originally predicted. The fix landing
+> was actually caught by `state/data-horizon.yaml`'s check, 54 days late, not by this test. The new
+> falsifier is `tests/test_structure.py::test_half_cauchy_priors_draw_correctly_in_the_real_models`,
+> which measures drawn IQR against `scipy.stats.halfcauchy` on the real model builders and has no
+> version branch to go stale.
 
 # BUG: numba backend samples `Cauchy`/`HalfCauchy` with the wrong loc and scale
 
