@@ -21,11 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   but that pass is reference-dependent (the same fit with the grid's internal reference moved
   half a bin gives R-hat 1.03, ESS 152) and not robust on synthetic data (6 of 16 runs fail it).
 
+### Changed
+- **`IsochroneFitter` likelihood rewritten: unbinned per star over EEP-interpolated MIST
+  isochrones**, replacing the shifted precomputed Hess grid. Exact Gaussian integral along each
+  isochrone segment, binaries with q marginalised, completeness term, field fraction, free
+  intrinsic width (0.01 mag floor). The likelihood no longer depends on the prior centre (ΔlogL =
+  0.0 on NGC 6383 where the grid gave −10.5 / −10.6 / +4.5). `fit()` starts chains from a global
+  mode search with a seeded mass matrix. `M_met` / `M_loga` are ignored; grid caches are refused.
+
 ### Known issue
-- **`IsochroneFitter` is experimental and its parameters are biased.** Injection-recovery shows
-  the posterior locking onto the grid's reference `(dm_mu, mean(Av_range))` and onto metallicity
-  nodes (injected dm outside the 90 % interval in 16 of 16 runs). Pinned by two strict-xfail
-  tests; see `docs/design-notes/decisions.md` (2026-09-22).
+- ~~**`IsochroneFitter` is experimental and its parameters are biased.**~~ The reference locking
+  is gone (see Changed). **Still experimental**: the dm-A_V ridge mixes slowly (ESS_bulk ~300 at
+  2 × 3000 draws on a toy cluster whose truth is recovered), and full injection-recovery on MIST
+  synthetics is not yet measured. Pinned by a strict-xfail test; see
+  `docs/design-notes/decisions.md` (2026-09-23).
 
 ## [0.2.0] - 2026-09-22
 
