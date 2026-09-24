@@ -1591,6 +1591,22 @@ def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
 
 
 @requires_bayes_extra
+def test_chain_starts_are_strictly_inside_the_prior(tmp_path):
+    """A chain started ON an interval bound sits at -inf in the sampler's logit space and never
+    moves. On NGC 6383 (2026-09-24) the likelihood mode had A_V on its lower prior bound, 3 of
+    4 starts were clipped onto it, and those chains were 100 % divergent with step size 0.
+    Here the truth (A_V 0.6) is below the prior (0.7-1.0), so the mode sits on the bound."""
+    f = _toy_fitter(tmp_path, Av_range=(0.7, 1.0))
+    f.setup(_toy_stars(300, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(4)), prob_threshold=0)
+    found = f.find_start(8, np.random.default_rng(0))
+    assert found["mode"]["Av"] == pytest.approx(0.7, abs=1e-6)  # the case is exercised
+    bounds = {"loga": f.loga_range, "dm": f.dm_range, "Av": f.Av_range}
+    for st in found["chain_starts"]:
+        for k, (a, b) in bounds.items():
+            assert a < st[k] < b, (k, st[k])
+
+
+@requires_bayes_extra
 def test_default_pymc_sampler_path_runs(tmp_path):
     """The default ``fit()`` (PyMC's own NUTS with the seeded, adapting mass matrix) must run.
     It broke twice on 2026-09-23 (a custom step together with ``target_accept``, and with an

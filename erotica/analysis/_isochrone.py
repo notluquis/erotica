@@ -1302,8 +1302,12 @@ class IsochroneFitter:
             sd[k] = 1 / np.sqrt(curv) if curv > 0 else 0.1 * (hi[k] - lo[k])
         names = ("met", "loga", "dm", "Av")
         starts = []
+        # strictly inside the prior: a start ON an interval bound is -inf in the sampler's
+        # logit space, and the chain never moves (NGC 6383, 2026-09-24: the mode had A_V on its
+        # lower bound, 3 of 4 starts were clipped onto it, and those chains were 100 % divergent)
+        margin = 1e-6 * (hi[:4] - lo[:4])
         for _ in range(n_chains):
-            x = np.clip(best[:4] + rng.uniform(-3, 3, 4) * sd, lo[:4], hi[:4])
+            x = np.clip(best[:4] + rng.uniform(-3, 3, 4) * sd, lo[:4] + margin, hi[:4] - margin)
             st = {n: float(v) for n, v in zip(names, x, strict=True)}
             st["sigma_int"] = float(max(best[4], 1e-3) * rng.uniform(0.7, 1.4))
             st["f_bg"] = float(np.clip(best[5], 1e-3, 0.5) * rng.uniform(0.7, 1.4))
