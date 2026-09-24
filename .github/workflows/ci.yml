@@ -27,6 +27,11 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: ${{ matrix.python-version }}
+      # JSON committed must be JSON, not just re-readable by Python: a bare NaN/Infinity token is
+      # rejected by jq, JSON.parse and any schema validator. The pre-commit hook already checks
+      # this, but a hook can be skipped -- commit cc7dc3a landed a NaN sidecar and only the hub's
+      # R8-10/R8-16 guards caught it, a day later. Stdlib only, so it runs before the install.
+      - run: python tools/check_json_strict.py
       - run: pip install -e .[dev]
       # The external-oracle extra, installed WITHOUT its dependency chain -- ocelot's own deps
       # (healpy, dustmaps, gaiaunlimited, astromet) are irrelevant here and slow. `|| true`
