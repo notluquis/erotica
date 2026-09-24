@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`IsochroneFitter`: the completeness term is integrated along each isochrone segment** instead
+  of evaluated at its midpoint. The midpoint made `N ln F` step once per EEP segment of shift,
+  turning log L into a sawtooth of local modes (teeth 2-4 log-units on the toy family) that NUTS
+  hopped between: ESS/draw on A_V 0.03-0.05 → 0.25-0.26 on the toy, and its mode moves from
+  dm 10.30 / A_V 0.72 to 10.27 / 0.69 (truth 10.25 / 0.70). This, not a dm-A_V ridge, was the
+  slow mixing listed under Known issue.
 - **`IsochroneFitter`: the model Hess had no stars brighter than the window's faint end minus the
   distance modulus.** The precomputed grid was binned in absolute magnitudes on the apparent
   window and then shifted by the full `dm + k_G A_V`; on NGC 6383 the model put zero mass

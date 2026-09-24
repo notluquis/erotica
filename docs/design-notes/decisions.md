@@ -10,6 +10,44 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-09-24 — isochrone completeness integrated along each segment: the "dm-A_V ridge" was a sawtooth
+
+**Symptom.** The entry below closed with "the dm-A_V ridge mixes at ESS/draw ≈ 0.05" and proposed
+sampling in the CMD shifts `(dm + k_G A_V, k_c A_V)`. Measured first, on the toy fixture (500
+stars, numpyro 2 x 1000, sampler seed 11): corr(dm, A_V) = **+0.37**, not a ridge; and
+`dm + k_G A_V` mixed *worst* of all (ESS/draw 0.042, against 0.066 for dm and 0.050 for A_V). The
+reparametrisation would have made it worse. A_V was multimodal, with block means of 50 draws
+jumping between 0.70 and 0.78.
+
+**Cause.** The profile of log L in A_V was a sawtooth: period ≈ 0.055, teeth 2-4 log-units, dm
+jumping ≈ +0.09 mag at each tooth -- one EEP step of the toy (0.104 mag in G along the main
+sequence, against widths of 0.014). With the toy written at 480 EEP points instead of 120 the
+profile was smooth, so the teeth were an along-track discretisation artefact. The term:
+`_p_observed` evaluated Phi at each segment's **midpoint**, so a segment's whole IMF weight
+switched on within ±s of shift as its midpoint crossed the completeness cut -- a step in
+`N ln F`, the same for every star, once per EEP step. (The densities were already exact
+integrals along the segment; the IMF weights do not depend on the shift.)
+
+**Fix.** `_p_observed(A, B, ...)` is the exact average of Phi over the uniform segment,
+`s/(B-A) [psi((G_lim-A)/s) - psi((G_lim-B)/s)]` with `psi(x) = x Phi(x) + phi(x)`. At 120 EEP
+points the profile is smooth and its maximum (335.340 at A_V 0.690) matches the 480-point
+control (335.355 at 0.695). A second change -- the binary pieces' primary-direction spread in the
+cut's variance -- was tried and dropped: no measurable effect on the detected-fraction oracle.
+
+**Oracles** (`tests/test_isochrone.py::TestUnbinnedLikelihood`), each seen red with the midpoint
+rule restored: `_p_observed` against `scipy.integrate.quad` (1e-9); the detected fraction against
+400 000 closed-form toy stars (midpoint off by 3.2e-3 at dm 10.04, tolerance 1e-3); and the
+promise itself -- the per-step change of `N ln F` over dm 10.15-10.40 in 0.002 steps varied
+0-0.42 with the midpoint (max/median 11) and is 0.142-0.147 now (bound 1.5).
+
+**Numbers that moved** (toy, 2 x 1000, sampler seeds 11 / 12): ESS/draw on dm 0.066 / 0.076 →
+0.29 / 0.23, on A_V 0.050 / 0.030 → 0.26 / 0.25; worst R-hat 1.032 / 1.04 → 1.008 / 1.003. The
+midpoint also biased the toy's mode: dm 10.30 / A_V 0.72 → 10.27 / 0.69 (truth 10.25 / 0.70). The
+strict xfail on the Vehtari gate is a plain test again, on a 2 x 2000 fixture for margin. C2 on
+NGC 6383 re-measured on the new likelihood: ΔlogL = 0.0 under both prior-centre moves.
+
+---
+
 ## 2026-09-23 — isochrone likelihood rewritten: unbinned per star over EEP-interpolated isochrones
 
 **Symptom.** The entry below left one defect open: the precomputed-Hess likelihood depended on the

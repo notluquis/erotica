@@ -1346,6 +1346,68 @@ class TestUnbinnedLikelihood:
             zero += np.array([float(x) == 0.0 for x in g])
         assert zero.tolist() == [0, 0]
 
+    def test_completeness_is_the_exact_segment_average(self):
+        """Oracle: ``scipy.integrate.quad`` of Phi((G_lim - G)/s) over the segment, divided by
+        its length -- segments brighter than, across, and fainter than the cut, reversed, and
+        of zero length. Until 2026-09-24 Phi was evaluated at the segment's midpoint (off by
+        up to 0.09 on these)."""
+        from types import SimpleNamespace
+
+        from scipy.integrate import quad
+        from scipy.stats import norm
+
+        f = SimpleNamespace(
+            _e_mag_coef=np.array([-2.0, 0.0, 0.0]), _obs_mag=np.array([10.0, 20.0]), _mag_lim=19.0
+        )
+        A = np.array([18.90, 19.02, 18.00, 18.95, 19.00, 17.00])
+        B = np.array([19.05, 18.97, 20.00, 18.95, 21.00, 18.90])
+        s2 = 0.01**2
+        s = np.sqrt(0.01**2 + s2)
+        got = IsochroneFitter._p_observed(f, A, B, s2, np)
+        ref = [
+            quad(lambda g: norm.cdf((19.0 - g) / s), a, b, points=[19.0])[0] / (b - a)
+            if a != b
+            else norm.cdf((19.0 - a) / s)
+            for a, b in zip(A, B, strict=True)
+        ]
+        assert got == pytest.approx(ref, abs=1e-9)
+
+    def test_detected_fraction_matches_monte_carlo(self, tmp_path):
+        """Oracle: the fraction of 400 000 closed-form toy stars (``_toy_stars``, e = 0.01)
+        observed brighter than the cut, at shifts where the cut crosses the lower main sequence.
+        The EEP step there is ~0.1 mag against widths of 0.014, the regime where the midpoint
+        rule failed: measured 2026-09-24, off by 3.2e-3 and 3.3e-3 at dm 10.04 and 10.08
+        (31 and 21 binomial sd); the segment average is within 3e-5. Tolerance 1e-3 (the Monte
+        Carlo sd is 1.1e-4-1.6e-4)."""
+        f = _toy_fitter(tmp_path)
+        f.setup(
+            _toy_stars(400, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(5), e=0.01),
+            prob_threshold=0,
+        )
+        for dm in (10.04, 10.06, 10.08):
+            mc = _toy_stars(400_000, 6.5, 0.015, dm, 0.6, np.random.default_rng(6), e=0.01)
+            p = float(np.mean(np.asarray(mc["Gmag"]) <= f._mag_lim))
+            F = float(f._detected_fraction(0.015, 6.5, dm, 0.6, 0.0))
+            assert abs(F - p) < 1e-3, (dm, F, p)
+
+    def test_detected_fraction_has_no_steps_at_the_eep_scale(self, tmp_path):
+        """The promise behind the 2026-09-24 fix: moving the model along the track changes
+        ``N ln F`` smoothly, not in steps once per EEP segment. Those steps -- shared by every
+        star -- made log L a sawtooth in A_V (teeth 2-4 log-units, dm jumping 0.09 mag at each)
+        and NUTS mixed at ESS/draw 0.05 hopping between them. On the toy fixture's data, dm
+        10.15-10.40 in 0.002 steps: the per-step change of N ln F varied 0-0.42 with the
+        midpoint rule (max / median 11) and is 0.142-0.147 with the segment average."""
+        f = _toy_fitter(tmp_path)
+        t = _TOY_TRUTH
+        f.setup(
+            _toy_stars(500, t["loga"], t["met"], t["dm"], t["Av"], np.random.default_rng(11)),
+            prob_threshold=0,
+        )
+        dms = np.arange(10.15, 10.40, 0.002)
+        lnF = [500 * np.log(float(f._detected_fraction(0.0125, 6.55, d, 0.7, 0.0))) for d in dms]
+        step = np.abs(np.diff(lnF))
+        assert step.max() < 1.5 * np.median(step), (step.max(), np.median(step))
+
     def test_stale_hess_grid_cache_is_refused(self, tmp_path):
         """A cache from the precomputed-Hess likelihood must not load as a node table."""
         f = _toy_fitter(tmp_path)
@@ -1383,7 +1445,8 @@ def toy_nuts_fit(tmp_path_factory):
     the likelihood; truth off every node and off the prior centre (dm_mu = 10.0,
     mean(Av_range) = 0.6), so a posterior stuck on either cannot pass. numpyro (in the bayes
     extra): PyMC's own NUTS took 3 h 25 min here on a loaded machine. target_accept 0.9 as
-    pre-registered for the recovery runs; at 0.8 this fit had 2 divergences.
+    pre-registered for the recovery runs; at 0.8 this fit had 2 divergences. 2000 draws per
+    chain since 2026-09-24 (was 1000), for margin on the ESS gate.
     """
     f = _toy_fitter(tmp_path_factory.mktemp("toy_nuts"))
     t = _TOY_TRUTH
@@ -1392,7 +1455,7 @@ def toy_nuts_fit(tmp_path_factory):
         prob_threshold=0,
     )
     return f.fit(
-        draws=1000,
+        draws=2000,
         tune=1000,
         chains=2,
         cores=1,
@@ -1412,7 +1475,7 @@ def test_nuts_recovers_an_injected_toy_cluster(toy_nuts_fit):
     posterior is checked to be informative first (tests/AGENTS.md, failure modes 2 and 4).
     This is the bias the precomputed-grid likelihood had: with it NUTS converged to dm 10.0009,
     A_V 0.6003, met 0.0151 -- the grid's reference (10.0, 0.6) and a node (0.015). Tolerances
-    unchanged since then. The convergence gate is the separate strict xfail below.
+    unchanged since then. The convergence gate is the separate test below.
 
     Mutations (2026-09-24): k_G with its sign flipped, and k_(BP-RP) scaled 1.3x, in
     ``_deposit`` -- both turn this test red, but through the sampler (chains freeze and ArviZ's
@@ -1432,19 +1495,17 @@ def test_nuts_recovers_an_injected_toy_cluster(toy_nuts_fit):
 
 @requires_bayes_extra
 @pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    # only the assertion counts as "defect still present": a crash (import, API change) must fail
-    raises=AssertionError,
-    reason=(
-        "OPEN (2026-09-24): sampling efficiency. The dm-A_V ridge mixes at ESS/draw ~0.05: on "
-        "this fit (2 x 1000, target_accept 0.9) R-hat dm 1.024, A_V 1.019 and ESS_bulk 132 / "
-        "100; at 2 x 3000, R-hat < 1.01 but ESS 335 / 304 -- below the 400 gate. See the "
-        "2026-09-23 entry of decisions.md."
-    ),
-)
 def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
-    """R-hat < 1.01, ESS_bulk > 400, zero divergences (Vehtari et al. 2021) on the same fit."""
+    """R-hat < 1.01, ESS_bulk > 400, zero divergences (Vehtari et al. 2021) on the same fit.
+
+    A strict xfail until 2026-09-24: A_V and dm mixed at ESS/draw 0.03-0.07 (R-hat up to 1.04
+    at 2 x 1000). The cause was not a dm-A_V ridge (their correlation was +0.37) but a
+    sawtooth of local modes from the completeness term evaluated at segment midpoints (see
+    ``_p_observed`` and the 2026-09-24 entry of decisions.md). With the segment average,
+    ESS/draw is 0.23-0.29 on dm and 0.25-0.26 on A_V (sampler seeds 11 and 12, 2 x 1000);
+    the fixture runs 2 x 2000 so the gate has margin rather than passing at ESS ~ 460.
+    Mutation: the midpoint rule restored in ``_p_observed`` turns this red.
+    """
     import arviz as az
 
     rhat, ess = az.rhat(toy_nuts_fit.posterior), az.ess(toy_nuts_fit.posterior)

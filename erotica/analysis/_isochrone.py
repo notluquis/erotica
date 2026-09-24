@@ -566,12 +566,13 @@ class IsochroneFitter:
        \qquad s_{\cdot,i}^2 = e_{\cdot,i}^2 + \sigma_{\rm floor}^2 + \sigma_{\rm int}^2,
 
     with :math:`d_{ik}` the segment density of :func:`_segment_density`,
-    :math:`F(\theta) = \sum_k w_k\,\Phi\big((G_{\lim} - G_k)/s(G_k)\big)` the probability that a
-    model star is observed brighter than the faintest member (the completeness cut, as ASteCA's
+    :math:`F(\theta) = \sum_k w_k\,\bar P_k`, with :math:`\bar P_k` the probability that a model
+    star deposited along segment :math:`k` is observed brighter than the faintest member,
+    integrated exactly along the segment (:meth:`_p_observed`; the completeness cut, as ASteCA's
     ``cut_max_mag``), :math:`A` the area of the members' CMD bounding box, :math:`f_{\rm bg}` a
     uniform field fraction, :math:`\sigma_{\rm int}` a free intrinsic width and
-    :math:`\sigma_{\rm floor} = 0.005` mag a fixed floor that covers the mass-ratio node
-    spacing. :math:`\omega_i` are the optional MS/PMS weights of :meth:`setup` (1 by default).
+    :math:`\sigma_{\rm floor}` = ``SIGMA_FLOOR`` = 0.01 mag a fixed floor, the forward model's
+    own approximation error (see the constant). :math:`\omega_i` are the optional MS/PMS weights of :meth:`setup` (1 by default).
     The likelihood is conditioned on the number of members, so there is no amplitude parameter.
 
     Why not the binned Hess that stood here until 2026-09-22: it shifted a *precomputed*
@@ -1007,11 +1008,31 @@ class IsochroneFitter:
         self, met: Any, loga: Any, dm: Any, Av: Any, sigma_int: Any, f_bg: Any, xp: Any = np
     ) -> Any:
         """Per-star log-likelihood vector ``(N,)`` (weights :math:`\\omega_i` not applied)."""
-        d = self._deposit(met, loga, dm, Av, xp)
         s2 = self.SIGMA_FLOOR**2 + sigma_int**2
         xg, xc = self._obs_mag, self._obs_col
         sg = xp.sqrt(self._e_obs_mag**2 + s2)
         sc = xp.sqrt(self._e_obs_col**2 + s2)
+        Ag, Ac, Bg, Bc, w, vg, vc = self._segments(met, loga, dm, Av, xp)
+        dens = xp.dot(_segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w)
+        F = self._detected_fraction(met, loga, dm, Av, sigma_int, xp, segs=(Ag, Bg, w))
+        return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
+
+    def _detected_fraction(
+        self, met: Any, loga: Any, dm: Any, Av: Any, sigma_int: Any, xp: Any = np, segs: Any = None
+    ) -> Any:
+        r""":math:`F(\theta)`: the fraction of the model population observed brighter than the
+        completeness cut, each segment's :meth:`_p_observed` weighted by its IMF weight."""
+        s2 = self.SIGMA_FLOOR**2 + sigma_int**2
+        if segs is None:
+            Ag, _, Bg, _, w, _, _ = self._segments(met, loga, dm, Av, xp)
+        else:
+            Ag, Bg, w = segs
+        return xp.sum(w * self._p_observed(Ag, Bg, s2, xp))
+
+    def _segments(self, met: Any, loga: Any, dm: Any, Av: Any, xp: Any = np) -> tuple:
+        """All model segments ``(Ag, Ac, Bg, Bc, w, vg, vc)``: singles along the isochrone,
+        then the binary pieces along q, with their weights and spread along the primary."""
+        d = self._deposit(met, loga, dm, Av, xp)
         G, col, Gq, cq = d["G"], d["col"], d["Gq"], d["cq"]
 
         # Every segment -- singles along the isochrone, binaries along q -- in ONE call: a
@@ -1030,21 +1051,45 @@ class IsochroneFitter:
             vg.append(on * (0.5 * (d["vq"][:nq] + d["vq"][1:])).reshape((-1,)))
             vc.append(on * (0.5 * (d["vc"][:nq] + d["vc"][1:])).reshape((-1,)))
         cat = xp.concatenate
-        Ag, Ac, Bg, Bc, w, vg, vc = (cat(x) for x in (Ag, Ac, Bg, Bc, w, vg, vc))
-        dens = xp.dot(_segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w)
-        F = xp.sum(w * self._p_observed(0.5 * (Ag + Bg), s2, xp))
-        return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
+        return tuple(cat(x) for x in (Ag, Ac, Bg, Bc, w, vg, vc))
 
-    def _p_observed(self, G: Any, s2: Any, xp: Any) -> Any:
-        """Probability that a model star of apparent magnitude ``G`` is observed brighter than
-        the completeness cut, with the error model at ``G`` (clipped to the observed range,
-        because the quadratic log-error fit diverges when extrapolated)."""
+    def _p_observed(self, A: Any, B: Any, s2: Any, xp: Any) -> Any:
+        r"""Probability that a model star deposited uniformly along the segment from apparent
+        magnitude ``A`` to ``B`` is observed brighter than the completeness cut :math:`G_{\lim}`.
+
+        .. math::
+           \bar P_k = \frac{1}{B_k - A_k}\int_{A_k}^{B_k} \Phi\!\left(\frac{G_{\lim}-G}{s_k}\right)
+           dG = \frac{s_k}{B_k - A_k}\Big[\psi\big(\tfrac{G_{\lim}-A_k}{s_k}\big)
+           - \psi\big(\tfrac{G_{\lim}-B_k}{s_k}\big)\Big],\qquad \psi(x) = x\,\Phi(x) + \varphi(x),
+
+        with :math:`s_k^2 = e(\bar G_k)^2 + s^2`, the error model at the segment's midpoint
+        (clipped to the observed range, because the quadratic log-error fit diverges when
+        extrapolated). Zero-length segments use :math:`\Phi` at the point.
+
+        Why the integral and not :math:`\Phi` at the midpoint, which stood here until
+        2026-09-24: with the midpoint, a whole segment's IMF weight switches on within about
+        :math:`\pm s` of shift as its midpoint crosses the cut, so :math:`N \ln F` -- the same
+        step for every star -- jumps once per segment length.
+        """
         c = self._e_mag_coef
-        Gc = xp.clip(G, float(self._obs_mag.min()), float(self._obs_mag.max()))
+        mid = 0.5 * (A + B)
+        Gc = xp.clip(mid, float(self._obs_mag.min()), float(self._obs_mag.max()))
         e = 10.0 ** (c[0] + c[1] * Gc + c[2] * Gc**2)
-        z = (self._mag_lim - G) / xp.sqrt(e**2 + s2)
+        s = xp.sqrt(e**2 + s2)
         erfc = xp.erfc if xp is not np else _erfc_np
-        return 0.5 * erfc(-z / np.sqrt(2.0))
+
+        def Phi(x: Any) -> Any:
+            return 0.5 * erfc(-x / np.sqrt(2.0))
+
+        def psi(x: Any) -> Any:  # antiderivative of Phi
+            return x * Phi(x) + xp.exp(-0.5 * x**2) / np.sqrt(2.0 * np.pi)
+
+        L = self._mag_lim
+        d = B - A
+        short = xp.abs(d) < 1e-6
+        D = xp.where(short, 1.0, d)  # safe value: no NaN in the branch not taken, nor its grad
+        avg = s / D * (psi((L - A) / s) - psi((L - B) / s))
+        return xp.where(short, Phi((L - mid) / s), avg)
 
     def _compiled_loglike(self, mode: str | None = None) -> Any:
         """Compiled ``(log L, d log L / d params)`` of the six parameters, for optimisation."""
