@@ -1372,48 +1372,26 @@ class TestUnbinnedLikelihood:
 # the three routes by which the prior centre used to reach the likelihood.
 
 
-@requires_bayes_extra
-@pytest.mark.slow
-@pytest.mark.xfail(
-    strict=True,
-    # only the assertion counts as "defect still present": a crash (import, API change) must fail
-    raises=AssertionError,
-    reason=(
-        "OPEN (2026-09-24): sampling efficiency, not bias. The medians are inside the absolute "
-        "tolerances (measured: met 0.01251, loga 6.535, dm 10.300, A_V 0.723 against 0.0125, "
-        "6.55, 10.25, 0.7), R-hat < 1.01 and 0 divergences at 2 x 3000 draws -- but the dm-A_V "
-        "ridge mixes with ESS/draw ~0.05, so ESS_bulk is ~115 at the 2 x 1000 used here and "
-        "304-335 at 2 x 3000, below the 400 gate. See the 2026-09-23 entry of decisions.md."
-    ),
-)
-def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
-    """Injection-recovery through the real sampler, with the Vehtari gate.
+_TOY_TRUTH = {"met": 0.0125, "loga": 6.55, "dm": 10.25, "Av": 0.7}
 
-    Oracle: stars drawn star by star from the closed-form toy family (``_toy_stars``), never
-    through the likelihood. Truth is off the isochrone nodes and off the prior centre.
-    Tolerances are **absolute and tied to the truth**, not to the posterior width, and the
-    posterior is checked to be informative first (tests/AGENTS.md, failure modes 2 and 4).
 
-    History: a strict xfail from 2026-09-22 until the unbinned likelihood replaced the
-    precomputed Hess grid. With the grid, NUTS converged here to dm 10.0009, A_V 0.6003,
-    met 0.0151 -- the grid's reference (10.0, 0.6) and a node (0.015) -- against this truth.
-    With the unbinned likelihood and the original toy family it failed too, for a reason in
-    the oracle: met was not identifiable there (see ``_toy_photometry``); the posterior sat on
-    the flat ridge at met 0.0157, A_V 0.582, ESS(met) 252. Tolerances unchanged throughout.
+@pytest.fixture(scope="module")
+def toy_nuts_fit(tmp_path_factory):
+    """One NUTS fit shared by the two recovery tests below (it is the expensive part).
+
+    Stars drawn star by star from the closed-form toy family (``_toy_stars``), never through
+    the likelihood; truth off every node and off the prior centre (dm_mu = 10.0,
+    mean(Av_range) = 0.6), so a posterior stuck on either cannot pass. numpyro (in the bayes
+    extra): PyMC's own NUTS took 3 h 25 min here on a loaded machine. target_accept 0.9 as
+    pre-registered for the recovery runs; at 0.8 this fit had 2 divergences.
     """
-    f = _toy_fitter(tmp_path)
-    # Off every node (met between 0.010 and 0.015, loga between 6.5 and 6.6) and off the
-    # prior centre (dm_mu = 10.0, mean(Av_range) = 0.6), so a posterior stuck on either
-    # cannot pass.
-    truth = {"met": 0.0125, "loga": 6.55, "dm": 10.25, "Av": 0.7}
+    f = _toy_fitter(tmp_path_factory.mktemp("toy_nuts"))
+    t = _TOY_TRUTH
     f.setup(
-        _toy_stars(
-            500, truth["loga"], truth["met"], truth["dm"], truth["Av"], np.random.default_rng(11)
-        ),
+        _toy_stars(500, t["loga"], t["met"], t["dm"], t["Av"], np.random.default_rng(11)),
         prob_threshold=0,
     )
-    # numpyro (in the bayes extra): PyMC's own NUTS took 3 h 25 min here on a loaded machine
-    idata = f.fit(
+    return f.fit(
         draws=1000,
         tune=1000,
         chains=2,
@@ -1421,20 +1399,68 @@ def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
         random_seed=11,
         progressbar=False,
         nuts_sampler="numpyro",
+        target_accept=0.9,
     )
-    import arviz as az
 
-    rhat, ess = az.rhat(idata.posterior), az.ess(idata.posterior)
-    post = {p: idata.posterior[p].values.ravel() for p in truth}
-    medians = {p: round(float(np.median(post[p])), 4) for p in truth}
-    assert int(idata.sample_stats["diverging"].values.sum()) == 0
-    for p in truth:
-        assert float(rhat[p]) < 1.01, (p, float(rhat[p]), medians)
-        assert float(ess[p]) > 400, (p, float(ess[p]), medians)
+
+@requires_bayes_extra
+@pytest.mark.slow
+def test_nuts_recovers_an_injected_toy_cluster(toy_nuts_fit):
+    """Injection-recovery through the real sampler: the posterior medians against the truth.
+
+    Tolerances are **absolute and tied to the truth**, not to the posterior width, and the
+    posterior is checked to be informative first (tests/AGENTS.md, failure modes 2 and 4).
+    This is the bias the precomputed-grid likelihood had: with it NUTS converged to dm 10.0009,
+    A_V 0.6003, met 0.0151 -- the grid's reference (10.0, 0.6) and a node (0.015). Tolerances
+    unchanged since then. The convergence gate is the separate strict xfail below.
+
+    Mutations (2026-09-24): k_G with its sign flipped, and k_(BP-RP) scaled 1.3x, in
+    ``_deposit`` -- both turn this test red, but through the sampler (chains freeze and ArviZ's
+    R-hat divides by a zero within-chain variance), not through the median assertion. The
+    assertion path itself has not been seen to bite on its own.
+    """
+    post = {p: toy_nuts_fit.posterior[p].values.ravel() for p in _TOY_TRUTH}
+    medians = {p: round(float(np.median(post[p])), 4) for p in _TOY_TRUTH}
     # informative: at most half the prior sd, or the recovery below means nothing
     assert np.std(post["loga"]) < 0.5 * 0.5 / np.sqrt(12)
     assert np.std(post["Av"]) < 0.5 * 0.8 / np.sqrt(12)
     assert np.std(post["dm"]) < 0.5 * 0.3
     tol = {"met": 0.002, "loga": 0.1, "dm": 0.12, "Av": 0.08}
-    misses = {p: (medians[p], t) for p, t in truth.items() if abs(medians[p] - t) >= tol[p]}
+    misses = {p: (medians[p], t) for p, t in _TOY_TRUTH.items() if abs(medians[p] - t) >= tol[p]}
     assert not misses, f"median vs truth outside the absolute tolerance: {misses}"
+
+
+@requires_bayes_extra
+@pytest.mark.slow
+@pytest.mark.xfail(
+    strict=True,
+    # only the assertion counts as "defect still present": a crash (import, API change) must fail
+    raises=AssertionError,
+    reason=(
+        "OPEN (2026-09-24): sampling efficiency. The dm-A_V ridge mixes at ESS/draw ~0.05: on "
+        "this fit (2 x 1000, target_accept 0.9) R-hat dm 1.024, A_V 1.019 and ESS_bulk 132 / "
+        "100; at 2 x 3000, R-hat < 1.01 but ESS 335 / 304 -- below the 400 gate. See the "
+        "2026-09-23 entry of decisions.md."
+    ),
+)
+def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
+    """R-hat < 1.01, ESS_bulk > 400, zero divergences (Vehtari et al. 2021) on the same fit."""
+    import arviz as az
+
+    rhat, ess = az.rhat(toy_nuts_fit.posterior), az.ess(toy_nuts_fit.posterior)
+    assert int(toy_nuts_fit.sample_stats["diverging"].values.sum()) == 0
+    for p in _TOY_TRUTH:
+        assert float(rhat[p]) < 1.01, (p, float(rhat[p]))
+        assert float(ess[p]) > 400, (p, float(ess[p]))
+
+
+@requires_bayes_extra
+def test_default_pymc_sampler_path_runs(tmp_path):
+    """The default ``fit()`` (PyMC's own NUTS with the seeded, adapting mass matrix) must run.
+    It broke twice on 2026-09-23 (a custom step together with ``target_accept``, and with an
+    empty ``nuts_sampler_kwargs``) and the slow tests use numpyro, so nothing else runs it."""
+    f = _toy_fitter(tmp_path)
+    f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
+    idata = f.fit(draws=20, tune=20, chains=1, cores=1, random_seed=3, progressbar=False)
+    for p in ("met", "loga", "dm", "Av", "sigma_int", "f_bg"):
+        assert idata.posterior[p].values.size == 20
