@@ -1702,11 +1702,24 @@ distribution was *requested*, not what it *drew*. The regression test instead me
 IQR against the `scipy.stats.halfcauchy` oracle, the same falsifier used above, so it fails on the
 behaviour and not on the diff.
 
-**Mutated.** Reverting `_king_model` to `pm.HalfStudentT(nu=1, ...)` leaves the new test green on
-both pytensor versions — the harmless direction, since the two forms are equivalent once the bug is
-fixed and `HalfStudentT` was never broken. Running the same IQR assertions against raw
-`pm.HalfCauchy.dist` on `cosmic`'s pytensor 3.0.7 reproduces the red in the table above; that run
-*is* the mutation this entry is closing, not a hypothetical one.
+**Mutated.** Running the IQR assertions against raw `pm.HalfCauchy.dist` on `cosmic`'s pytensor
+3.0.7 reproduces the red in the table above (`R_c`: measured IQR 0.402 vs. expected 10); that run
+*is* the mutation this entry is closing, not a hypothetical one. With the guard disabled by hand
+(`_assert_pytensor_cauchy_fixed` body replaced with `pass`) this is what
+`test_half_cauchy_priors_draw_correctly_in_the_real_models` itself reports as an `AssertionError` on
+`cosmic`. With the guard restored, the same environment instead raises `RuntimeError` before any
+draw happens.
+
+**Corrected 2026-09-24, same day as the entry above.** This paragraph originally claimed, without
+running it, that "reverting `_king_model` to `pm.HalfStudentT(nu=1, ...)` leaves the new test green
+on both pytensor versions". That is wrong on `cosmic`: `_assert_pytensor_cauchy_fixed()` runs
+unconditionally, before either distribution is built, so a below-floor pytensor raises
+`RuntimeError` regardless of which of the two equivalent distributions the model happens to use —
+the mutation was never actually run there. It is true only on the fixed venv (pytensor 3.2.4),
+where both forms draw correctly and the guard is a no-op. Caught rereading this entry against what
+the commit that introduced it actually ran (§K.1.6f: run the check against the artefact that
+describes it, here its own doc entry) — a measured-sounding claim with no run behind it is exactly
+the class `methodology.md` PART K polices.
 
 Hub: closes `state/programme.yaml` node F1 and its row in `open-threads.md`. No `state/findings.yaml`
 entry cited this workaround (checked; F1's only other mention, at a different YAML line, is about

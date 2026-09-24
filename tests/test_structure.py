@@ -584,7 +584,7 @@ def test_half_cauchy_priors_draw_correctly_in_the_real_models():
     radii = np.array([5.0, 10.0, 20.0, 40.0, 80.0])  # dummy: prior predictive ignores the Potential
     field = 200.0
     draws = 100_000
-    tol = 0.05  # measured worst case at draws=100_000 on a fixed pytensor was 0.94%
+    tol = 0.05  # measured worst case on pytensor 3.2.4, these exact builders, draws=100_000: 1.00%
 
     def iqr_of(values):
         return float(np.subtract(*np.percentile(values, [75, 25])))
