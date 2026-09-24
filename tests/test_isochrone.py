@@ -1110,10 +1110,19 @@ _TOY_MASSES = np.geomspace(0.1, 8.0, 120)
 
 
 def _toy_photometry(mass, loga, Z):
-    """Closed-form (G_abs, BP-RP): younger / more metal-rich -> brighter / redder."""
+    """Closed-form (G_abs, BP-RP): younger / more metal-rich -> brighter / redder.
+
+    The metallicity term depends on mass, as it does in real isochrones. Until 2026-09-23 it
+    was a pure additive shift, (dG, dcol) = (40, 20) dZ at every mass -- exactly what some
+    (dm, A_V) reproduces -- so Z was not identifiable in this family at all: log L along
+    that line was 326.100 to the third decimal for met from 0.0105 to 0.0145 (measured), and
+    the NUTS recovery test could not pass for a correct likelihood (tests/AGENTS.md failure
+    mode 4). The grid likelihood only looked like it pinned met because it locked onto a node.
+    """
     lm = np.log10(mass)
-    G = 4.6 - 6.5 * lm - 2.0 * (7.0 - loga) / (1.0 + mass**2) + 40.0 * (Z - 0.015)
-    col = 0.8 - 1.4 * lm + 20.0 * (Z - 0.015) + 0.1 * (7.0 - loga)
+    dz = Z - 0.015
+    G = 4.6 - 6.5 * lm - 2.0 * (7.0 - loga) / (1.0 + mass**2) + 40.0 * dz * (1.0 - lm)
+    col = 0.8 - 1.4 * lm + 20.0 * dz * (1.0 + lm) + 0.1 * (7.0 - loga)
     return G, col
 
 
@@ -1365,6 +1374,18 @@ class TestUnbinnedLikelihood:
 
 @requires_bayes_extra
 @pytest.mark.slow
+@pytest.mark.xfail(
+    strict=True,
+    # only the assertion counts as "defect still present": a crash (import, API change) must fail
+    raises=AssertionError,
+    reason=(
+        "OPEN (2026-09-24): sampling efficiency, not bias. The medians are inside the absolute "
+        "tolerances (measured: met 0.01251, loga 6.535, dm 10.300, A_V 0.723 against 0.0125, "
+        "6.55, 10.25, 0.7), R-hat < 1.01 and 0 divergences at 2 x 3000 draws -- but the dm-A_V "
+        "ridge mixes with ESS/draw ~0.05, so ESS_bulk is ~115 at the 2 x 1000 used here and "
+        "304-335 at 2 x 3000, below the 400 gate. See the 2026-09-23 entry of decisions.md."
+    ),
+)
 def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
     """Injection-recovery through the real sampler, with the Vehtari gate.
 
@@ -1374,9 +1395,11 @@ def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
     posterior is checked to be informative first (tests/AGENTS.md, failure modes 2 and 4).
 
     History: a strict xfail from 2026-09-22 until the unbinned likelihood replaced the
-    precomputed Hess grid the same day. With the grid, NUTS converged here to dm 10.0009,
-    A_V 0.6003, met 0.0151 -- the grid's reference (10.0, 0.6) and a node (0.015) -- against
-    this truth. Tolerances unchanged from that version.
+    precomputed Hess grid. With the grid, NUTS converged here to dm 10.0009, A_V 0.6003,
+    met 0.0151 -- the grid's reference (10.0, 0.6) and a node (0.015) -- against this truth.
+    With the unbinned likelihood and the original toy family it failed too, for a reason in
+    the oracle: met was not identifiable there (see ``_toy_photometry``); the posterior sat on
+    the flat ridge at met 0.0157, A_V 0.582, ESS(met) 252. Tolerances unchanged throughout.
     """
     f = _toy_fitter(tmp_path)
     # Off every node (met between 0.010 and 0.015, loga between 6.5 and 6.6) and off the
@@ -1389,7 +1412,16 @@ def test_nuts_recovers_an_injected_toy_cluster(tmp_path):
         ),
         prob_threshold=0,
     )
-    idata = f.fit(draws=1000, tune=1000, chains=2, cores=1, random_seed=11, progressbar=False)
+    # numpyro (in the bayes extra): PyMC's own NUTS took 3 h 25 min here on a loaded machine
+    idata = f.fit(
+        draws=1000,
+        tune=1000,
+        chains=2,
+        cores=1,
+        random_seed=11,
+        progressbar=False,
+        nuts_sampler="numpyro",
+    )
     import arviz as az
 
     rhat, ess = az.rhat(idata.posterior), az.ess(idata.posterior)

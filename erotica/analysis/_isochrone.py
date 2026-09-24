@@ -1427,7 +1427,9 @@ class IsochroneFitter:
             if jax_sampler:
                 from pymc.sampling.jax import sample_jax_nuts
 
-                kw = {"inverse_mass_matrix": inv_mass, **dict(nuts_sampler_kwargs or {})}
+                user = dict(nuts_sampler_kwargs or {})
+                seed = np.diag(inv_mass) if user.get("dense_mass") else inv_mass
+                kw = {"inverse_mass_matrix": seed, **user}
                 with model:
                     return sample_jax_nuts(
                         draws=draws,
@@ -1460,6 +1462,10 @@ class IsochroneFitter:
                 pot = QuadPotentialDiagAdapt(len(inv_mass), mean, inv_mass, 10)
                 step = pm.NUTS(potential=pot, target_accept=target_accept)
         with model:
+            # with our own step, target_accept already lives in it (pm.sample rejects it twice)
+            extra = {} if step is not None else {"target_accept": target_accept, "init": init}
+            if step is None and nuts_sampler_kwargs:
+                extra["nuts_sampler_kwargs"] = nuts_sampler_kwargs
             idata = pm.sample(
                 draws=draws,
                 tune=tune,
@@ -1467,13 +1473,11 @@ class IsochroneFitter:
                 step=step,
                 cores=cores,
                 nuts_sampler=nuts_sampler,
-                target_accept=target_accept,
                 random_seed=random_seed,
                 progressbar=progressbar,
-                init=init,
                 initvals=initvals,
-                nuts_sampler_kwargs=nuts_sampler_kwargs or {},
                 idata_kwargs={"log_likelihood": log_likelihood},
+                **extra,
             )
         return idata
 

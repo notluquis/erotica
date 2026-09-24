@@ -80,8 +80,25 @@ plain test again, tolerances unchanged. `M_met` / `M_loga` are accepted and igno
 from before are refused on load. `tools/prototypes/emulator/gradient_audit.py` reads an old
 `H_grid` npz file directly; it is a prototype record and was left as is.
 
-**Result against the pre-registered criterion:** see the next section of this entry (filled when
-`tools/validation/isochrone_unbinned_recovery.py` finished).
+**Result against the pre-registered criterion (2026-09-24).**
+
+| criterion | status | numbers |
+|---|---|---|
+| C2 reference invariance, NGC 6383 | **met** | ΔlogL = 0.0 exactly at the three points where the grid gave −10.45 / −10.59 / +4.49 (`isochrone_unbinned/refinv.json`) |
+| toy injection-recovery (independent closed-form generator) | **bias met, gate not met** | medians met 0.01251, loga 6.535, dm 10.300, A_V 0.723 vs truth 0.0125, 6.55, 10.25, 0.7 (all inside tolerance); R-hat < 1.01, 0 divergences at 2 × 3000; ESS_bulk dm 335, A_V 304 (< 400); ~115 at 2 × 1000 |
+| C1 NGC 6383 certificate, C3 batch A (16), C4 leave-one-node-out (6) | **not measured** | no fit finished: one binary synthetic and the NGC 6383 run each used > 12 CPU-hours without completing on a shared 8-core machine |
+
+**Two more defects found on the way, one in the oracle.** (1) The toy family's metallicity term was a
+pure additive shift, which some (dm, A_V) reproduces exactly: log L was 326.100 to the third decimal
+along that line for met 0.0105-0.0145, so the toy recovery test could not pass for a correct
+likelihood; the term is now mass-dependent. (2) Sampling cost was geometry (warmup from an identity
+mass matrix spanning widths of 1e-5 and 1 in unconstrained space): seeding the inverse mass matrix
+from the search's local sd cut warmup leapfrog steps 17×. A dense mass matrix did not help the
+dm-A_V mixing (R-hat 1.029, ESS 114 at 2 × 1000).
+
+**Open.** The dm-A_V ridge mixes at ESS/draw ≈ 0.05. The obvious next measurement is sampling in the
+CMD shifts (dm + k_G A_V, k_c A_V), which the data constrain directly, instead of (dm, A_V). The toy
+recovery test is a strict xfail again, with this reason. `IsochroneFitter` stays experimental.
 
 ---
 
