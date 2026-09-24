@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`IsochroneFitter`: single stars are deposited with a density continuous along the track**
+  (linear within each segment between EEP points) instead of each segment's IMF weight spread
+  uniformly. Where MIST's EEP points are sparse and slide fast along the track with age, the
+  uniform deposit made log L rough in log t, and a MIST synthetic fit failed the R-hat/ESS gate
+  (R-hat 1.026, ESS 167). See `docs/design-notes/decisions.md` (2026-09-24, later).
 - **`IsochroneFitter`: the completeness term is integrated along each isochrone segment** instead
   of evaluated at its midpoint. The midpoint made `N ln F` step once per EEP segment of shift,
   turning log L into a sawtooth of local modes (teeth 2-4 log-units on the toy family) that NUTS

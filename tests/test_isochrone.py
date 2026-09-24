@@ -1363,7 +1363,7 @@ class TestUnbinnedLikelihood:
         B = np.array([19.05, 18.97, 20.00, 18.95, 21.00, 18.90])
         s2 = 0.01**2
         s = np.sqrt(0.01**2 + s2)
-        got = IsochroneFitter._p_observed(f, A, B, s2, np)
+        got, first = IsochroneFitter._p_observed(f, A, B, s2, np, first_moment=True)
         ref = [
             quad(lambda g: norm.cdf((19.0 - g) / s), a, b, points=[19.0])[0] / (b - a)
             if a != b
@@ -1371,6 +1371,12 @@ class TestUnbinnedLikelihood:
             for a, b in zip(A, B, strict=True)
         ]
         assert got == pytest.approx(ref, abs=1e-9)
+        # the first moment in the segment parameter, for a weight linear along the segment
+        ref1 = [
+            quad(lambda t, a=a, b=b: t * norm.cdf((19.0 - a - t * (b - a)) / s), 0, 1)[0]
+            for a, b in zip(A, B, strict=True)
+        ]
+        assert first == pytest.approx(ref1, abs=1e-7)
 
     def test_detected_fraction_matches_monte_carlo(self, tmp_path):
         """Oracle: the fraction of 400 000 closed-form toy stars (``_toy_stars``, e = 0.01)
@@ -1407,6 +1413,75 @@ class TestUnbinnedLikelihood:
         lnF = [500 * np.log(float(f._detected_fraction(0.0125, 6.55, d, 0.7, 0.0))) for d in dms]
         step = np.abs(np.diff(lnF))
         assert step.max() < 1.5 * np.median(step), (step.max(), np.median(step))
+
+    def test_loglike_is_smooth_in_age_when_eep_points_slide_along_the_track(self, tmp_path):
+        """The promise behind the 2026-09-24 continuous along-track density: log L is smooth
+        in log t even where EEP points are sparse and move fast along the track with age.
+
+        Oracle construction: one fixed track, photometry a closed-form function of
+        ``m * 10**(C (log t - 6.55))``, so changing log t slides the EEP points along it at
+        ~32 mag/dex (MIST's points did 38 on NGC 6383), and a band where only every 8th EEP is
+        kept (segments ~0.8 mag long, per-length weights jumping 8x at its edges). Stars lie on
+        the continuous track. Statistic: the jitter of the per-step change of log L around its
+        9-point running mean, over log t 6.51-6.59 in 0.0005 steps (inside one age bracket).
+        Measured 2026-09-24: 0.224 with segments deposited uniformly (``d2d20ee``), 0.034 with
+        the continuous density. On NGC 6383-like data the uniform deposit made log L rough in
+        log t and a synthetic fit fail the R-hat/ESS gate (hub finding §10.13)."""
+        C = 5.0
+
+        def phot(m, loga):
+            lm = np.log10(m) + C * (loga - 6.55)
+            return 4.6 - 6.5 * lm, 0.8 - 1.4 * lm + 0.3 * lm**2
+
+        masses = np.geomspace(0.1, 8.0, 120)
+        keep = np.r_[np.arange(0, 50), np.arange(50, 90, 8), np.arange(90, 120)]
+        rows = []
+        for loga in (6.5, 6.6):
+            G, col = phot(masses[keep], loga)
+            rows += [
+                f"{i} {m:.6f} {loga:.4f} {g:.6f} {g + 0.6 * c:.6f} {g - 0.4 * c:.6f}"
+                for i, m, g, c in zip(keep, masses[keep], G, col, strict=True)
+            ]
+        header = textwrap.dedent("""\
+            # sliding toy
+            # Yinit  Zinit  FeH
+            #  0.270  0.015000  0.00
+            # EEP initial_mass log10_isochrone_age_yr Gaia_G_EDR3 Gaia_BP_EDR3 Gaia_RP_EDR3
+        """)
+        (tmp_path / "slide.iso.cmd").write_text(header + "\n".join(rows) + "\n")
+        f = IsochroneFitter(
+            tmp_path,
+            loga_range=(6.5, 6.6),
+            Av_range=(0.2, 1.0),
+            dm_mu=10.0,
+            dm_sigma=0.3,
+            dm_range=(9.6, 10.4),
+            alpha=0.0,
+            beta=0.0,
+        )
+        rng = np.random.default_rng(1)
+        m = np.exp(rng.uniform(np.log(0.3), np.log(3.0), 400))
+        G, col = phot(m, 6.55)
+        kG, kBP, kRP = (_ccm89(lam) for lam in (6390.7, 5182.6, 7825.1))
+        e = 0.01
+        f.setup(
+            QTable(
+                {
+                    "Gmag": G + 10 + kG * 0.6 + rng.normal(0, e, m.size),
+                    "G_BPmag": G + 0.6 * col + 10 + kBP * 0.6 + rng.normal(0, e, m.size),
+                    "G_RPmag": G - 0.4 * col + 10 + kRP * 0.6 + rng.normal(0, e, m.size),
+                    "e_Gmag": np.full(m.size, e),
+                    "e_G_BPmag": np.full(m.size, e),
+                    "e_G_RPmag": np.full(m.size, e),
+                    "probability_hdbscan": np.ones(m.size),
+                }
+            ),
+            prob_threshold=0,
+        )
+        xs = np.arange(6.51, 6.59, 0.0005)
+        d1 = np.diff([f.loglike(0.015, x, 10.0, 0.6, 0.0, 0.0) for x in xs])
+        jitter = d1[4:-4] - np.convolve(d1, np.ones(9) / 9, mode="valid")
+        assert np.std(jitter) < 0.1, np.std(jitter)
 
     def test_stale_hess_grid_cache_is_refused(self, tmp_path):
         """A cache from the precomputed-Hess likelihood must not load as a node table."""

@@ -480,6 +480,7 @@ def _segment_density(
     Bc: Any,
     xp: Any = np,
     smear: tuple[Any, Any] | None = None,
+    first_moment: bool = False,
 ) -> Any:
     r"""Density of star ``i`` from a uniform deposit along the segment ``A_k -> B_k``.
 
@@ -496,6 +497,12 @@ def _segment_density(
     :math:`v_k v_k^\top/12` -- the covariance of a uniform spread along :math:`v_k` (used for
     the primary-mass direction of the binary sheet). Stars ``(N,)``, segments ``(S,)``;
     returns ``(N, S)``.
+
+    With ``first_moment``, also returns the first moment in the segment parameter,
+    :math:`\int_0^1 t\,\mathcal{N}_2(\cdot)\,dt`, which a density varying linearly along the
+    segment needs; in whitened coordinates
+    :math:`\int_0^1 t\,e^{-L^2(t-t^*)^2/2}dt = t^* I_0 + \big[e^{-L^2 t^{*2}/2}
+    - e^{-L^2(1-t^*)^2/2}\big]/L^2`, with :math:`I_0` the integral above. Returns ``(J0, J1)``.
     """
     s11 = (sg**2)[:, None]
     s22 = (sc**2)[:, None]
@@ -521,9 +528,16 @@ def _segment_density(
     perp2 = (ag + t0 * dg) ** 2 + (ac + t0 * dc) ** 2
     erf = xp.erf if xp is not np else _erf_np
     cdf_diff = 0.5 * (erf(L * (1 - t0) / np.sqrt(2.0)) - erf(-L * t0 / np.sqrt(2.0)))
-    seg = xp.exp(-0.5 * perp2) * np.sqrt(2 * np.pi) / L * cdf_diff
+    I0 = np.sqrt(2 * np.pi) / L * cdf_diff
+    seg = xp.exp(-0.5 * perp2) * I0
     point = xp.exp(-0.5 * (ag**2 + ac**2))
-    return xp.where(long_, seg, point) / (2 * np.pi * l11 * l22)
+    norm = 1.0 / (2 * np.pi * l11 * l22)
+    J0 = xp.where(long_, seg, point) * norm
+    if not first_moment:
+        return J0
+    I1 = t0 * I0 + (xp.exp(-0.5 * L2s * t0**2) - xp.exp(-0.5 * L2s * (1 - t0) ** 2)) / L2s
+    J1 = xp.where(long_, xp.exp(-0.5 * perp2) * I1, 0.5 * point) * norm
+    return J0, J1
 
 
 def _erf_np(x: Any) -> Any:
@@ -548,8 +562,10 @@ class IsochroneFitter:
       evolutionary phase, the coordinate MIST isochrones are built to be interpolated in
       (Dotter 2016, ``2016ApJS..222....8D``). Points whose EEP a node lacks are clamped to that
       node's last point, so their mass step and hence IMF weight go to zero continuously.
-    * **Single stars** are a uniform deposit along each segment between consecutive EEP points,
-      weighted by the Chabrier (2014) IMF, :math:`w_k = \xi(\bar m_k)\,\Delta m_k`.
+    * **Single stars** are deposited along the segments between consecutive EEP points with the
+      Chabrier (2014) IMF weights :math:`w_k = \xi(\bar m_k)\,\Delta m_k`, as a density per
+      unit length that is continuous along the track (linear within each segment; see
+      :meth:`_segments`).
     * **Unresolved binaries**: fraction :math:`b(m) = \alpha + \beta/(1 + 1.4/m)` (Offner et al.
       2023, ``2023ASPC..534..275O``, as in ASteCA), mass ratio marginalised over
       :math:`f(q \mid m) \propto q^{\gamma(m)}` (Duchêne & Kraus 2013,
@@ -1012,48 +1028,92 @@ class IsochroneFitter:
         xg, xc = self._obs_mag, self._obs_col
         sg = xp.sqrt(self._e_obs_mag**2 + s2)
         sc = xp.sqrt(self._e_obs_col**2 + s2)
-        Ag, Ac, Bg, Bc, w, vg, vc = self._segments(met, loga, dm, Av, xp)
-        dens = xp.dot(_segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w)
-        F = self._detected_fraction(met, loga, dm, Av, sigma_int, xp, segs=(Ag, Bg, w))
+        single, binary = self._segments(met, loga, dm, Av, xp)
+        Ag, Ac, Bg, Bc, c0, c1 = single
+        J0, J1 = _segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, first_moment=True)
+        dens = xp.dot(J0, c0) + xp.dot(J1, c1)
+        if binary is not None:
+            Ag, Ac, Bg, Bc, w, vg, vc = binary
+            dens = dens + xp.dot(
+                _segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w
+            )
+        F = self._detected_fraction(met, loga, dm, Av, sigma_int, xp, segs=(single, binary))
         return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
 
     def _detected_fraction(
         self, met: Any, loga: Any, dm: Any, Av: Any, sigma_int: Any, xp: Any = np, segs: Any = None
     ) -> Any:
         r""":math:`F(\theta)`: the fraction of the model population observed brighter than the
-        completeness cut, each segment's :meth:`_p_observed` weighted by its IMF weight."""
+        completeness cut -- each segment's :meth:`_p_observed` under its own weights (linear
+        along the track for singles, uniform along q for the binary pieces)."""
         s2 = self.SIGMA_FLOOR**2 + sigma_int**2
-        if segs is None:
-            Ag, _, Bg, _, w, _, _ = self._segments(met, loga, dm, Av, xp)
-        else:
-            Ag, Bg, w = segs
-        return xp.sum(w * self._p_observed(Ag, Bg, s2, xp))
+        single, binary = self._segments(met, loga, dm, Av, xp) if segs is None else segs
+        Ag, _, Bg, _, c0, c1 = single
+        P, T = self._p_observed(Ag, Bg, s2, xp, first_moment=True)
+        F = xp.sum(c0 * P + c1 * T)
+        if binary is not None:
+            Ag, _, Bg, _, w, _, _ = binary
+            F = F + xp.sum(w * self._p_observed(Ag, Bg, s2, xp))
+        return F
 
     def _segments(self, met: Any, loga: Any, dm: Any, Av: Any, xp: Any = np) -> tuple:
-        """All model segments ``(Ag, Ac, Bg, Bc, w, vg, vc)``: singles along the isochrone,
-        then the binary pieces along q, with their weights and spread along the primary."""
+        r"""The model population as segments: ``(single, binary)``.
+
+        ``single = (Ag, Ac, Bg, Bc, c0, c1)``: the isochrone between consecutive EEP points,
+        with a density per unit length along the track that is **continuous**: linear within
+        each segment between point values
+        :math:`\rho_j = (w_{j-1} + w_j)/(\ell_{j-1} + \ell_j)` (IMF weights :math:`w`, CMD
+        lengths :math:`\ell`), so segment :math:`k` carries :math:`c_{0,k} + c_{1,k}\,t` per
+        unit :math:`t` with :math:`c_0 = \ell_k\rho_k`, :math:`c_1 = \ell_k(\rho_{k+1}-\rho_k)`,
+        rescaled so the singles keep their total weight :math:`\sum_k w_k`.
+
+        Why not :math:`w_k` spread uniformly, which stood here until 2026-09-24: MIST's EEP
+        points are sparse where the isochrone moves fast (segments up to 1.7 mag long on
+        NGC 6383's priors, per-length weights differing 2x between neighbours, points moving
+        along the track at ~38 mag/dex in log t), so as log t changed a segment boundary swept
+        across a clump of stars and each saw its density step. log L was rough in log t (second
+        differences -0.83 to +1.03 at 0.0005 dex against a median -0.07) and NUTS mixed at
+        ESS 167 on a synthetic cluster. Measured in the hub finding
+        ``isochrone-nuts-convergence-2026-09.md`` §10.13.
+
+        ``binary = (Ag, Ac, Bg, Bc, w, vg, vc)`` or ``None`` without binaries: the pieces along
+        q, uniform, with their spread along the primary.
+        """
         d = self._deposit(met, loga, dm, Av, xp)
         G, col, Gq, cq = d["G"], d["col"], d["Gq"], d["cq"]
 
-        # Every segment -- singles along the isochrone, binaries along q -- in ONE call: a
-        # Python loop over q pieces multiplied the symbolic graph, and PyTensor's rewrite of it
-        # took ~20 min before the first sample (measured 2026-09-23). Singles get no smear.
-        Ag, Ac, Bg, Bc, w = [G[:-1]], [col[:-1]], [G[1:]], [col[1:]], [d["w_single"]]
-        vg, vc = [0.0 * G[:-1]], [0.0 * G[:-1]]
-        if self.alpha or self.beta:  # decided at build time, not sampled
-            nq = len(d["w_bin"])
-            Ag.append(Gq[:-1].reshape((-1,)))
-            Ac.append(cq[:-1].reshape((-1,)))
-            Bg.append(Gq[1:].reshape((-1,)))
-            Bc.append(cq[1:].reshape((-1,)))
-            w.append(xp.stack(d["w_bin"]).reshape((-1,)))
-            on = 1.0 if self.BINARY_SMEAR else 0.0
-            vg.append(on * (0.5 * (d["vq"][:nq] + d["vq"][1:])).reshape((-1,)))
-            vc.append(on * (0.5 * (d["vc"][:nq] + d["vc"][1:])).reshape((-1,)))
-        cat = xp.concatenate
-        return tuple(cat(x) for x in (Ag, Ac, Bg, Bc, w, vg, vc))
+        w = d["w_single"]
+        # CMD length of each segment; the 1e-9 keeps the gradient finite on the zero-length
+        # segments of EEPs clamped at a node's end (their weight is zero there)
+        ell = xp.sqrt((G[1:] - G[:-1]) ** 2 + (col[1:] - col[:-1]) ** 2 + 1e-18)
+        zero = w[:1] * 0.0
+        wl = xp.concatenate([zero, w, zero])
+        ll = xp.concatenate([zero, ell, zero])
+        rho = (wl[:-1] + wl[1:]) / (ll[:-1] + ll[1:])
+        c0 = ell * rho[:-1]
+        c1 = ell * (rho[1:] - rho[:-1])
+        scale = xp.sum(w) / xp.sum(c0 + 0.5 * c1)
+        single = (G[:-1], col[:-1], G[1:], col[1:], c0 * scale, c1 * scale)
+        if not (self.alpha or self.beta):  # decided at build time, not sampled
+            return single, None
 
-    def _p_observed(self, A: Any, B: Any, s2: Any, xp: Any) -> Any:
+        # All binary pieces in ONE density call: a Python loop over q pieces multiplied the
+        # symbolic graph, and PyTensor's rewrite of it took ~20 min before the first sample
+        # (measured 2026-09-23).
+        nq = len(d["w_bin"])
+        on = 1.0 if self.BINARY_SMEAR else 0.0
+        binary = (
+            Gq[:-1].reshape((-1,)),
+            cq[:-1].reshape((-1,)),
+            Gq[1:].reshape((-1,)),
+            cq[1:].reshape((-1,)),
+            xp.stack(d["w_bin"]).reshape((-1,)),
+            on * (0.5 * (d["vq"][:nq] + d["vq"][1:])).reshape((-1,)),
+            on * (0.5 * (d["vc"][:nq] + d["vc"][1:])).reshape((-1,)),
+        )
+        return single, binary
+
+    def _p_observed(self, A: Any, B: Any, s2: Any, xp: Any, first_moment: bool = False) -> Any:
         r"""Probability that a model star deposited uniformly along the segment from apparent
         magnitude ``A`` to ``B`` is observed brighter than the completeness cut :math:`G_{\lim}`.
 
@@ -1065,6 +1125,13 @@ class IsochroneFitter:
         with :math:`s_k^2 = e(\bar G_k)^2 + s^2`, the error model at the segment's midpoint
         (clipped to the observed range, because the quadratic log-error fit diverges when
         extrapolated). Zero-length segments use :math:`\Phi` at the point.
+
+        With ``first_moment`` also :math:`T_k = \int_0^1 t\,\Phi(u_0 - \delta t)\,dt`
+        (:math:`u_0 = (G_{\lim}-A_k)/s_k`, :math:`\delta = (B_k-A_k)/s_k`), for a weight linear
+        along the segment: :math:`T = \delta^{-2}[u_0(\psi(u_0)-\psi(u_1)) - (\chi(u_0)-\chi(u_1))]`
+        with :math:`\chi(u) = ((u^2-1)\Phi(u) + u\varphi(u))/2`, the antiderivative of
+        :math:`u\Phi(u)`; for :math:`|\delta| < 0.1`, where that difference cancels, the
+        expansion :math:`\bar P/2 - \delta\,\varphi(u_{\rm mid})/12`. Returns ``(P, T)``.
 
         Why the integral and not :math:`\Phi` at the midpoint, which stood here until
         2026-09-24: with the midpoint, a whole segment's IMF weight switches on within about
@@ -1081,15 +1148,30 @@ class IsochroneFitter:
         def Phi(x: Any) -> Any:
             return 0.5 * erfc(-x / np.sqrt(2.0))
 
+        def phi(x: Any) -> Any:
+            return xp.exp(-0.5 * x**2) / np.sqrt(2.0 * np.pi)
+
         def psi(x: Any) -> Any:  # antiderivative of Phi
-            return x * Phi(x) + xp.exp(-0.5 * x**2) / np.sqrt(2.0 * np.pi)
+            return x * Phi(x) + phi(x)
 
         L = self._mag_lim
         d = B - A
         short = xp.abs(d) < 1e-6
         D = xp.where(short, 1.0, d)  # safe value: no NaN in the branch not taken, nor its grad
-        avg = s / D * (psi((L - A) / s) - psi((L - B) / s))
-        return xp.where(short, Phi((L - mid) / s), avg)
+        u0, u1 = (L - A) / s, (L - B) / s
+        P = xp.where(short, Phi((L - mid) / s), s / D * (psi(u0) - psi(u1)))
+        if not first_moment:
+            return P
+
+        def chi(x: Any) -> Any:  # antiderivative of x Phi(x)
+            return 0.5 * ((x**2 - 1.0) * Phi(x) + x * phi(x))
+
+        delta = d / s
+        small = xp.abs(delta) < 0.1
+        dl = xp.where(small, 1.0, delta)
+        exact = (u0 * (psi(u0) - psi(u1)) - (chi(u0) - chi(u1))) / dl**2
+        T = xp.where(small, 0.5 * P - delta * phi((L - mid) / s) / 12.0, exact)
+        return P, T
 
     def _compiled_loglike(self, mode: str | None = None) -> Any:
         """Compiled ``(log L, d log L / d params)`` of the six parameters, for optimisation."""

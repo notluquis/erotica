@@ -10,6 +10,41 @@ reversed, add a new entry rather than editing the old one.
 
 ---
 
+## 2026-09-24 (later) — singles deposited with a continuous density along the track
+
+**Symptom.** With the completeness fixed (entry below), the criterion batch started on `d2d20ee`.
+Its second fit, a MIST singles synthetic (hub finding §10.12, `A_11`), failed the gate: R-hat
+1.026 and ESS_bulk 167 on log t, chains agreeing in mean. 1-D slices of log L at the mode were
+smooth in dm, A_V and Z and **rough in log t** (second differences -0.83 to +1.03 at 0.0005 dex
+against a median -0.07); `N ln F` was smooth.
+
+**Cause.** Each segment between consecutive EEP points carried its IMF weight **uniformly**, so the
+density per unit length along the track stepped at every EEP point. MIST's points are sparse
+where the isochrone moves fast: on that fit, 8 stars at G ≈ 16.0 sat on segments 0.12, 0.34-0.42
+and 1.5-1.7 mag long with per-length weights 0.054 / 0.039 / 0.029, and those points slide along
+the track at ~38 mag/dex in log t. A small change of age swept a boundary across the clump. dm
+moves the track rigidly and did not, over the slice, move a boundary across it.
+
+**Control.** Same slice with the density made continuous (numpy prototype, one variable): smooth
+in log t, per-star roughness 7.50 → 2.34; what remains is the slope change at the 6.55 age node,
+which bilinear interpolation in log t puts there by construction.
+
+**Fix.** `_segments`: point densities `rho_j = (w_{j-1} + w_j) / (l_{j-1} + l_j)`, linear within
+each segment, rescaled to the singles' total weight; `_segment_density(first_moment=True)` gives
+the extra closed-form term, and `_p_observed(first_moment=True)` the matching completeness term.
+The binary sheet is unchanged (already a Gaussian spread along the primary).
+
+**Oracles**, seen red under their mutation: a toy whose EEP points slide along a fixed track at
+~32 mag/dex with a sparse band (log L jitter in log t 0.224 with the uniform deposit, 0.034 now,
+bound 0.1) -- red with the uniform deposit restored; the completeness first moment against
+`scipy.integrate.quad` (1e-7) -- red with `T = P/2`. The Monte Carlo density and detected-fraction
+oracles pass with both deposits: they cannot tell them apart, which is why the slide test exists.
+
+**Not changed:** `posterior_cmd` still draws stars uniformly within each segment; it is a plotting
+generator, not the likelihood.
+
+---
+
 ## 2026-09-24 — isochrone completeness integrated along each segment: the "dm-A_V ridge" was a sawtooth
 
 **Symptom.** The entry below closed with "the dm-A_V ridge mixes at ESS/draw ≈ 0.05" and proposed
