@@ -79,9 +79,9 @@
  ],
  "bfmi": [
   0.892,
-  NaN,
-  NaN,
-  NaN
+  null,
+  null,
+  null
  ],
  "met": {
   "rhat": 3.7381,

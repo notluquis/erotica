@@ -71,6 +71,21 @@ PARAMS = ["met", "loga", "dm", "Av", "sigma_int", "f_bg"]
 PRIORS = {k: v for k, v in PRIORS.items() if k not in ("M_met", "M_loga")}
 
 
+def _strict(x):
+    """NaN / inf -> None, recursively, so the sidecars are JSON (RFC 8259) and not only
+    re-readable by Python: a chain frozen at its start gives E-BFMI = 0/0 = NaN, and
+    ``json.dumps`` writes that as a bare ``NaN`` token (tools/check_json_strict.py)."""
+    if isinstance(x, dict):
+        return {k: _strict(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_strict(v) for v in x]
+    if isinstance(x, (float, np.floating)):
+        return float(x) if np.isfinite(x) else None
+    if isinstance(x, np.integer):
+        return int(x)
+    return x
+
+
 def _truths(batch: str) -> list[dict]:
     if batch == "A":
         return [
@@ -263,7 +278,7 @@ def run(batch: str, i: int) -> dict:
                 np.mean(np.min(np.abs(met[:, None] - nodes[None]), axis=1) < 3e-4)
             )
     res.update({"seconds": round(time.time() - t0), "head": head, "erotica_dirty": dirty})
-    (OUT_DIR / f"{batch}_{i}.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
+    (OUT_DIR / f"{batch}_{i}.json").write_text(json.dumps(_strict(res), indent=1) + "\n")
     return res
 
 
@@ -289,7 +304,7 @@ def refinv() -> dict:
         abs(a - b) for a, b in zip(out["default"], out["moved_half_bin"], strict=True)
     )
     OUT_DIR.mkdir(exist_ok=True)
-    (OUT_DIR / "refinv.json").write_text(json.dumps(out, indent=1) + "\n")
+    (OUT_DIR / "refinv.json").write_text(json.dumps(_strict(out), indent=1) + "\n")
     return out
 
 
@@ -334,7 +349,7 @@ def summarize() -> dict:
     if (OUT_DIR / "refinv.json").exists():
         r = json.loads((OUT_DIR / "refinv.json").read_text())
         out["refinv"] = {k: r[k] for k in ("max_abs_diff_moved", "max_abs_diff_half_bin")}
-    SUMMARY.write_text(json.dumps(out, indent=1) + "\n")
+    SUMMARY.write_text(json.dumps(_strict(out), indent=1) + "\n")
     return out
 
 
