@@ -33,11 +33,17 @@ exclude: '^(data/|docs/_build/|legacy/|backups/|paper/methods-aa/(aa\.cls|aa\.bs
 
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.4
+    rev: v0.16.9
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+        # Desde ruff-pre-commit v0.16.5 este hook trae `types_or: [..., markdown]`, y ruff 0.16
+        # formatea los bloques de codigo de los .md. Medido 2026-09-25 con ruff 0.16.9: reescribe
+        # 6 .md versionados, entre ellos `docs/design-notes/decisions.md`, que es append-only:
+        # agregar una entrada reescribiria sus bloques historicos. Se fija el alcance de antes;
+        # formatear los .md, si se quiere, es un cambio aparte y a proposito.
+        types_or: [python, pyi, jupyter]
 
   - repo: https://github.com/kynan/nbstripout
     rev: 0.9.1
@@ -46,7 +52,7 @@ repos:
         exclude: \.virtual_documents/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # Cheap and load-bearing: a malformed pyproject.toml or CITATION.cff breaks the build and
       # the Zenodo deposit respectively, and both are edited by hand.
@@ -64,8 +70,11 @@ repos:
   # Ingles US en los papers (decision del autor, 2026-09-22). Sin `locale = "en-us"`, typos acepta
   # las formas britanicas: el paper de metodos llevaba 30 y paper.md 9 sin que nada lo marcara.
   # La config y su porque viven en paper/_typos.toml; el job `spelling` de joss-paper.yml lo repite en CI.
+  # La MISMA version que la accion de joss-paper.yml (v1.50.2 en los dos). Hasta 2026-09-25 el hook
+  # corria 1.49.1 y la accion un SHA de `master` cuyo entrypoint descargaba 1.49.0: dos
+  # diccionarios distintos para el mismo `paper/`.
   - repo: https://github.com/crate-ci/typos
-    rev: v1.49.1
+    rev: v1.50.2
     hooks:
       - id: typos
         files: ^paper/
