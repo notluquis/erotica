@@ -358,17 +358,44 @@ class Clustering:
                      60'    56784   150    20620   20620   1.0000      1.2x
                      70'    78893    50    53024   53024   1.0000      1.6x
 
-               **Jaccard 1.0000 in all seven configurations** — not "close", identical. So
-               switching the default does **not** move any published NGC 6383 number, while it
-               does remove the pathological case on contaminated synthetic frames. Cost is
+               **Jaccard 1.0000 in all seven configurations** — not "close", identical. ~~So
+               switching the default does **not** move any published NGC 6383 number~~ — true
+               only with ``match_reference_implementation=True``, i.e. vacuously (see the
+               correction above); the next note measures the case where it is false. Cost is
                neutral to favourable: the exact tree ranged from 0.9x to 12x *faster*, never
                meaningfully slower.
+
+               ⚠ **CORRECTION, 2026-09-25: the published NGC 6383 membership run is exactly
+               the case where the switch is live.** The P01 recipe
+               (``validation/ngc6383_radius_robustness.py`` in the paper repository) passes
+               ``match_reference_implementation=False``, and the submitted run predates this
+               default, so it used the approximate tree. Measured on the 40' catalogue
+               (15 276 sources, ``leaf``, ``allow_single_cluster=True``):
+
+                   fit at min_cluster_size=43        approx=True   approx=False
+                   labels equal to the published      15276/15276   no
+                   NGC branch (published: 701)            701          498
+
+                   full 290-step sweep, selection=    approx=True   approx=False
+                   "max_members" (P01's rule): mcs          43          273
+                   p>=0.6 members (published 254)          254          418
+
+               With BOTH current defaults (``approx=False`` and
+               ``selection="max_persistence"``) the sweep happens to land on mcs=43 again and
+               the 321 and 254 sets come back identical, but the branch is 498 rather than the
+               701 the manuscript quotes, ``probability_times`` moves by up to 0.169 over the
+               catalogue (1/290 on 3 of the 321 catalogued stars), and the step was chosen by a
+               rule the manuscript does not describe. A coincidence, not a reproduction. The
+               P01 script therefore pins ``approx_min_span_tree=True`` and
+               ``selection="max_members"``; ``tests/test_p01_reproduction.py`` checks it
+               (hub finding R25-01, node B10).
 
                ⚠ Note the direction of the earlier synthetic timing: at n=1500 the exact tree was
                1.4x SLOWER, which is the regime that does not matter here. Timing the wrong scale
                would have argued against the better default.
 
-               Set ``True`` only to reproduce a result produced before 2026-08-04.
+               Set ``True`` only to reproduce a result produced before 2026-08-04 — and P01's
+               membership run is one.
 
                It also makes ``relative_validity_`` trustworthy: that score is computed from
                ``minimum_spanning_tree_`` and silently inherited the approximation.
@@ -542,7 +569,13 @@ class Clustering:
         # number. Both are kept so a caller can quote whichever it means, and say which.
         _req_mcs = int(selected["min_cluster_size"])
         _req_ms = int(min_samples) if min_samples is not None else _req_mcs
-        _shift = 1 if match_reference_implementation else 0
+        # Read the flag from the kwargs that were ACTUALLY passed to hdbscan, not from the named
+        # parameter: `hdbscan_kwargs` is spread after it in `base_kwargs`, so a caller passing
+        # `hdbscan_kwargs={"match_reference_implementation": False}` -- which is what the P01
+        # radius-robustness script did -- ran unshifted while this block reported the +1/-1
+        # shift and `match_reference_implementation=True` (hub finding R25-04).
+        _mri = bool(base_kwargs["match_reference_implementation"])
+        _shift = 1 if _mri else 0
         self.pseudoprobability_selected_ = {
             **selected,
             "probability_times": final_probability_times.copy(),
@@ -550,7 +583,7 @@ class Clustering:
             "requested_min_samples": _req_ms,
             "effective_min_cluster_size": _req_mcs + _shift,
             "effective_min_samples": _req_ms - _shift,
-            "match_reference_implementation": bool(match_reference_implementation),
+            "match_reference_implementation": _mri,
         }
         # `labels_matrix` is passed by reference and NOT stored on the instance. It is
         # (n_sources x n_sweep_steps) int32 -- 92 MB for the 70' NGC 6383 catalogue at 290

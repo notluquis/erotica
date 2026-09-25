@@ -1724,3 +1724,58 @@ the class `methodology.md` PART K polices.
 Hub: closes `state/programme.yaml` node F1 and its row in `open-threads.md`. No `state/findings.yaml`
 entry cited this workaround (checked; F1's only other mention, at a different YAML line, is about
 the roadmap renderer's "puede empezar hoy" list, unrelated).
+
+## 2026-09-25 — P01's membership run depends on two retired defaults; pinned in the recipe, not reverted here
+
+**Symptom.** The P01 recipe (`validation/ngc6383_radius_robustness.py`, now in the paper
+repository) no longer reproduced the submitted 40' run with the current package. B8-target-frequency
+found it by accident (hub `agent-findings/b8-target-frequency.md`): with `approx_min_span_tree=True`
+alone the automatic selector picked `min_cluster_size=51` and 259 members, not 43 and 254.
+
+**Cause, measured on one 290-step sweep per tree setting, all three selection rules applied to
+each sweep's step records** (catalogue: the stored 15 276-source `paperfaithful_with_clip_flags.ecsv`,
+which a fresh run of the fixed script from the raw cone reproduces column for column):
+
+| tree | `max_members` | `max_persistence` | `max_lambda` |
+|---|---|---|---|
+| approximate (`True`, pre-2026-08-04 default) | **43** (branch 701) | 51 (branch 497) | 16 |
+| exact (`False`, current default) | 273 (branch 602) | 43 (branch 498) | 16 |
+
+Two defaults moved after the submitted run: `selection` `"max_members"` → `"max_persistence"`
+(e1e1a4c, 2026-08-03) and `approx_min_span_tree` `True` → `False` (db0fafb, 2026-08-04). The
+submitted run is the top-left cell, and the manuscript describes that rule in words (*"the adopted
+`min_cluster_size` is the value that maximizes the size of the recovered branch"*). With the
+approximate tree, `probability_times` over the whole sweep equals the stored column exactly
+(max |Δ| = 0.0), so nothing else on the sweep path moved; the rest of the commits touching
+`clustering.py` since the rename cannot matter here. Membership per cell (p ≥ 0.6, published clip
+recomputed): **254** (both pins), 259 (tree pin only), 418 (selection pin only).
+
+The bottom-right cell — both current defaults — lands on 43 by coincidence, and returns the same
+321 and 254 sets. It is still not the published run: the branch is 498, not the 701 the manuscript
+quotes; `probability_times` moves by up to 0.169 over the catalogue (on 3 of the 321 catalogued
+stars, by 1/290); and the step was picked by a rule the paper does not describe.
+
+**What was false.** The `approx_min_span_tree` docstring said the switch *"does not move any
+published NGC 6383 number"*. That was measured with `match_reference_implementation=True`, which
+forces the exact tree, so it could not have come out any other way; P01 passes `False`. Corrected in
+place, with the table above.
+
+**Fix: (a), pin in the recipe. Not (b), revert the defaults.** Both changes have their own
+measured or principled case (the exact tree: ROC .9043 at every `leaf_size` against .8887–.9043
+approximate; `max_persistence`: ranks steps by the quantity it claims to, where `max_members` ranks
+by a condensed-tree row count, issue #7), and neither default was changed to serve P01. Reverting
+them would buy back a reproduction that two named arguments buy anyway. The paper script now passes
+`selection="max_members"`, `approx_min_span_tree=True` and `match_reference_implementation=False` by
+name.
+
+**A third defect on the same path.** `pseudoprobability_selected_` read
+`match_reference_implementation` from the named parameter, while `hdbscan_kwargs` — spread after it —
+is what hdbscan receives. P01 turned the flag off through the kwargs, so its report said `True` with
+`effective_min_cluster_size = requested + 1` for a fit that ran unshifted. It now reads the flag from
+the kwargs actually passed (hub finding R25-04).
+
+**Oracle and mutations.** `tests/test_p01_reproduction.py` (untracked data, so it skips in CI and
+says why): the recipe must select 43 by itself, write `cluster_hdbscan` and `probability` equal to
+the stored columns, and return the 254 `source_id` of the reference sample. Dropping the selection
+pin gives 51 / 259; dropping the tree pin gives 273 / 418. `TestEffectiveHyperparameters` gained the
+kwargs case; restoring the old read of the flag turns it red.

@@ -903,6 +903,30 @@ class TestEffectiveHyperparameters:
         assert sel["effective_min_cluster_size"] == sel["requested_min_cluster_size"]
         assert sel["effective_min_samples"] == sel["requested_min_samples"]
 
+    def test_the_flag_passed_through_hdbscan_kwargs_is_the_one_reported(self, good_data):
+        """``hdbscan_kwargs`` is spread AFTER the named flag, so it is what hdbscan runs with.
+
+        Oracle: the fitted model's own ``min_cluster_size``/``min_samples``, which hdbscan
+        stores unshifted, plus the flag in the kwargs. The P01 radius-robustness script turned
+        the flag off through ``hdbscan_kwargs`` and the report still said ``True`` with a +1
+        shift (hub finding R25-04).
+        """
+        from erotica.core.clustering import Clustering
+
+        clust = Clustering(good_data.copy())
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 25),
+            min_samples=12,
+            probability_threshold=0.5,
+            hdbscan_kwargs={"match_reference_implementation": False},
+        )
+        sel = clust.pseudoprobability_selected_
+        assert clust.best_params_["match_reference_implementation"] is False
+        assert sel["match_reference_implementation"] is False
+        assert sel["effective_min_cluster_size"] == sel["requested_min_cluster_size"]
+        assert sel["effective_min_samples"] == sel["requested_min_samples"]
+
     def test_the_flag_actually_changes_the_labelling(self):
         """Positive control. If the flag became inert, the reported delta would be a fiction and
         the whole justification for keeping it (measured +0.02 ROC held-out) would be stale.
