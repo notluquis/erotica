@@ -114,7 +114,12 @@ bayes = [
   # numpyro is the NUTS backend the validation sweeps use: measured 2.71x faster than the
   # default PyTensor NUTS on the unbinned EFF fit, with |d gamma| = 0.00006 between them.
   # Same algorithm, different substrate -- see tools/validation/pymc_blackjax_progress_bar_bug.md.
-  "numpyro>=0.15",
+  #
+  # >=0.21, not >=0.15: numpyro does not cap jax, so an old numpyro is installed next to the
+  # current jax and fails on import. Measured 2026-09-25 against jax 0.11.2: 0.15.0 raises
+  # `cannot import name 'host_callback' from 'jax.experimental'`, 0.16.1-0.18.0 `pjit_p`,
+  # 0.19.0-0.20.0 `xla_pmap_p`; 0.21.0 is the first that imports. environment.yml said >=0.21.
+  "numpyro>=0.21",
   # blackjax is declared but is NOT currently usable as a nuts_sampler: it raises
   # TypeError: kernel() got an unexpected keyword argument 'progress_bar'. Traced to a
   # kwarg-ordering bug in pymc/sampling/jax.py that is still present on pymc main as of
@@ -126,7 +131,10 @@ bayes = [
   # function with no such attribute (checked on 1.6.2) -- fixing the kwarg order alone would not
   # be enough. The issue reports blackjax <= 1.5 as working. (An earlier version of this comment
   # cited #7049 — wrong: that is a 2023 issue about progress bars under pmap, closed in a week.)
-  "blackjax>=1",
+  #
+  # >=1.2, not >=1: blackjax 1.0.0 and 1.1.0 import `jax.experimental.host_callback`, gone from
+  # current jax, and fail on import; 1.2.0 imports (measured against jax 0.11.2, 2026-09-25).
+  "blackjax>=1.2",
   "fast-histogram>=0.11",
   # ArviZ 1.x ships NO netCDF engine of its own. Without one, InferenceData.to_netcdf raises
   # "cannot write NetCDF files with format='NETCDF4' because none of the suitable backend
@@ -180,8 +188,8 @@ paper = [
   "packaging",  # _assert_pytensor_cauchy_fixed imports packaging.version -- see [bayes]
   "arviz>=1.2",  # see [bayes]: arviz 1.1 cannot be imported with matplotlib>=3.11
   "xarray>=2024.11",  # see [bayes]: xr.DataTree
-  "numpyro>=0.15",
-  "blackjax>=1",
+  "numpyro>=0.21",  # see [bayes]: older numpyro cannot import with current jax
+  "blackjax>=1.2",  # see [bayes]: 1.0/1.1 cannot import with current jax
   # >=0.7, the same floor as the [asteca] extra and for its reason: 0.6.9 runs with the same API
   # and silently yields a different `asteca_fastmp` baseline. This line said >=0.6 while [asteca]
   # had been raised on 2026-08-04, so `pip install erotica[paper]` could still pick 0.6.9.
