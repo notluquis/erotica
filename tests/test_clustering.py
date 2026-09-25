@@ -1002,6 +1002,116 @@ class TestTargetRecoveryFrequency:
             self._run(good_data, bad_data, recovery_frequency="anything")
 
 
+# --- B7: un segundo pico limpio contamina el top-K via p-tilde SIN CONDICIONAR ----------------
+#
+# ~/phd agent-findings/b7-branch-selection.md. La rama que `search_pseudoprobability` SELECCIONA
+# (`selected_label`) es el primario, no el vecino, en las 12 semillas medidas del brazo B' de B6
+# -- la seleccion de rama no es el defecto. El vecino entra por otra via: `probability_times`
+# cuenta "en CUALQUIER cluster del barrido", no en la rama elegida, asi que un segundo pico
+# limpio y bien separado acumula p-tilde alto por cuenta propia y compite en el ranking top-K
+# que el benchmark usa para recuperar el centroide (`recovery_frequency='any'`, el default).
+# `recovery_frequency='target'` condiciona la frecuencia a la rama elegida y lo suprime --
+# medido 0/12 contra 8/12 en las 12 semillas reales. Este test fija el MECANISMO en un
+# escenario sintetico chico, no las 12 semillas (esas viven en el hallazgo, no en CI).
+
+
+def _make_primary_plus_clean_neighbour(seed: int = 1) -> tuple:
+    """Primario compacto + un vecino MAS CHICO (0.7x), limpio, a 12 sigma + campo liso.
+
+    La razon 0.7x y la separacion de 12 sigma son las que B7 midio en el brazo B' de B6
+    (agent-findings/b7-branch-selection.md), no valores arbitrarios.
+    """
+    rng = np.random.default_rng(seed)
+    n_primary, n_neighbour, n_field = 40, 28, 120  # 28/40 = 0.7
+    sigma = 0.2
+    delta_pm = 12.0 * sigma
+    ang = np.deg2rad(45.0)
+    pmra_n_c = -1.2 + delta_pm * np.cos(ang)
+    pmdec_n_c = -0.5 + delta_pm * np.sin(ang)
+    pmra = np.concatenate(
+        [
+            rng.normal(-1.2, sigma, n_primary),
+            rng.normal(pmra_n_c, sigma, n_neighbour),
+            rng.normal(-1.2, 4.0, n_field),
+        ]
+    )
+    pmdec = np.concatenate(
+        [
+            rng.normal(-0.5, sigma, n_primary),
+            rng.normal(pmdec_n_c, sigma, n_neighbour),
+            rng.normal(-0.5, 4.0, n_field),
+        ]
+    )
+    is_primary = np.concatenate([np.ones(n_primary, bool), np.zeros(n_neighbour + n_field, bool)])
+    is_neighbour = np.concatenate(
+        [np.zeros(n_primary, bool), np.ones(n_neighbour, bool), np.zeros(n_field, bool)]
+    )
+    order = rng.permutation(is_primary.size)  # el orden de filas no debe cargar informacion
+    table = QTable(
+        {
+            "pmra": pmra[order] * u.mas / u.yr,
+            "pmdec": pmdec[order] * u.mas / u.yr,
+            "ra": rng.uniform(263, 264, is_primary.size) * u.deg,
+            "dec": rng.uniform(-32, -31, is_primary.size) * u.deg,
+        }
+    )
+    return table, is_primary[order], is_neighbour[order], n_primary
+
+
+class TestTargetAwareSuppressesCleanSecondPeak:
+    def test_any_lets_the_neighbour_into_topk_target_does_not(self):
+        from erotica.core.clustering import Clustering
+
+        table, is_primary, is_neighbour, n_primary = _make_primary_plus_clean_neighbour()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            clu_any = Clustering(table.copy())
+            clu_any.search_pseudoprobability(
+                columns=["pmra", "pmdec"],
+                min_cluster_size_samples=range(5, 40),
+                min_samples=5,
+                probability_threshold=0.5,
+                selection="max_members",
+            )
+            clu_tgt = Clustering(table.copy())
+            clu_tgt.search_pseudoprobability(
+                columns=["pmra", "pmdec"],
+                min_cluster_size_samples=range(5, 40),
+                min_samples=5,
+                probability_threshold=0.5,
+                selection="max_members",
+                recovery_frequency="target",
+            )
+
+        def topk_composition(clu):
+            # El top-K del benchmark rankea `probability` SIN filtrar por la rama elegida
+            # (`run_cell`, tools/validation/benchmark_erotica_vs_asteca.py:1046-1054) --
+            # se reproduce el mismo ranking acá, sobre el mismo K (n_primary, por
+            # construcción).
+            score = np.asarray(clu.data["probability"], dtype=float)
+            order = np.argsort(-score, kind="stable")
+            topk = order[:n_primary]
+            return float(is_neighbour[topk].mean()), float(is_primary[topk].mean())
+
+        neigh_any, prim_any = topk_composition(clu_any)
+        neigh_tgt, prim_tgt = topk_composition(clu_tgt)
+
+        # Canario (methodology.md §K.1.14): si el vecino no contamina el top-K bajo el
+        # default, el escenario dejó de reproducir B7 y el resto del test no compara nada.
+        assert neigh_any > 0.3, (
+            "el vecino no contaminó el top-K bajo recovery_frequency='any' "
+            f"(neigh_frac={neigh_any:.3f}); el escenario dejó de reproducir B7"
+        )
+        # El arreglo candidato: 'target' reduce la contaminación del vecino en el MISMO K
+        # sobre los MISMOS datos.
+        assert neigh_tgt < neigh_any, (
+            "recovery_frequency='target' no redujo la fracción del vecino en el top-K "
+            f"(any={neigh_any:.3f}, target={neigh_tgt:.3f})"
+        )
+        assert prim_tgt > prim_any
+
+
 # --- blocker 12: el barrido depende del orden, y eso se documenta y se fija -------------------
 
 
