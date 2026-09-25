@@ -101,8 +101,16 @@ bayes = [
     # function, not at module level, but `tools/validation/check_declared_deps.py` still requires
     # anything imported to be declared somewhere -- it was missing entirely from this file.
     "packaging",
-  "arviz>=1",
-  "xarray>=2023",
+  # >=1.2, not >=1: arviz 1.1.0 pins arviz-plots<1.2, whose __init__ does
+  # `mplstyle.core.USER_LIBRARY_PATHS.append(...)`, and `matplotlib.style.core` is gone in the
+  # matplotlib>=3.11 this package requires. Measured 2026-09-25 in a clean venv: arviz 1.1.0 +
+  # matplotlib 3.11.0 -> `import arviz` raises AttributeError; arviz 1.2.0 imports. A
+  # `--resolution lowest-direct` install of `.[dev,bayes]` picked exactly 1.1.0. environment.yml
+  # already said >=1.2.
+  "arviz>=1.2",
+  # >=2024.11, not >=2023: erotica/analysis/identifiability.py builds an `xr.DataTree`, which
+  # only exists from xarray 2024.10; arviz-base already requires >=2024.11 transitively.
+  "xarray>=2024.11",
   # numpyro is the NUTS backend the validation sweeps use: measured 2.71x faster than the
   # default PyTensor NUTS on the unbinned EFF fit, with |d gamma| = 0.00006 between them.
   # Same algorithm, different substrate -- see tools/validation/pymc_blackjax_progress_bar_bug.md.
@@ -111,7 +119,12 @@ bayes = [
   # TypeError: kernel() got an unexpected keyword argument 'progress_bar'. Traced to a
   # kwarg-ordering bug in pymc/sampling/jax.py that is still present on pymc main as of
   # 2026-08-02, and verified in the RELEASED 6.2.0 source, so upgrading does not fix it.
-  # Upstream: pymc-devs/pymc#8367, fix pending in PR #8373. (An earlier version of this comment
+  # Upstream: pymc-devs/pymc#8367, fix pending in PR #8373. Re-checked 2026-09-25: #8367 still
+  # open, #8373 still unmerged, and `pymc/sampling/jax.py` is byte-identical in 6.2.0, 6.3.2 and
+  # main. A SECOND break sits behind the first: jax.py:280 calls
+  # `blackjax.progress_bar.gen_scan_fn(...)`, and since blackjax 1.6 `blackjax.progress_bar` is a
+  # function with no such attribute (checked on 1.6.2) -- fixing the kwarg order alone would not
+  # be enough. The issue reports blackjax <= 1.5 as working. (An earlier version of this comment
   # cited #7049 — wrong: that is a 2023 issue about progress bars under pmap, closed in a week.)
   "blackjax>=1",
   "fast-histogram>=0.11",
@@ -165,11 +178,14 @@ paper = [
   "pytensor>=3.2.4",
   "pymc>=6.2",
   "packaging",  # _assert_pytensor_cauchy_fixed imports packaging.version -- see [bayes]
-  "arviz>=1",
-  "xarray>=2023",
+  "arviz>=1.2",  # see [bayes]: arviz 1.1 cannot be imported with matplotlib>=3.11
+  "xarray>=2024.11",  # see [bayes]: xr.DataTree
   "numpyro>=0.15",
   "blackjax>=1",
-  "asteca>=0.6",
+  # >=0.7, the same floor as the [asteca] extra and for its reason: 0.6.9 runs with the same API
+  # and silently yields a different `asteca_fastmp` baseline. This line said >=0.6 while [asteca]
+  # had been raised on 2026-08-04, so `pip install erotica[paper]` could still pick 0.6.9.
+  "asteca>=0.7",
   "seaborn>=0.12",
   "fast-histogram>=0.11",
   # Same reason as in [bayes], including the [h5py] extra: ArviZ 1.x ships no netCDF engine,
