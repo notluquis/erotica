@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import optuna
@@ -167,10 +167,23 @@ def _build_sampler(name: str, search_space: dict[str, dict], sampler_kwargs: dic
         seed = sampler_kwargs.get("seed")
         sampler_kwargs.setdefault("independent_sampler", RandomSampler(seed=seed))
 
-    # constant_liar evita que workers paralelos sugieran los mismos params.
-    # Soportado en TPESampler siempre, y en GPSampler desde v4.8.0.
-    if n_jobs != 1 and name in {"TPESampler", "GPSampler"}:
-        sampler_kwargs.setdefault("constant_liar", True)
+    # TPE: los dos defaults que optuna 5.0 cambio se fijan aca, para que la secuencia de trials no
+    # dependa de la version instalada (el piso admite 4.9 y 5.0).
+    #   * `multivariate`: 5.0 lo activa por defecto (#6746). Medido 2026-09-25, TPESampler(seed=0),
+    #     40 trials, n_jobs=1: en un espacio 1-D la secuencia es identica entre 4.9.0 y 5.0.0; en
+    #     2-D (min_cluster_size + min_samples) diverge desde el trial 10. Con multivariate=False,
+    #     5.0.0 reproduce 4.9.0 trial por trial en los dos casos.
+    #   * `constant_liar`: 5.0 lo activa por defecto (#6738). Sirve para que workers paralelos no
+    #     sugieran lo mismo; con n_jobs=1 no hay trials RUNNING ajenos y no cambia nada.
+    #
+    # GPSampler NO recibe `constant_liar`: su __init__ (4.8, 4.9 y 5.0) es solo-keywords y no tiene
+    # ese argumento -- la "constant liar strategy" de 4.8.0 (#6430) es interna. El codigo anterior
+    # se lo pasaba con n_jobs != 1, y `search(sampler="GPSampler")` con el n_jobs=-1 por defecto
+    # moria con `TypeError: GPSampler.__init__() got an unexpected keyword argument
+    # 'constant_liar'` en las dos versiones.
+    if name == "TPESampler":
+        sampler_kwargs.setdefault("multivariate", False)
+        sampler_kwargs.setdefault("constant_liar", n_jobs != 1)
 
     return sampler_cls(**sampler_kwargs)
 

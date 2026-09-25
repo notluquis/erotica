@@ -594,6 +594,60 @@ class TestIdempotency:
         assert best[0] == best[1], "seeded Optuna search did not reproduce"
 
 
+class TestSamplerDefaultsArePinned:
+    """``_build_sampler`` must not inherit the TPE defaults optuna 5.0 changed, and must build
+    every sampler it advertises.
+
+    The test above runs 6 trials, under TPE's ``n_startup_trials=10``, so it only ever exercises
+    the random start-up phase: it stays green whatever the modelling phase does. These go past it.
+    """
+
+    @staticmethod
+    def _trial_sequence(sampler, n_trials=15):
+        import optuna
+
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
+        study = optuna.create_study(direction="maximize", sampler=sampler)
+
+        def objective(trial):
+            x = trial.suggest_int("min_cluster_size", 5, 100)
+            y = trial.suggest_int("min_samples", 1, 50)
+            return -((x - 37) ** 2) / 100 - ((y - 12) ** 2) / 50 + np.sin(x)
+
+        study.optimize(objective, n_trials=n_trials, n_jobs=1)
+        return [tuple(t.params.values()) for t in study.trials]
+
+    def test_tpe_sequence_is_the_univariate_one_on_a_2d_space(self):
+        """Oracle: an explicitly univariate ``TPESampler(seed=0, multivariate=False,
+        constant_liar=False)`` -- the optuna 4.9 default, spelled out so it does not depend on the
+        installed version. Measured 2026-09-25: with optuna 5.0.0's own default the 2-D sequence
+        departs from this one at trial 10. Under optuna 4.9 the default already matches, so this
+        can only fail on >= 5.0; that is the version the pin exists for.
+        """
+        import optuna
+
+        from erotica.core._search import _build_sampler
+
+        space = {
+            "min_cluster_size": {"low": 5, "high": 100, "type": "int"},
+            "min_samples": {"low": 1, "high": 50, "type": "int"},
+        }
+        ours = _build_sampler("TPESampler", space, {"seed": 0}, n_jobs=1)
+        reference = optuna.samplers.TPESampler(seed=0, multivariate=False, constant_liar=False)
+        assert self._trial_sequence(ours) == self._trial_sequence(reference)
+
+    @pytest.mark.parametrize("n_jobs", [1, -1])
+    def test_gp_sampler_builds_in_parallel_mode(self, n_jobs):
+        """``GPSampler.__init__`` has no ``constant_liar`` argument (optuna 4.8-5.0), and the
+        old code passed one whenever ``n_jobs != 1`` -- i.e. with ``search()``'s default
+        ``n_jobs=-1`` -- raising ``TypeError`` before a single trial ran."""
+        from erotica.core._search import _build_sampler
+
+        space = {"min_cluster_size": {"low": 5, "high": 100, "type": "int"}}
+        sampler = _build_sampler("GPSampler", space, {"seed": 0}, n_jobs=n_jobs)
+        assert type(sampler).__name__ == "GPSampler"
+
+
 class TestSweepStepSelection:
     """The rule that picks WHICH sweep step to keep, distinct from which label to return.
 
