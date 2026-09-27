@@ -49,6 +49,12 @@ on:
         type: choice
         options: [testpypi, pypi]
 
+# Por defecto, solo lectura. `build` no declaraba permisos y heredaba el token por defecto entero
+# (CodeQL actions/missing-workflow-permissions #45; zizmor excessive-permissions #12 y #43). Los
+# jobs de publicacion declaran su propio `id-token: write`, que reemplaza a este bloque.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build distributions
