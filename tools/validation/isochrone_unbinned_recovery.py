@@ -211,7 +211,8 @@ def run(batch: str, i: int) -> dict:
             target_accept=0.9,
             nuts_sampler="numpyro",
             random_seed=42,
-            progressbar=False,
+            # C1 runs for many hours: the progress bar on stderr is the only view of where it is
+            progressbar=batch == "ngc",
             initvals=found["chain_starts"] if found else None,
             start_info=found,
             start=start,
