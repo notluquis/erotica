@@ -71,8 +71,8 @@ import numpy as np
 from erotica.analysis.inference import SamplingConfig
 from erotica.analysis.structure import EFFPriors, eff_unbinned
 
-A_TRUE = 1.65          # arcmin, semi-major axis
-FIELD_RADIUS = 70.0    # arcmin
+A_TRUE = 1.65  # arcmin, semi-major axis
+FIELD_RADIUS = 70.0  # arcmin
 # N is set by MEASUREMENT, not by "large is safe". Measured on the q = 0.71, gamma = 2.5 cell
 # (scratchpad/bench_grid_cost.py), one fit each, truth gamma = 2.5:
 #
@@ -89,8 +89,8 @@ FIELD_RADIUS = 70.0    # arcmin
 # on both q and gamma -- measured across the whole grid, it ranges from 1.000 (q=1) down to 0.843
 # at gamma=2.0, q=0.30, because a shallower profile puts more stars outside the field. Sizing from
 # the gamma=2.5 cell alone gave 17000 and the run died at gamma=2.0, q=0.30 with 14348 < 15000.
-N_STARS = 19_000       # 15000 / 0.843 = 17793, rounded up with margin
-N_KEEP = 15_000        # fixed post-cut length; see elliptical_eff_radii on why it must be fixed
+N_STARS = 19_000  # 15000 / 0.843 = 17793, rounded up with margin
+N_KEEP = 15_000  # fixed post-cut length; see elliptical_eff_radii on why it must be fixed
 
 # Convergence gate, applied to EVERY fit. A cell that fails is recorded and excluded from the
 # summary rather than silently averaged in. This is not boilerplate: the 500/500 sampler config
@@ -99,7 +99,7 @@ N_KEEP = 15_000        # fixed post-cut length; see elliptical_eff_radii on why 
 # (2021), 2021BayAn..16..667V.
 RHAT_MAX = 1.01
 ESS_MIN = 400
-AXIS_RATIOS = (1.0, 0.71, 0.50, 0.30)   # 0.71 = Tarricq et al. (2022) median
+AXIS_RATIOS = (1.0, 0.71, 0.50, 0.30)  # 0.71 = Tarricq et al. (2022) median
 GAMMAS = (2.0, 2.5, 3.0, 4.0)
 
 
@@ -164,8 +164,11 @@ def main():
     # --background reruns the same grid with the background free, which is the applied question
     # ("how much does the fit as actually performed get wrong?") rather than the clean one
     # ("does ellipticity bias gamma?"). Both are worth having; they are not the same experiment.
-    ap.add_argument("--background", action="store_true",
-                    help="let the flat background float (applied case); default pins it near zero")
+    ap.add_argument(
+        "--background",
+        action="store_true",
+        help="let the flat background float (applied case); default pins it near zero",
+    )
     args = ap.parse_args()
 
     # numpyro, not the default PyMC NUTS. Measured on one cell of this exact grid
@@ -193,11 +196,13 @@ def main():
     # -- and none of those reveal a failed fit. A non-converged chain still returns a plausible
     # median and a plausible SD. Convergence has to be measured directly, which is why the gate
     # above now runs on every fit.
-    cfg = SamplingConfig(draws=1000, tune=800, chains=2, random_seed=3, progressbar=False,
-                         nuts_sampler=args.sampler)
+    cfg = SamplingConfig(
+        draws=1000, tune=800, chains=2, random_seed=3, progressbar=False, nuts_sampler=args.sampler
+    )
     priors = EFFPriors() if args.background else EFFPriors(b_scale=1e-6)
     out = Path(__file__).with_name(
-        "ellipticity_bias.json" if not args.background else "ellipticity_bias_withbg.json")
+        "ellipticity_bias.json" if not args.background else "ellipticity_bias_withbg.json"
+    )
 
     # The full grid is 4 gammas x 4 axis ratios x --realizations fits: over an hour even on
     # numpyro. Writing only at the end means a run that dies loses everything, which this one
@@ -211,29 +216,52 @@ def main():
         compares, and the next invocation silently redid all 16 cells instead of resuming. Two
         writers for one format is the defect; one writer with a flag is the fix.
         """
-        out.write_text(json.dumps(dict(a_true=A_TRUE, n_stars=N_STARS, field_radius=FIELD_RADIUS,
-                                       axis_ratios=list(AXIS_RATIOS), gammas=list(GAMMAS),
-                                       realizations=args.realizations, sampler=args.sampler,
-                                       n_keep=N_KEEP, draws=cfg.draws, tune=cfg.tune,
-                                       background=bool(args.background),
-                                       complete=bool(complete), cells=rows), indent=1))
+        out.write_text(
+            json.dumps(
+                dict(
+                    a_true=A_TRUE,
+                    n_stars=N_STARS,
+                    field_radius=FIELD_RADIUS,
+                    axis_ratios=list(AXIS_RATIOS),
+                    gammas=list(GAMMAS),
+                    realizations=args.realizations,
+                    sampler=args.sampler,
+                    n_keep=N_KEEP,
+                    draws=cfg.draws,
+                    tune=cfg.tune,
+                    background=bool(args.background),
+                    complete=bool(complete),
+                    cells=rows,
+                ),
+                indent=1,
+            )
+        )
 
     rows = []
     if out.is_file():
         cached = json.loads(out.read_text())
         # The sampler is part of the resume key: silently mixing backends across cells of one
         # grid would put a between-sampler difference into a between-geometry measurement.
-        if (cached.get("realizations") == args.realizations and cached.get("n_stars") == N_STARS
-                and cached.get("sampler") == args.sampler and cached.get("n_keep") == N_KEEP
-                and cached.get("draws") == cfg.draws and cached.get("tune") == cfg.tune
-                and cached.get("background") == bool(args.background)):
+        if (
+            cached.get("realizations") == args.realizations
+            and cached.get("n_stars") == N_STARS
+            and cached.get("sampler") == args.sampler
+            and cached.get("n_keep") == N_KEEP
+            and cached.get("draws") == cfg.draws
+            and cached.get("tune") == cfg.tune
+            and cached.get("background") == bool(args.background)
+        ):
             rows = cached["cells"]
             print(f"resuming: {len(rows)} of {len(GAMMAS) * len(AXIS_RATIOS)} cells already done\n")
     done = {(r["gamma_true"], r["axis_ratio"]) for r in rows}
 
-    print(f"elliptical EFF sampled, circular EFF fitted.  a = {A_TRUE}', N = {N_STARS}, "
-          f"{args.realizations} realizations\n")
-    print(f"{'gamma':>6s} {'q=b/a':>7s} {'delta gamma':>16s} {'a_fit/a':>9s} {'a_fit/(a*sqrt(q))':>18s}")
+    print(
+        f"elliptical EFF sampled, circular EFF fitted.  a = {A_TRUE}', N = {N_STARS}, "
+        f"{args.realizations} realizations\n"
+    )
+    print(
+        f"{'gamma':>6s} {'q=b/a':>7s} {'delta gamma':>16s} {'a_fit/a':>9s} {'a_fit/(a*sqrt(q))':>18s}"
+    )
     for gamma in GAMMAS:
         for q in AXIS_RATIOS:
             if (float(gamma), float(q)) in done:
@@ -241,11 +269,15 @@ def main():
             gammas, scales = [], []
             worst_rhat, worst_ess, divergences = 0.0, np.inf, 0
             for i in range(args.realizations):
-                rng = np.random.default_rng(args.seed + 100 * int(gamma * 10) + 10 * int(q * 100) + i)
-                r = elliptical_eff_radii(rng, N_STARS, a=A_TRUE, q=q, gamma=gamma,
-                                         field_radius=FIELD_RADIUS)
-                fit = eff_unbinned(r, field_radius=FIELD_RADIUS, priors=priors,
-                                   sampling=cfg, progressbar=False)
+                rng = np.random.default_rng(
+                    args.seed + 100 * int(gamma * 10) + 10 * int(q * 100) + i
+                )
+                r = elliptical_eff_radii(
+                    rng, N_STARS, a=A_TRUE, q=q, gamma=gamma, field_radius=FIELD_RADIUS
+                )
+                fit = eff_unbinned(
+                    r, field_radius=FIELD_RADIUS, priors=priors, sampling=cfg, progressbar=False
+                )
                 gammas.append(float(fit["gamma_median"]))
                 scales.append(float(fit["a_median"].value))
 
@@ -264,22 +296,30 @@ def main():
             g, sc = np.asarray(gammas), np.asarray(scales)
             converged = worst_rhat < RHAT_MAX and worst_ess > ESS_MIN and divergences == 0
             row = dict(
-                gamma_true=float(gamma), axis_ratio=float(q),
+                gamma_true=float(gamma),
+                axis_ratio=float(q),
                 delta_gamma=float(g.mean() - gamma),
                 delta_gamma_sem=float(g.std(ddof=1) / np.sqrt(g.size)),
                 a_fit_over_a=float(sc.mean() / A_TRUE),
                 a_fit_over_geometric_mean=float(sc.mean() / (A_TRUE * np.sqrt(q))),
-                max_rhat=float(worst_rhat), min_ess=float(worst_ess),
-                divergences=int(divergences), converged=bool(converged),
+                max_rhat=float(worst_rhat),
+                min_ess=float(worst_ess),
+                divergences=int(divergences),
+                converged=bool(converged),
             )
             if not converged:
-                print(f"  !! gamma={gamma} q={q} DID NOT CONVERGE: rhat={worst_rhat:.4f} "
-                      f"ess={worst_ess:.0f} div={divergences} -- excluded from the summary",
-                      flush=True)
+                print(
+                    f"  !! gamma={gamma} q={q} DID NOT CONVERGE: rhat={worst_rhat:.4f} "
+                    f"ess={worst_ess:.0f} div={divergences} -- excluded from the summary",
+                    flush=True,
+                )
             rows.append(row)
             checkpoint(rows)
-            print(f"{gamma:6.1f} {q:7.2f} {row['delta_gamma']:+9.4f}+/-{row['delta_gamma_sem']:.4f}"
-                  f" {row['a_fit_over_a']:9.3f} {row['a_fit_over_geometric_mean']:18.3f}", flush=True)
+            print(
+                f"{gamma:6.1f} {q:7.2f} {row['delta_gamma']:+9.4f}+/-{row['delta_gamma_sem']:.4f}"
+                f" {row['a_fit_over_a']:9.3f} {row['a_fit_over_geometric_mean']:18.3f}",
+                flush=True,
+            )
 
     # THE ELLIPTICITY EFFECT IS THE DIFFERENCE AGAINST THE CIRCULAR CELL, NOT delta_gamma ITSELF.
     #
@@ -303,16 +343,23 @@ def main():
     circular = [r for r in rows if r["axis_ratio"] == 1.0]
     worst_null = max(abs(r["delta_gamma"]) for r in circular)
     worst_sem = max(r["delta_gamma_sem"] for r in circular)
-    print(f"\nESTIMATOR BIAS at q = 1 (this is NOT the ellipticity effect): "
-          f"largest |delta gamma| = {worst_null:.4f}, largest SEM = {worst_sem:.4f}")
-    print(f"  significant vs zero: {'YES -- subtract it, do not ignore it' if worst_null > 2 * worst_sem else 'no'}")
+    print(
+        f"\nESTIMATOR BIAS at q = 1 (this is NOT the ellipticity effect): "
+        f"largest |delta gamma| = {worst_null:.4f}, largest SEM = {worst_sem:.4f}"
+    )
+    print(
+        f"  significant vs zero: {'YES -- subtract it, do not ignore it' if worst_null > 2 * worst_sem else 'no'}"
+    )
 
-    at_median = [r for r in rows if r["axis_ratio"] == 0.71
-                 and r.get("delta_gamma_vs_circular") is not None]
+    at_median = [
+        r for r in rows if r["axis_ratio"] == 0.71 and r.get("delta_gamma_vs_circular") is not None
+    ]
     if at_median:
-        print(f"ELLIPTICITY EFFECT at Tarricq's median q = 0.71, relative to the circular cell: "
-              f"{min(r['delta_gamma_vs_circular'] for r in at_median):+.4f} to "
-              f"{max(r['delta_gamma_vs_circular'] for r in at_median):+.4f}")
+        print(
+            f"ELLIPTICITY EFFECT at Tarricq's median q = 0.71, relative to the circular cell: "
+            f"{min(r['delta_gamma_vs_circular'] for r in at_median):+.4f} to "
+            f"{max(r['delta_gamma_vs_circular'] for r in at_median):+.4f}"
+        )
     gm = [r["a_fit_over_geometric_mean"] for r in rows if r["axis_ratio"] < 1.0]
     print(f"a_fit / (a*sqrt(q)) over all elliptical cells: {np.mean(gm):.3f} +/- {np.std(gm):.3f}")
     print("  -> if that is 1, the circular fit recovers the GEOMETRIC MEAN scale radius, so a")

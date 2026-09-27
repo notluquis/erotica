@@ -84,8 +84,9 @@ def run_cell(ratio, gamma_true, n, realizations, seed, cfg):
     for i in range(realizations):
         rng = np.random.default_rng(seed + i)
         r = eff_radii(rng, n, gamma=gamma_true, a=A_TRUE, field_radius=field)
-        fit = eff_unbinned(r, field_radius=field, priors=EFFPriors(),
-                           sampling=cfg, progressbar=False)
+        fit = eff_unbinned(
+            r, field_radius=field, priors=EFFPriors(), sampling=cfg, progressbar=False
+        )
         post = fit["eff_trace"].posterior
         g = np.asarray(post["gamma"].values).ravel()
         a = np.asarray(post["a"].values).ravel()
@@ -99,8 +100,11 @@ def run_cell(ratio, gamma_true, n, realizations, seed, cfg):
 
     g_arr, k_arr = np.asarray(gammas), np.asarray(kappas)
     return dict(
-        ratio=float(ratio), gamma_true=float(gamma_true), n=int(n),
-        realizations=int(realizations), kappa_true=float(kappa_true),
+        ratio=float(ratio),
+        gamma_true=float(gamma_true),
+        n=int(n),
+        realizations=int(realizations),
+        kappa_true=float(kappa_true),
         gamma_bias=float(g_arr.mean() - gamma_true),
         gamma_bias_sem=float(g_arr.std(ddof=1) / np.sqrt(g_arr.size)),
         kappa_frac_bias=float(k_arr.mean() / kappa_true - 1.0),
@@ -121,23 +125,32 @@ def main():
     args = ap.parse_args()
 
     cfg = SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=5, progressbar=False)
-    print(f"gamma_true = {args.gamma}, a = {A_TRUE}', N = {args.n}, "
-          f"kappa_true = {args.gamma / A_TRUE**2:.4f}\n")
-    print(f"{'r_tot/a':>8s} {'gamma bias':>20s} {'kappa frac bias':>20s} "
-          f"{'corr':>7s} {'width g':>8s} {'width k':>8s}")
+    print(
+        f"gamma_true = {args.gamma}, a = {A_TRUE}', N = {args.n}, "
+        f"kappa_true = {args.gamma / A_TRUE**2:.4f}\n"
+    )
+    print(
+        f"{'r_tot/a':>8s} {'gamma bias':>20s} {'kappa frac bias':>20s} "
+        f"{'corr':>7s} {'width g':>8s} {'width k':>8s}"
+    )
     rows = []
     for ratio in RATIOS:
         row = run_cell(ratio, args.gamma, args.n, args.realizations, args.seed, cfg)
         rows.append(row)
         g_sig = abs(row["gamma_bias"]) / max(row["gamma_bias_sem"], 1e-9)
         k_sig = abs(row["kappa_frac_bias"]) / max(row["kappa_frac_bias_sem"], 1e-9)
-        print(f"{ratio:8.1f} {row['gamma_bias']:+9.3f}+/-{row['gamma_bias_sem']:.3f}"
-              f" ({g_sig:4.1f}s) {100 * row['kappa_frac_bias']:+9.1f}%+/-"
-              f"{100 * row['kappa_frac_bias_sem']:.1f} ({k_sig:4.1f}s)"
-              f" {row['corr_a_gamma']:7.3f} {row['gamma_relative_width']:8.3f}"
-              f" {row['kappa_relative_width']:8.3f}", flush=True)
+        print(
+            f"{ratio:8.1f} {row['gamma_bias']:+9.3f}+/-{row['gamma_bias_sem']:.3f}"
+            f" ({g_sig:4.1f}s) {100 * row['kappa_frac_bias']:+9.1f}%+/-"
+            f"{100 * row['kappa_frac_bias_sem']:.1f} ({k_sig:4.1f}s)"
+            f" {row['corr_a_gamma']:7.3f} {row['gamma_relative_width']:8.3f}"
+            f" {row['kappa_relative_width']:8.3f}",
+            flush=True,
+        )
 
-    print("\nIf kappa is unbiased where gamma is not, the fix is reparameterisation, not correction.")
+    print(
+        "\nIf kappa is unbiased where gamma is not, the fix is reparameterisation, not correction."
+    )
     print("But kappa is the CENTRAL CURVATURE and the science question is about the ASYMPTOTIC")
     print("SLOPE -- so the data identify something, just not the thing the question needs.")
 

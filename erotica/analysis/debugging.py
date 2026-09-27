@@ -63,7 +63,9 @@ def extract_distance_samples(trace_or_result, *, prefer: str = "mu_r") -> np.nda
     raise ValueError("No distance posterior found. Expected 'mu_r' or 'mu_parallax'.")
 
 
-def validate_cluster_table(table, required_columns, units: Mapping[str, u.UnitBase] | None = None) -> None:
+def validate_cluster_table(
+    table, required_columns, units: Mapping[str, u.UnitBase] | None = None
+) -> None:
     """Validate required columns and optional units."""
     missing = [column for column in required_columns if column not in table.colnames]
     if missing:

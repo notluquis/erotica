@@ -94,8 +94,16 @@ def sample_clumps(rng, n=N_STARS, *, clumped_fraction=0.5, n_clumps=15, clump_si
     return np.vstack([field, clumped])
 
 
-def sample_fractal_clumps(rng, n=N_STARS, *, clumped_fraction=0.5, n_clumps=15, clump_sigma=1.0,
-                          fractal_dimension=1.6, **kw):
+def sample_fractal_clumps(
+    rng,
+    n=N_STARS,
+    *,
+    clumped_fraction=0.5,
+    n_clumps=15,
+    clump_sigma=1.0,
+    fractal_dimension=1.6,
+    **kw,
+):
     """The published clump configuration with **fractal** internal structure instead of Gaussian.
 
     WHY THIS SHAPE AND NOT A REMAP
@@ -156,13 +164,17 @@ def _fractal_reference_cdf(fractal_dimension, n_stars=N_STARS, nodes=2001, n_rea
     """
     key = (round(float(fractal_dimension), 6), int(n_stars))
     if key not in _REFERENCE_CDF:
-        pooled = np.concatenate([
-            np.linalg.norm(
-                fractal_cluster(n_stars, fractal_dimension=fractal_dimension, rng=20260728 + i)[:, :2],
-                axis=1,
-            )
-            for i in range(n_realizations)
-        ])
+        pooled = np.concatenate(
+            [
+                np.linalg.norm(
+                    fractal_cluster(n_stars, fractal_dimension=fractal_dimension, rng=20260728 + i)[
+                        :, :2
+                    ],
+                    axis=1,
+                )
+                for i in range(n_realizations)
+            ]
+        )
         _REFERENCE_CDF[key] = np.quantile(pooled, np.linspace(0.0, 1.0, nodes))
     return _REFERENCE_CDF[key]
 
@@ -212,7 +224,10 @@ CONFIGS = {
     "smooth": (sample_smooth, {}),
     "clumps15": (sample_clumps, dict(n_clumps=15, clump_sigma=1.0)),
     "clumps8": (sample_clumps, dict(n_clumps=8, clump_sigma=2.0)),
-    "fracclump15": (sample_fractal_clumps, dict(n_clumps=15, clump_sigma=1.0, fractal_dimension=1.6)),
+    "fracclump15": (
+        sample_fractal_clumps,
+        dict(n_clumps=15, clump_sigma=1.0, fractal_dimension=1.6),
+    ),
     "fracclump8": (sample_fractal_clumps, dict(n_clumps=8, clump_sigma=2.0, fractal_dimension=1.6)),
 }
 
@@ -240,9 +255,7 @@ def run(config, realizations, seed, **overrides):
         xy = sampler(rng, **kw)
         radii = np.linalg.norm(xy, axis=1)
         radii = radii[radii <= FIELD_RADIUS]
-        fit = eff_unbinned(
-            radii, field_radius=FIELD_RADIUS, priors=EFFPriors(), progressbar=False
-        )
+        fit = eff_unbinned(radii, field_radius=FIELD_RADIUS, priors=EFFPriors(), progressbar=False)
         post = np.asarray(fit["eff_trace"].posterior["gamma"].values).ravel()
         rows.append(
             dict(
@@ -253,8 +266,11 @@ def run(config, realizations, seed, **overrides):
                 covered_2sigma=bool(abs(post.mean() - GAMMA_TRUE) <= 2 * post.std()),
             )
         )
-        print(f"  [{config}] {i + 1}/{realizations}  gamma={rows[-1]['gamma_mean']:.3f}"
-              f" +/- {rows[-1]['gamma_sd']:.3f}", flush=True)
+        print(
+            f"  [{config}] {i + 1}/{realizations}  gamma={rows[-1]['gamma_mean']:.3f}"
+            f" +/- {rows[-1]['gamma_sd']:.3f}",
+            flush=True,
+        )
 
     means = np.array([r["gamma_mean"] for r in rows])
     sds = np.array([r["gamma_sd"] for r in rows])
@@ -294,20 +310,30 @@ def main():
         kw = overrides if c == "fractal" else {}
         results.append(run(c, args.realizations, args.seed, **kw))
 
-    print(f"\n{'config':10s} {'Q':>6s} {'gamma':>7s} {'reported':>9s} {'scatter':>8s} "
-          f"{'factor':>7s} {'1sig':>6s} {'2sig':>6s}")
+    print(
+        f"\n{'config':10s} {'Q':>6s} {'gamma':>7s} {'reported':>9s} {'scatter':>8s} "
+        f"{'factor':>7s} {'1sig':>6s} {'2sig':>6s}"
+    )
     for r in results:
         q = f"{r['q_median']:.3f}" if r["q_median"] is not None else "  --  "
-        print(f"{r['config']:10s} {q:>6s} {r['gamma_recovered']:7.3f} {r['reported_sigma']:9.3f} "
-              f"{r['realization_scatter']:8.3f} {r['understatement_factor']:7.2f} "
-              f"{r['coverage_1sigma']:5.0%} {r['coverage_2sigma']:5.0%}")
+        print(
+            f"{r['config']:10s} {q:>6s} {r['gamma_recovered']:7.3f} {r['reported_sigma']:9.3f} "
+            f"{r['realization_scatter']:8.3f} {r['understatement_factor']:7.2f} "
+            f"{r['coverage_1sigma']:5.0%} {r['coverage_2sigma']:5.0%}"
+        )
     print("\nnominal coverage is 68% / 95%; 'factor' is how much the likelihood understates the")
     print("true realization-to-realization scatter in gamma")
 
     out = Path(__file__).with_name("substructure_coverage.json")
-    out.write_text(json.dumps(dict(truth=dict(gamma=GAMMA_TRUE, a=A_TRUE, n=N_STARS,
-                                              field_radius=FIELD_RADIUS),
-                                   results=results), indent=1))
+    out.write_text(
+        json.dumps(
+            dict(
+                truth=dict(gamma=GAMMA_TRUE, a=A_TRUE, n=N_STARS, field_radius=FIELD_RADIUS),
+                results=results,
+            ),
+            indent=1,
+        )
+    )
     print(f"\nwrote {out}")
 
 

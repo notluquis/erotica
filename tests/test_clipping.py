@@ -42,15 +42,16 @@ def _table(parallaxes, cluster_labels=None, errors=None):
         "cluster": np.asarray(cluster_labels),
     }
     if errors is not None:
-        columns["parallax_error"] = np.broadcast_to(
-            np.asarray(errors, dtype=float), (n,)
-        ).astype(float)
+        columns["parallax_error"] = np.broadcast_to(np.asarray(errors, dtype=float), (n,)).astype(
+            float
+        )
     return QTable(columns)
 
 
 # ---------------------------------------------------------------------------
 # Core behaviour
 # ---------------------------------------------------------------------------
+
 
 def test_clips_an_obvious_outlier_and_keeps_the_core():
     """A far-off parallax must be rejected; the tight core must survive intact."""
@@ -99,6 +100,7 @@ def test_only_the_requested_cluster_is_affected():
 # The science-critical knob: sigma
 # ---------------------------------------------------------------------------
 
+
 def test_tighter_sigma_never_keeps_more():
     """Monotonicity: shrinking sigma cannot admit sources a wider cut rejected."""
     rng = np.random.default_rng(3)
@@ -129,6 +131,7 @@ def test_in_place_marks_rejects_with_the_label():
 # ---------------------------------------------------------------------------
 # Guard rails — these raise rather than silently returning nonsense
 # ---------------------------------------------------------------------------
+
 
 def test_missing_cluster_raises():
     with pytest.raises(ValueError, match="zero rows"):
@@ -194,6 +197,7 @@ def test_return_arity_is_flag_dependent():
 # tools/validation/parallax_clip_selection_function.py; see
 # docs/design-notes/decisions.md for what it means for P01's faint quartile.
 # ---------------------------------------------------------------------------
+
 
 def _two_precision_populations(rng, n_per=150, small_err=0.03, large_err=0.30):
     """One cluster, one true parallax, two precisions. Every star is a member.
@@ -322,6 +326,7 @@ def test_an_unknown_method_is_refused():
 # cannot be faked: more iterations can only remove sources, never add them.
 # ---------------------------------------------------------------------------
 
+
 def _heavy_tailed():
     """A Gaussian core plus a ramp of mild outliers.
 
@@ -407,6 +412,7 @@ def test_the_normalised_clip_does_not_shrink_its_own_dispersion():
 # built without it: the method under test reads ``self.data`` and
 # ``self.selected_cluster`` and nothing else.
 # ---------------------------------------------------------------------------
+
 
 def _bare_analyzer(table):
     from erotica.analysis.analyzer import ClusterAnalyzer
@@ -514,7 +520,8 @@ def test_the_threshold_is_asserted_at_two_sigma_not_refitted_from_the_sample():
     together = np.asarray(
         sigma_clip_parallax(
             _table(np.concatenate([plx_a, plx_b]), errors=np.concatenate([err_a, err_b])),
-            cluster=0, **NORMALISED,
+            cluster=0,
+            **NORMALISED,
         )[3],
         dtype=bool,
     )[:n_a]

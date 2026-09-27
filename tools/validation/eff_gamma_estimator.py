@@ -119,8 +119,9 @@ def run_cell(n, gamma_true, realizations, seed, cfg):
     for i in range(realizations):
         rng = np.random.default_rng(seed + 1000 * int(gamma_true * 100) + i)
         r = eff_radii(rng, n, gamma=gamma_true, field_radius=FIELD_RADIUS)
-        fit = eff_unbinned(r, field_radius=FIELD_RADIUS, priors=EFFPriors(),
-                           sampling=cfg, progressbar=False)
+        fit = eff_unbinned(
+            r, field_radius=FIELD_RADIUS, priors=EFFPriors(), sampling=cfg, progressbar=False
+        )
         draws = np.asarray(fit["eff_trace"].posterior["gamma"].values).ravel()
         summaries["median"].append(float(np.median(draws)))
         summaries["mean"].append(float(draws.mean()))
@@ -147,15 +148,20 @@ def main():
 
     cfg = SamplingConfig(draws=2000, tune=1000, chains=2, random_seed=5, progressbar=False)
     rows = []
-    print(f"gamma_true = {args.gamma}, r_tot/a = {FIELD_RADIUS / A_TRUE:.1f}, "
-          f"{args.realizations} realizations per cell\n")
+    print(
+        f"gamma_true = {args.gamma}, r_tot/a = {FIELD_RADIUS / A_TRUE:.1f}, "
+        f"{args.realizations} realizations per cell\n"
+    )
     print(f"{'N':>6s} {'median':>18s} {'mean':>18s} {'mode':>18s} {'mode/median':>12s}")
     for n in N_GRID:
         row = run_cell(n, args.gamma, args.realizations, args.seed, cfg)
         rows.append(row)
         fmt = lambda k: f"{row[k + '_bias']:+8.4f}+/-{row[k + '_sem']:.4f}"  # noqa: E731
-        print(f"{n:6d} {fmt('median'):>18s} {fmt('mean'):>18s} {fmt('mode'):>18s} "
-              f"{row['mode_over_median']:12.2f}", flush=True)
+        print(
+            f"{n:6d} {fmt('median'):>18s} {fmt('mean'):>18s} {fmt('mode'):>18s} "
+            f"{row['mode_over_median']:12.2f}",
+            flush=True,
+        )
 
     ratios = [r["mode_over_median"] for r in rows if np.isfinite(r["mode_over_median"])]
     print(f"\nmode retains {np.mean(ratios):.0%} of the median's bias on average.")
@@ -163,11 +169,19 @@ def main():
     print("estimator is biased and a different point estimate is not the fix.")
 
     out = Path(__file__).with_name("eff_gamma_estimator.json")
-    out.write_text(json.dumps(dict(
-        field_radius=FIELD_RADIUS, a_true=A_TRUE, gamma_true=args.gamma,
-        footprint_over_scale=FIELD_RADIUS / A_TRUE, cells=rows,
-        mean_mode_over_median=float(np.mean(ratios)),
-    ), indent=1))
+    out.write_text(
+        json.dumps(
+            dict(
+                field_radius=FIELD_RADIUS,
+                a_true=A_TRUE,
+                gamma_true=args.gamma,
+                footprint_over_scale=FIELD_RADIUS / A_TRUE,
+                cells=rows,
+                mean_mode_over_median=float(np.mean(ratios)),
+            ),
+            indent=1,
+        )
+    )
     print(f"\nwrote {out}")
 
 

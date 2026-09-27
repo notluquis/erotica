@@ -110,29 +110,37 @@ def main():
     args = ap.parse_args()
 
     pub = published()
-    results = [fit(radii_arcmin(Table.read(MEMBERS)), "unbinned / published member list",
-                   draws=args.draws)]
+    results = [
+        fit(radii_arcmin(Table.read(MEMBERS)), "unbinned / published member list", draws=args.draws)
+    ]
     if not args.skip_cone:
         print(f"reading the full cone ({CONE.stat().st_size / 1e6:.0f} MB) ...", flush=True)
-        results.append(fit(radii_arcmin(Table.read(CONE)), "unbinned / full 70' cone",
-                           draws=args.draws))
+        results.append(
+            fit(radii_arcmin(Table.read(CONE)), "unbinned / full 70' cone", draws=args.draws)
+        )
 
     print(f"\n{'fit':34s} {'N':>7s} {'R_c (arcmin)':>18s} {'R_t (arcmin)':>18s} {'b':>12s}")
-    print(f"{'published (binned, equal-count)':34s} {628:>7d} "
-          f"{pub['R_c'][0]:11.3f}+/-{pub['R_c'][1]:5.3f} "
-          f"{pub['R_t'][0]:11.3f}+/-{pub['R_t'][1]:5.3f} {pub['b'][0]:12.4f}")
+    print(
+        f"{'published (binned, equal-count)':34s} {628:>7d} "
+        f"{pub['R_c'][0]:11.3f}+/-{pub['R_c'][1]:5.3f} "
+        f"{pub['R_t'][0]:11.3f}+/-{pub['R_t'][1]:5.3f} {pub['b'][0]:12.4f}"
+    )
     for r in results:
-        print(f"{r['label']:34s} {r['n_stars']:>7d} "
-              f"{r['R_c'][0]:11.3f}+/-{r['R_c'][1]:5.3f} "
-              f"{r['R_t'][0]:11.3f}+/-{r['R_t'][1]:5.3f} {r['b'][0]:12.4f}")
+        print(
+            f"{r['label']:34s} {r['n_stars']:>7d} "
+            f"{r['R_c'][0]:11.3f}+/-{r['R_c'][1]:5.3f} "
+            f"{r['R_t'][0]:11.3f}+/-{r['R_t'][1]:5.3f} {r['b'][0]:12.4f}"
+        )
 
     print(f"\n{'fit':34s} {'dR_c':>10s} {'dR_t':>10s}   convergence")
     for r in results:
         d_rc = (r["R_c"][0] - pub["R_c"][0]) / pub["R_c"][0]
         d_rt = (r["R_t"][0] - pub["R_t"][0]) / pub["R_t"][0]
-        print(f"{r['label']:34s} {d_rc:+9.1%} {d_rt:+9.1%}   "
-              f"r_hat<={r['r_hat_max']:.3f} ess>={r['ess_bulk_min']:.0f} "
-              f"div={r['divergences']} ({r['seconds']}s)")
+        print(
+            f"{r['label']:34s} {d_rc:+9.1%} {d_rt:+9.1%}   "
+            f"r_hat<={r['r_hat_max']:.3f} ess>={r['ess_bulk_min']:.0f} "
+            f"div={r['divergences']} ({r['seconds']}s)"
+        )
 
     args.out.write_text(json.dumps({"published": pub, "unbinned": results}, indent=2))
     print(f"\nwrote {args.out}")

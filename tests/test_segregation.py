@@ -179,8 +179,9 @@ def test_null_median_exceeds_one_and_grows_as_n_mst_falls():
     rng = np.random.default_rng(5)
     pts = plummer_2d(rng, 250)
     mass = rng.random(250)
-    medians = [quiet(lambda_msr, pts, mass, n, n_sets=6000, rng=7).null_median
-               for n in (5, 10, 20, 40)]
+    medians = [
+        quiet(lambda_msr, pts, mass, n, n_sets=6000, rng=7).null_median for n in (5, 10, 20, 40)
+    ]
     assert medians[0] > 1.0
     assert medians == sorted(medians, reverse=True), medians
 
@@ -266,8 +267,9 @@ def test_positions_respect_the_unit_they_carry():
     assert np.isclose(bare.lam, arcmin.lam, rtol=1e-12)
     assert np.isclose(bare.lam, degree.lam, rtol=1e-12)
     assert bare.t_massive.unit == u.arcmin
-    assert np.isclose(degree.t_massive.to_value(u.arcmin), bare.t_massive.to_value(u.arcmin),
-                      rtol=1e-10)
+    assert np.isclose(
+        degree.t_massive.to_value(u.arcmin), bare.t_massive.to_value(u.arcmin), rtol=1e-10
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -331,8 +333,10 @@ def test_each_variant_reports_its_own_citation():
     rng = np.random.default_rng(43)
     pts = plummer_2d(rng, 100)
     mass = rng.random(100)
-    cites = {s: quiet(lambda_msr, pts, mass, 10, statistic=s, n_sets=200, rng=1).citation
-             for s in ("total", "median_edge", "geometric_edge")}
+    cites = {
+        s: quiet(lambda_msr, pts, mass, 10, statistic=s, n_sets=200, rng=1).citation
+        for s in ("total", "median_edge", "geometric_edge")
+    }
     assert "2009MNRAS.395.1449A" in cites["total"]
     assert "2011MNRAS.416..541M" in cites["median_edge"]
     assert "2011A&A...532A.119O" in cites["geometric_edge"]
@@ -406,8 +410,15 @@ def test_profile_global_p_exceeds_best_local_p():
     """Scanning N_MST and reporting the best point cannot make a result *more* significant."""
     rng = np.random.default_rng(81)
     pts = plummer_2d(rng, 150)
-    prof = quiet(lambda_msr_profile, pts, -np.hypot(*pts.T), (5, 10, 20),
-                 n_sets=1500, n_permutations=3000, rng=4)
+    prof = quiet(
+        lambda_msr_profile,
+        pts,
+        -np.hypot(*pts.T),
+        (5, 10, 20),
+        n_sets=1500,
+        n_permutations=3000,
+        rng=4,
+    )
     assert prof.global_p >= prof.best_local_p
     assert prof.trials_factor >= 1.0
     assert prof.trials_factor <= len(prof.results) + 1e-9  # Bonferroni is the upper bound
@@ -435,13 +446,15 @@ def test_trials_factor_is_one_for_a_repeated_look_and_above_one_for_a_real_scan(
     pts = plummer_2d(rng, 150)
     mass = -np.hypot(*pts.T)
 
-    repeated = quiet(lambda_msr_profile, pts, mass, (10, 10, 10),
-                     n_sets=2000, n_permutations=5000, rng=6)
+    repeated = quiet(
+        lambda_msr_profile, pts, mass, (10, 10, 10), n_sets=2000, n_permutations=5000, rng=6
+    )
     assert len(repeated.results) == 1
     assert repeated.trials_factor < 1.3, repeated.trials_factor
 
-    scan = quiet(lambda_msr_profile, pts, mass, (5, 20, 50),
-                 n_sets=2000, n_permutations=5000, rng=6)
+    scan = quiet(
+        lambda_msr_profile, pts, mass, (5, 20, 50), n_sets=2000, n_permutations=5000, rng=6
+    )
     assert scan.trials_factor > 1.0, scan.trials_factor
     assert scan.trials_factor > repeated.trials_factor
 
@@ -477,8 +490,15 @@ def test_profile_global_p_is_uniform_under_a_true_null():
     ps = []
     for _ in range(120):
         pts = plummer_2d(rng, 80)
-        prof = quiet(lambda_msr_profile, pts, rng.random(80), (5, 10, 20),
-                     n_sets=800, n_permutations=800, rng=rng)
+        prof = quiet(
+            lambda_msr_profile,
+            pts,
+            rng.random(80),
+            (5, 10, 20),
+            n_sets=800,
+            n_permutations=800,
+            rng=rng,
+        )
         ps.append(prof.global_p)
     ps = np.asarray(ps)
     assert abs(np.mean(ps <= 0.20) - 0.20) < 0.11  # 120 trials -> SE 0.037

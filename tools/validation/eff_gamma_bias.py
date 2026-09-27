@@ -153,8 +153,9 @@ def run_cell(n, gamma_true, realizations, seed, priors, cfg, field_radius=FIELD_
     for i in range(realizations):
         rng = np.random.default_rng(seed + 1000 * int(gamma_true * 100) + i)
         r = eff_radii(rng, n, gamma=gamma_true, field_radius=field_radius)
-        fit = eff_unbinned(r, field_radius=field_radius, priors=priors,
-                           sampling=cfg, progressbar=False)
+        fit = eff_unbinned(
+            r, field_radius=field_radius, priors=priors, sampling=cfg, progressbar=False
+        )
         medians.append(float(fit["gamma_median"]))
         sds.append(float(fit["gamma_std"]))
     m = np.array(medians)
@@ -177,46 +178,73 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--realizations", type=int, default=16)
     ap.add_argument("--seed", type=int, default=20260728)
-    ap.add_argument("--flat-prior", action="store_true",
-                    help="widen the gamma prior, to separate prior pull from likelihood bias")
-    ap.add_argument("--n-values", type=int, nargs="+", default=None,
-                    help="override N_GRID, e.g. to fill in the low-N cells without redoing the rest")
-    ap.add_argument("--field-ratios", type=float, nargs="+", default=None,
-                    help="map bias against r_tot/a at fixed N instead of against N; this is the axis "
-                         "that actually controls recoverability")
-    ap.add_argument("--pin-background", action="store_true",
-                    help="pin the flat background near zero (b_scale=1e-6). The generator injects "
-                         "NO background, so the truth is b=0 and a free b invents one, biasing "
-                         "gamma upward. Run both ways and difference to split finite-sample bias "
-                         "from background degeneracy -- see the danger note in the module docstring")
+    ap.add_argument(
+        "--flat-prior",
+        action="store_true",
+        help="widen the gamma prior, to separate prior pull from likelihood bias",
+    )
+    ap.add_argument(
+        "--n-values",
+        type=int,
+        nargs="+",
+        default=None,
+        help="override N_GRID, e.g. to fill in the low-N cells without redoing the rest",
+    )
+    ap.add_argument(
+        "--field-ratios",
+        type=float,
+        nargs="+",
+        default=None,
+        help="map bias against r_tot/a at fixed N instead of against N; this is the axis "
+        "that actually controls recoverability",
+    )
+    ap.add_argument(
+        "--pin-background",
+        action="store_true",
+        help="pin the flat background near zero (b_scale=1e-6). The generator injects "
+        "NO background, so the truth is b=0 and a free b invents one, biasing "
+        "gamma upward. Run both ways and difference to split finite-sample bias "
+        "from background degeneracy -- see the danger note in the module docstring",
+    )
     args = ap.parse_args()
 
     b_scale = 1e-6 if args.pin_background else 1.0
-    priors = (EFFPriors(gamma_sigma=5.0, b_scale=b_scale) if args.flat_prior
-              else EFFPriors(b_scale=b_scale))
+    priors = (
+        EFFPriors(gamma_sigma=5.0, b_scale=b_scale)
+        if args.flat_prior
+        else EFFPriors(b_scale=b_scale)
+    )
     # numpyro, not the default PyTensor NUTS: measured 2.71x faster on this exact likelihood with
     # |d gamma| = 0.00006 between them. Same algorithm (HMC-NUTS), different substrate.
-    cfg = SamplingConfig(draws=1500, tune=1000, chains=2, random_seed=5, progressbar=False,
-                         nuts_sampler="numpyro")
+    cfg = SamplingConfig(
+        draws=1500, tune=1000, chains=2, random_seed=5, progressbar=False, nuts_sampler="numpyro"
+    )
 
     rows = []
     for gamma_true in GAMMA_GRID:
-        for n in (args.n_values or N_GRID):
-            for ratio in (args.field_ratios or [FIELD_RADIUS / A_TRUE]):
+        for n in args.n_values or N_GRID:
+            for ratio in args.field_ratios or [FIELD_RADIUS / A_TRUE]:
                 field = ratio * A_TRUE
-                row = run_cell(n, gamma_true, args.realizations, args.seed, priors, cfg,
-                               field_radius=field)
+                row = run_cell(
+                    n, gamma_true, args.realizations, args.seed, priors, cfg, field_radius=field
+                )
                 row["field_over_a"] = float(ratio)
                 rows.append(row)
-                print(f"  gamma_true={gamma_true:.2f}  N={n:5d}  r_tot/a={ratio:5.1f}  "
-                      f"bias = {row['bias']:+.4f} +/- {row['bias_sem']:.4f}", flush=True)
+                print(
+                    f"  gamma_true={gamma_true:.2f}  N={n:5d}  r_tot/a={ratio:5.1f}  "
+                    f"bias = {row['bias']:+.4f} +/- {row['bias_sem']:.4f}",
+                    flush=True,
+                )
 
     # Power law through the origin in log-space, per gamma_true: bias = A * N^-p.
     # Fitted only on cells where the bias is resolved, otherwise the fit chases noise.
     fits = {}
     for gamma_true in GAMMA_GRID:
-        cells = [r for r in rows if r["gamma_true"] == gamma_true
-                 and r["bias"] > 0 and r["bias"] > 2 * r["bias_sem"]]
+        cells = [
+            r
+            for r in rows
+            if r["gamma_true"] == gamma_true and r["bias"] > 0 and r["bias"] > 2 * r["bias_sem"]
+        ]
         if len(cells) < 3:
             fits[str(gamma_true)] = dict(resolved_cells=len(cells), note="too few resolved cells")
             continue
@@ -231,8 +259,10 @@ def main():
     print(f"\n{'gamma_true':>10s} {'cells':>6s} {'bias = A N^-p':>28s}")
     for g, f in fits.items():
         if "exponent" in f:
-            print(f"{g:>10s} {f['resolved_cells']:6d}   "
-                  f"A = {f['amplitude']:8.3f}, p = {f['exponent']:.3f}")
+            print(
+                f"{g:>10s} {f['resolved_cells']:6d}   "
+                f"A = {f['amplitude']:8.3f}, p = {f['exponent']:.3f}"
+            )
         else:
             print(f"{g:>10s} {f['resolved_cells']:6d}   {f['note']}")
 
@@ -247,12 +277,21 @@ def main():
     # `background_free` is recorded because the two runs are NOT interchangeable: a free background
     # adds a spurious, N-dependent term on top of the finite-sample bias. A file that does not say
     # which it is cannot be differenced against the other.
-    out.write_text(json.dumps(dict(
-        field_radius=FIELD_RADIUS, a_true=A_TRUE, n_grid=list(args.n_values or N_GRID),
-        gamma_grid=list(GAMMA_GRID), flat_prior=args.flat_prior,
-        background_free=not args.pin_background,
-        cells=rows, power_law_fits=fits,
-    ), indent=1))
+    out.write_text(
+        json.dumps(
+            dict(
+                field_radius=FIELD_RADIUS,
+                a_true=A_TRUE,
+                n_grid=list(args.n_values or N_GRID),
+                gamma_grid=list(GAMMA_GRID),
+                flat_prior=args.flat_prior,
+                background_free=not args.pin_background,
+                cells=rows,
+                power_law_fits=fits,
+            ),
+            indent=1,
+        )
+    )
     print(f"\nwrote {out}")
 
 

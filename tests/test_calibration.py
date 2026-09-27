@@ -305,4 +305,3 @@ class TestFromClustering:
             from erotica.calibration import calibration_report_from_clustering
 
             calibration_report_from_clustering(_Empty(), [0, 1])
-

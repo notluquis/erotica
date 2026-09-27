@@ -64,21 +64,23 @@ def ngc6383_radii(field_radius=70.0):
     import astropy.units as u
 
     base = Path("/Users/notluquis/erotica/data/test/NGC6383")
-    table = Table.read(base / "comments_paper/radius_robustness/generated/70/paperfaithful_reference_p06.ecsv")
+    table = Table.read(
+        base / "comments_paper/radius_robustness/generated/70/paperfaithful_reference_p06.ecsv"
+    )
     ra = next(c for c in table.colnames if c.lower() in ("ra", "ra_icrs"))
     dec = next(c for c in table.colnames if c.lower() in ("dec", "de_icrs"))
     centre = SkyCoord(263.6826 * u.deg, -32.5838 * u.deg)
-    sep = centre.separation(
-        SkyCoord(np.asarray(table[ra]) * u.deg, np.asarray(table[dec]) * u.deg)
-    ).to(u.arcmin).value
+    sep = (
+        centre.separation(SkyCoord(np.asarray(table[ra]) * u.deg, np.asarray(table[dec]) * u.deg))
+        .to(u.arcmin)
+        .value
+    )
     return sep[(sep > 0) & (sep <= field_radius)]
 
 
 def audit(trace, names):
     """Posterior correlation matrix, ranked pairs, and the condition number."""
-    draws = np.column_stack(
-        [np.asarray(trace.posterior[n].values).ravel() for n in names]
-    )
+    draws = np.column_stack([np.asarray(trace.posterior[n].values).ravel() for n in names])
     corr = np.corrcoef(draws, rowvar=False)
     pairs = []
     for i in range(len(names)):
@@ -98,19 +100,27 @@ def main():
     import pymc as pm
 
     from erotica.analysis.structure import (
-        CoronaPriors, EFFPriors, KingPriors, _eff_model, _king_corona_model, _king_model,
+        CoronaPriors,
+        EFFPriors,
+        KingPriors,
+        _eff_model,
+        _king_corona_model,
+        _king_model,
     )
 
     r = ngc6383_radii()
     print(f"NGC 6383, N = {r.size}, field 70 arcmin\n")
 
     specs = {
-        "king": (lambda: _king_model(pm, r, 70.0, KingPriors(), None, None),
-                 ["R_c", "R_t", "k", "b"]),
-        "eff": (lambda: _eff_model(pm, r, 70.0, EFFPriors(), None, None),
-                ["a", "gamma", "k", "b"]),
-        "king_corona": (lambda: _king_corona_model(pm, r, 70.0, CoronaPriors(), None, None),
-                        ["R_c", "R_t", "k", "R_2", "delta_f"]),
+        "king": (
+            lambda: _king_model(pm, r, 70.0, KingPriors(), None, None),
+            ["R_c", "R_t", "k", "b"],
+        ),
+        "eff": (lambda: _eff_model(pm, r, 70.0, EFFPriors(), None, None), ["a", "gamma", "k", "b"]),
+        "king_corona": (
+            lambda: _king_corona_model(pm, r, 70.0, CoronaPriors(), None, None),
+            ["R_c", "R_t", "k", "R_2", "delta_f"],
+        ),
     }
     chosen = list(specs) if args.model == "all" else [args.model]
 
@@ -118,15 +128,24 @@ def main():
     for name in chosen:
         build, names = specs[name]
         with build():
-            idata = pm.sample(args.draws, tune=1500, chains=4, random_seed=17,
-                              progressbar=False, target_accept=0.95)
+            idata = pm.sample(
+                args.draws,
+                tune=1500,
+                chains=4,
+                random_seed=17,
+                progressbar=False,
+                target_accept=0.95,
+            )
         corr, pairs, cond = audit(idata, names)
         divergences = int(np.asarray(idata.sample_stats["diverging"]).sum())
 
         print(f"=== {name} ===  condition number {cond:.1f}   divergences {divergences}")
         for p in pairs:
-            flag = "  <-- NOT SEPARATELY IDENTIFIED" if abs(p["r"]) > WARN else (
-                "  <-- strongly coupled" if abs(p["r"]) > NOTE else "")
+            flag = (
+                "  <-- NOT SEPARATELY IDENTIFIED"
+                if abs(p["r"]) > WARN
+                else ("  <-- strongly coupled" if abs(p["r"]) > NOTE else "")
+            )
             print(f"    corr({p['a']:>7s}, {p['b']:<7s}) = {p['r']:+.3f}{flag}")
         print()
 
@@ -140,8 +159,11 @@ def main():
         )
 
     dest = Path(__file__).with_name("degeneracy_audit.json")
-    dest.write_text(json.dumps(dict(n_stars=int(r.size), field_radius=70.0,
-                                    warn_threshold=WARN, models=out), indent=1))
+    dest.write_text(
+        json.dumps(
+            dict(n_stars=int(r.size), field_radius=70.0, warn_threshold=WARN, models=out), indent=1
+        )
+    )
     print(f"wrote {dest}")
 
 

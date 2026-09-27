@@ -6,7 +6,7 @@ A minimal membership run on a Gaia field, from an `astropy` table of sources.
 from astropy.table import QTable
 from erotica.core.clustering import Clustering
 
-data = QTable.read("my_gaia_field.ecsv")   # ra, dec, pmra, pmdec, parallax, ...
+data = QTable.read("my_gaia_field.ecsv")  # ra, dec, pmra, pmdec, parallax, ...
 
 clu = Clustering(data)
 
@@ -15,8 +15,8 @@ clu = Clustering(data)
 # 2D proper motion — see the membership guide for the alternatives.
 clu.search_pseudoprobability(columns=("pmra", "pmdec"))
 
-clu.clustering_statistics()                  # counts: members, outliers, clusters
-summary = clu.get_cluster_summary()          # pandas DataFrame, one row per cluster
+clu.clustering_statistics()  # counts: members, outliers, clusters
+summary = clu.get_cluster_summary()  # pandas DataFrame, one row per cluster
 clu.save_results("members.ecsv", format="ascii.ecsv")
 ```
 

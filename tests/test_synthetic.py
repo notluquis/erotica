@@ -71,7 +71,9 @@ def test_per_level_jitter_manufactures_a_central_cusp():
     edges = np.linspace(0.0, 1.0, 11)
 
     def inner_excess(noise):
-        r = np.linalg.norm(fractal_cluster(20000, fractal_dimension=3.0, rng=5, noise=noise), axis=1)
+        r = np.linalg.norm(
+            fractal_cluster(20000, fractal_dimension=3.0, rng=5, noise=noise), axis=1
+        )
         counts, _ = np.histogram(r, bins=edges)
         expected = 20000 * (edges[1:] ** 3 - edges[:-1] ** 3)
         return (counts / expected)[:4].max()
@@ -88,8 +90,14 @@ def test_structure_is_monotone_in_the_fractal_dimension():
     substructured distributions and large for centrally concentrated ones.
     """
     q = {
-        d: float(np.mean([_q_parameter(fractal_cluster(300, fractal_dimension=d, rng=s)[:, :2])
-                          for s in range(3)]))
+        d: float(
+            np.mean(
+                [
+                    _q_parameter(fractal_cluster(300, fractal_dimension=d, rng=s)[:, :2])
+                    for s in range(3)
+                ]
+            )
+        )
         for d in (1.6, 2.0, 2.5, 3.0)
     }
     values = [q[d] for d in (1.6, 2.0, 2.5, 3.0)]

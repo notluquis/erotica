@@ -123,8 +123,8 @@ def test_correct_proper_motion_bright_star_ra0_dec0():
     # The applied correction magnitude matches the tabulated omega components.
     applied_ra = (pmra0 - table["pmra"].to_value(u.mas / u.yr)[0]) * 1000.0  # uas/yr
     applied_dec = (pmdec0 - table["pmdec"].to_value(u.mas / u.yr)[0]) * 1000.0
-    assert applied_ra == pytest.approx(wz, abs=1e-6)       # -10.5 uas/yr
-    assert applied_dec == pytest.approx(-wy, abs=1e-6)     # -35.7 uas/yr
+    assert applied_ra == pytest.approx(wz, abs=1e-6)  # -10.5 uas/yr
+    assert applied_dec == pytest.approx(-wy, abs=1e-6)  # -35.7 uas/yr
 
 
 def test_correct_proper_motion_covers_omega_x():
@@ -147,8 +147,8 @@ def test_correct_proper_motion_covers_omega_x():
     correct_proper_motion(table)
 
     # At (90, 0): pmra_corr = wz, pmdec_corr = wx
-    exp_pmra = pmra0 - wz / 1000.0          # 4.0 + 0.0105
-    exp_pmdec = pmdec0 - wx / 1000.0        # 6.0 - 0.0136
+    exp_pmra = pmra0 - wz / 1000.0  # 4.0 + 0.0105
+    exp_pmdec = pmdec0 - wx / 1000.0  # 6.0 - 0.0136
     assert exp_pmdec == pytest.approx(6.0 - 0.0136)
     assert table["pmra"].to_value(u.mas / u.yr)[0] == pytest.approx(exp_pmra, abs=1e-9)
     assert table["pmdec"].to_value(u.mas / u.yr)[0] == pytest.approx(exp_pmdec, abs=1e-9)
@@ -230,9 +230,12 @@ def _make_flux_table(g_flux, g_err, bp_flux, bp_err, rp_flux, rp_err):
 def test_add_photometric_errors_analytic_value():
     """e_Gmag equals 2.5*log10(1 + flux_error/flux) for known inputs."""
     table = _make_flux_table(
-        g_flux=[1000.0], g_err=[10.0],       # ratio 0.010
-        bp_flux=[500.0], bp_err=[10.0],      # ratio 0.020
-        rp_flux=[2000.0], rp_err=[10.0],     # ratio 0.005
+        g_flux=[1000.0],
+        g_err=[10.0],  # ratio 0.010
+        bp_flux=[500.0],
+        bp_err=[10.0],  # ratio 0.020
+        rp_flux=[2000.0],
+        rp_err=[10.0],  # ratio 0.005
     )
 
     created = add_photometric_errors(table)
@@ -269,17 +272,20 @@ def test_add_photometric_errors_edge_cases():
     * negative flux                 -> ratio clipped to 0 -> sigma_m = 0
     """
     table = _make_flux_table(
-        g_flux=[0.0, -500.0], g_err=[5.0, 5.0],
-        bp_flux=[0.0, -500.0], bp_err=[5.0, 5.0],
-        rp_flux=[0.0, -500.0], rp_err=[5.0, 5.0],
+        g_flux=[0.0, -500.0],
+        g_err=[5.0, 5.0],
+        bp_flux=[0.0, -500.0],
+        bp_err=[5.0, 5.0],
+        rp_flux=[0.0, -500.0],
+        rp_err=[5.0, 5.0],
     )
 
     add_photometric_errors(table)  # must not raise
 
     e_g = table["e_Gmag"].to_value(u.mag)
-    assert np.isinf(e_g[0])       # zero flux -> infinite error sentinel
+    assert np.isinf(e_g[0])  # zero flux -> infinite error sentinel
     assert e_g[0] > 0
-    assert e_g[1] == 0.0          # negative flux -> ratio clipped to 0
+    assert e_g[1] == 0.0  # negative flux -> ratio clipped to 0
 
 
 def test_add_photometric_errors_requires_columns():
@@ -320,9 +326,7 @@ def test_split_by_fidelity_custom_column_and_threshold():
     table = QTable()
     table["fidelity"] = np.array([0.95, 0.80, 0.79, 0.10])
 
-    good, bad, stats = split_by_fidelity(
-        table, fidelity_column="fidelity", fidelity_threshold=0.8
-    )
+    good, bad, stats = split_by_fidelity(table, fidelity_column="fidelity", fidelity_threshold=0.8)
 
     # > 0.8 -> only 0.95 (0.80 is NOT strictly greater)
     assert len(good) == 1
@@ -399,10 +403,10 @@ def test_apply_zero_point_correction_nan_offset_becomes_zero():
     apply_zero_point_correction(table, _NaNZpt())
 
     zpvals = np.asarray(table["zpvals"])
-    assert zpvals[0] == 0.0          # NaN -> 0
+    assert zpvals[0] == 0.0  # NaN -> 0
     assert zpvals[1] == pytest.approx(0.05)
     parallax = table["parallax"].to_value(u.mas)
-    assert parallax[0] == pytest.approx(1.0)          # unchanged
+    assert parallax[0] == pytest.approx(1.0)  # unchanged
     assert parallax[1] == pytest.approx(2.0 - 0.05)
 
 

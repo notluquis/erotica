@@ -80,9 +80,13 @@ def radii(table):
     import astropy.units as u
 
     centre = SkyCoord(CENTRE[0] * u.deg, CENTRE[1] * u.deg)
-    return centre.separation(
-        SkyCoord(np.asarray(table["ra"]) * u.deg, np.asarray(table["dec"]) * u.deg)
-    ).to(u.arcmin).value
+    return (
+        centre.separation(
+            SkyCoord(np.asarray(table["ra"]) * u.deg, np.asarray(table["dec"]) * u.deg)
+        )
+        .to(u.arcmin)
+        .value
+    )
 
 
 def quartile_ks(gmag, radius):
@@ -153,8 +157,10 @@ def main():
     for got, want in zip(published["comparisons"], PUBLISHED):
         agrees = abs(got["D"] - want["D"]) < 0.006 and abs(got["p"] - want["p"]) < 0.002
         ok &= agrees
-        print(f"  {got['against']:>14s} {got['n']:4d} {got['D']:7.3f} {got['p']:8.4f}   "
-              f"D={want['D']} p={want['p']}  {'OK' if agrees else 'MISMATCH'}")
+        print(
+            f"  {got['against']:>14s} {got['n']:4d} {got['D']:7.3f} {got['p']:8.4f}   "
+            f"D={want['D']} p={want['p']}  {'OK' if agrees else 'MISMATCH'}"
+        )
     results["reproduces_published"] = bool(ok)
     if not ok:
         print("\n  *** Reproduction failed. Do not interpret the alternative clip below. ***")
@@ -174,8 +180,10 @@ def main():
     alternative["parallax_centre_mas"] = centre_plx
     results["normalised_clip"] = alternative
 
-    print(f"\nNORMALISED-RESIDUAL CLIP  N = {alternative['n_total']}  "
-          f"(centre {centre_plx:.4f} mas, |z| < {SIGMA})")
+    print(
+        f"\nNORMALISED-RESIDUAL CLIP  N = {alternative['n_total']}  "
+        f"(centre {centre_plx:.4f} mas, |z| < {SIGMA})"
+    )
     print(f"  quartile edges: " + " | ".join(f"{e:.2f}" for e in alternative["edges"]))
     print(f"  {'against':>14s} {'n':>4s} {'D':>7s} {'p':>8s}")
     for got in alternative["comparisons"]:
@@ -196,8 +204,10 @@ def main():
         if after >= 1
         else "signal disappears -- the deficit tracks the pipeline clip, not Gaia completeness"
     )
-    print(f"\nSignificant comparisons after Holm correction: published {before}, "
-          f"normalised clip {after}")
+    print(
+        f"\nSignificant comparisons after Holm correction: published {before}, "
+        f"normalised clip {after}"
+    )
     print(f"VERDICT: {results['verdict']}")
 
     out = Path(__file__).with_name("faint_quartile_clip_test.json")

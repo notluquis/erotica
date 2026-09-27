@@ -220,7 +220,9 @@ def posterior_geometry(idata, var_names):
         condition_number=float(np.linalg.cond(corr)),
         not_separately_identified=[p for p in pairs if abs(p["r"]) > CORRELATION_WARN],
         relative_width={
-            n: float(np.std(np.asarray(post[n].values)) / abs(np.median(np.asarray(post[n].values))))
+            n: float(
+                np.std(np.asarray(post[n].values)) / abs(np.median(np.asarray(post[n].values)))
+            )
             for n in var_names
         },
     )

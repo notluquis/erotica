@@ -91,17 +91,27 @@ def main():
     np.savez(out, source_id=ids, gmag=gmag, cluster=cluster, distance_pc=distance)
 
     rows = []
-    print(f"\n{'cluster':12s} {'N':>5s} {'dist pc':>8s} {'G_med':>7s} {'G_p98':>7s} {'M_G,p98':>8s}")
+    print(
+        f"\n{'cluster':12s} {'N':>5s} {'dist pc':>8s} {'G_med':>7s} {'G_p98':>7s} {'M_G,p98':>8s}"
+    )
     for name in sorted(set(cluster.tolist())):
         m = (cluster == name) & np.isfinite(gmag)
         dist = float(np.nanmedian(distance[m]))
         p98 = float(np.percentile(gmag[m], 98))
         abs_p98 = p98 - 5.0 * np.log10(dist / 10.0)
         rows.append(
-            dict(cluster=name, n=int(m.sum()), dist_pc=dist, G_med=float(np.median(gmag[m])),
-                 G_p98=p98, M_G_p98=abs_p98)
+            dict(
+                cluster=name,
+                n=int(m.sum()),
+                dist_pc=dist,
+                G_med=float(np.median(gmag[m])),
+                G_p98=p98,
+                M_G_p98=abs_p98,
+            )
         )
-        print(f"{name:12s} {m.sum():5d} {dist:8.1f} {np.median(gmag[m]):7.2f} {p98:7.2f} {abs_p98:8.2f}")
+        print(
+            f"{name:12s} {m.sum():5d} {dist:8.1f} {np.median(gmag[m]):7.2f} {p98:7.2f} {abs_p98:8.2f}"
+        )
 
     ok = np.isfinite(gmag)
     abs_mean = float(np.mean([r["M_G_p98"] for r in rows]))
@@ -125,13 +135,17 @@ def main():
         per_cluster=rows,
     )
 
-    print(f"\nall coronae: G_p98 {summary['G_p98_all']:.2f}  G_max {summary['G_max_all']:.2f}  "
-          f"fraction G>20 = {summary['fraction_fainter_than_20']:.1%}")
+    print(
+        f"\nall coronae: G_p98 {summary['G_p98_all']:.2f}  G_max {summary['G_max_all']:.2f}  "
+        f"fraction G>20 = {summary['fraction_fainter_than_20']:.1%}"
+    )
     print(f"  (HR24 census G_p98 = {HR24_G_P98} -- the coronae are BRIGHTER)")
     print(f"M_G at p98 = {abs_mean:.2f} +/- {summary['M_G_p98_std']:.2f}")
     print(f"-> apparent G crosses 20 at d = {crossover:.0f} pc")
-    print(f"-> census median ~{CENSUS_MEDIAN_DISTANCE_PC:.0f} pc is "
-          f"{summary['magnitudes_fainter_at_census_distance']:.1f} mag fainter")
+    print(
+        f"-> census median ~{CENSUS_MEDIAN_DISTANCE_PC:.0f} pc is "
+        f"{summary['magnitudes_fainter_at_census_distance']:.1f} mag fainter"
+    )
 
     js = Path(__file__).with_name("meingast_coronae_depth.json")
     js.write_text(json.dumps(summary, indent=1))

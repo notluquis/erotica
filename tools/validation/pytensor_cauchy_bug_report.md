@@ -61,7 +61,10 @@ import numpy as np, pytensor, scipy.stats as st
 from pytensor.tensor.random.basic import cauchy
 from pytensor.compile.mode import Mode
 
-def iqr(x): return float(np.subtract(*np.percentile(np.asarray(x), [75, 25])))
+
+def iqr(x):
+    return float(np.subtract(*np.percentile(np.asarray(x), [75, 25])))
+
 
 g = cauchy(3.0, 5.0, size=200_000)
 ref = st.cauchy(3.0, 5.0)
@@ -69,7 +72,7 @@ no_opt = Mode(linker="py", optimizer=None)
 
 print("numba (default):", np.median(g.eval()), iqr(g.eval()))
 print("py linker      :", *[f(pytensor.function([], g, mode=no_opt)()) for f in (np.median, iqr)])
-print("scipy          :", ref.median(), ref.ppf(.75) - ref.ppf(.25))
+print("scipy          :", ref.median(), ref.ppf(0.75) - ref.ppf(0.25))
 ```
 
 ```
@@ -121,13 +124,17 @@ single `cauchy` entry in `tests/link/numba/test_random.py` is
 
 ```python
 (
-    ptr.cauchy,
-    [
-        (pt.dvector(), np.array([1.0, 2.0], dtype=np.float64)),   # loc
-        (pt.dscalar(), np.array(1.0, dtype=np.float64)),          # scale  <-- 1.0
-    ],
-    (2,), "cauchy", lambda *args: args,
-),
+    (
+        ptr.cauchy,
+        [
+            (pt.dvector(), np.array([1.0, 2.0], dtype=np.float64)),  # loc
+            (pt.dscalar(), np.array(1.0, dtype=np.float64)),  # scale  <-- 1.0
+        ],
+        (2,),
+        "cauchy",
+        lambda *args: args,
+    ),
+)
 ```
 
 validated with a Cramér-von Mises goodness-of-fit test requiring `pvalue > 0.1`. That is a good

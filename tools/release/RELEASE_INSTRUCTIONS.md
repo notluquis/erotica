@@ -136,7 +136,7 @@ good_data, bad_data = preprocessor.process()
 
 # Perform clustering
 clusterer = erotica.Clustering(good_data, bad_data)
-clusterer.search(['pmra', 'pmdec', 'parallax'])
+clusterer.search(["pmra", "pmdec", "parallax"])
 
 # Analyze results
 analyzer = erotica.ClusterAnalyzer(clusterer.combined_data)

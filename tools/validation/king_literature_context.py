@@ -43,17 +43,26 @@ from pathlib import Path
 import numpy as np
 
 # P01's adopted values, at its adopted 1.11 kpc.
-NGC6383 = {"R_c_arcmin": 1.96, "R_t_arcmin": 54.0, "R_c_pc": 0.63, "R_t_pc": 17.4,
-           "C": 1.43, "log_age": 6.55, "T_max_arcmin": 42.45, "hill_arcmin": 33.6,
-           "field_arcmin": 70.0}
+NGC6383 = {
+    "R_c_arcmin": 1.96,
+    "R_t_arcmin": 54.0,
+    "R_c_pc": 0.63,
+    "R_t_pc": 17.4,
+    "C": 1.43,
+    "log_age": 6.55,
+    "T_max_arcmin": 42.45,
+    "hill_arcmin": 33.6,
+    "field_arcmin": 70.0,
+}
 
-HUNT_COLS = ("Name,Type,N,logAge50,dist50,rc,rt,r50,rtot,"
-             "rcpc,rtpc,r50pc,rtotpc,rJ,rJpc,MassJ,probJ")
+HUNT_COLS = "Name,Type,N,logAge50,dist50,rc,rt,r50,rtot,rcpc,rtpc,r50pc,rtotpc,rJ,rJpc,MassJ,probJ"
 
 
 def fetch_hunt():
-    url = ("https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=J/A+A/686/A42/clusters"
-           f"&-out={HUNT_COLS.replace(',', '&-out=')}&-out.max=unlimited")
+    url = (
+        "https://vizier.cds.unistra.fr/viz-bin/asu-tsv?-source=J/A+A/686/A42/clusters"
+        f"&-out={HUNT_COLS.replace(',', '&-out=')}&-out.max=unlimited"
+    )
     txt = urllib.request.urlopen(url, timeout=300).read().decode("utf-8", "replace")
     body = [x for x in txt.splitlines() if x and not x.startswith("#")]
     return list(csv.DictReader([body[0]] + [x for x in body[3:] if x.strip()], delimiter="\t"))
@@ -82,13 +91,19 @@ def main():
     d = num(h, "dist50")
     pc_per_arcmin = d * (1 / 60) * (np.pi / 180)
     print(f"  distance {d:.0f} pc   (P01: 1110 pc)")
-    print(f"  log age  {num(h, 'logAge50'):.2f} = {10 ** num(h, 'logAge50') / 1e6:.1f} Myr"
-          f"   (P01: 3.5 Myr)")
+    print(
+        f"  log age  {num(h, 'logAge50'):.2f} = {10 ** num(h, 'logAge50') / 1e6:.1f} Myr"
+        f"   (P01: 3.5 Myr)"
+    )
     print(f"  mass     {num(h, 'MassJ'):.0f} Msun, P(bound) = {num(h, 'probJ'):.3f}")
     print(f"\n  {'radius':22s} {'pc':>8s} {'arcmin':>9s}")
-    for key, lab in (("rcpc", "core r_c"), ("r50pc", "half-number r_50"),
-                     ("rtpc", "tidal r_t"), ("rtotpc", "total r_tot"),
-                     ("rJpc", "JACOBI r_J")):
+    for key, lab in (
+        ("rcpc", "core r_c"),
+        ("r50pc", "half-number r_50"),
+        ("rtpc", "tidal r_t"),
+        ("rtotpc", "total r_tot"),
+        ("rJpc", "JACOBI r_J"),
+    ):
         v = num(h, key)
         print(f"  {lab:22s} {v:8.2f} {v / pc_per_arcmin:9.1f}")
     r_j = num(h, "rJpc")
@@ -96,14 +111,19 @@ def main():
     print(f"\n  P01 adopted King R_t = {NGC6383['R_t_arcmin']:.0f}' = {NGC6383['R_t_pc']:.1f} pc")
     print(f"    -> {ratio:.2f}x the Jacobi radius. A bound cluster cannot extend beyond r_J,")
     print(f"       so the fitted R_t is not an admissible physical boundary.")
-    print(f"  P01 T_max = {NGC6383['T_max_arcmin']:.1f}', Hill = {NGC6383['hill_arcmin']:.1f}';"
-          f" Hunt r_J = {r_j / pc_per_arcmin:.1f}' -- between them, independently.")
-    print(f"  P01 largest field {NGC6383['field_arcmin']:.0f}' = "
-          f"{NGC6383['field_arcmin'] * pc_per_arcmin:.1f} pc = "
-          f"{NGC6383['field_arcmin'] * pc_per_arcmin / r_j:.2f}x r_J -- the field is NOT too small.")
-    out["hunt2024_ngc6383"] = {k: num(h, k) for k in
-                               ("logAge50", "dist50", "rcpc", "r50pc", "rtpc", "rtotpc",
-                                "rJpc", "MassJ", "probJ")}
+    print(
+        f"  P01 T_max = {NGC6383['T_max_arcmin']:.1f}', Hill = {NGC6383['hill_arcmin']:.1f}';"
+        f" Hunt r_J = {r_j / pc_per_arcmin:.1f}' -- between them, independently."
+    )
+    print(
+        f"  P01 largest field {NGC6383['field_arcmin']:.0f}' = "
+        f"{NGC6383['field_arcmin'] * pc_per_arcmin:.1f} pc = "
+        f"{NGC6383['field_arcmin'] * pc_per_arcmin / r_j:.2f}x r_J -- the field is NOT too small."
+    )
+    out["hunt2024_ngc6383"] = {
+        k: num(h, k)
+        for k in ("logAge50", "dist50", "rcpc", "r50pc", "rtpc", "rtotpc", "rJpc", "MassJ", "probJ")
+    }
     out["R_t_over_jacobi"] = float(ratio)
 
     print()
@@ -113,10 +133,15 @@ def main():
     oc = (typ == "o") & np.isfinite(age) & np.isfinite(rcpc)
     a = age[oc]
     print(f"  Hunt bound OCs with a core radius: {oc.sum()}")
-    print(f"  log age  min {a.min():.2f} ({10 ** a.min() / 1e6:.2f} Myr)  "
-          f"median {np.median(a):.2f}  max {a.max():.2f}")
-    for cut, lab in ((NGC6383["log_age"], "NGC 6383 (3.5 Myr)"), (7.0, "10 Myr"),
-                     (7.7, "50 Myr = Tarricq's youngest")):
+    print(
+        f"  log age  min {a.min():.2f} ({10 ** a.min() / 1e6:.2f} Myr)  "
+        f"median {np.median(a):.2f}  max {a.max():.2f}"
+    )
+    for cut, lab in (
+        (NGC6383["log_age"], "NGC 6383 (3.5 Myr)"),
+        (7.0, "10 Myr"),
+        (7.7, "50 Myr = Tarricq's youngest"),
+    ):
         print(f"    younger than {lab:28s}: {int((a < cut).sum()):5d} ({(a < cut).mean():.1%})")
     print("  -> a young comparison population EXISTS. Tarricq simply does not sample it.")
     out["hunt2024_n_younger"] = int((a < NGC6383["log_age"]).sum())
@@ -127,10 +152,14 @@ def main():
     x = x[np.isfinite(x)]
     pct = 100.0 * float(np.mean(x < NGC6383["R_c_pc"]))
     print(f"\n  Young subset (log age < 6.7, <5 Myr): n={young.sum()}")
-    print(f"    r_c (pc) 16/50/84 = {np.percentile(x, 16):.2f} {np.percentile(x, 50):.2f} "
-          f"{np.percentile(x, 84):.2f}")
-    print(f"    NGC 6383 R_c = {NGC6383['R_c_pc']:.2f} pc -> {pct:.0f}th percentile "
-          f"among clusters of its own age")
+    print(
+        f"    r_c (pc) 16/50/84 = {np.percentile(x, 16):.2f} {np.percentile(x, 50):.2f} "
+        f"{np.percentile(x, 84):.2f}"
+    )
+    print(
+        f"    NGC 6383 R_c = {NGC6383['R_c_pc']:.2f} pc -> {pct:.0f}th percentile "
+        f"among clusters of its own age"
+    )
     print("    -> compact, but NOT anomalous once compared against the right age range.")
     out["young_rc_percentile"] = pct
 

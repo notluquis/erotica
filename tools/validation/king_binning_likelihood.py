@@ -101,10 +101,16 @@ def run(n_real=400, seed=20260727, n_bins=N_BINS):
             counts[name].append(c)
             areas[name].append(a)
 
-    out = {"true": TRUE, "r_field": R_FIELD, "n_bins": n_bins,
-           "n_realizations": n_real, "seed": seed, "schemes": {}}
+    out = {
+        "true": TRUE,
+        "r_field": R_FIELD,
+        "n_bins": n_bins,
+        "n_realizations": n_real,
+        "seed": seed,
+        "schemes": {},
+    }
     for name in schemes:
-        c = np.asarray(counts[name])   # (n_real, n_bins)
+        c = np.asarray(counts[name])  # (n_real, n_bins)
         a = np.asarray(areas[name])
         mean_c = c.mean(axis=0)
         # Poisson dispersion index: Var(N_i)/E(N_i), equal to 1 for a Poisson variable.
@@ -129,22 +135,30 @@ def main():
     args = ap.parse_args()
     res = run(n_real=args.n_realizations, n_bins=args.n_bins)
 
-    print(f"King point process: k={TRUE['k']} b={TRUE['b']} R_c={TRUE['R_c']}' "
-          f"R_t={TRUE['R_t']}' over a {R_FIELD}' field, {res['n_realizations']} realizations\n")
+    print(
+        f"King point process: k={TRUE['k']} b={TRUE['b']} R_c={TRUE['R_c']}' "
+        f"R_t={TRUE['R_t']}' over a {R_FIELD}' field, {res['n_realizations']} realizations\n"
+    )
     print("Poisson dispersion index Var(N_i)/E(N_i) -- equals 1 for a Poisson count.\n")
     print(f"{'binning':24s} {'mean disp.':>11s} {'min E[N_i]':>11s} {'area CV':>9s}  verdict")
     for name, s in res["schemes"].items():
         d = s["mean_dispersion_index"]
         verdict = "Poisson OK" if 0.8 < d < 1.25 else "NOT Poisson"
-        print(f"{name:24s} {d:11.3f} {s['min_mean_count']:11.1f} {s['mean_area_cv']:8.1%}  {verdict}")
+        print(
+            f"{name:24s} {d:11.3f} {s['min_mean_count']:11.1f} {s['mean_area_cv']:8.1%}  {verdict}"
+        )
 
     eq = res["schemes"]["equal-count (current)"]
-    print(f"\nequal-count dispersion by bin: "
-          f"{[round(x, 3) for x in eq['dispersion_by_bin'][:6]]} ... "
-          f"{[round(x, 3) for x in eq['dispersion_by_bin'][-3:]]}")
-    print(f"equal-count E[N_i] by bin:     "
-          f"{[round(x, 1) for x in eq['mean_counts_by_bin'][:6]]} ... "
-          f"{[round(x, 1) for x in eq['mean_counts_by_bin'][-3:]]}")
+    print(
+        f"\nequal-count dispersion by bin: "
+        f"{[round(x, 3) for x in eq['dispersion_by_bin'][:6]]} ... "
+        f"{[round(x, 3) for x in eq['dispersion_by_bin'][-3:]]}"
+    )
+    print(
+        f"equal-count E[N_i] by bin:     "
+        f"{[round(x, 1) for x in eq['mean_counts_by_bin'][:6]]} ... "
+        f"{[round(x, 1) for x in eq['mean_counts_by_bin'][-3:]]}"
+    )
 
     args.out.write_text(json.dumps(res, indent=2))
     print(f"\nwrote {args.out}")

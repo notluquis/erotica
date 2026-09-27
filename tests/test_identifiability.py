@@ -43,7 +43,9 @@ def test_attached_log_likelihood_sums_to_the_point_process_density():
     rng = np.random.default_rng(4)
     r = _eff_radii(rng, 200)
     fit = eff_unbinned(
-        r, field_radius=FIELD, priors=EFFPriors(),
+        r,
+        field_radius=FIELD,
+        priors=EFFPriors(),
         sampling=SamplingConfig(draws=300, tune=400, chains=2, random_seed=1, progressbar=False),
     )
     idata = attach_log_likelihood(fit["eff_trace"], r, FIELD, model="eff")
@@ -68,11 +70,16 @@ def test_posterior_geometry_finds_a_planted_correlation():
 
     draws = np.random.default_rng(0).normal(size=(2, 500))
     idata = xr.DataTree()
-    idata["posterior"] = xr.DataTree(xr.Dataset(
-        {"x": (("chain", "draw"), draws[:1]),
-         "y": (("chain", "draw"), draws[:1] * 3.0 + 1.0),
-         "z": (("chain", "draw"), draws[1:])},
-        coords={"chain": [0], "draw": np.arange(500)}))
+    idata["posterior"] = xr.DataTree(
+        xr.Dataset(
+            {
+                "x": (("chain", "draw"), draws[:1]),
+                "y": (("chain", "draw"), draws[:1] * 3.0 + 1.0),
+                "z": (("chain", "draw"), draws[1:]),
+            },
+            coords={"chain": [0], "draw": np.arange(500)},
+        )
+    )
 
     geom = posterior_geometry(idata, ["x", "y", "z"])
     locked = {(p["a"], p["b"]) for p in geom["not_separately_identified"]}
@@ -112,8 +119,9 @@ def test_the_verdict_flips_with_the_footprint():
     for ratio in (2.0, 42.0):
         field = ratio * A_TRUE
         r = _eff_radii(np.random.default_rng(9100), 150, field_radius=field)
-        fit = eff_unbinned(r, field_radius=field, priors=EFFPriors(), sampling=cfg,
-                           progressbar=False)
+        fit = eff_unbinned(
+            r, field_radius=field, priors=EFFPriors(), sampling=cfg, progressbar=False
+        )
         idata = fit["eff_trace"]
         with _eff_model(pm, r, field, EFFPriors(), None, None):
             pm.compute_log_prior(idata)

@@ -48,7 +48,9 @@ class _RecordingCensusModel:
         self.prob = prob
         self.call = None
 
-    def __call__(self, density_or_coordinates, n_stars, median_parallax_error, threshold, mode="median"):
+    def __call__(
+        self, density_or_coordinates, n_stars, median_parallax_error, threshold, mode="median"
+    ):
         self.call = dict(
             density_or_coordinates=density_or_coordinates,
             n_stars=np.asarray(n_stars),
@@ -209,4 +211,3 @@ def test_hr_selection_function_wiring(monkeypatch):
 
     prob = selection.cluster_census_detectability(100, 0.05, 3.0, data_density=1e5)
     assert prob == pytest.approx(np.array([0.42]))
-

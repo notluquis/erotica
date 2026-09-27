@@ -114,7 +114,8 @@ and out across draws and earns a correctly *lower, hedged* frequency instead of 
 
 ```python
 f_mean, f_std = clu.search_pseudoprobability_error_aware(
-    columns=("pmra", "pmdec", "parallax"), n_mc=100,
+    columns=("pmra", "pmdec", "parallax"),
+    n_mc=100,
 )
 # also written to clu.data["pFreqMC"], clu.data["pFreqMC_std"]
 ```

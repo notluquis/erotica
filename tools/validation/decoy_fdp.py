@@ -137,9 +137,13 @@ def pseudoprobability(X, mcs_values, reference_pm, max_members=1000, min_members
     ref = np.asarray(reference_pm, dtype=float)
     for mcs in mcs_values:
         clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=int(mcs), algorithm="best", cluster_selection_method="eom",
-            allow_single_cluster=False, metric="euclidean",
-            match_reference_implementation=True, gen_min_span_tree=False,
+            min_cluster_size=int(mcs),
+            algorithm="best",
+            cluster_selection_method="eom",
+            allow_single_cluster=False,
+            metric="euclidean",
+            match_reference_implementation=True,
+            gen_min_span_tree=False,
         ).fit(X)
         labels = clusterer.labels_
         in_cluster += labels >= 0
@@ -160,11 +164,20 @@ def pseudoprobability(X, mcs_values, reference_pm, max_members=1000, min_members
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--realizations", type=int, default=30)
-    ap.add_argument("--field-radius", type=float, default=45.0,
-                    help="arcmin; stars beyond this build the decoy field")
+    ap.add_argument(
+        "--field-radius",
+        type=float,
+        default=45.0,
+        help="arcmin; stars beyond this build the decoy field",
+    )
     ap.add_argument("--mcs-step", type=int, default=10)
-    ap.add_argument("--ref-pm", type=float, nargs=2, default=(2.54, -1.71),
-                    help="reference proper motion the production run selects on (mas/yr)")
+    ap.add_argument(
+        "--ref-pm",
+        type=float,
+        nargs=2,
+        default=(2.54, -1.71),
+        help="reference proper motion the production run selects on (mas/yr)",
+    )
     ap.add_argument("--max-members", type=int, default=1000)
     ap.add_argument("--min-members", type=int, default=50)
     ap.add_argument("--seed", type=int, default=20260727)
@@ -175,23 +188,33 @@ def main():
     n = pmra.size
     field = radius > args.field_radius
     mcs_values = list(range(10, 300, args.mcs_step))
-    print(f"catalogue N={n}, field stars (r>{args.field_radius:.0f}') = {field.sum()} "
-          f"({field.mean():.1%})")
-    print(f"mcs sweep: {len(mcs_values)} values, {mcs_values[0]}..{mcs_values[-1]} "
-          f"step {args.mcs_step}\n", flush=True)
+    print(
+        f"catalogue N={n}, field stars (r>{args.field_radius:.0f}') = {field.sum()} "
+        f"({field.mean():.1%})"
+    )
+    print(
+        f"mcs sweep: {len(mcs_values)} values, {mcs_values[0]}..{mcs_values[-1]} "
+        f"step {args.mcs_step}\n",
+        flush=True,
+    )
 
     t0 = time.perf_counter()
-    sel = dict(reference_pm=tuple(args.ref_pm), max_members=args.max_members,
-               min_members=args.min_members)
+    sel = dict(
+        reference_pm=tuple(args.ref_pm), max_members=args.max_members, min_members=args.min_members
+    )
     target, target_dist = pseudoprobability(np.column_stack([pmra, pmdec]), mcs_values, **sel)
     n06 = int((target >= 0.6).sum())
-    print(f"target sweep done in {time.perf_counter() - t0:.0f}s; max p~ = {target.max():.3f}; "
-          f"n(p~>=0.6) = {n06}; branch centroid {target_dist:.3f} mas/yr from reference",
-          flush=True)
+    print(
+        f"target sweep done in {time.perf_counter() - t0:.0f}s; max p~ = {target.max():.3f}; "
+        f"n(p~>=0.6) = {n06}; branch centroid {target_dist:.3f} mas/yr from reference",
+        flush=True,
+    )
     if not (300 < n06 < 2000):
-        print(f"  *** WARNING: the production run reports ~798 members. {n06} is far from that, so "
-              f"this reimplementation is not tracking the pipeline. Treat the FDP as invalid. ***",
-              flush=True)
+        print(
+            f"  *** WARNING: the production run reports ~798 members. {n06} is far from that, so "
+            f"this reimplementation is not tracking the pipeline. Treat the FDP as invalid. ***",
+            flush=True,
+        )
 
     rng = np.random.default_rng(args.seed)
     decoy_counts = {p: [] for p in THRESHOLDS}
@@ -204,11 +227,16 @@ def main():
         for thr in THRESHOLDS:
             decoy_counts[thr].append(int((p >= thr).sum()))
         decoy_max.append(float(p.max()))
-        print(f"  decoy {it + 1:3d}/{args.realizations}  max p~={p.max():.3f}  "
-              f"n(p>=0.6)={int((p >= 0.6).sum())}", flush=True)
+        print(
+            f"  decoy {it + 1:3d}/{args.realizations}  max p~={p.max():.3f}  "
+            f"n(p>=0.6)={int((p >= 0.6).sum())}",
+            flush=True,
+        )
 
-    print(f"\n{'p~ threshold':>12s} {'target':>8s} {'d.median':>9s} {'d.mean':>8s} "
-          f"{'d.p90':>8s} {'FDP med':>8s} {'FDP p90':>8s}")
+    print(
+        f"\n{'p~ threshold':>12s} {'target':>8s} {'d.median':>9s} {'d.mean':>8s} "
+        f"{'d.p90':>8s} {'FDP med':>8s} {'FDP p90':>8s}"
+    )
     results = {}
     for thr in THRESHOLDS:
         n_t = int((target >= thr).sum())
@@ -218,24 +246,34 @@ def main():
         # mean), so the mean is the wrong summary. Store every realization and
         # quote the median plus a 90th percentile.
         results[str(thr)] = {
-            "target": n_t, "counts": [int(x) for x in d],
-            "decoy_mean": float(d.mean()), "decoy_sd": float(d.std()),
-            "decoy_median": float(np.median(d)), "decoy_p90": float(np.percentile(d, 90)),
+            "target": n_t,
+            "counts": [int(x) for x in d],
+            "decoy_mean": float(d.mean()),
+            "decoy_sd": float(d.std()),
+            "decoy_median": float(np.median(d)),
+            "decoy_p90": float(np.percentile(d, 90)),
             "fdp_mean": float(fdp),
             "fdp_median": float(np.median(d) / n_t) if n_t else float("nan"),
             "fdp_p90": float(np.percentile(d, 90) / n_t) if n_t else float("nan"),
         }
-        print(f"{thr:12.2f} {n_t:8d} {np.median(d):9.1f} {d.mean():8.1f} "
-              f"{np.percentile(d, 90):8.1f} {np.median(d) / n_t:8.2%} "
-              f"{np.percentile(d, 90) / n_t:8.2%}")
+        print(
+            f"{thr:12.2f} {n_t:8d} {np.median(d):9.1f} {d.mean():8.1f} "
+            f"{np.percentile(d, 90):8.1f} {np.median(d) / n_t:8.2%} "
+            f"{np.percentile(d, 90) / n_t:8.2%}"
+        )
 
     print(f"\nhighest p~ reached by any decoy realization: {max(decoy_max):.3f}")
     payload = {
-        "catalogue_n": int(n), "field_radius_arcmin": args.field_radius,
-        "n_field": int(field.sum()), "realizations": args.realizations,
-        "mcs_values": mcs_values, "seed": args.seed,
-        "target_max_p": float(target.max()), "target_n_p06": n06,
-        "reference_pm": list(args.ref_pm), "max_members": args.max_members,
+        "catalogue_n": int(n),
+        "field_radius_arcmin": args.field_radius,
+        "n_field": int(field.sum()),
+        "realizations": args.realizations,
+        "mcs_values": mcs_values,
+        "seed": args.seed,
+        "target_max_p": float(target.max()),
+        "target_n_p06": n06,
+        "reference_pm": list(args.ref_pm),
+        "max_members": args.max_members,
         "decoy_max_p": decoy_max,
         "by_threshold": results,
     }

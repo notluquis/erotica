@@ -208,7 +208,7 @@ def plot_probability_vs_gmag(
         probability_threshold,
         color="k",
         linestyle="--",
-        label=plot_kwargs.get("prob_label", f"{int(probability_threshold*100)}% prob"),
+        label=plot_kwargs.get("prob_label", f"{int(probability_threshold * 100)}% prob"),
     )
     gmag_unit = getattr(data["Gmag"], "unit", None)
     xlabel = plot_kwargs.get("xlabel", f"Gmag [{gmag_unit}]" if gmag_unit is not None else "Gmag")

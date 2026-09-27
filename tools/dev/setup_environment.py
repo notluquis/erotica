@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Setup development environment for EROTICA."""
+
 import subprocess
 import sys
 from pathlib import Path
+
 
 def run_command(cmd, check=True):
     """Run shell command with error handling."""
@@ -13,20 +15,21 @@ def run_command(cmd, check=True):
         sys.exit(1)
     return result
 
+
 def main():
     """Set up development environment."""
     project_root = Path(__file__).parent.parent.parent
     print(f"Setting up EROTICA development environment in {project_root}")
-    
+
     # Install package in development mode
     print("\n1. Installing EROTICA in development mode...")
     run_command(f"cd {project_root} && pip install -e '.[dev,docs,examples]'")
-    
+
     # Install pre-commit hooks
     print("\n2. Setting up pre-commit hooks...")
     run_command("pip install pre-commit")
     run_command(f"cd {project_root} && pre-commit install")
-    
+
     # Install additional development tools
     print("\n3. Installing development tools...")
     dev_packages = [
@@ -38,10 +41,10 @@ def main():
         "sphinx",
         "sphinx-rtd-theme",
         "jupyter",
-        "jupyterlab"
+        "jupyterlab",
     ]
     run_command(f"pip install {' '.join(dev_packages)}")
-    
+
     print("\n✅ Development environment setup complete!")
     print("\nNext steps:")
     print("- Run tests: pytest")
@@ -49,6 +52,7 @@ def main():
     print("- Check types: mypy erotica/")
     print("- Build docs: cd docs && make html")
     print("- Start Jupyter: jupyter lab")
+
 
 if __name__ == "__main__":
     main()

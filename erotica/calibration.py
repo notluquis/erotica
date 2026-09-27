@@ -512,4 +512,3 @@ def calibration_report_from_clustering(
             "run Clustering.search_pseudoprobability first."
         )
     return calibration_report(np.asarray(table[probability_column], dtype=float), labels, **kwargs)
-

@@ -147,7 +147,10 @@ def plot_condensed_tree(
 
     # hdbscan handles bars, split lines, colorbar, inverted y-axis, spine removal
     clusterer.condensed_tree_.plot(
-        axis=ax, cmap=cmap, select_clusters=False, colorbar=True,
+        axis=ax,
+        cmap=cmap,
+        select_clusters=False,
+        colorbar=True,
     )
 
     if select_clusters:
@@ -166,25 +169,33 @@ def plot_condensed_tree(
         for i, c in enumerate(chosen):
             cb = cb_all[c]
             # CB order: [LEFT=0, RIGHT=1, BOTTOM=2, TOP=3]
-            width  = float(cb[1] - cb[0])
+            width = float(cb[1] - cb[0])
             height = float(cb[3] - cb[2])
-            cx     = float((cb[0] + cb[1]) / 2.0)
-            cy     = float((cb[2] + cb[3]) / 2.0)
+            cx = float((cb[0] + cb[1]) / 2.0)
+            cy = float((cb[2] + cb[3]) / 2.0)
 
             if not np.isfinite(cy):
                 cy = mean_y
             if not np.isfinite(height) or height < min_h:
                 height = max(max_h, min_h)
 
-            ax.add_artist(Ellipse(
-                (cx, cy), 2.0 * width, 1.2 * height,
-                facecolor="none", edgecolor=palette[i], linewidth=2,
-            ))
+            ax.add_artist(
+                Ellipse(
+                    (cx, cy),
+                    2.0 * width,
+                    1.2 * height,
+                    facecolor="none",
+                    edgecolor=palette[i],
+                    linewidth=2,
+                )
+            )
             if label_clusters:
                 ax.annotate(
-                    str(i), xy=(cx, cy),
+                    str(i),
+                    xy=(cx, cy),
                     xytext=(cx - 4.0 * width, cy + 0.65 * height),
-                    horizontalalignment="left", verticalalignment="bottom",
+                    horizontalalignment="left",
+                    verticalalignment="bottom",
                 )
 
     if save_path:

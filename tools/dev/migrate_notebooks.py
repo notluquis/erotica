@@ -10,19 +10,20 @@ import json
 from pathlib import Path
 import sys
 
+
 def add_compatibility_cell(notebook_path: Path) -> bool:
     """Agrega una celda de compatibilidad al inicio del notebook"""
-    
+
     try:
-        with open(notebook_path, 'r', encoding='utf-8') as f:
+        with open(notebook_path, "r", encoding="utf-8") as f:
             notebook = json.load(f)
-        
+
         # Verificar si ya tiene la celda de compatibilidad
-        for cell in notebook.get('cells', []):
-            if 'EROTICA v0.0.1 - Compatibilidad' in cell.get('source', ''):
+        for cell in notebook.get("cells", []):
+            if "EROTICA v0.0.1 - Compatibilidad" in cell.get("source", ""):
                 print(f"  ✅ Ya actualizado: {notebook_path.name}")
                 return True
-        
+
         # Crear celda de compatibilidad
         compatibility_cell = {
             "cell_type": "markdown",
@@ -52,76 +53,78 @@ def add_compatibility_cell(notebook_path: Path) -> bool:
                 "from data_loader import DataLoader\n",
                 "```\n",
                 "\n",
-                "📚 **Documentación**: `/docs/reference/NOTEBOOK_MIGRATION_GUIDE.md`"
-            ]
+                "📚 **Documentación**: `/docs/reference/NOTEBOOK_MIGRATION_GUIDE.md`",
+            ],
         }
-        
+
         # Insertar al inicio
-        notebook.setdefault('cells', []).insert(0, compatibility_cell)
-        
+        notebook.setdefault("cells", []).insert(0, compatibility_cell)
+
         # Guardar notebook actualizado
-        with open(notebook_path, 'w', encoding='utf-8') as f:
+        with open(notebook_path, "w", encoding="utf-8") as f:
             json.dump(notebook, f, indent=2, ensure_ascii=False)
-        
+
         print(f"  ✅ Actualizado: {notebook_path.name}")
         return True
-        
+
     except Exception as e:
         print(f"  ❌ Error actualizando {notebook_path.name}: {e}")
         return False
 
+
 def migrate_notebooks():
     """Migra todos los notebooks del proyecto"""
-    
+
     project_root = Path(__file__).parent.parent.parent
     print(f"🌟 EROTICA v0.0.1 - Migración Automática de Notebooks")
     print(f"📁 Proyecto: {project_root}")
-    
+
     # Buscar todos los notebooks
     notebook_patterns = [
         "**/*.ipynb",
     ]
-    
+
     notebooks = []
     for pattern in notebook_patterns:
         notebooks.extend(project_root.glob(pattern))
-    
+
     # Filtrar checkpoints y backups
-    notebooks = [nb for nb in notebooks 
-                if '.ipynb_checkpoints' not in str(nb) 
-                and 'backups' not in str(nb)]
-    
+    notebooks = [
+        nb for nb in notebooks if ".ipynb_checkpoints" not in str(nb) and "backups" not in str(nb)
+    ]
+
     print(f"📊 Encontrados {len(notebooks)} notebooks")
-    
+
     if not notebooks:
         print("⚠️  No se encontraron notebooks para migrar")
         return
-    
+
     # Procesar cada notebook
     updated = 0
     failed = 0
-    
+
     for notebook in notebooks:
         rel_path = notebook.relative_to(project_root)
         print(f"\n📝 Procesando: {rel_path}")
-        
+
         if add_compatibility_cell(notebook):
             updated += 1
         else:
             failed += 1
-    
+
     # Resumen
     print(f"\n📊 Resumen de migración:")
     print(f"  ✅ Actualizados: {updated}")
     print(f"  ❌ Fallidos: {failed}")
     print(f"  📝 Total: {len(notebooks)}")
-    
+
     if updated > 0:
         print(f"\n🎉 ¡Migración completada!")
         print(f"🔧 Los notebooks mantienen compatibilidad total")
         print(f"📚 Ver guía completa: docs/reference/NOTEBOOK_MIGRATION_GUIDE.md")
     else:
         print(f"\n⚠️  No se realizaron actualizaciones")
+
 
 if __name__ == "__main__":
     migrate_notebooks()

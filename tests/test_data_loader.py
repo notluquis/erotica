@@ -90,9 +90,7 @@ class TestMapRequestedColumns:
         available = ["phot_g_mean_mag", "parallax"]
         requested = ["Gmag", "parallax"]
 
-        present, missing = map_requested_columns(
-            requested, available, normalize_names=False
-        )
+        present, missing = map_requested_columns(requested, available, normalize_names=False)
 
         # Without normalization "Gmag" is matched literally (absent) -> missing;
         # only the exact "parallax" survives.
@@ -111,9 +109,7 @@ class TestMapRequestedColumns:
 class TestCollectRequestedColumns:
     def test_system_expands_to_its_canonical_columns(self):
         available = ["source_id", "ra"]
-        result = collect_requested_columns(
-            ["Gaia"], None, False, False, None, None, available
-        )
+        result = collect_requested_columns(["Gaia"], None, False, False, None, None, available)
         assert result == set(PHOTOMETRIC_SYSTEMS["Gaia"])
 
     def test_multiple_systems_union_their_columns(self):
@@ -121,21 +117,15 @@ class TestCollectRequestedColumns:
         result = collect_requested_columns(
             ["Gaia", "TMASS"], None, False, False, None, None, ["source_id"]
         )
-        assert result == set(PHOTOMETRIC_SYSTEMS["Gaia"]) | set(
-            PHOTOMETRIC_SYSTEMS["TMASS"]
-        )
+        assert result == set(PHOTOMETRIC_SYSTEMS["Gaia"]) | set(PHOTOMETRIC_SYSTEMS["TMASS"])
 
     def test_unknown_system_raises(self):
         with pytest.raises(ValueError, match="Unknown photometric system"):
-            collect_requested_columns(
-                ["Nope"], None, False, False, None, None, ["source_id"]
-            )
+            collect_requested_columns(["Nope"], None, False, False, None, None, ["source_id"])
 
     def test_unknown_distance_raises(self):
         with pytest.raises(ValueError, match="Unknown distance type"):
-            collect_requested_columns(
-                None, ["bogus"], False, False, None, None, ["source_id"]
-            )
+            collect_requested_columns(None, ["bogus"], False, False, None, None, ["source_id"])
 
     def test_distances_zp_and_flux_flags(self):
         result = collect_requested_columns(

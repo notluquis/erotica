@@ -668,8 +668,8 @@ not** — `velocity_model` was missed, and it carried the same three defects, on
 explicitly in the project's methodology audit as a ten-minute fix.
 
 ```python
-mu_v  = pm.Normal("mu_v", mu=float(np.nanmean(velocity_values)), sigma=10)   # data-derived
-std_v = pm.Uniform("std_v", lower=0, upper=40)                               # ~80x too wide
+mu_v = pm.Normal("mu_v", mu=float(np.nanmean(velocity_values)), sigma=10)  # data-derived
+std_v = pm.Uniform("std_v", lower=0, upper=40)  # ~80x too wide
 pm.Normal("observed_velocity", mu=mu_v, sigma=std_v, observed=velocity_values)  # no errors
 ```
 
