@@ -163,6 +163,11 @@ tools/validation/*.cells.jsonl
 # Per-row archive-query caches (A1's Gaia patch slicing writes one row per source). Same
 # rationale: regenerable, and large enough to matter.
 tools/validation/*.rows.jsonl
+# optuna sampler benchmark: every run's best-so-far curve (regenerable with
+# optuna_sampler_benchmark.py; the quoted numbers are in optuna_sampler_benchmark.json) and the
+# R4 table's crash checkpoint (the finished table, optuna_sampler_tables_R4.json, is committed).
+tools/validation/optuna_sampler_runs.jsonl
+tools/validation/optuna_sampler_tables_R4.partial.json
 
 # LaTeX build products for the A&A methods paper (regenerate with `latexmk -pdf`)
 paper/methods-aa/*.aux

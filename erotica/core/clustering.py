@@ -108,13 +108,22 @@ class Clustering:
         grid_kwargs: dict | None = None,
         optuna_search_space: dict[str, dict] | None = None,
         n_trials: int = 50,
-        n_jobs: int = -1,
+        n_jobs: int = 1,
         sampler: str = "TPESampler",
         sampler_kwargs: dict | None = None,
         score_method: str | Iterable[str] = DEFAULT_SCORE_METHOD,
         hdbscan_kwargs: dict | None = None,
     ) -> None:
-        """Run the requested hyper-parameter search and annotate results."""
+        """Run the requested hyper-parameter search and annotate results.
+
+        ``n_jobs`` defaults to ``1`` (it was ``-1`` until 2026-09-27) because only a serial
+        study reproduces with a fixed seed: measured with ``seed=0`` on a 2-D space, 30 trials,
+        six repeats gave one trial set with ``n_jobs=1`` and six different ones with
+        ``n_jobs=2`` -- so the default seed promised a reproduction the default ``n_jobs`` broke.
+        Each HDBSCAN fit already spreads its core-distance step over every core
+        (``core_dist_n_jobs=-1`` in ``HDBSCANEstimator``). Pass ``n_jobs=-1`` to trade
+        reproducibility for speed. Hub finding ``agent-findings/optuna-samplers-2026-09.md``.
+        """
         hdbscan_kwargs = hdbscan_kwargs or {}
         X = self.data[list(columns)].to_pandas().values
 

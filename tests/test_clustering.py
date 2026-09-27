@@ -593,6 +593,31 @@ class TestIdempotency:
         assert best[0] is not None, "Optuna produced no hyper-parameters"
         assert best[0] == best[1], "seeded Optuna search did not reproduce"
 
+    def test_optuna_search_reproduces_with_the_default_n_jobs(self, good_data):
+        """The test above passes ``n_jobs=1`` and stops at 6 trials, under TPE's 10 start-up ones,
+        so it could not see that ``search()``'s own default (``n_jobs=-1`` until 2026-09-27)
+        breaks the seeded reproduction: threaded trials interleave asks and tells in a
+        scheduling-dependent order. Oracle: the same call twice, WITHOUT ``n_jobs``, on a 2-D
+        space, 14 trials -- the whole trial sequence must match, not only the best."""
+        from erotica.core.clustering import Clustering
+
+        space = {
+            "min_cluster_size": {"low": 5, "high": 60, "type": "int"},
+            "min_samples": {"low": 2, "high": 30, "type": "int"},
+        }
+        seqs = []
+        for i in range(2):
+            clu = Clustering(
+                good_data.copy(),
+                search_method="optuna",
+                study_name=f"njobs-test-{i}",
+                sqlite_path=None,
+            )
+            clu.search(columns=["pmra", "pmdec"], optuna_search_space=space, n_trials=14)
+            seqs.append([tuple(t.params.values()) for t in clu._study.trials])
+        assert len(seqs[0]) == 14
+        assert seqs[0] == seqs[1], "seeded search with the default n_jobs did not reproduce"
+
 
 class TestSamplerDefaultsArePinned:
     """``_build_sampler`` must not inherit the TPE defaults optuna 5.0 changed, and must build
@@ -641,11 +666,92 @@ class TestSamplerDefaultsArePinned:
         """``GPSampler.__init__`` has no ``constant_liar`` argument (optuna 4.8-5.0), and the
         old code passed one whenever ``n_jobs != 1`` -- i.e. with ``search()``'s default
         ``n_jobs=-1`` -- raising ``TypeError`` before a single trial ran."""
+        import sys
+        import types
+
         from erotica.core._search import _build_sampler
 
-        space = {"min_cluster_size": {"low": 5, "high": 100, "type": "int"}}
-        sampler = _build_sampler("GPSampler", space, {"seed": 0}, n_jobs=n_jobs)
-        assert type(sampler).__name__ == "GPSampler"
+        try:
+            import torch  # noqa: F401
+        except ImportError:
+            # Without torch `_build_sampler` now refuses GPSampler up front (see the test below).
+            # A stub keeps THIS regression -- the constant_liar TypeError -- checked in the job
+            # that has no torch: GPSampler.__init__ imports torch lazily, so a stub is enough.
+            monkeypatch = pytest.MonkeyPatch()
+            monkeypatch.setitem(sys.modules, "torch", types.ModuleType("torch"))
+        else:
+            monkeypatch = None
+        try:
+            space = {"min_cluster_size": {"low": 5, "high": 100, "type": "int"}}
+            sampler = _build_sampler("GPSampler", space, {"seed": 0}, n_jobs=n_jobs)
+            assert type(sampler).__name__ == "GPSampler"
+        finally:
+            if monkeypatch is not None:
+                monkeypatch.undo()
+
+    _SPACE_2D = {
+        "min_cluster_size": {"low": 5, "high": 100, "type": "int"},
+        "min_samples": {"low": 1, "high": 50, "type": "int"},
+    }
+
+    def test_the_default_seed_survives_other_sampler_kwargs(self):
+        """Oracle: the same sampler with ``seed=DEFAULT_SAMPLER_SEED`` spelled out.
+
+        The default seed used to be applied only when ``sampler_kwargs`` was EMPTY, so
+        ``{"multivariate": True}`` -- exactly what the NGC 6383 PREPROCESS_PERSISTANCE notebook
+        passes -- ran unseeded while ``DEFAULT_SAMPLER_SEED``'s comment promised reproduction.
+        25 trials, past TPE's 10 start-up ones, in 2-D, where the modelling phase is live.
+        """
+        import optuna
+
+        from erotica.core._constants import DEFAULT_SAMPLER_SEED
+        from erotica.core._search import _build_sampler
+
+        ours = _build_sampler("TPESampler", dict(self._SPACE_2D), {"multivariate": True}, n_jobs=1)
+        reference = optuna.samplers.TPESampler(
+            seed=DEFAULT_SAMPLER_SEED, multivariate=True, constant_liar=False
+        )
+        assert self._trial_sequence(ours, 25) == self._trial_sequence(reference, 25)
+
+    def test_an_explicit_seed_none_is_honoured(self):
+        """``seed=None`` is how a caller asks for a non-deterministic study; the default seed
+        must not overwrite it. Two builds must then disagree (probability of a chance match over
+        25 trials in a 96 x 50 space is negligible)."""
+        from erotica.core._search import _build_sampler
+
+        a = _build_sampler("TPESampler", dict(self._SPACE_2D), {"seed": None}, n_jobs=1)
+        b = _build_sampler("TPESampler", dict(self._SPACE_2D), {"seed": None}, n_jobs=1)
+        assert self._trial_sequence(a, 25) != self._trial_sequence(b, 25)
+
+    def test_gp_without_torch_fails_before_any_trial(self, monkeypatch):
+        """torch is the ``[gp]`` extra, not a base dependency. Without it optuna itself does not
+        fail at construction but at the first trial after the ten start-up ones (measured
+        2026-09-27 with optuna 5.0.0: ``ModuleNotFoundError`` after 10 complete trials), i.e.
+        after ten real HDBSCAN fits. ``_build_sampler`` must refuse up front and name the extra.
+        ``sys.modules["torch"] = None`` makes ``import torch`` raise whether or not torch is
+        installed, so this runs in every job."""
+        import sys
+
+        from erotica.core._search import _build_sampler
+
+        monkeypatch.setitem(sys.modules, "torch", None)
+        with pytest.raises(ImportError, match=r"erotica\[gp\]"):
+            _build_sampler("GPSampler", dict(self._SPACE_2D), {"seed": 0}, n_jobs=1)
+
+    def test_gp_runs_past_the_startup_trials_and_is_seeded(self):
+        """The failure the author hit was AFTER the start-up trials, so a construction test cannot
+        see it. 14 trials = 10 random start-up + 4 from the GP itself; all must complete, and with
+        a fixed seed the whole sequence must reproduce. Needs torch: it runs in CI's test-bayes
+        job, which installs ``[gp]``, and skips in the ``test`` job."""
+        pytest.importorskip("torch")
+        from erotica.core._search import _build_sampler
+
+        seqs = []
+        for _ in range(2):
+            sampler = _build_sampler("GPSampler", dict(self._SPACE_2D), {"seed": 0}, n_jobs=1)
+            seqs.append(self._trial_sequence(sampler, 14))
+        assert len(seqs[0]) == 14
+        assert seqs[0] == seqs[1]
 
 
 class TestSweepStepSelection:

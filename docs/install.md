@@ -25,6 +25,7 @@ opt-in:
 |-------|------|-----|
 | `bayes` | PyMC, ArviZ, blackjax | Bayesian isochrone / membership fitting |
 | `selection` | gaiaunlimited, selection functions | completeness-aware work |
+| `gp` | PyTorch | `Clustering.search(sampler="GPSampler")`; without it that call raises `ImportError` before any fit |
 | `examples` | Jupyter, seaborn | running the example notebooks |
 | `docs` | Sphinx + pydata theme | building this documentation |
 | `dev` | pytest, pytest-cov, **ruff**, mypy, pre-commit, nbstripout | contributing |

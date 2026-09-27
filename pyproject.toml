@@ -67,6 +67,15 @@ dev = [
 oracles = [
   "ocelot>=0.4.10",
 ]
+# `Clustering.search(sampler="GPSampler")` needs PyTorch. It is heavy, so it is NOT a base
+# dependency: `_build_sampler` raises a clear ImportError naming this extra when it is missing
+# (optuna itself only failed after the ten start-up trials, i.e. after ten real HDBSCAN fits).
+# Floor 2.9: first release with macOS wheels for both supported Pythons (cp313 AND cp314; 2.6-2.8
+# stop at cp313), read from pypi.org/pypi/torch/<v>/json on 2026-09-27. Whether GP is worth it on
+# erotica's searches: hub finding agent-findings/optuna-samplers-2026-09.md.
+gp = [
+  "torch>=2.9",
+]
 docs = [
   "sphinx>=7.0",
   "pydata-sphinx-theme>=0.15",

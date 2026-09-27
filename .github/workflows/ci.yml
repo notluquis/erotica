@@ -60,9 +60,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.14"
-      - run: pip install -e .[dev,bayes]
-      - name: Fail if the bayes extra did not actually install
-        run: python -c "import pymc, arviz; print('pymc', pymc.__version__, '| arviz', arviz.__version__)"
+      # `[gp]` too, so the GPSampler tests that go past the start-up trials RUN here instead of
+      # skipping (the `test` job has no torch, and there they skip by design). CPU wheel first:
+      # the default Linux torch wheel pulls the CUDA stack, gigabytes this job never uses.
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install -e .[dev,bayes,gp]
+      - name: Fail if the bayes and gp extras did not actually install
+        run: python -c "import pymc, arviz, torch; print('pymc', pymc.__version__, '| arviz', arviz.__version__, '| torch', torch.__version__)"
       - run: pytest -q --cov=erotica --cov-report=term-missing
 
   # Documentation. Added 2026-08-04, because until then NOTHING in CI built the docs: they were

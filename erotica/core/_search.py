@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 from collections.abc import Iterable
 
 import numpy as np
@@ -62,7 +63,11 @@ def run_optuna_search(
 ):
     """Execute an Optuna study and return fitted artifacts."""
     search_space = search_space or DEFAULT_SEARCH_SPACE
-    sampler_kwargs = dict(sampler_kwargs) if sampler_kwargs else {"seed": DEFAULT_SAMPLER_SEED}
+    # The default seed is applied in `_build_sampler` whenever "seed" is ABSENT, not only when
+    # `sampler_kwargs` is empty: `sampler_kwargs={"multivariate": True}` (what the NGC 6383
+    # PREPROCESS_PERSISTANCE notebook passes) used to leave the study unseeded. An explicit
+    # `seed=None` is still honoured as "non-deterministic on purpose".
+    sampler_kwargs = dict(sampler_kwargs or {})
     methods = list(score_methods)
 
     sampler = _build_sampler(sampler_name, search_space, sampler_kwargs, n_jobs=n_jobs)
@@ -128,7 +133,9 @@ def run_optuna_search(
     }
 
 
-def _build_sampler(name: str, search_space: dict[str, dict], sampler_kwargs: dict, *, n_jobs: int = 1):
+def _build_sampler(
+    name: str, search_space: dict[str, dict], sampler_kwargs: dict, *, n_jobs: int = 1
+):
     import optuna.samplers as samplers_module
 
     available = [
@@ -161,7 +168,24 @@ def _build_sampler(name: str, search_space: dict[str, dict], sampler_kwargs: dic
                 )
         sampler_kwargs.setdefault("search_space", grid_space)
 
+    # Seed by default whenever the sampler takes one and the caller did not say. `setdefault`, so
+    # an explicit `seed=None` still means "non-deterministic on purpose".
+    if "seed" in inspect.signature(sampler_cls.__init__).parameters:
+        sampler_kwargs.setdefault("seed", DEFAULT_SAMPLER_SEED)
+
     if name == "GPSampler":
+        # GPSampler needs torch, which is NOT a base dependency (it is heavy): it is the `[gp]`
+        # extra. Without it optuna does not fail at construction -- it fails at the first trial
+        # after the n_startup_trials random ones, i.e. after ten real HDBSCAN fits. Fail here,
+        # before any fit, and say which extra to install. A real import rather than `find_spec`,
+        # so a broken install is caught too.
+        try:
+            import torch  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "sampler='GPSampler' needs PyTorch, which erotica does not install by default. "
+                "Install it with `pip install 'erotica[gp]'`, or pick another sampler."
+            ) from exc
         from optuna.samplers import RandomSampler
 
         seed = sampler_kwargs.get("seed")
