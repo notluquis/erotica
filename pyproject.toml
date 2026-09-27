@@ -108,9 +108,15 @@ bayes = [
   # `--resolution lowest-direct` install of `.[dev,bayes]` picked exactly 1.1.0. environment.yml
   # already said >=1.2.
   "arviz>=1.2",
-  # >=2024.11, not >=2023: erotica/analysis/identifiability.py builds an `xr.DataTree`, which
-  # only exists from xarray 2024.10; arviz-base already requires >=2024.11 transitively.
-  "xarray>=2024.11",
+  # >=2025.8, not >=2023. Two measured reasons: erotica/analysis/identifiability.py builds an
+  # `xr.DataTree` (xarray >= 2024.10), and provenance.py writes the trace with
+  # `trace.to_netcdf(target)` and no engine. With only h5netcdf installed (the [h5py] extra below),
+  # xarray <= 2025.7.1 picks the scipy backend by default and raises "cannot save to a group with
+  # the scipy.io.netcdf backend" on every DataTree group; 2025.8.0 writes it. Measured 2026-09-27,
+  # each version in a clean venv with h5netcdf 1.3.0: 2024.11.0, 2025.1.2, 2025.6.1 and 2025.7.1
+  # fail; 2025.8.0, 2025.9.x and 2025.10.1 pass. A lowest-direct install at >=2024.11 failed 10
+  # provenance tests for exactly this reason.
+  "xarray>=2025.8",
   # numpyro is the NUTS backend the validation sweeps use: measured 2.71x faster than the
   # default PyTensor NUTS on the unbinned EFF fit, with |d gamma| = 0.00006 between them.
   # Same algorithm, different substrate -- see tools/validation/pymc_blackjax_progress_bar_bug.md.
@@ -187,7 +193,7 @@ paper = [
   "pymc>=6.2",
   "packaging",  # _assert_pytensor_cauchy_fixed imports packaging.version -- see [bayes]
   "arviz>=1.2",  # see [bayes]: arviz 1.1 cannot be imported with matplotlib>=3.11
-  "xarray>=2024.11",  # see [bayes]: xr.DataTree
+  "xarray>=2025.8",  # see [bayes]: DataTree + default netCDF engine
   "numpyro>=0.21",  # see [bayes]: older numpyro cannot import with current jax
   "blackjax>=1.2",  # see [bayes]: 1.0/1.1 cannot import with current jax
   # >=0.7, the same floor as the [asteca] extra and for its reason: 0.6.9 runs with the same API
