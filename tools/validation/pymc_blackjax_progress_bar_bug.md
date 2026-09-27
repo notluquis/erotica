@@ -80,6 +80,11 @@ signature is `(label='BlackJAX', print_rate=None, output_file=None)`, so `label=
 unreachable.** The diff adds the `keys = ...` / `if hasattr(...)` / `return samples, stats` block
 **twice**, the second copy sitting below the first `return`:
 
+<!-- fmt:off -->
+<!-- ruff 0.16 formats Python fences in Markdown (docs/formatter.md#markdown-code-formatting) by
+     dedenting to top level before parsing; this block's 4-space indent is the point (it shows
+     the excerpt sits inside a function), so autoformatting it would erase that and read as
+     top-level code, which is also a SyntaxError (`return` outside a function). -->
 ```python
     ...
     return samples, stats      # <- first return
@@ -89,6 +94,7 @@ unreachable.** The diff adds the `keys = ...` / `if hasattr(...)` / `return samp
         ...
     return samples, stats      # <- never reached
 ```
+<!-- fmt:on -->
 
 This is a copy-paste slip, almost certainly from a rebase. **It also explains the codecov number**:
 patch coverage of 55.6% is what you get when roughly half the added lines cannot execute. Deleting
