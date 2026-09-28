@@ -138,14 +138,13 @@ cross-machine results are unattainable.
 
 `EROTICA` is new software: it has no downstream dependents, and its use to date is
 Pulgar-Escobar's own — the NGC 6383 studies [@pulgar2024a; @pulgar2024b], the second of
-which, co-authored with Cerulo, is now accepted at Astronomy & Astrophysics. A regression
-test reproduces that catalogue's published membership list from the pipeline's archived
-analysis defaults. The evidence offered here is of the other admissible kind: reproducible
-materials demonstrating capability.
+which, co-authored with Cerulo, is now accepted at Astronomy & Astrophysics. The evidence
+offered here is of the other admissible kind: reproducible materials demonstrating
+capability.
 
-The repository carries a validation programme of 43 scripts under `tools/validation/`, 36 of
-which commit a JSON sidecar with the full result. The yield is largely negative results,
-which is the point:
+The repository carries a validation programme of 43 scripts under `tools/validation/`, 24 of
+which name a JSON result file that is committed to the repository. The yield is largely
+negative results, which is the point:
 
 - The EFF slope estimator is biased high at the sample sizes typical of the *Gaia* cluster
   census, and the bias shrinks as $N$ grows. A survey-scale comparison of slopes would read a
@@ -160,7 +159,7 @@ which is the point:
   can be an artifact of the assumed geometry.
 
 In continuous integration on Python 3.13 and 3.14, with a separate job for the `bayes`
-extra: **580 tests collected as of commit `00e2278`**, 576 without the extra.
+extra: **580 tests collected as of commit `00e2278`**, 577 without the extra.
 
 The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied
 to the shipping source one at a time, and 18 survived, falsifying this project's own repeated
