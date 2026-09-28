@@ -1840,3 +1840,20 @@ in 2-D. Each was seen red with its mutation: seed `setdefault` removed; seed ove
 import removed; GP's independent sampler unseeded; `n_jobs=-1` restored (3 of 3 red).
 
 **Nothing published moves.** Neither P01 nor the JOSS paper calls optuna (`git grep` in both).
+
+### 2026-09-28 — scope note on the entry above
+
+Two things the entry above does not say, and a reader needs both before quoting it.
+
+- **Every real objective measured is 1-D.** The one real 2-D case — the NGC 6383
+  `PREPROCESS_PERSISTANCE` space, `min_cluster_size` x `min_samples` on a `step=5` lattice — stopped
+  at 1014 of 1521 table points: the machine's load stayed above the benchmark's threshold for over
+  two hours. So "no arm beat univariate TPE in 2-D" is a statement about the **synthetic** surfaces
+  only, and "multivariate TPE is better for erotica" remains **untested** on real 2-D data. The
+  decision does not depend on it (it needed a win on a synthetic 2-D surface too, and the best raw
+  p there was 0.11 before any correction), but the falsifier is open. Checkpoint and the commands to
+  resume: hub finding `agent-findings/optuna-samplers-2026-09.md` §11.
+- **The GP column was measured with `GPSampler(deterministic_objective=True)`**, which the objectives
+  justify (HDBSCAN is deterministic). `_build_sampler` does **not** set it, and optuna 5.0's default
+  is `False`, so `search(sampler="GPSampler")` builds a GP that was not the one measured. Left as is
+  for the author to decide; not measured.

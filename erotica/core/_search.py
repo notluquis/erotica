@@ -208,7 +208,8 @@ def _build_sampler(
     #
     # `multivariate=False` is also the MEASURED choice, not only a pin (2026-09-27, decisions.md):
     # in 1-D -- the default search space -- multivariate TPE is identical trial by trial, and on the
-    # 2-D surfaces no arm (multivariate, group=True, GP, CMA-ES) beat it after Holm, 20 seeds.
+    # 2-D SYNTHETIC surfaces no arm (multivariate, group=True, GP, CMA-ES) beat it after Holm (20
+    # seeds; GP 10). The real 2-D case (min_cluster_size x min_samples on NGC 6383) did not finish.
     if name == "TPESampler":
         sampler_kwargs.setdefault("multivariate", False)
         sampler_kwargs.setdefault("constant_liar", n_jobs != 1)

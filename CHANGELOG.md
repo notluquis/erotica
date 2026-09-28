@@ -57,9 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DEFAULT_SAMPLER_SEED`, so such a search returns different (and now repeatable) trials. An
   explicit `seed=None` is still honoured.
 - **`TPESampler` stays univariate (`multivariate=False`), now as a measured decision** rather than
-  only a pin against optuna 5.0: no arm (multivariate TPE, `group=True`, GP, CMA-ES) beat it under
-  the pre-registered rule on synthetic and real NGC 6383 objectives; in 1-D, which is the default
-  search space, multivariate TPE is identical trial by trial. See
+  only a pin against optuna 5.0: in 1-D, which is the default search space and every real NGC 6383
+  objective measured, multivariate TPE is identical trial by trial; on the 2-D synthetic surfaces
+  no arm (multivariate TPE, `group=True`, GP, CMA-ES) beat it under the pre-registered rule. The
+  real 2-D case (the notebook's `min_cluster_size` x `min_samples` space) did not finish, so
+  "multivariate is better for erotica" is still untested there. See
   `docs/design-notes/decisions.md` (2026-09-27).
 - **`IsochroneFitter` likelihood rewritten: unbinned per star over EEP-interpolated MIST
   isochrones**, replacing the shifted precomputed Hess grid. Exact Gaussian integral along each
