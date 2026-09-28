@@ -122,20 +122,27 @@ on the function is what shows both.)
 **The 2022 commit also set the test parameters, and they are the one case that cannot fail** — which is why neither author had a signal. The
 single `cauchy` entry in `tests/link/numba/test_random.py` is
 
+<!-- fmt:off -->
+<!-- The trailing comma is the enclosing parametrize LIST's separator, not a tuple-forming comma --
+     this fence is one element of that list, not a standalone statement. ruff 0.16 formats every
+     fence as if it were its own module (docs.astral.sh/ruff/formatter/#markdown-code-formatting),
+     so it reads the dangling comma as wrapping the whole thing in an extra 1-tuple and made that
+     explicit with a second pair of parens. AST-per-fence stays identical (both parses are already
+     a 1-tuple standalone), which is exactly why this needs eyes, not just an AST diff: pasted back
+     into the real list -- `SOME_LIST = [ <fence>, ... ]` -- the original yields one 5-tuple
+     element (correct); the ruff-reformatted text yields one 1-tuple-of-5-tuple element (wrong
+     nesting). Verified both ways with `exec`. -->
 ```python
 (
-    (
-        ptr.cauchy,
-        [
-            (pt.dvector(), np.array([1.0, 2.0], dtype=np.float64)),  # loc
-            (pt.dscalar(), np.array(1.0, dtype=np.float64)),  # scale  <-- 1.0
-        ],
-        (2,),
-        "cauchy",
-        lambda *args: args,
-    ),
-)
+    ptr.cauchy,
+    [
+        (pt.dvector(), np.array([1.0, 2.0], dtype=np.float64)),   # loc
+        (pt.dscalar(), np.array(1.0, dtype=np.float64)),          # scale  <-- 1.0
+    ],
+    (2,), "cauchy", lambda *args: args,
+),
 ```
+<!-- fmt:on -->
 
 validated with a Cramér-von Mises goodness-of-fit test requiring `pvalue > 0.1`. That is a good
 test. But **at `scale = 1` the buggy expression is algebraically identical to the correct one**:

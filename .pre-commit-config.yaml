@@ -39,22 +39,27 @@ repos:
         args: [--fix]
       - id: ruff-format
         # Desde ruff-pre-commit v0.16.5 este hook trae `types_or: [..., markdown]`. ruff 0.16 SOLO
-        # formatea los fences ```python/py/python3/py3/pyi/pycon (docs/formatter.md); nunca prosa,
-        # tablas ni encabezados -- verificado leyendo esa seccion y confirmado en los 6 .md que
-        # tocaba en este repo. Medido 2026-09-25/27: reescribia 6 .md versionados, entre ellos
-        # `docs/design-notes/decisions.md` (append-only). Se corrio el reformateo el 2026-09-27,
-        # con AST identico antes/despues en cada fence tocado y el build de Sphinx (`sphinx -T -b
-        # html`) en 0 warnings/errores antes y despues -- por eso `markdown` ya no se excluye.
+        # formatea los fences ```python/py/python3/py3/pyi/pycon
+        # (https://docs.astral.sh/ruff/formatter/#markdown-code-formatting); nunca prosa, tablas ni
+        # encabezados -- verificado leyendo esa seccion y confirmado en los 6 .md que tocaba en este
+        # repo. Medido 2026-09-25/27: reescribia 6 .md versionados, entre ellos
+        # `docs/design-notes/decisions.md` (append-only). Se corrio el reformateo el 2026-09-27, con
+        # AST identico antes/despues en cada fence tocado y el build de Sphinx (`sphinx -T -b html`)
+        # en 0 warnings/errores antes y despues -- por eso `markdown` ya no se excluye.
         #
-        # Un riesgo real y distinto: el formatter DEDENTA el fence a nivel de modulo antes de
-        # parsear, sin reponer la indentacion original. Un fence que usa sangria para mostrar que
-        # el fragmento vive DENTRO de una funcion pierde esa senal en silencio -- paso con
-        # `tools/validation/pymc_blackjax_progress_bar_bug.md`, protegido con
-        # `<!-- fmt:off -->`/`<!-- fmt:on -->` (unico mecanismo de supresion para Markdown; no hay
-        # `# fmt: skip` fuera de Python). Cualquier fence NUEVO en un .md que dependa de su
-        # indentacion para decir algo necesita el mismo marcador -- el hook no lo detecta solo, y
-        # sobre `decisions.md` (append-only) esto importa doblemente: una entrada futura con un
-        # fragmento asi debe llevar el marcador antes de commitear, no despues.
+        # El riesgo real: ruff formatea cada fence COMO SI fuera su propio modulo, y un fence que es
+        # en realidad un EXCERPT de algo mas grande puede depender de ese contexto para su
+        # estructura. Dos formas medidas, las dos silenciosas (el AST del fence aislado no cambia):
+        #   - sangria: un fence indentado para mostrar que vive DENTRO de una funcion se dedenta sin
+        #     reponerla (`tools/validation/pymc_blackjax_progress_bar_bug.md`).
+        #   - coma final de un elemento de lista: ruff la lee como si formara una tupla e inserta un
+        #     nivel de parentesis extra: pegado de vuelta en la lista real, el elemento queda mal
+        #     anidado (`tools/validation/pytensor_cauchy_bug_report.md`, verificado con `exec`).
+        # Las dos protegidas con `<!-- fmt:off -->`/`<!-- fmt:on -->` (unico mecanismo de supresion
+        # para Markdown; no hay `# fmt: skip` fuera de Python). Cualquier fence NUEVO que sea un
+        # excerpt de un contexto mas grande necesita el mismo marcador -- el hook no lo detecta
+        # solo, y sobre `decisions.md` (append-only) esto importa doblemente: una entrada futura con
+        # un fragmento asi debe llevar el marcador antes de commitear, no despues.
         types_or: [python, pyi, jupyter, markdown]
 
   - repo: https://github.com/kynan/nbstripout

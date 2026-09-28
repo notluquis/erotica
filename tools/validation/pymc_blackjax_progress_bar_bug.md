@@ -81,7 +81,8 @@ unreachable.** The diff adds the `keys = ...` / `if hasattr(...)` / `return samp
 **twice**, the second copy sitting below the first `return`:
 
 <!-- fmt:off -->
-<!-- ruff 0.16 formats Python fences in Markdown (docs/formatter.md#markdown-code-formatting) by
+<!-- ruff 0.16 formats Python fences in Markdown
+     (https://docs.astral.sh/ruff/formatter/#markdown-code-formatting) by
      dedenting to top level before parsing; this block's 4-space indent is the point (it shows
      the excerpt sits inside a function), so autoformatting it would erase that and read as
      top-level code, which is also a SyntaxError (`return` outside a function). -->

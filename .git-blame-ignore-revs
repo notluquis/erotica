@@ -5,7 +5,9 @@
 # build de Sphinx sin cambios de warnings).
 
 # Reformateo ruff 0.16.9: 34 .py + 5 .md (bloques de codigo python dentro de
-# Markdown). Excluye erotica/core/_search.py y tools/validation/isochrone*
-# (agentes en curso sobre esos ficheros) y el fence protegido de
-# tools/validation/pymc_blackjax_progress_bar_bug.md (fmt:off/on, commit aparte).
+# Markdown), de 41 candidatos. Excluye erotica/core/_search.py (agente en
+# curso sobre ese fichero) y el fence protegido de
+# tools/validation/pymc_blackjax_progress_bar_bug.md (fmt:off/on, commit
+# aparte). Ningun fichero de isocronas estaba entre los 41 candidatos -- no
+# hizo falta excluir nada de ese lote.
 fd7a8898a60fe9a06faee01d0df89cc217ae6ad2
