@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import time
 from pathlib import Path
@@ -183,11 +184,15 @@ def main():
             res = table_r4(table, OUT.with_name("optuna_sampler_tables_R4.partial.json"))
         else:
             res = {"R1": table_r1, "R2": table_r2, "R3": table_r3}[case](table)
+        # -inf (relative_validity undefined: 0 or 1 cluster) is written as null, never as the bare
+        # -Infinity token json.dumps emits, which is not JSON (tools/check_json_strict.py).
+        res["values"] = {k: (v if math.isfinite(v) else None) for k, v in res["values"].items()}
+        res["null_means"] = "objective undefined for that point (-inf in _score_relative_validity)"
         res["seconds"] = round(time.perf_counter() - t0, 1)
         res["load_at_end"] = os.getloadavg()[0]
         res["n_sources"] = len(table)
         path = OUT.with_name(f"optuna_sampler_tables_{case}.json")
-        path.write_text(json.dumps(res, indent=1))
+        path.write_text(json.dumps(res, indent=1, allow_nan=False))
         print(case, "done in", res["seconds"], "s ->", path.name, flush=True)
 
 

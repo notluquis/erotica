@@ -205,6 +205,10 @@ def _build_sampler(
     # se lo pasaba con n_jobs != 1, y `search(sampler="GPSampler")` con el n_jobs=-1 por defecto
     # moria con `TypeError: GPSampler.__init__() got an unexpected keyword argument
     # 'constant_liar'` en las dos versiones.
+    #
+    # `multivariate=False` is also the MEASURED choice, not only a pin (2026-09-27, decisions.md):
+    # in 1-D -- the default search space -- multivariate TPE is identical trial by trial, and on the
+    # 2-D surfaces no arm (multivariate, group=True, GP, CMA-ES) beat it after Holm, 20 seeds.
     if name == "TPESampler":
         sampler_kwargs.setdefault("multivariate", False)
         sampler_kwargs.setdefault("constant_liar", n_jobs != 1)

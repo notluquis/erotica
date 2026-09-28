@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
+  raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
+  start-up trials, i.e. after ten real HDBSCAN fits.
+
 ### Fixed
 - **King/EFF/corona model builders now use `pm.HalfCauchy` directly, dropping the
   `HalfStudentT(nu=1)` workaround** for pytensor#2308 (numba `CauchyRV` drew with location
@@ -40,6 +45,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   half a bin gives R-hat 1.03, ESS 152) and not robust on synthetic data (6 of 16 runs fail it).
 
 ### Changed
+- **`Clustering.search(n_jobs=...)` now defaults to `1` (was `-1`)**, because only a serial study
+  reproduces with a fixed seed: `seed=0`, 30 trials on a 2-D space, six repeats gave one trial set
+  with `n_jobs=1` and six different ones with `n_jobs=2`. Each HDBSCAN fit already uses every core
+  for core distances. Pass `n_jobs=-1` to trade reproducibility for speed. Callers that pass
+  `n_jobs=-1` explicitly (the NGC 6383 `PREPROCESS_PERSISTANCE` notebook does) still do not
+  reproduce.
+- **The default sampler seed is applied whenever `seed` is absent**, not only when `sampler_kwargs`
+  is empty, and to every optuna sampler whose constructor takes one (`GridSampler` included).
+  `sampler_kwargs={"multivariate": True}` used to run unseeded; it now uses
+  `DEFAULT_SAMPLER_SEED`, so such a search returns different (and now repeatable) trials. An
+  explicit `seed=None` is still honoured.
+- **`TPESampler` stays univariate (`multivariate=False`), now as a measured decision** rather than
+  only a pin against optuna 5.0: no arm (multivariate TPE, `group=True`, GP, CMA-ES) beat it under
+  the pre-registered rule on synthetic and real NGC 6383 objectives; in 1-D, which is the default
+  search space, multivariate TPE is identical trial by trial. See
+  `docs/design-notes/decisions.md` (2026-09-27).
 - **`IsochroneFitter` likelihood rewritten: unbinned per star over EEP-interpolated MIST
   isochrones**, replacing the shifted precomputed Hess grid. Exact Gaussian integral along each
   isochrone segment, binaries with q marginalised, completeness term, field fraction, free

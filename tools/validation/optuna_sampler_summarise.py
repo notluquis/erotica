@@ -21,6 +21,7 @@ from scipy.stats import mannwhitneyu
 HERE = Path(__file__).parent
 RNG = np.random.default_rng(0)
 BUDGETS = (50, 100, 600)
+MIN_SEEDS = 10
 
 
 def regret(row, b):
@@ -41,6 +42,27 @@ def trials_to(row, b, thr=0.05):
         if den <= 0 or (row["f_star"] - fb) / den <= thr:
             return i + 1
     return None  # censored
+
+
+def trials_to_hit(row, b):
+    for i, fb in enumerate(row["best_curve"][:b]):
+        if fb >= row["f_star"]:
+            return i + 1
+    return None  # censored
+
+
+def spread(ts):
+    """Median and 2.5-97.5 percentiles over the seeds that got there; None if none did."""
+    got = [t for t in ts if t is not None]
+    if not got:
+        return None
+    return {
+        "median": float(np.median(got)),
+        "p2.5": float(np.percentile(got, 2.5)),
+        "p97.5": float(np.percentile(got, 97.5)),
+        "reached": len(got),
+        "censored": len(ts) - len(got),
+    }
 
 
 def wilson(k, n, z=1.96):
@@ -73,8 +95,14 @@ def main():
         groups[(r["case"], r["arm"])].append(r)
 
     cells = []
+    excluded = {}
     for (case, arm), rs in sorted(groups.items()):
         rs = sorted(rs, key=lambda r: r["seed"])
+        if len(rs) < MIN_SEEDS:
+            # A cell stopped part-way (GP on S3 was cut when the machine's load passed 100) is
+            # reported as excluded, not summarised on whatever seeds it reached.
+            excluded[f"{case}/{arm}"] = len(rs)
+            continue
         for b in BUDGETS:
             if rs[0]["budget"] < b:
                 continue
@@ -98,6 +126,8 @@ def main():
                 if len(reached) * 2 > len(rs)
                 else None,
                 "reached_r05": len(reached),
+                "trials_to_r05": spread(ttt),
+                "trials_to_optimum": spread([trials_to_hit(r, b) for r in rs]),
                 "distinct_argmax": len(argmaxes),
                 "cpu_per_trial_median_s": float(np.median([r["cpu_per_trial"] for r in rs])),
                 "load_median": float(np.median([r["load"] for r in rs])),
@@ -135,9 +165,15 @@ def main():
         }
     for c in cells:
         c.pop("_regrets")
-    out = {"n_cells": len(cells), "n_comparisons": len(comps), "cells": cells}
-    (HERE / "optuna_sampler_benchmark.json").write_text(json.dumps(out, indent=1))
+    out = {
+        "n_cells": len(cells),
+        "n_comparisons": len(comps),
+        "excluded_partial_cells": excluded,
+        "cells": cells,
+    }
+    (HERE / "optuna_sampler_benchmark.json").write_text(json.dumps(out, indent=1, allow_nan=False))
 
+    print("excluded (partial):", excluded)
     # Printable table.
     for c in cells:
         v = c.get("vs_tpe_uni", {})

@@ -147,7 +147,7 @@ def real_cases():
             continue
         tab = json.loads(path.read_text())
         specs = [(p["name"], "int", (p["low"], p["high"], p["step"])) for p in tab["params"]]
-        raw = {k: float(v) for k, v in tab["values"].items()}
+        raw = {k: (float(v) if v is not None else float("-inf")) for k, v in tab["values"].items()}
         finite = [v for v in raw.values() if math.isfinite(v)]
         floor = min(finite)
         # -inf (relative_validity undefined: 0 or 1 cluster) is mapped to the worst finite value so
@@ -270,7 +270,7 @@ def main():
         case = all_cases[name]
         for arm in [a for a in (args.arms or arms_for(case)) if a in arms_for(case)]:
             for seed in range(args.seeds):
-                while os.getloadavg()[0] > 40.0:
+                while os.getloadavg()[0] > float(os.environ.get("OPTUNA_BENCH_MAX_LOAD", "40")):
                     time.sleep(60)
                 load = os.getloadavg()[0]
                 res = run_one(case, arm, seed, args.budget)

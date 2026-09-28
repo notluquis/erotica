@@ -1779,3 +1779,64 @@ says why): the recipe must select 43 by itself, write `cluster_hdbscan` and `pro
 the stored columns, and return the 254 `source_id` of the reference sample. Dropping the selection
 pin gives 51 / 259; dropping the tree pin gives 273 / 418. `TestEffectiveHyperparameters` gained the
 kwargs case; restoring the old read of the flag turns it red.
+
+## 2026-09-27 — optuna samplers: TPE stays univariate, measured; the seed and `n_jobs` defaults broke the reproduction they promised
+
+**Symptom.** optuna 5.0 turned on `TPESampler(multivariate=True)` by default; the dependency review
+pinned it back to `False` (2026-09-25) to keep trials unchanged. That pin preserved behaviour but
+had not asked whether the new default was better. Asking it surfaced three defects in the search
+path, none of them optuna's.
+
+**Measurement.** Pre-registered in the hub (`agent-findings/optuna-samplers-2026-09.md` §1–§4,
+committed before any run): normalised value regret at budget B against a known optimum; 20 seeds
+(GP 10); Holm over all 54 comparisons against univariate TPE. Oracles: four synthetic surfaces with
+analytic optima, and exhaustive tables of erotica's own objectives on the 40′ NGC 6383 catalogue
+(`tools/validation/optuna_sampler_tables.py`): the P01 sweep argmax (`max_members`; the table
+reproduces the published `min_cluster_size=43`, branch 701), the same with `max_persistence`, and
+`search()`'s default 1-D `relative_validity` space. Runs and summary:
+`tools/validation/optuna_sampler_benchmark.py`, `optuna_sampler_summarise.py`,
+`optuna_sampler_benchmark.json`.
+
+**Result.**
+
+| B = 50, median regret | RS | TPE-uni | TPE-multi | GP |
+|---|---|---|---|---|
+| P01 sweep argmax (1-D) | 0.692 | 0.699 | = uni | 0.692 |
+| `max_persistence` argmax (1-D) | 0.092 | **0.011** | = uni | 0.000 |
+| `search()` default space (1-D) | 0.020 | **0.000** | = uni | 0.000 |
+| synthetic 2-D ridge | 0.166 | 0.397 | 0.401 | 0.400 |
+
+- In 1-D — `search()`'s default space — multivariate TPE is **identical trial by trial** to
+  univariate, so the optuna 5.0 default cannot matter there.
+- In 2-D no arm beat univariate TPE after Holm (every p_Holm = 1 on both 2-D synthetics).
+- `group=True` is identical to `multivariate=True` on any static space, and `_suggest_hyperparameters`
+  cannot express a conditional one.
+- **Decision: keep `multivariate=False`.** GP stays opt-in (it needs torch). `group=True` and CMA-ES
+  are not adopted.
+
+**What the numbers say instead of a sampler change.** On a narrow global peak beside a broad local
+maximum every TPE variant settles on the broad one: on the P01 sweep argmax, TPE ends at
+`min_cluster_size` 264–273 (a 602-member plateau) in 17 of 20 seeds, while the published 43 is an
+isolated spike. And with the default 96-point space, an exhaustive `grid` search costs 96 fits and
+is exact, where 50 TPE trials evaluate ~32 distinct points and miss the optimum in 5 of 20 seeds.
+
+**Three defects fixed on the way.**
+
+1. The default seed was applied only when `sampler_kwargs` was **empty**, so
+   `{"multivariate": True}` (the `PREPROCESS_PERSISTANCE` notebook) ran unseeded. Now `setdefault`
+   whenever the sampler takes a seed; explicit `seed=None` honoured.
+2. `search()`'s `n_jobs=-1` default made a seeded study irreproducible: six repeats with
+   `n_jobs=2` gave six different trial sets, `n_jobs=1` gave one. Default is now `1`. The notebook
+   passes `-1` explicitly and still does not reproduce.
+3. `GPSampler` without torch failed after the ten start-up trials (optuna 5.0.0,
+   `ModuleNotFoundError` after 10 complete trials), i.e. after ten HDBSCAN fits. Now an `ImportError`
+   naming the new `[gp]` extra, before any fit.
+
+**Oracles and mutations.** `tests/test_clustering.py`: the seed survives other kwargs (reference
+sampler with the seed spelled out, 25 trials past start-up); `seed=None` honoured; GP without torch
+raises (runs in every job via `sys.modules["torch"] = None`); GP past start-up and seeded (runs in
+`test-bayes`, which now installs `[gp]`); `search()` with the default `n_jobs` reproduces 14 trials
+in 2-D. Each was seen red with its mutation: seed `setdefault` removed; seed overwritten; torch
+import removed; GP's independent sampler unseeded; `n_jobs=-1` restored (3 of 3 red).
+
+**Nothing published moves.** Neither P01 nor the JOSS paper calls optuna (`git grep` in both).
