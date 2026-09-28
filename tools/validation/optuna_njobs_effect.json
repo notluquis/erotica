@@ -1,0 +1,389 @@
+{
+ "reps": 5,
+ "cells": [
+  {
+   "case": "R1",
+   "B": 50,
+   "hits_n_jobs_1": 0,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 5,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    4,
+    4,
+    3,
+    4,
+    5,
+    3,
+    4,
+    4,
+    5,
+    4
+   ],
+   "reps_reporting_other_params_than_serial": 42,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[273]",
+     15
+    ],
+    [
+     "[264]",
+     6
+    ],
+    [
+     "[271]",
+     5
+    ],
+    [
+     "[43]",
+     5
+    ],
+    [
+     "[272]",
+     4
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[272]",
+     4
+    ],
+    [
+     "[264]",
+     3
+    ],
+    [
+     "[273]",
+     2
+    ],
+    [
+     "[270]",
+     1
+    ]
+   ]
+  },
+  {
+   "case": "R2",
+   "B": 50,
+   "hits_n_jobs_1": 3,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 24,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    3,
+    5,
+    4,
+    3,
+    3,
+    3,
+    3,
+    2,
+    2,
+    3
+   ],
+   "reps_reporting_other_params_than_serial": 39,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[44]",
+     24
+    ],
+    [
+     "[43]",
+     10
+    ],
+    [
+     "[38]",
+     7
+    ],
+    [
+     "[45]",
+     7
+    ],
+    [
+     "[40]",
+     1
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[38]",
+     6
+    ],
+    [
+     "[44]",
+     3
+    ],
+    [
+     "[45]",
+     1
+    ]
+   ]
+  },
+  {
+   "case": "R3",
+   "B": 50,
+   "hits_n_jobs_1": 7,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 35,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    1,
+    2,
+    2,
+    2,
+    2,
+    3,
+    2,
+    1,
+    2,
+    2
+   ],
+   "reps_reporting_other_params_than_serial": 17,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[7]",
+     35
+    ],
+    [
+     "[6]",
+     13
+    ],
+    [
+     "[8]",
+     2
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[7]",
+     7
+    ],
+    [
+     "[6]",
+     3
+    ]
+   ]
+  },
+  {
+   "case": "R4",
+   "B": 50,
+   "hits_n_jobs_1": 4,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 14,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    2,
+    2,
+    2,
+    4,
+    4,
+    4,
+    4,
+    3,
+    4,
+    3
+   ],
+   "reps_reporting_other_params_than_serial": 39,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[10, 10]",
+     19
+    ],
+    [
+     "[30, 10]",
+     14
+    ],
+    [
+     "[15, 10]",
+     5
+    ],
+    [
+     "[35, 10]",
+     5
+    ],
+    [
+     "[40, 10]",
+     2
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[30, 10]",
+     4
+    ],
+    [
+     "[10, 10]",
+     2
+    ],
+    [
+     "[35, 10]",
+     1
+    ],
+    [
+     "[15, 10]",
+     1
+    ],
+    [
+     "[95, 15]",
+     1
+    ]
+   ]
+  },
+  {
+   "case": "R4",
+   "B": 150,
+   "hits_n_jobs_1": 10,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 50,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "reps_reporting_other_params_than_serial": 0,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[30, 10]",
+     50
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[30, 10]",
+     10
+    ]
+   ]
+  },
+  {
+   "case": "R4",
+   "B": 600,
+   "hits_n_jobs_1": 10,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 50,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "reps_reporting_other_params_than_serial": 0,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[30, 10]",
+     50
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[30, 10]",
+     10
+    ]
+   ]
+  },
+  {
+   "case": "R4p",
+   "B": 50,
+   "hits_n_jobs_1": 6,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 28,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    3,
+    4,
+    2,
+    2,
+    3,
+    3,
+    2,
+    2,
+    3,
+    3
+   ],
+   "reps_reporting_other_params_than_serial": 29,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[30, 10]",
+     28
+    ],
+    [
+     "[10, 10]",
+     14
+    ],
+    [
+     "[35, 10]",
+     2
+    ],
+    [
+     "[15, 10]",
+     2
+    ],
+    [
+     "[40, 185]",
+     1
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[30, 10]",
+     6
+    ],
+    [
+     "[10, 10]",
+     4
+    ]
+   ]
+  },
+  {
+   "case": "R4p",
+   "B": 150,
+   "hits_n_jobs_1": 10,
+   "n_n_jobs_1": 10,
+   "hits_n_jobs_minus1": 49,
+   "n_n_jobs_minus1": 50,
+   "distinct_reported_optima_per_seed_over_reps": [
+    1,
+    1,
+    1,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "reps_reporting_other_params_than_serial": 1,
+   "reported_params_n_jobs_minus1": [
+    [
+     "[30, 10]",
+     49
+    ],
+    [
+     "[10, 10]",
+     1
+    ]
+   ],
+   "reported_params_n_jobs_1": [
+    [
+     "[30, 10]",
+     10
+    ]
+   ]
+  }
+ ]
+}

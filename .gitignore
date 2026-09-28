@@ -168,6 +168,7 @@ tools/validation/*.rows.jsonl
 # R4 table's crash checkpoint (the finished table, optuna_sampler_tables_R4.json, is committed).
 tools/validation/optuna_sampler_runs.jsonl
 tools/validation/optuna_sampler_tables_R4.partial.json
+tools/validation/optuna_njobs_effect.jsonl
 
 # LaTeX build products for the A&A methods paper (regenerate with `latexmk -pdf`)
 paper/methods-aa/*.aux

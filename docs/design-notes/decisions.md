@@ -1857,3 +1857,33 @@ Two things the entry above does not say, and a reader needs both before quoting 
   justify (HDBSCAN is deterministic). `_build_sampler` does **not** set it, and optuna 5.0's default
   is `False`, so `search(sampler="GPSampler")` builds a GP that was not the one measured. Left as is
   for the author to decide; not measured.
+
+### 2026-09-28 — R4 finished; GP noise model; what `n_jobs=-1` does to the reported optimum
+
+Measured to answer two questions from the author; **no default changed**. Detail and tables: hub
+finding `agent-findings/optuna-samplers-2026-09.md` §13–§14.
+
+- **The real 2-D case (R4) is done**: 1521 of 1521 points (`optuna_sampler_tables_R4.json`). Its
+  optimum is `(min_cluster_size, min_samples) = (30, 10)`, `relative_validity` 0.1665, and the six
+  best points all sit on `min_samples = 10`, **the lower edge** of the notebook's space. At B = 50,
+  multivariate TPE hits it in 14 of 20 seeds against 4 of 20 for univariate (median regret 0.000 vs
+  0.075; Mann-Whitney raw p = 0.002). **After Holm over the pre-registered family (68 comparisons)
+  p = 0.12**, so by the rule written before the run the claim "multivariate is better for erotica"
+  is **not established**. At B = 100 the difference is 19/20 vs 15/20 (not significant), and at
+  B = 600 both find it in 20/20. Multivariate was worse nowhere. The default stays univariate under
+  the pre-registered rule (it also needed a synthetic 2-D win, which it did not get). Whether to
+  revisit that rule is the author's call. CMA-ES fails here (median regret 0.988, stuck near
+  `min_samples` 185). GP, in both noise settings, stops at the corner (10, 10), the second-best
+  point (regret 0.022, 0/10 exact at B = 100).
+- **`GPSampler(deterministic_objective=...)`.** `True` fixes the observation variance at 1e-6 (the
+  GP interpolates). `False`, optuna's default, fits it by MAP. On R1 the fitted noise takes 27 % of
+  the standardized variance, stretches the length scale from 10 to 45 `mcs`, and pulls the posterior
+  mean at the published `mcs=43` from 701 to 619: the isolated peak is explained away as noise.
+  Paired over S1/R1/R2/R3 at B = 50, `False` is worse in 15 seeds and better in 2 (sign test
+  p = 0.002). It ties where the surface is smooth near the optimum. Recommendation: `True` for
+  erotica's deterministic objectives. `_build_sampler` still does not set it.
+- **`n_jobs=-1` changes the reported optimum, not only the path**, and only when the budget is
+  short. Same seed, five threaded repeats: at B = 50 the reported point differs from the serial one
+  in 17–42 of 50 repeats (R1–R3, R4). On the full R4 lattice at B = 150 and B = 600, all 50 repeats
+  report (30, 10). Mean quality is not worse. `tools/validation/optuna_njobs_effect.py` and `.json`
+  (trial cost emulated by a 10–30 ms sleep, so threads interleave with unequal durations).

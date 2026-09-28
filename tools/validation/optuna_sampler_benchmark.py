@@ -185,13 +185,20 @@ def make_sampler(arm, seed):
         return s.GPSampler(
             seed=seed, deterministic_objective=True, independent_sampler=s.RandomSampler(seed=seed)
         )
+    if arm == "GP-F":
+        # optuna's own default: the observation noise is FITTED (MAP), not fixed at 1e-6.
+        return s.GPSampler(
+            seed=seed,
+            deterministic_objective=False,
+            independent_sampler=s.RandomSampler(seed=seed),
+        )
     if arm == "CMA":
         return s.CmaEsSampler(seed=seed, independent_sampler=s.RandomSampler(seed=seed))
     raise ValueError(arm)
 
 
 def arms_for(case):
-    arms = ["RS", "TPE-uni", "TPE-multi", "TPE-group", "GP"]
+    arms = ["RS", "TPE-uni", "TPE-multi", "TPE-group", "GP", "GP-F"]
     if case.dim >= 2 and not case.has_categorical and not case.conditional:
         arms.append("CMA")
     return arms
