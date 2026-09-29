@@ -75,13 +75,13 @@ def _head() -> dict:
     head = subprocess.run(
         ["git", "-C", str(HERE), "rev-parse", "--short", "HEAD"], capture_output=True, text=True
     ).stdout.strip()
-    dirty = bool(
-        subprocess.run(
-            ["git", "-C", str(HERE.parent.parent), "status", "--porcelain", "erotica"],
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+    st = subprocess.run(
+        ["git", "-C", str(HERE.parent.parent), "status", "--porcelain", "erotica"],
+        capture_output=True,
+        text=True,
     )
+    # a failing `git status` (the nbstripout filter has failed in this repo) must not read as clean
+    dirty = bool(st.stdout.strip()) if st.returncode == 0 else "unknown"
     return {"head": head, "erotica_dirty": dirty}
 
 
@@ -591,6 +591,9 @@ def stage_finalize(args) -> None:
     res["seconds_sampling"] = round(sum(r.get("chunk_s", 0) for r in prog))
     res["search_seconds"] = found.get("t_search_s")
     res.update(_head())
+    c1 = cfg["warmup"] == 2000 and cfg["draws"] == 2000 and len(args.outdir.split(",")) == 4
+    if not args.json and not c1:
+        raise SystemExit("not the C1 run length: pass --json, ngc_0.json is C1's alone")
     target = Path(args.json) if args.json else OUT_DIR / "ngc_0.json"
     target.write_text(json.dumps(_strict(res), indent=1) + "\n")
     print(json.dumps(_strict(res), indent=1)[:3000])

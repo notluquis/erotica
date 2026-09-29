@@ -1897,12 +1897,14 @@ numpyro's bar at `0/4000`. Measured, not inferred (hub finding
 
 - **The bar was not frozen.** numpyro refreshes it every `total/20` = 200 iterations; it had moved
   from "Compiling" to "Running" at 2 min 11 s. No chain reached iteration 200.
-- **Geometry, the dominant cause.** The search's mode has `A_V = 0.5`, on its lower bound, and
+- **Geometry: what collapsed the step size.** The search's mode has `A_V = 0.5`, on its lower bound, and
   `_seeded_inverse_mass` mapped `A_V`'s local sd through the logit Jacobian at that point:
   entry **1.44e15**. Iterations 1–5 all diverged; dual averaging took the step size to 4e-9–3e-8;
   iterations 11–15 hit tree depth 10 in 16 of 20 chain-iterations at ~110 s per iteration.
   **Fix:** within 3 local sd of a bound the entry is 1 (as for `sigma_int`, `f_bg`). With it, the
-  step size is 0.07–0.15 and the mean depth ~6 over the first 25 iterations. Guard:
+  step size is 0.07–0.15 and the mean depth ~6 over the first 25 iterations. Which of the three
+  causes here dominated the 21.4 h is a judgement on these numbers, not a pre-registered test: the
+  pre-registered depth criteria could be read on 15 of 75 iterations only. Guard:
   `test_seeded_inverse_mass_is_finite_at_a_bound`, seen red (5.6e15) with the guard removed.
 - **The machine.** The laptop was on battery: it slept or hibernated **9.9 h of the 21.4 h**
   (`pmset -g log`, two "Low Power Sleep" hibernations), and while awake the run used 2.34 cores
