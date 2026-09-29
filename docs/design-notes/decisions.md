@@ -1887,3 +1887,35 @@ finding `agent-findings/optuna-samplers-2026-09.md` §13–§14.
   in 17–42 of 50 repeats (R1–R3, R4). On the full R4 lattice at B = 150 and B = 600, all 50 repeats
   report (30, 10). Mean quality is not worse. `tools/validation/optuna_njobs_effect.py` and `.json`
   (trial cost emulated by a 10–30 ms sleep, so threads interleave with unequal durations).
+
+### 2026-09-29 — Why the NGC 6383 isochrone certificate (C1) never finished, and how it runs now
+
+Three attempts at C1 (4 × 2000 after 2000, numpyro) produced nothing; the last ran 21.4 h with
+numpyro's bar at `0/4000`. Measured, not inferred (hub finding
+`agent-findings/isochrone-nuts-convergence-2026-09.md` §10.18; numbers in
+`tools/validation/isochrone_c1_diag.json`, script `tools/validation/isochrone_c1_chunked.py`):
+
+- **The bar was not frozen.** numpyro refreshes it every `total/20` = 200 iterations; it had moved
+  from "Compiling" to "Running" at 2 min 11 s. No chain reached iteration 200.
+- **Geometry, the dominant cause.** The search's mode has `A_V = 0.5`, on its lower bound, and
+  `_seeded_inverse_mass` mapped `A_V`'s local sd through the logit Jacobian at that point:
+  entry **1.44e15**. Iterations 1–5 all diverged; dual averaging took the step size to 4e-9–3e-8;
+  iterations 11–15 hit tree depth 10 in 16 of 20 chain-iterations at ~110 s per iteration.
+  **Fix:** within 3 local sd of a bound the entry is 1 (as for `sigma_int`, `f_bg`). With it, the
+  step size is 0.07–0.15 and the mean depth ~6 over the first 25 iterations. Guard:
+  `test_seeded_inverse_mass_is_finite_at_a_bound`, seen red (5.6e15) with the guard removed.
+- **The machine.** The laptop was on battery: it slept or hibernated **9.9 h of the 21.4 h**
+  (`pmset -g log`, two "Low Power Sleep" hibernations), and while awake the run used 2.34 cores
+  against other fits.
+- **Threads.** With 4 host devices in one process, one JAX process used 6.35 cores and drove the
+  load average to 126 on its own. `--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1`
+  **does not** cap it (235 threads, slower: 0.178 against 0.136 s per leapfrog step). `NPROC`
+  does: one gradient takes 0.133 s on 1.0 core with `NPROC=1`, 0.065 s on 5.2 cores by default.
+  C1 now runs as 4 single-chain processes with `NPROC=1` (4.0 cores, 0.21–0.25 s per step each),
+  in chunks written to disk and resumable.
+
+Rejected, measured: `chain_method="vectorized"` (no 25-iteration chunk in 1834 s, against 664 s
+parallel), float32 (−log L off by up to 2.9e-3 and one gradient component by 4 % at the chain
+starts), `taskpolicy -b` (0.33 s per gradient), and the persistent compilation cache as a speed
+lever (~1 s per process). The chunked driver matches `numpyro.infer.MCMC` draw for draw (max
+difference 0.0, same leapfrog counts, chains 0 and 3); a seed moved by one fails that check.

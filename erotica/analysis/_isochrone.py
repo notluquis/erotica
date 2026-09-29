@@ -1200,6 +1200,15 @@ class IsochroneFitter:
         matrix, warmup spanned both scales with saturated trees. Measured 2026-09-23 on a binary
         synthetic cluster, 100 warmup iterations: 42 118 leapfrog steps (median tree 263, 90th
         percentile 1023) unseeded, 2 426 (median 15) seeded. Adaptation continues from it.
+
+        **Not at a bound.** The map is a linearisation at :math:`x^*`, and at a mode on (or within
+        3 local sd of) an interval bound it is not a scale: :math:`(x^*-a) \to 0` sends
+        :math:`s_y \to \infty`. On NGC 6383 the search's mode has :math:`A_V` on its lower bound,
+        the entry came out :math:`1.4\times10^{15}`, and the C1 certificate ran 21.4 h without
+        a chain reaching iteration 200: the first trajectories diverged, dual averaging drove the
+        step size to ~5e-9 and the trees saturated (measured 2026-09-29, hub finding
+        ``isochrone-nuts-convergence-2026-09.md`` §10.18). Such a parameter gets 1, as the
+        nuisance ones do, and adaptation learns its scale.
         """
         bounds = {
             "met": (10.0 ** float(self._node_logz[0]), 10.0 ** float(self._node_logz[-1])),
@@ -1215,6 +1224,9 @@ class IsochroneFitter:
                     np.clip(start_info["mode"][rv.name], a + 1e-9 * (b - a), b - 1e-9 * (b - a))
                 )
                 sd = float(start_info["local_sd"][rv.name])
+                if x - a < 3 * sd or b - x < 3 * sd:
+                    diag.append(1.0)  # mode at a bound: the linearisation is not a scale
+                    continue
                 diag.append((sd * (b - a) / ((x - a) * (b - x))) ** 2)
             else:
                 diag.append(1.0)

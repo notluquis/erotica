@@ -1221,6 +1221,29 @@ def _set_probes(f, g, c, e):
 class TestUnbinnedLikelihood:
     """The per-star likelihood against oracles that do not go through it."""
 
+    def test_seeded_inverse_mass_is_finite_at_a_bound(self, tmp_path):
+        """Oracle: the closed-form logit map inside the prior, and the unseeded 1 at a bound.
+        NGC 6383's search mode had A_V on its lower bound; the unguarded map gave that entry
+        1.4e15 and C1 ran 21.4 h with the step size at ~5e-9 (hub §10.18). Mutation: dropping
+        the bound guard returns ~1e15 here."""
+        f = _toy_fitter(tmp_path)
+        f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(1)), prob_threshold=0)
+        model = f.build_model()
+        sd = {"met": 3e-4, "loga": 0.01, "dm": 0.05, "Av": 0.06}
+        mode = {"met": 0.015, "loga": 6.5, "dm": 10.0, "Av": 0.6}
+        names = [rv.name for rv in model.free_RVs]
+        inside = f._seeded_inverse_mass(model, {"mode": mode, "local_sd": sd})
+        a, b = f.Av_range
+        expect = (0.06 * (b - a) / ((0.6 - a) * (b - 0.6))) ** 2
+        assert inside[names.index("Av")] == pytest.approx(expect, rel=1e-12)
+        on_bound = f._seeded_inverse_mass(model, {"mode": {**mode, "Av": a}, "local_sd": sd})
+        assert on_bound[names.index("Av")] == 1.0
+        near = f._seeded_inverse_mass(model, {"mode": {**mode, "Av": b - 0.1}, "local_sd": sd})
+        assert near[names.index("Av")] == 1.0  # within 3 sd of the upper bound
+        # the other entries do not depend on where A_V sits
+        keep = [i for i, n in enumerate(names) if n != "Av"]
+        np.testing.assert_array_equal(inside[keep], on_bound[keep])
+
     def test_interpolated_isochrone_at_a_node_is_the_file(self, tmp_path):
         """Oracle: the node's own file rows. At a node the interpolation must return them
         exactly; halfway between two Z nodes in log Z, the mean of the two (linearity at

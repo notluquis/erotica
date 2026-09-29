@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start-up trials, i.e. after ten real HDBSCAN fits.
 
 ### Fixed
+- **`IsochroneFitter._seeded_inverse_mass`: a parameter whose search mode lies within 3 local sd
+  of an interval bound gets the unseeded entry 1** instead of the logit-Jacobian map, which
+  diverges at the bound. On NGC 6383 the mode had A_V on its lower bound and the entry was
+  1.4e15: the first trajectories diverged, the step size fell to ~5e-9, trees saturated, and the
+  C1 certificate ran 21.4 h without a chain reaching iteration 200. Inert for every synthetic fit
+  of the C3/C4 batches (no mode near a bound). See `docs/design-notes/decisions.md` (2026-09-29).
 - **King/EFF/corona model builders now use `pm.HalfCauchy` directly, dropping the
   `HalfStudentT(nu=1)` workaround** for pytensor#2308 (numba `CauchyRV` drew with location
   `loc/scale` and scale `1/scale` instead of `loc, scale`; `logp`/NUTS were unaffected but
