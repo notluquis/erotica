@@ -13,8 +13,12 @@ Pipeline/status/roadmap for **all** papers live in the hub repo (attached via
 `~/phd/erotica-package.md` (package backlog), `~/phd/papers/PXX.md` (dossiers).
 Keep those current; do **not** spawn TODO files here.
 
-## Before writing scientific code here, read these two
+## Before writing scientific code here, read these
 
+- **`~/phd/methodology.md` §L.11 — how the author thinks, and what he asks before anything is declared.**
+  Where a number comes from (the full source), whether it is the latest version, whether it already
+  exists, every alternative evaluated in combination with a control, and a look at the figure. Each row
+  names its mechanism; the ones marked *vigilancia* depend on you.
 - **`~/phd/methodology.md` PART K — the execution craft.** The failure modes that have actually
   produced wrong numbers in this repo, each with its case: generators that produce something other
   than their label, experiments degenerate with their own control, tests that cannot fail, and the
