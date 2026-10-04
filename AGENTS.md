@@ -31,6 +31,7 @@ Keep those current; do **not** spawn TODO files here.
 | file | covers |
 |---|---|
 | `erotica/analysis/AGENTS.md` | prior/likelihood conventions, the traps that already bit (King's `b`, `R_t`, the `γ` bias), how to add a profile |
+| `erotica/analysis/grids/AGENTS.md` | isochrone grids: fit in each grid's [Fe/H] label, no backend without reader oracle + hold-out + control + external oracle, licences (never commit grid files) |
 | `tests/AGENTS.md` | what an oracle is, the four ways tests here failed to bite, mutation before claiming a test works |
 | `tools/validation/AGENTS.md` | one-off experiments become paper numbers — docstring, controls, JSON sidecar, live queries |
 | `docs/design-notes/AGENTS.md` | append-only about mistakes; citation, verified-vs-inferred, the falsifier |
