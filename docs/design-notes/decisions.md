@@ -1921,3 +1921,32 @@ parallel), float32 (−log L off by up to 2.9e-3 and one gradient component by 4
 starts), `taskpolicy -b` (0.33 s per gradient), and the persistent compilation cache as a speed
 lever (~1 s per process). The chunked driver matches `numpyro.infer.MCMC` draw for draw (max
 difference 0.0, same leapfrog counts, chains 0 and 3); a seed moved by one fails that check.
+
+### 2026-10-04 — Isochrone grids behind one contract, fitted in each grid's own [Fe/H] label
+
+**Decision.** `erotica/analysis/grids/` (MIST v1.2/v2.5, PARSEC v1.2S with pseudo-EEPs, BHAC15,
+SPOTS) and `IsochroneFitter(grid=...)`, which samples `feh`, the grid's [Fe/H] label. The legacy
+`isochs_path=` path (`met` = linear Z) is untouched and held to the code that ran C1 (`5d8faee`):
+node table bit-identical, log L at C1's mode equal to 0.0.
+
+**Why not Z.** Measured on the headers (`tools/validation/isochrone_grids/feh_conventions.json`):
+MIST v1.2 labels are `log10(Z/0.0142857)`, MIST v2.5 labels `log(Z/X) − log(Z/X)⊙` with
+Z⊙ = 0.0163577, PARSEC `log(Z/X) − log 0.0207`. The hub landscape said v2.5's solar Z was 0.0185; the
+file says 0.0163577.
+
+**Numbers that were wrong or would have been.**
+- The legacy reader rounds Z to 6 decimals: the −0.50 node 4.51753e-3 → 4.518e-3, nodes below
+  [Fe/H] = −3 off by up to 30 %. log L at C1 moves 2.8e-7. Left as is in the legacy path (the
+  regression is against it); the grid path keeps header Z.
+- pandas' default float parser differs from `float()` in the last ulp: the grid table was not
+  bit-identical to the legacy one until `float_precision="round_trip"`.
+- ASteCA's mass-quantile resampling (its PARSEC path), interpolated between ages, misplaces the
+  isochrone by 0.36 mag (orthogonal p68, N = 400; 0.06 at N = 5000) at 2× MIST's step: not used.
+- MIST v2.5 [Fe/H] = +0.5 has no model below ~0.50 M☉ at log t 6–7: holding out the +0.25 node
+  gives 0.55 mag. PARSEC v1.2S labels are non-monotone in mass in 1168 of 1800 isochrones.
+- λ Ori (Cao+22), pre-registered in the hub: the CMD (J, J−Ks) fit FAILS the differential test
+  (SPOTS 0.34 − 0: +0.053 against +0.211 dex); in Cao's HR space the same likelihood gives +0.210.
+  Colour–T_eff relations differ between grids by ~0.1 mag in J−Ks at fixed T_eff.
+
+Hub finding: `agent-findings/isochrone-grids-implementation.md`. Rule for future backends:
+`erotica/analysis/grids/AGENTS.md`.

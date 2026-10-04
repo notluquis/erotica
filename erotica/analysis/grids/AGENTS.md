@@ -46,6 +46,7 @@ in the hub finding.
 | PARSEC v1.2S labels are not monotone in mass (1168/1800 isochrones) | flicker 0/1 at PMS/MS; ≥ 20 M☉ labelled 0 after the MS | `effective_phase` = running max; test pins it |
 | ASteCA-style mass-quantile resampling interpolated between ages | MIST hold-out orth p68 0.36 mag (N = 400), 0.06 (N = 5000); Δlog t up to 0.05 | not used; arc-length pseudo-EEP instead (orth 0.0036) |
 | SPOTS f = 0.34 has Gaia only for M ≥ 0.55–0.65 M☉ (−99 below); 2MASS reaches 0.10 | — | Gaia controls need the faint edge; or fit 2MASS |
+| a grid comparison in the CMD mixes physics and **colour tables** | λ Ori (Cao+22, pre-registered): SPOTS 0.34 − 0 = +0.053 dex in (J, J−Ks) against +0.211 published; +0.210 in Cao's HR space with the same likelihood. J−Ks at fixed T_eff: MIST −0.035, SPOTS +0.060 mag from the data | do not quote a CMD grid systematic before equalising colour/extinction (hub E13) |
 | legacy reader rounds Z to 6 decimals | −0.50 node 4.51753e-3 → 4.518e-3; [Fe/H] < −3 nodes up to 30 % off | log L moves 2.8e-7 at C1; the grid path keeps header Z |
 
 ## Licences — never commit grid files
