@@ -254,7 +254,7 @@ def laplace(fn, x, bnd, h=1e-4):
     return dict(sd=sd.tolist(), logdet_cov=logdet, n_free=len(free)), ok
 
 
-def profile_interval(fn, x, best, bnd, sd0, k=1, level=0.5):
+def profile_interval(fn, x, best, bnd, sd0, k=1, level=0.5, maxiter=150):
     """Profile 68 % interval of coordinate k: walk out in steps of ~sd until the profile drops by
     ``level``, linear interpolation at the crossing; a bound reached is reported as the bound."""
     out = []
@@ -268,7 +268,7 @@ def profile_interval(fn, x, best, bnd, sd0, k=1, level=0.5):
             if t <= bnd[k][0] or t >= bnd[k][1]:
                 edge = bnd[k][0] if sgn < 0 else bnd[k][1]
                 break
-            v, xw, _ = maximise(fn, xw, bnd, fixed={k: t}, maxiter=150)
+            v, xw, _ = maximise(fn, xw, bnd, fixed={k: t}, maxiter=maxiter)
             if best - v >= level:
                 frac = (best - level - prev_v) / (v - prev_v) if v != prev_v else 1.0
                 edge = prev_t + frac * (t - prev_t)
@@ -279,7 +279,7 @@ def profile_interval(fn, x, best, bnd, sd0, k=1, level=0.5):
     return out
 
 
-def fit(f, cfg, seeds=SEEDS, intervals=True, fn=None):
+def fit(f, cfg, seeds=SEEDS, intervals=True, fn=None, prof_maxiter=150):
     fn = fn or compile_logpost(f, cfg)
     bnd = bounds(f, cfg)
     res = []
@@ -313,7 +313,7 @@ def fit(f, cfg, seeds=SEEDS, intervals=True, fn=None):
         out["laplace"] = lap
         out["laplace_ok"] = ok
         sd1 = lap["sd"][1] if lap else 0.05
-        out["loga_profile68"] = profile_interval(fn, x, best, bnd, sd1, k=1)
+        out["loga_profile68"] = profile_interval(fn, x, best, bnd, sd1, k=1, maxiter=prof_maxiter)
     return out
 
 
@@ -587,7 +587,8 @@ def stage_synth(args):
             t0 = time.time()
             f = make_fitter(cfg, t)
             fn = compile_logpost(f, cfg)
-            r = fit(f, cfg, fn=fn)
+            # synthetic replicates: the two extreme seeds only, profile steps capped (cost; finding §0.7)
+            r = fit(f, cfg, seeds=SEEDS[:2], fn=fn, prof_maxiter=80)
             ut = to_u(
                 dict(
                     truth,
