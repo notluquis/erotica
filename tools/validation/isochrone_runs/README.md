@@ -24,7 +24,7 @@ MCMC nuevo salvo esta última.
 |---|---|---|
 | `schema_version` | int | 1 |
 | `id` | str | = nombre del fichero sin `.json` |
-| `date` | str | fecha de la corrida (ISO) |
+| `date` | str \| null | fecha de la corrida (ISO); `null` si la fuente no la da (P01) |
 | `erotica_commit` | str \| null | commit del código que corrió (`null` si no fue EROTICA); `result_commit` opcional = commit que guardó el resultado |
 | `model` | obj | `grid`, `version`, `files`, `photometry`, `z_sun`, `z_sun_source` |
 | `cluster` | str | |
