@@ -15,10 +15,10 @@ de que ocurra, en vez de encontrarlo después.
 
 ## Lo medido antes de construirlo (2026-10-04, `--measure` sobre las transcripciones del hub)
 
-| regla | llamadas reales | habría negado | lectura |
-|---|---|---|---|
-| P1 skills en el prompt del subagente | 152 (sin Explore/claude-code-guide/fork) | 40 | 35 antes del 2026-09-22, cuando el autor ya lo pedía; después, 5 |
-| P12 opciones + una recomendada primero | 48 de selección única (+4 multiSelect) | 3 | 2 sí-o-no sin alternativa recomendada; 1 legítima (autoría: decide el autor) |
+| regla | unidad | juzgables | habría negado | lectura |
+|---|---|---|---|---|
+| P1 skills en el prompt | llamadas a Agent (sin exentos) | 149 | 43 | 37 de 47 antes del 2026-09-22, cuando el autor ya lo pedía; 6 de 102 después |
+| P12 opciones + recomendada primera | llamadas a AskUserQuestion | 25 (52 preguntas) | 3 | 2 sí-o-no sin alternativa recomendada; 1 legítima (autoría: decide el autor) |
 
 La de P12 tiene una exención explícita para la tercera: `sin recomendación: <motivo>` en el texto
 de la pregunta, visible para el autor.
@@ -176,7 +176,13 @@ def juzgar_bash(cmd: str, cwd: str) -> str | None:
 
 # --- P1: skills en el prompt del subagente -------------------------------------------------------
 
+# Los del autor (Explore, claude-code-guide) más dos declarados: `fork` hereda el contexto con las
+# skills ya cargadas, y `statusline-setup` sólo edita la configuración de la terminal. `Plan` NO:
+# planear un experimento es justo cuando `measurement-design` tiene que estar.
 EXENTOS = {"Explore", "claude-code-guide", "statusline-setup", "fork"}
+# Agentes que despacha un Workflow de plugin con prompts que ningún modelo puede reescribir: negarlos
+# no hace que nombren una skill, sólo rompe el escaneo entero.
+PREFIJOS_EXENTOS = ("claude-security:",)
 SIN_SKILL = re.compile(r"sin[ -]skill:\s*\S.{8,}", re.I)
 
 
@@ -198,7 +204,7 @@ def nombra_skill(prompt: str, nombres: list[str]) -> bool:
 
 def juzgar_agente(entrada: dict) -> str | None:
     tipo = entrada.get("subagent_type") or "general-purpose"
-    if tipo in EXENTOS:
+    if tipo in EXENTOS or tipo.startswith(PREFIJOS_EXENTOS):
         return None
     prompt = entrada.get("prompt") or ""
     nombres = skills_conocidas()
@@ -353,7 +359,8 @@ def medir(carpeta: str) -> int:
                 vistas.add(clave)
                 k = "AskUserQuestion" if n == "AskUserQuestion" else "Agent"
                 entrada = b.get("input") or {}
-                if k == "Agent" and (entrada.get("subagent_type") or "") in EXENTOS:
+                tipo = entrada.get("subagent_type") or ""
+                if k == "Agent" and (tipo in EXENTOS or tipo.startswith(PREFIJOS_EXENTOS)):
                     continue
                 contadas[k][0] += 1
                 juez = juzgar_agente if k == "Agent" else juzgar_pregunta
