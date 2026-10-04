@@ -16,7 +16,8 @@ isochrones of the local CMD 3.7 file).
 **Metallicity.** The fit coordinate is CMD's ``MH`` column. Measured on the local file
 (2026-10-04, ``tools/validation/isochrone_grids/feh_conventions.py``): ``MH = log10(Z/X) -
 log10(0.0207)`` with ``Y = 0.2485 + 1.78 Z`` reproduces all six Z of the file to < 1e-4 dex,
-i.e. PARSEC's (Z/X)_sun = 0.0207 (Z_sun = 0.0152, Caffau et al. 2011 mixture per Bressan+12).
+i.e. PARSEC's (Z/X)_sun = 0.0207 (measured). Z_sun = 0.0152 and the Caffau et al. 2011 mixture
+are from memory of Bressan+12 [I], not read in this session.
 
 **Passbands.** Whatever the CMD request asked for; the local files are "Gaia EDR3 (all Vegamags,
 Gaia passbands from ESA/Gaia website)" with ``Gmag G_BPmag G_RPmag`` and OBC bolometric corrections

@@ -143,6 +143,56 @@ def sample() -> tuple:
     return q, meta
 
 
+#: Pre-registered (hub agent-findings/isochrone-grids-lambda-ori-prereg.md §3): published Class III
+#: geometric-mean ages and their standard errors of the mean, Cao+22 Table 2.
+PUBLISHED_MYR = {
+    "MIST v1.2": (2.4, 0.1),
+    "BHAC15": (2.5, 0.1),
+    "SPOTS f=0": (2.4, 0.1),
+    "SPOTS f=0.34": (3.9, 0.2),
+}
+TESTS = {
+    "P1": ("SPOTS f=0.34", "SPOTS f=0"),
+    "N1": ("SPOTS f=0", "MIST v1.2"),
+    "N2": ("BHAC15", "MIST v1.2"),
+}
+
+
+def verdict(fits: dict) -> dict:
+    """The pre-registered rule, applied by code rather than by hand: for each test (a, b),
+    Delta_fit = log t_a - log t_b, Delta_pub = log10(t_a/t_b) published, sigma_pub from the SEMs in
+    dex (independent, conservative), sigma_fit from the two Laplace widths; pass iff
+    |Delta_fit - Delta_pub| <= 2 sqrt(sigma_pub^2 + sigma_fit^2). Intersection-union: the oracle
+    passes only if all three pass. S1: each absolute age within 0.5 Myr of Table 2."""
+    out = {}
+    for k, (a, b) in TESTS.items():
+        (ta, sa), (tb, sb) = PUBLISHED_MYR[a], PUBLISHED_MYR[b]
+        d_pub = float(np.log10(ta / tb))
+        s_pub = float(np.hypot(sa / (ta * np.log(10)), sb / (tb * np.log(10))))
+        d_fit = float(fits[a]["loga"] - fits[b]["loga"])
+        s_fit = float(np.hypot(fits[a]["loga_laplace_sd"], fits[b]["loga_laplace_sd"]))
+        tol = 2.0 * float(np.hypot(s_pub, s_fit))
+        out[k] = {
+            "pair": [a, b],
+            "delta_pub": d_pub,
+            "sigma_pub": s_pub,
+            "delta_fit": d_fit,
+            "sigma_fit": s_fit,
+            "tolerance": tol,
+            "pass": abs(d_fit - d_pub) <= tol,
+        }
+    out["oracle_pass"] = all(out[k]["pass"] for k in TESTS)
+    out["S1"] = {
+        n: {
+            "fit_Myr": float(10 ** fits[n]["loga"] / 1e6),
+            "pub_Myr": PUBLISHED_MYR[n][0],
+            "pass": abs(10 ** fits[n]["loga"] / 1e6 - PUBLISHED_MYR[n][0]) < 0.5,
+        }
+        for n in PUBLISHED_MYR
+    }
+    return out
+
+
 def hrd_view(g):
     """Post-unblinding diagnostic D2: the same grid with "bands" built from log L and log T_eff, so
     the population likelihood runs in Cao's HR-diagram space with no colour table or BC between
@@ -175,9 +225,24 @@ def main() -> None:
     from erotica.analysis.grids import safe_window
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", choices=["window", "fit", "profile", "hrd"], default="window")
+    ap.add_argument(
+        "--stage", choices=["window", "fit", "profile", "hrd", "verdict"], default="window"
+    )
     ap.add_argument("--binaries", action="store_true")
     a = ap.parse_args()
+    if a.stage == "verdict":  # reads the committed fit JSONs; no grids, no stars
+        res = {}
+        for key, fn in (
+            ("cmd_J_JKs", "lambda_ori_oracle.json"),
+            ("cmd_J_JKs_binaries", "lambda_ori_oracle_binaries.json"),
+            ("hrd_post_unblinding", "lambda_ori_oracle_D2_hrd.json"),
+        ):
+            src = HERE / fn
+            if src.exists():
+                res[key] = verdict(json.loads(src.read_text())["fits"])
+        (HERE / "lambda_ori_oracle_verdict.json").write_text(json.dumps(res, indent=1) + "\n")
+        print(json.dumps(res, indent=1))
+        return
     q, meta = sample()
     G = grids()
     win = safe_window(

@@ -44,7 +44,7 @@ in the hub finding.
 | MIST v2.5 [Fe/H] = +0.5 has **no model below ~0.50 M☉** at log t 6–7 (v1.2: 0.10) | hold-out of the +0.25 node from 0 and +0.5: orth p68 **0.55 mag**, Δ[Fe/H] saturates | v2.5 above [Fe/H] = 0 is unusable for a PMS fit as is; select the nodes or cut the window |
 | MIST v2.5 at log t 6.0 starts at 0.25 M☉ (0.13 at 6.3) | — | young fits need the faint edge of `safe_window` |
 | PARSEC v1.2S labels are not monotone in mass (1168/1800 isochrones) | flicker 0/1 at PMS/MS; ≥ 20 M☉ labelled 0 after the MS | `effective_phase` = running max; test pins it |
-| ASteCA-style mass-quantile resampling interpolated between ages | MIST hold-out orth p68 0.36 mag (N = 400), 0.06 (N = 5000); Δlog t up to 0.05 | not used; arc-length pseudo-EEP instead (orth 0.0036) |
+| ASteCA's PARSEC interpolation (same mass-quantile index, `zaWAverage`) | PARSEC at its N = 2000, 2× step: orth p68 0.018 mag, Δlog t 0.0055 (arc: 0.0045, 0.0009); MIST at 0.1 dex, N = 400: 0.36 mag | not used; arc-length pseudo-EEP instead |
 | SPOTS f = 0.34 has Gaia only for M ≥ 0.55–0.65 M☉ (−99 below); 2MASS reaches 0.10 | — | Gaia controls need the faint edge; or fit 2MASS |
 | a grid comparison in the CMD mixes physics and **colour tables** | λ Ori (Cao+22, pre-registered): SPOTS 0.34 − 0 = +0.053 dex in (J, J−Ks) against +0.211 published; +0.210 in Cao's HR space with the same likelihood. J−Ks at fixed T_eff: MIST −0.035, SPOTS +0.060 mag from the data | do not quote a CMD grid systematic before equalising colour/extinction (hub E13) |
 | legacy reader rounds Z to 6 decimals | −0.50 node 4.51753e-3 → 4.518e-3; [Fe/H] < −3 nodes up to 30 % off | log L moves 2.8e-7 at C1; the grid path keeps header Z |

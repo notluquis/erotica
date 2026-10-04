@@ -629,3 +629,61 @@ def test_cached_mist25_tarball_is_the_validated_one():
     tar = Path.home() / ".cache/erotica-grids/mist_v2.5/raw/UBVRIplus.txz"
     _skip_unless(tar)
     assert gfetch._hash(tar) == gfetch.MIST25_SHA256["UBVRIplus"]
+
+
+# ---------------------------------------------------------------------------------------------
+# The lambda Ori verdict is computed, not typed
+# ---------------------------------------------------------------------------------------------
+
+ORACLE_DIR = REPO / "tools/validation/isochrone_grids"
+
+
+def _oracle():
+    import sys
+
+    sys.path.insert(0, str(ORACLE_DIR))
+    import lambda_ori_oracle
+
+    return lambda_ori_oracle
+
+
+def test_lambda_ori_verdict_applies_the_preregistered_rule():
+    """Oracle: the rule written in the hub pre-registration, evaluated by hand on round numbers.
+    Fits that reproduce Cao's Table 2 exactly pass every test; moving SPOTS 0.34 younger by
+    0.2 dex with 0.03-dex widths fails P1 only. Mutations: sign of Delta, dropping sigma_fit."""
+    lo = _oracle()
+    exact = {
+        n: {"loga": np.log10(t * 1e6), "loga_laplace_sd": 0.03}
+        for n, (t, _) in lo.PUBLISHED_MYR.items()
+    }
+    v = lo.verdict(exact)
+    assert v["oracle_pass"] and all(
+        v[k]["delta_fit"] == pytest.approx(v[k]["delta_pub"]) for k in ("P1", "N1", "N2")
+    )
+    s_pub_p1 = np.hypot(0.2 / (3.9 * np.log(10)), 0.1 / (2.4 * np.log(10)))
+    assert v["P1"]["tolerance"] == pytest.approx(2 * np.hypot(s_pub_p1, np.hypot(0.03, 0.03)))
+    shifted = {
+        **exact,
+        "SPOTS f=0.34": {"loga": exact["SPOTS f=0.34"]["loga"] - 0.2, "loga_laplace_sd": 0.03},
+    }
+    w = lo.verdict(shifted)
+    assert not w["P1"]["pass"] and w["N1"]["pass"] and w["N2"]["pass"] and not w["oracle_pass"]
+    wide = {k: {**x, "loga_laplace_sd": 0.2} for k, x in shifted.items()}
+    assert lo.verdict(wide)["P1"]["pass"]  # sigma_fit enters the tolerance
+
+
+def test_lambda_ori_committed_verdict_matches_the_committed_fits():
+    """The numbers the hub finding quotes come from this JSON; it must be what the rule gives on
+    the committed fits (re-measure, do not retype)."""
+    lo = _oracle()
+    vj = ORACLE_DIR / "lambda_ori_oracle_verdict.json"
+    _skip_unless(vj)
+    committed = json.loads(vj.read_text())
+    for key, fn in (
+        ("cmd_J_JKs", "lambda_ori_oracle.json"),
+        ("hrd_post_unblinding", "lambda_ori_oracle_D2_hrd.json"),
+    ):
+        again = lo.verdict(json.loads((ORACLE_DIR / fn).read_text())["fits"])
+        assert again == committed[key]
+    assert committed["cmd_J_JKs"]["oracle_pass"] is False
+    assert committed["hrd_post_unblinding"]["oracle_pass"] is True

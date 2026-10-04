@@ -1931,8 +1931,8 @@ node table bit-identical, log L at C1's mode equal to 0.0.
 
 **Why not Z.** Measured on the headers (`tools/validation/isochrone_grids/feh_conventions.json`):
 MIST v1.2 labels are `log10(Z/0.0142857)`, MIST v2.5 labels `log(Z/X) − log(Z/X)⊙` with
-Z⊙ = 0.0163577, PARSEC `log(Z/X) − log 0.0207`. The hub landscape said v2.5's solar Z was 0.0185; the
-file says 0.0163577.
+Z = 0.0163577 at label 0, PARSEC `log(Z/X) − log 0.0207`. MIST II's Table 1 Z_init = 0.0185 is the
+calibrated solar model's initial Z (with diffusion), not the grid's label-0 composition (Z/X = 0.0229).
 
 **Numbers that were wrong or would have been.**
 - The legacy reader rounds Z to 6 decimals: the −0.50 node 4.51753e-3 → 4.518e-3, nodes below
@@ -1940,8 +1940,10 @@ file says 0.0163577.
   regression is against it); the grid path keeps header Z.
 - pandas' default float parser differs from `float()` in the last ulp: the grid table was not
   bit-identical to the legacy one until `float_precision="round_trip"`.
-- ASteCA's mass-quantile resampling (its PARSEC path), interpolated between ages, misplaces the
-  isochrone by 0.36 mag (orthogonal p68, N = 400; 0.06 at N = 5000) at 2× MIST's step: not used.
+- ASteCA's PARSEC path averages neighbouring isochrones at the same mass-quantile index
+  (`zaWAverage`, read): on PARSEC v1.2S at its default N = 2000 and 2× the 0.01-dex step, 0.018 mag
+  orthogonal p68 and 0.0055 dex in inferred age, against 0.0045 / 0.0009 with arc-length pseudo-EEPs
+  (0.36 mag on MIST at 0.1 dex and N = 400, a configuration ASteCA does not use): not used.
 - MIST v2.5 [Fe/H] = +0.5 has no model below ~0.50 M☉ at log t 6–7: holding out the +0.25 node
   gives 0.55 mag. PARSEC v1.2S labels are non-monotone in mass in 1168 of 1800 isochrones.
 - λ Ori (Cao+22), pre-registered in the hub: the CMD (J, J−Ks) fit FAILS the differential test
