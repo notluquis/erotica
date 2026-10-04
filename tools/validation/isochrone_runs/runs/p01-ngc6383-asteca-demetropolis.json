@@ -1,6 +1,6 @@
 {
  "id": "p01-ngc6383-asteca-demetropolis",
- "date": "2026-09-15",
+ "date": null,
  "erotica_commit": null,
  "method": "ASteCA synthetic-cluster likelihood sampled with DEMetropolis (300 chains x 1000 after 1500); NOT converged per P01 itself; 'q50' is the mode",
  "schema_version": 1,
@@ -1582,7 +1582,7 @@
  },
  "diagnostics": null,
  "isochrone": {
-  "computed_with": "curve recomputed at P01's mode with erotica's EEP interpolation (96ce4c0); P01's own curves came from ASteCA",
+  "computed_with": "curve recomputed at P01's mode with erotica's EEP interpolation (35f81c5); P01's own curves came from ASteCA",
   "definition": "single-star isochrone (no binaries, no errors) at the posterior median of met/loga/dm/Av, in the observed system: G and BP-RP with CCM89+O'Donnell extinction, R_V=3.1",
   "median": {
    "eep": [

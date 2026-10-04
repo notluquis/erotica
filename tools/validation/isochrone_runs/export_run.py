@@ -436,7 +436,7 @@ def export_p01() -> Path:
     )
     run = {
         "id": "p01-ngc6383-asteca-demetropolis",
-        "date": "2026-09-15",
+        "date": None,  # the ASteCA run is undated in the paper; 2026-09-15 was only the file rename
         "erotica_commit": None,
         "method": "ASteCA synthetic-cluster likelihood sampled with DEMetropolis (300 chains x 1000 "
         "after 1500); NOT converged per P01 itself; 'q50' is the mode",
