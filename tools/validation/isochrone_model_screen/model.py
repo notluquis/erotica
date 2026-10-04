@@ -313,3 +313,39 @@ class ScreenFitter(IsochroneFitter):
             )
             F = F + xp.sum(w * self._p_observed(Ag, Bg, s2 + v2 * kGb**2, xp))
         return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
+
+
+def build_screen_model(f: ScreenFitter, cfg: dict, plx: dict | None, zprior: tuple[float, float]):
+    """PyMC model of a screen configuration; same priors as ``screen.compile_logpost``."""
+    import pymc as pm
+    import pytensor.tensor as pt
+
+    met_min, met_max = 10.0 ** float(f._node_logz[0]), 10.0 ** float(f._node_logz[-1])
+    w = f._star_weights
+    with pm.Model() as model:
+        met = pm.Uniform("met", lower=met_min, upper=met_max)
+        loga = pm.Uniform("loga", lower=f.loga_range[0], upper=f.loga_range[1])
+        if cfg["plx"] > 0:
+            dm = pm.Uniform("dm", lower=f.dm_range[0], upper=f.dm_range[1])
+            pm.Potential(
+                "plx", -0.5 * ((plx["plx"] - 10.0 ** (2.0 - dm / 5.0)) / plx["sigma"]) ** 2
+            )
+        else:
+            dm = pm.TruncatedNormal(
+                "dm", mu=f.dm_mu, sigma=f.dm_sigma, lower=f.dm_range[0], upper=f.dm_range[1]
+            )
+        Av = pm.Uniform("Av", lower=f.Av_range[0], upper=f.Av_range[1])
+        sigma_int = pm.HalfNormal("sigma_int", sigma=0.05)
+        f_bg = pm.Beta("f_bg", alpha=1.0, beta=19.0)
+        sa = pm.HalfNormal("sigma_Av", sigma=0.5) if cfg["diffred"] > 0 else 0.0
+        if cfg["zprior"] > 0:
+            mh = pt.log10(met / Z_SUN)
+            pm.Potential("zprior", -0.5 * ((mh - zprior[0]) / zprior[1]) ** 2 - pt.log(met))
+
+        def _logp(value, met, loga, dm, Av, s, fb, *rest):
+            sav = rest[0] if rest else 0.0
+            return w * f.star_ll(met, loga, dm, Av, s, fb, sav, pt)
+
+        args = [met, loga, dm, Av, sigma_int, f_bg] + ([sa] if cfg["diffred"] > 0 else [])
+        pm.CustomDist("y", *args, logp=_logp, observed=np.zeros(f._N_obs))
+    return model
