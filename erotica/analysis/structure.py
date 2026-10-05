@@ -9,6 +9,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord, angular_separation
 from astropy.table import QTable
+from scipy.optimize import minimize
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 
@@ -54,6 +55,52 @@ def _coord_column(table: QTable, column: str, unit: u.UnitBase) -> u.Quantity:
     return values * unit
 
 
+def _centre_draws(center_coord, center_error, n, rng):
+    """Draw ``n`` centres around ``center_coord`` with the errors ``center_determination`` gives.
+
+    ``center_error`` is ``(ra_error, dec_error)`` in degrees of the RA *coordinate*, the convention
+    of :func:`center_determination`. ``None`` keeps the centre fixed.
+    """
+    ra0, dec0 = float(center_coord.ra.deg), float(center_coord.dec.deg)
+    if center_error is None:
+        return np.full(n, ra0), np.full(n, dec0)
+    ra_err, dec_err = (float(quantity_values(e, u.deg)) for e in center_error)
+    return rng.normal(ra0, ra_err, n), np.clip(rng.normal(dec0, dec_err, n), -90.0, 90.0)
+
+
+def _bootstrap_cumulative_radius(
+    separations_fn, weights, weight_errors, n_bootstrap, rng, fraction=0.5
+):
+    """Standard deviation of the radius that encloses ``fraction`` of ``weights``.
+
+    Each resample draws the stars with replacement, perturbs the weight of each by its own error,
+    and recomputes the separations (``separations_fn(indices, draw)`` returns them in arcmin, with
+    ``draw`` the index of the centre draw). The spread therefore carries the three sources the old
+    mass-only propagation left out or kept alone: which stars were sampled, where the centre is, and
+    the weight of each star.
+    """
+    n = len(weights)
+    radii = np.empty(n_bootstrap)
+    for i in range(n_bootstrap):
+        idx = rng.integers(0, n, n)
+        w = weights[idx].astype(float)
+        if weight_errors is not None:
+            w = w + weight_errors[idx] * rng.standard_normal(n)
+        w = np.clip(w, 0.0, None)
+        sep = separations_fn(idx, i)
+        order = np.argsort(sep)
+        cumulative = np.nancumsum(w[order])
+        pos = int(np.searchsorted(cumulative, fraction * cumulative[-1]))
+        radii[i] = sep[order][min(pos, n - 1)]
+    return float(np.std(radii, ddof=1))
+
+
+def _as_center(center):
+    if isinstance(center, SkyCoord):
+        return center
+    return SkyCoord(ra=center[0], dec=center[1], frame="icrs", unit="deg")
+
+
 def half_mass_radius(
     data: QTable,
     center,
@@ -63,18 +110,41 @@ def half_mass_radius(
     ra_column: str = "ra",
     dec_column: str = "dec",
     distance=None,
+    error_method: str = "bootstrap",
+    n_bootstrap: int = 500,
+    center_error=None,
+    seed: int | None = None,
 ):
-    """Calculate angular and optionally linear half-mass radius."""
-    if isinstance(center, SkyCoord):
-        center_coord = center
-    else:
-        center_coord = SkyCoord(ra=center[0], dec=center[1], frame="icrs", unit="deg")
+    """Calculate angular and optionally linear half-mass radius.
+
+    Parameters
+    ----------
+    center : SkyCoord or (ra, dec) in degrees
+    error_method : {"bootstrap", "mass"}, default "bootstrap"
+        * ``"bootstrap"``: the standard deviation of the half-mass radius over ``n_bootstrap``
+          resamples of the **stars**, each with its mass perturbed by ``mass_error_column`` (when
+          present) and its centre drawn from ``center_error`` (when given). It carries the
+          sampling of stars, which dominates (x15 over the mass term on the P01 positions), the
+          centre, and the mass.
+        * ``"mass"``: the legacy value, which propagates only the cumulative mass error to the
+          enclosing radius. **Deprecated** (finding R29-04): it is the error of the mass term
+          alone and understates the radius error by an order of magnitude.
+    center_error : (ra_error, dec_error), optional
+        Errors of the centre in degrees of the RA coordinate, as
+        :func:`center_determination` returns them in ``center_coords_error_bootstrap`` (the sampling error of the
+        peak; ``center_coords_error`` is the larger smoothing-scale bound). ``None`` holds the
+        centre fixed, which is then an error **conditional on the centre**.
+    seed : int, optional
+        Seed of the bootstrap generator.
+    """
+    if error_method not in ("bootstrap", "mass"):
+        raise ValueError("error_method must be 'bootstrap' or 'mass'.")
+    center_coord = _as_center(center)
+    ra_all = np.asarray(_coord_column(data, ra_column, u.deg).value, dtype=float)
+    dec_all = np.asarray(_coord_column(data, dec_column, u.deg).value, dtype=float)
 
     separations = angular_separation(
-        _coord_column(data, ra_column, u.deg),
-        _coord_column(data, dec_column, u.deg),
-        center_coord.ra,
-        center_coord.dec,
+        ra_all * u.deg, dec_all * u.deg, center_coord.ra, center_coord.dec
     ).to(u.arcmin)
     order = np.argsort(separations)
     masses = data[mass_column][order]
@@ -84,12 +154,45 @@ def half_mass_radius(
     idx = int(np.searchsorted(cumulative_values, half_total_mass.to(u.Msun).value))
     radius = separations[order][idx].to(u.arcmin)
 
-    if mass_error_column in data.colnames:
-        mass_errors = data[mass_error_column][order]
-        cumulative_mass_error = np.sqrt(np.nancumsum(mass_errors**2))
-        radius_error = cumulative_mass_error[idx] / cumulative_mass[idx] * radius
+    has_errors = mass_error_column in data.colnames
+    if error_method == "mass":
+        warnings.warn(
+            "half_mass_radius(error_method='mass') propagates only the mass error to the radius "
+            "and leaves out the sampling of stars and the centre; use the default "
+            "error_method='bootstrap' (finding R29-04).",
+            FutureWarning,
+            stacklevel=2,
+        )
+        if has_errors:
+            mass_errors = data[mass_error_column][order]
+            cumulative_mass_error = np.sqrt(np.nancumsum(mass_errors**2))
+            radius_error = cumulative_mass_error[idx] / cumulative_mass[idx] * radius
+        else:
+            radius_error = np.nan * u.arcmin
     else:
-        radius_error = np.nan * u.arcmin
+        rng = np.random.default_rng(seed)
+        mass_values = np.asarray(quantity_values(data[mass_column], u.Msun), dtype=float)
+        mass_err_values = (
+            np.asarray(quantity_values(data[mass_error_column], u.Msun), dtype=float)
+            if has_errors
+            else None
+        )
+        draws_ra, draws_dec = _centre_draws(center_coord, center_error, n_bootstrap, rng)
+
+        def separations_fn(star_index, draw):
+            return angular_separation(
+                ra_all[star_index] * u.deg,
+                dec_all[star_index] * u.deg,
+                draws_ra[draw] * u.deg,
+                draws_dec[draw] * u.deg,
+            ).to_value(u.arcmin)
+
+        radius_error = (
+            _bootstrap_cumulative_radius(
+                separations_fn, mass_values, mass_err_values, n_bootstrap, rng
+            )
+            * u.arcmin
+        )
 
     if distance is None:
         return radius, radius_error.to(u.arcmin)
@@ -108,13 +211,46 @@ def calculate_half_light_radius(
     ra_column: str = "ra",
     dec_column: str = "dec",
     distance=None,
+    return_error: bool = False,
+    error_method: str = "bootstrap",
+    n_bootstrap: int = 500,
+    center_error=None,
+    seed: int | None = None,
 ):
     """Calculate the half-light radius from cumulative flux.
 
     New API accepts a table and a sky center. The legacy notebook API
     ``(Gmag, Gmag_err, distance_to_center, distance_to_cluster=None)`` is also
     supported and returns the original dictionary keys.
+
+    Parameters
+    ----------
+    return_error : bool, default False
+        New API only. ``True`` also returns the error, in the layout of :func:`half_mass_radius`:
+        ``(radius, error)``, or ``(radius, linear, error, linear_error)`` with ``distance``. The
+        default keeps the return shape of earlier versions, which had no error at all.
+    error_method : {"bootstrap", "flux"}, default "bootstrap"
+        ``"bootstrap"`` is the standard deviation over ``n_bootstrap`` resamples of the stars with
+        each magnitude perturbed by its error and, in the new API, the centre drawn from
+        ``center_error``. In the legacy API the distances to the centre are given, so the centre
+        cannot be varied there. ``"flux"`` is the legacy photometric propagation, **deprecated**:
+        it reflects only the magnitude errors (0.0012' against a 2.7' sampling error on the P01
+        candidates, finding R29-04).
+    center_error : (ra_error, dec_error), optional
+        As in :func:`half_mass_radius`.
+    seed : int, optional
+        Seed of the bootstrap generator.
     """
+    if error_method not in ("bootstrap", "flux"):
+        raise ValueError("error_method must be 'bootstrap' or 'flux'.")
+    if error_method == "flux":
+        warnings.warn(
+            "calculate_half_light_radius(error_method='flux') propagates only the photometric "
+            "error and leaves out the sampling of stars (and the centre); use the default "
+            "error_method='bootstrap' (finding R29-04).",
+            FutureWarning,
+            stacklevel=2,
+        )
     if legacy_args:
         if len(legacy_args) > 2:
             raise TypeError("Legacy call accepts Gmag, Gmag_err, distance_to_center, [distance].")
@@ -130,10 +266,25 @@ def calculate_half_light_radius(
         order = np.argsort(separations)
         sorted_separations = separations[order]
         cumulative = np.nancumsum(luminosity[order])
-        cumulative_err = np.sqrt(np.nancumsum(luminosity_err[order] ** 2))
         idx = int(np.argmax(cumulative >= cumulative[-1] / 2))
         radius = sorted_separations[idx]
-        radius_err = cumulative_err[idx] / cumulative[idx] * radius
+        if error_method == "flux":
+            cumulative_err = np.sqrt(np.nancumsum(luminosity_err[order] ** 2))
+            radius_err = cumulative_err[idx] / cumulative[idx] * radius
+        else:
+            unit = getattr(radius, "unit", None)
+            sep_values = np.asarray(
+                separations.value if hasattr(separations, "value") else separations, dtype=float
+            )
+            rng = np.random.default_rng(seed)
+            spread = _bootstrap_cumulative_radius(
+                lambda star_index, draw: sep_values[star_index],
+                np.asarray(luminosity, dtype=float),
+                np.asarray(luminosity_err, dtype=float),
+                n_bootstrap,
+                rng,
+            )
+            radius_err = spread * unit if unit is not None else spread
         results = {"R_h": radius, "R_h_error": radius_err}
         if distance_to_cluster is not None:
             linear_radius = linear_size(radius.to(u.arcmin), distance_to_cluster)
@@ -144,24 +295,74 @@ def calculate_half_light_radius(
             results["R_h_linear_bounds"] = (lower, upper)
         return results
 
-    if isinstance(center, SkyCoord):
-        center_coord = center
-    else:
-        center_coord = SkyCoord(ra=center[0], dec=center[1], frame="icrs", unit="deg")
+    center_coord = _as_center(center)
+    ra_all = np.asarray(_coord_column(data, ra_column, u.deg).value, dtype=float)
+    dec_all = np.asarray(_coord_column(data, dec_column, u.deg).value, dtype=float)
     separations = angular_separation(
-        _coord_column(data, ra_column, u.deg),
-        _coord_column(data, dec_column, u.deg),
-        center_coord.ra,
-        center_coord.dec,
+        ra_all * u.deg, dec_all * u.deg, center_coord.ra, center_coord.dec
     ).to(u.arcmin)
     order = np.argsort(separations)
     flux = 10 ** (quantity_values(data[magnitude_column][order], u.mag) / -2.5)
     cumulative_flux = np.nancumsum(flux)
     idx = int(np.searchsorted(cumulative_flux, np.nanmax(cumulative_flux) / 2))
     radius = separations[order][idx].to(u.arcmin)
+
+    radius_error = None
+    if return_error:
+        if error_method == "flux":
+            raise ValueError("error_method='flux' is only defined for the legacy call.")
+        rng = np.random.default_rng(seed)
+        mag_all = np.asarray(quantity_values(data[magnitude_column], u.mag), dtype=float)
+        flux_all = 10 ** (mag_all / -2.5)
+        flux_err = None
+        if magnitude_error_column in data.colnames:
+            mag_err = np.asarray(quantity_values(data[magnitude_error_column], u.mag), dtype=float)
+            flux_err = flux_all * np.log(10) * 0.4 * mag_err
+        draws_ra, draws_dec = _centre_draws(center_coord, center_error, n_bootstrap, rng)
+
+        def separations_fn(star_index, draw):
+            return angular_separation(
+                ra_all[star_index] * u.deg,
+                dec_all[star_index] * u.deg,
+                draws_ra[draw] * u.deg,
+                draws_dec[draw] * u.deg,
+            ).to_value(u.arcmin)
+
+        radius_error = (
+            _bootstrap_cumulative_radius(separations_fn, flux_all, flux_err, n_bootstrap, rng)
+            * u.arcmin
+        )
     if distance is None:
-        return radius
-    return radius, linear_size(radius, distance)
+        return (radius, radius_error) if return_error else radius
+    linear = linear_size(radius, distance)
+    if return_error:
+        return radius, linear, radius_error, linear_size(radius + radius_error, distance) - linear
+    return radius, linear
+
+
+def _refine_kde_peak(kde, start, scale) -> tuple[np.ndarray, float]:
+    """Locate the maximum of a fitted 2-D KDE continuously, starting near ``start``.
+
+    A grid argmax can only return a grid node, so its error floor is half a cell. This polishes
+    the node with a Nelder-Mead search over the density itself. It never returns a point whose
+    density is lower than the starting node's, so a non-smooth kernel (``tophat``) degrades to the
+    grid answer instead of to something worse.
+    """
+    start = np.asarray(start, dtype=float)
+
+    def neg_density(xy):
+        return -float(kde.score_samples(np.asarray(xy, dtype=float).reshape(1, 2))[0])
+
+    simplex = np.vstack([start, start + [scale, 0.0], start + [0.0, scale]])
+    fit = minimize(
+        neg_density,
+        start,
+        method="Nelder-Mead",
+        options={"initial_simplex": simplex, "xatol": scale * 1e-4, "fatol": 1e-10, "maxiter": 400},
+    )
+    if np.isfinite(fit.fun) and fit.fun <= neg_density(start):
+        return np.asarray(fit.x, dtype=float), float(-fit.fun)
+    return start, float(-neg_density(start))
 
 
 def center_determination(
@@ -179,8 +380,54 @@ def center_determination(
     return_density: bool = False,
     return_grids: bool = False,
     return_bestparams: bool = False,
+    n_bootstrap: int = 200,
+    seed: int | None = None,
 ):
-    """Estimate a cluster center with 2D KDE over sky coordinates."""
+    """Estimate a cluster center with 2D KDE over sky coordinates.
+
+    The center is the maximum of the KDE, located **continuously** (a Nelder-Mead polish of the
+    grid maximum), so the 200 x 200 grid no longer sets a floor of about half a cell (0.4') on
+    the position.
+
+    Parameters
+    ----------
+    n_bootstrap : int, default 200
+        Resamples of the stars for the bootstrap error of the peak; ``0`` skips it.
+    seed : int, optional
+        Seed of the bootstrap generator; the same seed gives the same error.
+
+    Notes
+    -----
+    Two errors are reported (only when a ``return_*`` flag is set), and they answer different
+    questions:
+
+    * ``center_coords_error`` is ``sqrt(sigma_pos**2 + h**2)``, with ``h`` the cross-validated KDE
+      bandwidth. It is the error P01 quotes (6.7' on the NGC 6383 sample; the text declares it as
+      the quadratic sum of the mean position error and the bandwidth, and says the bandwidth
+      dominates it). It is kept **unchanged and on purpose, as a conservative bound**: the
+      smoothing scale of the KDE, not the error of the estimator. It does not shrink with the
+      number of stars and is 20-30 times the scatter of the peak on the NGC 6383 sample (finding
+      R29-02), so a statement such as "consistent with HD 159176 within the uncertainty" made with
+      it is a statement about the smoothing scale.
+    * ``center_coords_error_bootstrap`` is the standard deviation of the KDE peak over
+      ``n_bootstrap`` resamples of the **stars** (weights resampled with them), with the bandwidth
+      held at the value chosen on the full sample and the peak searched from the full-sample peak.
+      It is the sampling error of the position of the maximum and scales as 1/sqrt(N). The
+      bandwidth is held because re-choosing it inside a resample is biased: duplicated stars make
+      the cross-validation pick a smaller ``h`` (2.6-4.6' against 9.2' on the NGC 6383 sample). It
+      does not include the membership selection or the weighting scheme upstream of this function.
+
+    Returns
+    -------
+    CenterFitResult or dict
+        With no ``return_*`` flag, a :class:`CenterFitResult`. Otherwise a dict with
+        ``center_coords``, ``center_coords_error`` (the conservative bound above) and, when
+        ``n_bootstrap > 0``, ``center_coords_error_bootstrap`` and ``center_bootstrap`` (an
+        ``(n_bootstrap, 2)`` array of RA, Dec peaks in degrees, to propagate the centre into other
+        quantities). RA errors are in **degrees of the RA coordinate**, not multiplied by
+        cos(dec); multiply by ``cos(dec)`` for the on-sky offset. Plus the optional density,
+        grids and best parameters.
+    """
     ra = quantity_values(data[ra_column], u.deg)
     dec = quantity_values(data[dec_column], u.deg)
     coords = np.vstack([ra, dec]).T
@@ -188,6 +435,7 @@ def center_determination(
     coords = coords[finite]
     if len(coords) == 0:
         raise ValueError("No finite coordinates available for center determination.")
+    weights_all = None if weights is None else np.asarray(weights, dtype=float)
     if bandwidths is None:
         if ra_error_column in data.colnames and dec_error_column in data.colnames:
             min_bandwidth = np.nanmean(
@@ -202,10 +450,10 @@ def center_determination(
             span = max(np.ptp(coords[:, 0]), np.ptp(coords[:, 1]))
             bandwidths = np.linspace(max(span / 100, 1e-4), max(span / 8, 1e-3), 20)
     grid = GridSearchCV(KernelDensity(), {"bandwidth": bandwidths, "kernel": list(kernels)})
-    if weights is None:
+    if weights_all is None:
         grid.fit(coords)
     else:
-        grid.fit(coords, sample_weight=np.asarray(weights, dtype=float))
+        grid.fit(coords, sample_weight=weights_all)
     kde = grid.best_estimator_
     if grid_ra is None or grid_dec is None:
         pad_ra = np.ptp(coords[:, 0]) / 8
@@ -222,11 +470,18 @@ def center_determination(
     sample = np.vstack([xx.ravel(), yy.ravel()]).T
     density = np.exp(kde.score_samples(sample)).reshape(xx.shape)
     peak = np.unravel_index(np.argmax(density), density.shape)
+    bandwidth = float(grid.best_params_["bandwidth"])
+    # The grid node is only the starting point: the search scale is the smaller of the cell and
+    # the bandwidth, so a coarse user grid does not widen the polish.
+    cell = float(
+        min(np.ptp(xx) / max(xx.shape[-1] - 1, 1), np.ptp(yy) / max(yy.shape[0] - 1, 1), bandwidth)
+    )
+    peak_xy, peak_density = _refine_kde_peak(kde, (xx[peak], yy[peak]), cell)
     result = CenterFitResult(
-        ra=xx[peak] * u.deg,
-        dec=yy[peak] * u.deg,
-        bandwidth=float(grid.best_params_["bandwidth"]),
-        density_peak=float(density[peak]),
+        ra=peak_xy[0] * u.deg,
+        dec=peak_xy[1] * u.deg,
+        bandwidth=bandwidth,
+        density_peak=max(float(density[peak]), float(np.exp(peak_density))),
     )
     if return_density or return_grids or return_bestparams:
         ra_error = (
@@ -240,13 +495,31 @@ def center_determination(
             else 0.0
         )
         bw = result.bandwidth * u.deg
-        payload = {
-            "center_coords": (result.ra, result.dec),
-            "center_coords_error": (
-                np.sqrt(ra_error**2 + result.bandwidth**2) * u.deg,
-                np.sqrt(dec_error**2 + result.bandwidth**2) * u.deg,
-            ),
-        }
+        payload = {"center_coords": (result.ra, result.dec)}
+        payload["center_coords_error"] = (
+            np.sqrt(ra_error**2 + result.bandwidth**2) * u.deg,
+            np.sqrt(dec_error**2 + result.bandwidth**2) * u.deg,
+        )
+        if int(n_bootstrap) > 0:
+            rng = np.random.default_rng(seed)
+            kernel = grid.best_params_["kernel"]
+            weights_fin = None if weights_all is None else weights_all[finite]
+            start = peak_xy
+            centers = np.empty((int(n_bootstrap), 2))
+            for i in range(int(n_bootstrap)):
+                idx = rng.integers(0, len(coords), len(coords))
+                kde_b = KernelDensity(bandwidth=bandwidth, kernel=kernel)
+                if weights_fin is None:
+                    kde_b.fit(coords[idx])
+                else:
+                    kde_b.fit(coords[idx], sample_weight=weights_fin[idx])
+                centers[i], _ = _refine_kde_peak(kde_b, start, bandwidth / 2.0)
+            spread = np.std(centers, axis=0, ddof=1)
+            payload["center_coords_error_bootstrap"] = (
+                np.sqrt(ra_error**2 + spread[0] ** 2) * u.deg,
+                np.sqrt(dec_error**2 + spread[1] ** 2) * u.deg,
+            )
+            payload["center_bootstrap"] = centers
         if return_density:
             payload["density"] = density
         if return_grids:
@@ -609,9 +882,10 @@ def _king_model(pm, r, field_radius, priors, tidal_prior, completeness):
             R_t = pm.Deterministic("R_t", R_c + pm.HalfCauchy("dR", beta=priors.r_t_scale))
         else:
             mu, sigma = tidal_prior
-            R_t = pm.Deterministic(
-                "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
-            )
+            # The prior is on R_t itself, truncated below at R_c (same support as R_c + dR with
+            # dR > 0). Until finding R29-01 it was put on dR = R_t - R_c, which centred the prior
+            # on mu + R_c and moved R_t by +0.04 to +0.15 sigma on the NGC 6383 sample.
+            R_t = pm.TruncatedNormal("R_t", mu=mu, sigma=sigma, lower=R_c)
         k = pm.HalfCauchy("k", beta=priors.k_scale)
         b = pm.HalfCauchy("b", beta=priors.b_scale)
 
@@ -897,8 +1171,12 @@ def king_unbinned(
         the fit models the *detected* intensity
         :math:`\lambda(r) = 2\pi r\,\Sigma(r)\,\bar{S}(r)` and the recovered
         ``k``/``R_c``/``R_t`` describe the **true** cluster rather than the
-        observed one. Build it from :mod:`erotica.selection`, which wraps the
-        Gaia DR3 selection function of Cantat-Gaudin et al. (2023). Because
+        observed one. :mod:`erotica.selection` does **not** build it: it provides per-star
+        weights (:func:`~erotica.selection.attach_completeness_weights`, evaluated on the
+        detected stars, not on the intrinsic population) and census detectability, and no function
+        returns a radial :math:`\bar{S}(r)`. Construct it from the selection function you trust
+        (the four ``tools/validation/a1_*``/``a7_*`` scripts that pass ``completeness=`` each
+        build their own; the missing link is tracked as hub thread A1, finding R29-05). Because
         :math:`\sum_i \log \bar{S}(r_i)` does not depend on any parameter it
         cancels from the log-likelihood, so only the normalisation changes.
     priors : KingPriors, optional
@@ -907,7 +1185,11 @@ def king_unbinned(
         ``(mu, sigma)`` in arcmin for a physically motivated prior on ``R_t``,
         e.g. the Jacobi radius from
         :func:`~erotica.analysis.dynamics.tidal_radius_prior`. When given, it
-        replaces the scale-free half-Cauchy on the ``R_t - R_c`` increment.
+        replaces the scale-free half-Cauchy on the ``R_t - R_c`` increment. It is a
+        ``TruncatedNormal(mu, sigma)`` on ``R_t`` itself, truncated below at ``R_c``. Before the
+        2026-10 fix (R29-01) it was applied to the increment ``R_t - R_c``, so the prior on
+        ``R_t`` was centred on ``mu + R_c``; results fitted with that version sit +0.04 to
+        +0.15 sigma above the ones from this version.
     sampling : SamplingConfig, optional
         Sampler settings. Defaults to 2000 draws, 1000 tuning.
     return_trace : bool, default True
@@ -1409,9 +1691,10 @@ def _king_corona_model(pm, r, field_radius, priors, tidal_prior, completeness):
             R_t = pm.Deterministic("R_t", R_c + pm.HalfCauchy("dR", beta=priors.r_t_scale))
         else:
             mu, sigma = tidal_prior
-            R_t = pm.Deterministic(
-                "R_t", R_c + pm.TruncatedNormal("dR", mu=mu, sigma=sigma, lower=0.0)
-            )
+            # The prior is on R_t itself, truncated below at R_c (same support as R_c + dR with
+            # dR > 0). Until finding R29-01 it was put on dR = R_t - R_c, which centred the prior
+            # on mu + R_c and moved R_t by +0.04 to +0.15 sigma on the NGC 6383 sample.
+            R_t = pm.TruncatedNormal("R_t", mu=mu, sigma=sigma, lower=R_c)
         k = pm.HalfCauchy("k", beta=priors.k_scale)
         R_2 = pm.HalfCauchy("R_2", beta=priors.r_2_scale)
         delta_f = pm.HalfCauchy("delta_f", beta=priors.delta_scale)
@@ -1737,7 +2020,7 @@ def RDP_bayesian(
         # función está **deprecada desde 2026-08-02** por una verosimilitud mal especificada por un
         # factor ~25, y `king_unbinned` la reemplaza — con `KingPriors` libre de datos y
         # `tidal_prior=(mu, sigma)`, que **sí** entra en el modelo (`_king_model` construye
-        # `R_t = R_c + TruncatedNormal(mu, sigma, lower=0)` cuando se le da). O sea la capacidad que
+        # `R_t = TruncatedNormal(mu, sigma, lower=R_c)` cuando se le da, R29-01). O sea la capacidad que
         # estos argumentos prometían y no cumplían **existe y funciona en la ruta nueva**.
         #
         # Se conserva la firma por compatibilidad con el código que reprodujo P01. Quien la llame ya
