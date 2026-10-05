@@ -501,6 +501,7 @@ def export_grids() -> list[Path]:
     """NGC 6383 with every grid backend, from ``isochrone_grids/ngc6383_grids.json``: maximum
     likelihood points with Laplace widths (NOT posteriors), same 254 stars as C1, so the GUI can
     show the same cluster with several grids side by side."""
+    sys.path.insert(0, str(VALIDATION))
     sys.path.insert(0, str(VALIDATION / "isochrone_grids"))
     from astropy.table import QTable, Table
     from isochrone_nuts_convergence import PRIORS, SAMPLE
@@ -539,6 +540,7 @@ def export_grids() -> list[Path]:
             "schema_version": SCHEMA_VERSION,
             "grid": {
                 **d,
+                "name": d["grid"],
                 "path": "erotica.analysis.grids (grid=)",
                 "metallicity_parameter": "feh = the grid's own [Fe/H] label, uniform in it",
             },
