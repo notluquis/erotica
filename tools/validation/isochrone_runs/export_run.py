@@ -661,6 +661,134 @@ def export_colour() -> list[Path]:
     return out
 
 
+def export_phases() -> list[Path]:
+    """NGC 6383 phase by phase from ``isochrone_phases/real_<grid>.json`` (hub finding
+    ``isochrone-ms-vs-pms.md``). One run per grid for the global fit (``phase`` = ``global``) and one
+    per (grid, window, arm) for the per-window profiles. Each window run is the PROFILE maximum of
+    log t with [Fe/H], dm, A_V fixed at the global fit (arm ``a``), A_V free (``b``) or [Fe/H] = 0
+    (``c``); its interval is the Delta ln L = 0.5 crossing, stored as ``plus``/``minus`` (NOT
+    quantiles; uncalibrated, see the finding). The phase also goes in ``id``, ``config.run`` and
+    ``notes`` because the panel's adapter ignores fields it does not know."""
+    sys.path.insert(0, str(VALIDATION / "isochrone_phases"))
+    from astropy.table import QTable, Table
+    from phases import SAMPLE, WINDOWS
+    from real_phases import fitter_on, grid_and_pri
+
+    head = _git("rev-parse", "--short", "HEAD")
+    data = QTable(Table.read(SAMPLE))
+    out = []
+    for gname in ("mist12", "mist25", "parsec"):
+        src = VALIDATION / f"isochrone_phases/real_{gname}.json"
+        if not src.exists():
+            continue
+        res = json.loads(src.read_text())
+        grid, pri = grid_and_pri(gname)
+        f = fitter_on(grid, gname, data, pri)
+        d = grid.describe()
+        family = d.get("family", "")
+        entries = [("global", "global", None, res["global"]["mode"], None)]
+        for arm, key, shared_src in (
+            ("a", "phases", "global"),
+            ("b", "phases", "global"),
+            ("c", "phases_feh0", "global_feh0"),
+        ):
+            for w in WINDOWS:
+                ph = res.get(key, {}).get(w, {})
+                parm = "a" if arm == "c" else arm
+                if parm not in ph:
+                    continue
+                sm = ph[parm]["summary"]
+                prof = ph[parm]["profile"]
+                k = int(np.argmin(np.abs(np.asarray(prof["loga"]) - sm["loga_hat"])))
+                mode = {**res[shared_src]["mode"], **prof["free_at"][k], "loga": sm["loga_hat"]}
+                entries.append((w, arm, sm, mode, ph["n"]))
+        for phase, arm, sm, mode, n in entries:
+            tag = phase if phase == "global" else f"{phase}-{arm}"
+            run_id = f"phases-ngc6383-{gname}-{tag}-{head}"
+            post = {kk: {"q50": float(v)} for kk, v in mode.items()}
+            if sm is not None:
+                post["loga"] = {
+                    "q50": sm["loga_hat"],
+                    "plus": sm["hi1"] - sm["loga_hat"],
+                    "minus": sm["loga_hat"] - sm["lo1"],
+                }
+            what = (
+                "global fit, 254 members, parallax dm prior"
+                if phase == "global"
+                else f"phase {phase} (G in {WINDOWS[phase]}), {n} members, arm {arm}: "
+                + {
+                    "a": "[Fe/H], dm, A_V fixed at the global fit",
+                    "b": "[Fe/H], dm fixed, A_V free in the window",
+                    "c": "[Fe/H] = 0, dm and A_V fixed at the global fit at [Fe/H] = 0",
+                }[arm]
+            )
+            cmd = observed_cmd(f, data)
+            out.append(
+                _write(
+                    {
+                        "schema_version": SCHEMA_VERSION,
+                        "grid": {
+                            **d,
+                            "name": grid.name,
+                            "path": "erotica.analysis.grids (grid=)",
+                            "metallicity_parameter": "feh = the grid's own [Fe/H] label, uniform in it",
+                        },
+                        "id": run_id,
+                        "phase": phase,
+                        "phase_window_G": None if phase == "global" else WINDOWS[phase],
+                        "phase_arm": None if phase == "global" else arm,
+                        "date": "2026-10-05",
+                        "erotica_commit": head,
+                        "cluster": "NGC 6383",
+                        "model": {
+                            "grid": family,
+                            "version": d.get("version"),
+                            "files": grid.name,
+                            "photometry": "Gaia EDR3 G, BP-RP",
+                            "z_sun": None,
+                            "z_sun_source": "not used: the fit coordinate is the [Fe/H] label",
+                        },
+                        "method": (
+                            "maximum a posteriori (parallax dm prior), common.search; NOT a posterior"
+                            if phase == "global"
+                            else "profile likelihood of log t in a G window (exact conditional "
+                            "likelihood, mag_window); interval = Delta lnL 0.5, uncalibrated"
+                        ),
+                        "config": {
+                            "run": what,
+                            "priors": res["priors"],
+                            "binaries": {"alpha": f.alpha, "beta": f.beta},
+                            "sigma_floor": f.SIGMA_FLOOR,
+                            "at_prior_bound": res["global"]["at_bound"]
+                            if phase == "global"
+                            else [
+                                x
+                                for x, o in (
+                                    ("loga_lo", sm["open_lo1"]),
+                                    ("loga_hi", sm["open_hi1"]),
+                                )
+                                if o
+                            ],
+                        },
+                        "posterior": post,
+                        "diagnostics": None,
+                        "cmd": cmd,
+                        "sample": "paperfaithful_reference_p06.ecsv",
+                        "isochrone": isochrone_block(
+                            f, mode, None, None, f"erotica IsochroneFitter(grid=) at {head}"
+                        ),
+                        "notes": [
+                            f"phase: {phase}",
+                            what,
+                            f"source: tools/validation/isochrone_phases/real_{gname}.json",
+                        ],
+                    }
+                )
+            )
+        del f
+    return out
+
+
 if __name__ == "__main__":
     which = sys.argv[1:] or ["c1", "hess507", "p01"]
     for w in which:
@@ -672,5 +800,6 @@ if __name__ == "__main__":
                 "migrate": migrate_v1,
                 "grids": export_grids,
                 "colour": export_colour,
+                "phases": export_phases,
             }[w]()
         )
