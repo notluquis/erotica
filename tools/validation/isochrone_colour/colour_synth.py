@@ -57,7 +57,10 @@ def dcol_grid(name):
     if name == "bhac15":
         g, b = G.BHAC15Grid(CACHE / "bhac15", loga_range=(5.6, 7.5)), ("G", "G_BP", "G_RP")
     else:
-        g, b = G.SPOTSGrid(CACHE / "spots", 0.0, loga_range=(5.9, 7.1)), ("G_mag", "BP_mag", "RP_mag")
+        g, b = (
+            G.SPOTSGrid(CACHE / "spots", 0.0, loga_range=(5.9, 7.1)),
+            ("G_mag", "BP_mag", "RP_mag"),
+        )
     a = float(g.loga_nodes[np.argmin(np.abs(g.loga_nodes - TRUTH["loga"]))])
     n = g.node(float(g.feh_nodes[0]), a)
     o = np.argsort(n.extra["logte"])
@@ -74,8 +77,11 @@ def dcol_grid(name):
         taper = np.clip(1 - (lt - xs[-1]) / 0.05, 0, 1)
         return np.where(lt > xs[-1], ys[-1] * taper, v)
 
-    return f, {"alt_node_loga": a, "logte_range": [float(xs[0]), float(xs[-1])],
-               "delta_at": {str(t): float(f(np.log10(t))) for t in (3200, 3500, 4000, 4500, 5000)}}
+    return f, {
+        "alt_node_loga": a,
+        "logte_range": [float(xs[0]), float(xs[-1])],
+        "delta_at": {str(t): float(f(np.log10(t))) for t in (3200, 3500, 4000, 4500, 5000)},
+    }
 
 
 def main() -> None:
@@ -100,19 +106,33 @@ def main() -> None:
     real = QTable(Table.read(SAMPLE))
     gen = IsochroneFitter(grid=truth_grid, magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
     gen.setup(real, prob_threshold=0.0)
-    out = {"erotica_file": erotica.__file__, "arm": a.arm, "truth": TRUTH, "delta": info,
-           "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()},
-           "reps": []}
+    out = {
+        "erotica_file": erotica.__file__,
+        "arm": a.arm,
+        "truth": TRUTH,
+        "delta": info,
+        "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()},
+        "reps": [],
+    }
     path = HERE / f"colour_synth_{a.arm}.json"
     for r in range(a.reps):
         rng = np.random.default_rng(1000 + r)  # same seeds in every arm: paired replicates
         dm = float(rng.normal(TRUTH["dm_mu"], TRUTH["dm_sd"]))
-        G, C = gen._draw_stars(TRUTH["feh"], TRUTH["loga"], dm, TRUTH["Av"], TRUTH["sigma_int"],
-                               N_STARS, rng)
-        syn = QTable({"Gmag": G, "G_BPmag": C, "G_RPmag": np.zeros_like(G),
-                      "e_Gmag": gen._e_mag_fn(G), "e_G_BPmag": gen._e_col_fn(G),
-                      "e_G_RPmag": np.zeros_like(G), "e_BP_RP": gen._e_col_fn(G),
-                      "probability_hdbscan": np.ones_like(G)})
+        G, C = gen._draw_stars(
+            TRUTH["feh"], TRUTH["loga"], dm, TRUTH["Av"], TRUTH["sigma_int"], N_STARS, rng
+        )
+        syn = QTable(
+            {
+                "Gmag": G,
+                "G_BPmag": C,
+                "G_RPmag": np.zeros_like(G),
+                "e_Gmag": gen._e_mag_fn(G),
+                "e_G_BPmag": gen._e_col_fn(G),
+                "e_G_RPmag": np.zeros_like(G),
+                "e_BP_RP": gen._e_col_fn(G),
+                "probability_hdbscan": np.ones_like(G),
+            }
+        )
         f = IsochroneFitter(grid=base, magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
         f.setup(syn, prob_threshold=0.0)
         res = search(f, verbose=False)
@@ -121,8 +141,15 @@ def main() -> None:
         res["d_loga"] = res["mode"]["loga"] - TRUTH["loga"]
         res["d_Av"] = res["mode"]["Av"] - TRUTH["Av"]
         out["reps"].append(res)
-        print(a.arm, r, json.dumps({k: res[k] for k in ("d_feh", "d_loga", "d_Av", "at_bound",
-                                                          "seconds")}, default=float), flush=True)
+        print(
+            a.arm,
+            r,
+            json.dumps(
+                {k: res[k] for k in ("d_feh", "d_loga", "d_Av", "at_bound", "seconds")},
+                default=float,
+            ),
+            flush=True,
+        )
         path.write_text(json.dumps(out, indent=1, default=float) + "\n")
 
 

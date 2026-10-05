@@ -29,8 +29,9 @@ MIST12 = NGC / "MIST/UBVRIplus"
 CACHE = Path.home() / ".cache/erotica-grids"
 EDR3 = ("Gaia_G_EDR3", "Gaia_BP_EDR3", "Gaia_RP_EDR3")
 FEH_NODES = [-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5]
-PRI_PLX = dict(loga_range=(5.7, 7.0), Av_range=(0.0, 3.0), dm_mu=10.223, dm_sigma=0.026,
-               dm_range=(9.5, 10.7))
+PRI_PLX = dict(
+    loga_range=(5.7, 7.0), Av_range=(0.0, 3.0), dm_mu=10.223, dm_sigma=0.026, dm_range=(9.5, 10.7)
+)
 
 
 def mist(bands=EDR3, feh=FEH_NODES, loga_range=(5.6, 7.1)):
@@ -46,11 +47,20 @@ def fit(f, rng_seed: int = 42) -> dict:
     s = f.find_start(2, np.random.default_rng(rng_seed))
     m = s["mode"]
     bounds = {"feh": f._met_bounds(), "loga": f.loga_range, "dm": f.dm_range, "Av": f.Av_range}
-    at = [k for k, (lo, hi) in bounds.items()
-          if k in m and hi > lo and min(m[k] - lo, hi - m[k]) < 1e-3 * (hi - lo)]
-    return {"mode": m, "loglike": s["loglike"], "laplace_sd": s["local_sd"],
-            "runner_up": s["runner_up"], "at_bound": at, "n": int(f._N_obs),
-            "seconds": round(time.time() - t0, 1)}
+    at = [
+        k
+        for k, (lo, hi) in bounds.items()
+        if k in m and hi > lo and min(m[k] - lo, hi - m[k]) < 1e-3 * (hi - lo)
+    ]
+    return {
+        "mode": m,
+        "loglike": s["loglike"],
+        "laplace_sd": s["local_sd"],
+        "runner_up": s["runner_up"],
+        "at_bound": at,
+        "n": int(f._N_obs),
+        "seconds": round(time.time() - t0, 1),
+    }
 
 
 def shifted(grid, dcol, name: str):
@@ -70,8 +80,13 @@ def shifted(grid, dcol, name: str):
     return g
 
 
-def search(f, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_stride: int = 2, polish: int = 4,
-           verbose: bool = True) -> dict:
+def search(
+    f,
+    feh_lattice=(-1.0, -0.5, 0.0, 0.5),
+    age_stride: int = 2,
+    polish: int = 4,
+    verbose: bool = True,
+) -> dict:
     """``find_start``'s two stages with a coarser lattice: (dm, A_V) optimised at every
     (feh, log t) of ``feh_lattice`` x every ``age_stride``-th age node inside the prior, at the wide
     width (0.05 mag) where the likelihood is smooth; then the ``polish`` best are polished on all six
@@ -105,15 +120,24 @@ def search(f, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_stride: int = 2, polish: i
     cands = []
     for z in fehs:
         for a in ages:
+
             def nll2(y, z=float(z), a=float(a)):
                 v, g = fn([z, a, y[0], y[1], 0.05, 0.02])
                 return -v, -g[2:4]
 
-            r = minimize(nll2, [f.dm_mu, 1.0], jac=True, method="L-BFGS-B",
-                         bounds=list(zip(lo[2:4], hi[2:4], strict=True)))
+            r = minimize(
+                nll2,
+                [f.dm_mu, 1.0],
+                jac=True,
+                method="L-BFGS-B",
+                bounds=list(zip(lo[2:4], hi[2:4], strict=True)),
+            )
             cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
             if verbose:
-                print(f"  lattice {len(cands)} z={z} a={a:.2f} nfev={r.nfev} t={time.time()-t0:.0f}s", flush=True)
+                print(
+                    f"  lattice {len(cands)} z={z} a={a:.2f} nfev={r.nfev} t={time.time() - t0:.0f}s",
+                    flush=True,
+                )
     cands.sort(key=lambda c: c[0])
 
     def nll6(y):
@@ -126,15 +150,25 @@ def search(f, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_stride: int = 2, polish: i
         r = minimize(nll6, y0, jac=True, method="L-BFGS-B", bounds=list(zip(lo, hi, strict=True)))
         pol.append((-float(r.fun), np.asarray(r.x, float)))
         if verbose:
-            print(f"  polish nfev={r.nfev} ll={-r.fun:.2f} t={time.time()-t0:.0f}s", flush=True)
+            print(f"  polish nfev={r.nfev} ll={-r.fun:.2f} t={time.time() - t0:.0f}s", flush=True)
     pol.sort(key=lambda p: -p[0])
     ll, b = pol[0]
     names = ("feh", "loga", "dm", "Av", "sigma_int", "f_bg")
     m = dict(zip(names, b.tolist(), strict=True))
     bounds = {"feh": (zlo, zhi), "loga": f.loga_range, "dm": f.dm_range, "Av": f.Av_range}
-    at = [k for k, (l_, h_) in bounds.items()
-          if hi[0] > lo[0] or k != "feh"
-          if h_ > l_ and min(m[k] - l_, h_ - m[k]) < 1e-3 * (h_ - l_)]
-    return {"mode": m, "logpost": ll, "loglike": fl(b)[0], "runner_up": [(p[0], p[1].tolist()) for p in pol[1:]],
-            "at_bound": at, "n": int(f._N_obs), "n_lattice": len(cands),
-            "seconds": round(time.time() - t0, 1)}
+    at = [
+        k
+        for k, (l_, h_) in bounds.items()
+        if hi[0] > lo[0] or k != "feh"
+        if h_ > l_ and min(m[k] - l_, h_ - m[k]) < 1e-3 * (h_ - l_)
+    ]
+    return {
+        "mode": m,
+        "logpost": ll,
+        "loglike": fl(b)[0],
+        "runner_up": [(p[0], p[1].tolist()) for p in pol[1:]],
+        "at_bound": at,
+        "n": int(f._N_obs),
+        "n_lattice": len(cands),
+        "seconds": round(time.time() - t0, 1),
+    }
