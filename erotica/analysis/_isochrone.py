@@ -378,6 +378,27 @@ class MISTIsochrones:
         return eep[o], mass[o], G[o], BP[o], RP[o]
 
 
+class _GridAdapter:
+    """Presents an :class:`~erotica.analysis.grids.IsochroneGrid` with the three accessors the
+    fitter calls on :class:`MISTIsochrones` -- ``_met_values`` (here the [Fe/H] nodes),
+    ``_loga_values`` and ``get_isochrone_eep`` -- so the node-table code is shared by both paths."""
+
+    def __init__(self, grid: Any, mag: str, c1: str, c2: str) -> None:
+        missing = [b for b in (mag, c1, c2) if b not in grid.bands]
+        if missing:
+            raise ValueError(f"{grid.name} does not provide bands {missing}; it has {grid.bands}")
+        self.grid, self.bands = grid, (mag, c1, c2)
+        self._met_values = grid.feh_nodes
+        self._loga_values = grid.loga_nodes
+
+    def get_isochrone_eep(
+        self, feh: float, loga: float
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        n = self.grid.node(feh, loga)
+        m, c1, c2 = self.bands
+        return n.eep, n.mass, n.mags[m], n.mags[c1], n.mags[c2]
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -629,12 +650,15 @@ class IsochroneFitter:
 
     def __init__(
         self,
-        isochs_path: str | Path,
+        isochs_path: str | Path | None = None,
         *,
-        magnitude: str = "Gaia_G_EDR3",
-        magnitude_effl: float = 6390.7,
-        color: tuple[str, str] = ("Gaia_BP_EDR3", "Gaia_RP_EDR3"),
-        color_effl: tuple[float, float] = (5182.6, 7825.1),
+        grid: Any = None,
+        magnitude: str | None = None,
+        magnitude_effl: float | None = None,
+        color: tuple[str, str] | None = None,
+        color_effl: tuple[float, float] | None = None,
+        obs_columns: tuple[str, str, str] = ("Gmag", "G_BPmag", "G_RPmag"),
+        obs_error_columns: tuple[str, str, str] = ("e_Gmag", "e_G_BPmag", "e_G_RPmag"),
         model: str = "MIST",
         Rv: float = 3.1,
         # Binary fraction (Offner et al. 2022 / ASteCA default)
@@ -652,10 +676,26 @@ class IsochroneFitter:
 
         Parameters
         ----------
-        isochs_path : str or Path
-            Location of the theoretical isochrone files. Stored only; the read
-            happens in :meth:`setup`. The files must carry an ``EEP`` column.
-        magnitude : str, default "Gaia_G_EDR3"
+        isochs_path : str or Path, optional
+            Location of MIST ``.iso.cmd`` files (the legacy path). Stored only; the read
+            happens in :meth:`setup`. The files must carry an ``EEP`` column. Exactly one of
+            ``isochs_path`` and ``grid`` is given.
+
+            On this path the metallicity parameter is ``met`` = **linear Z** (``Zinit``), sampled
+            uniform in Z and interpolated in :math:`\log_{10} Z` -- unchanged since 2026-09-22, so
+            C1 and every run before the grid layer reproduce bit for bit.
+        grid : erotica.analysis.grids.IsochroneGrid, optional
+            Any backend of the grid layer (MIST v1.2/v2.5, PARSEC, BHAC15, SPOTS). On this path the
+            metallicity parameter is ``feh`` = the grid's own **[Fe/H] label**, sampled
+            :math:`\mathrm{feh} \sim U(\mathrm{[Fe/H]}_{\min}, \mathrm{[Fe/H]}_{\max})` and
+            interpolated linearly in it. ⚠ That is a different prior from the legacy one: uniform
+            in Z induces :math:`p(\mathrm{feh}) \propto dZ/d\,\mathrm{feh} = Z \ln 10 \propto
+            10^{\mathrm{feh}}` (on the node map), which over MIST's -0.5...+0.5 favours the metal-rich
+            end by a factor 10 against the uniform-in-[Fe/H] prior used here. With one [Fe/H] node
+            (BHAC15, SPOTS, or ``grid.select(feh=0.0)``) the metallicity is fixed. The grid's
+            ``sigma_floor``, when it has one measured on its own hold-out, replaces
+            :attr:`SIGMA_FLOOR`.
+        magnitude : str, default "Gaia_G_EDR3" (or ``grid.default_bands[0]``)
             Name of the magnitude column in the isochrone files.
         magnitude_effl : float, default 6390.7
             Effective wavelength of that band **in Ångström**. Feeds the CCM89 /
@@ -668,8 +708,13 @@ class IsochroneFitter:
         color_effl : tuple of float, default (5182.6, 7825.1)
             Their effective wavelengths **in Ångström**, same role and same
             ordering as `color`.
+        obs_columns : tuple of str, default ("Gmag", "G_BPmag", "G_RPmag")
+            The observed magnitude and the two colour bands in ``cluster_data``, in the same
+            order and photometric system as ``magnitude`` / ``color``.
+        obs_error_columns : tuple of str, default ("e_Gmag", "e_G_BPmag", "e_G_RPmag")
+            Their per-star errors; ``e_BP_RP`` (if present) still overrides the colour error.
         model : str, default "MIST"
-            Isochrone family label. Stored as ``self.model_name``.
+            Isochrone family label. Stored as ``self.model_name`` (the grid's name on the grid path).
         Rv : float, default 3.1
             Total-to-selective extinction ratio :math:`R_V = A_V/E(B-V)`,
             dimensionless. 3.1 is the diffuse-ISM average; sightlines through
@@ -722,12 +767,26 @@ class IsochroneFitter:
         Failures from an unreadable `isochs_path`, an unknown band name, or a
         wavelength outside the CCM89 domain surface from :meth:`setup`.
         """
-        self.isochs_path = Path(isochs_path)
-        self.magnitude = magnitude
-        self.magnitude_effl = magnitude_effl
-        self.color = color
-        self.color_effl = color_effl
-        self.model_name = model
+        if (isochs_path is None) == (grid is None):
+            raise ValueError("give exactly one of `isochs_path` (legacy MIST files) and `grid`")
+        self.grid = grid
+        self.isochs_path = Path(isochs_path) if isochs_path is not None else None
+        legacy_bands = ("Gaia_G_EDR3", "Gaia_BP_EDR3", "Gaia_RP_EDR3")
+        legacy_effl = (6390.7, 5182.6, 7825.1)
+        bands = legacy_bands if grid is None else tuple(grid.default_bands)
+        effl = legacy_effl if grid is None else tuple(grid.default_effl)
+        self.magnitude = magnitude if magnitude is not None else bands[0]
+        self.magnitude_effl = magnitude_effl if magnitude_effl is not None else effl[0]
+        self.color = tuple(color) if color is not None else (bands[1], bands[2])
+        self.color_effl = tuple(color_effl) if color_effl is not None else (effl[1], effl[2])
+        self.obs_columns = tuple(obs_columns)
+        self.obs_error_columns = tuple(obs_error_columns)
+        self.model_name = model if grid is None else grid.name
+        # metallicity coordinate: linear Z interpolated in log10 Z (legacy) or the grid's [Fe/H]
+        self._met_kind = "logz" if grid is None else "feh"
+        self._met_name = "met" if grid is None else "feh"
+        if grid is not None and getattr(grid, "sigma_floor", None) is not None:
+            self.SIGMA_FLOOR = float(grid.sigma_floor)  # instance value shadows the class default
         self.Rv = Rv
         self.alpha = alpha
         self.beta = beta
@@ -750,6 +809,7 @@ class IsochroneFitter:
         self._e_mag_coef: np.ndarray | None = None  # same model, as coefficients (F(theta))
         self._N_obs: int | None = None
         self._mag_lim: float | None = None  # completeness cut: the faintest member
+        self._mag_bright: float | None = None  # optional bright edge of the fitted window
         self._box_area: float | None = None
         self._kG: float | None = None
         self._kBP: float | None = None
@@ -775,6 +835,7 @@ class IsochroneFitter:
         pms_column: str | None = None,
         pms_max: float = 0.5,
         ms_weight: float = 1.0,
+        mag_window: tuple[float, float] | None = None,
     ) -> None:
         """Read the isochrones, select the members, and (optionally) build the node table.
 
@@ -795,6 +856,14 @@ class IsochroneFitter:
         pms_max : float
             Stars with ``pms_column >= pms_max`` are treated as PMS (weight 1).
             Stars below this threshold are treated as MS (weight ``ms_weight``).
+        mag_window : tuple of float, optional
+            ``(bright, faint)`` limits, in observed magnitude, of the fitted sample. ``None``
+            (default) keeps every member and puts the completeness cut at the faintest one, as
+            before. With a window, members outside it are dropped and **both** edges enter
+            :math:`F(\\theta)` exactly (:meth:`_p_observed`): this is how a grid that covers only
+            part of the mass range (BHAC15, SPOTS: <= 1.3-1.4 Msun; SPOTS f=0.34 in Gaia: >= 0.55
+            Msun) is fitted without the missing stars biasing it. The window must come from the
+            grid and the priors (:func:`erotica.analysis.grids.safe_window`), never from the data.
         ms_weight : float
             Multiplicative weight :math:`\\omega_i` on the log-likelihood of MS stars.
             ``ms_weight=1`` (default) is the likelihood; any other value makes it a
@@ -802,14 +871,22 @@ class IsochroneFitter:
             whose posterior width is no longer calibrated.
         """
         col1_name, col2_name = self.color
-        self._isochs = MISTIsochrones(
-            self.isochs_path,
-            magnitude_col=self.magnitude,
-            color_col1=col1_name,
-            color_col2=col2_name,
-        )
+        if self.grid is None:
+            self._isochs = MISTIsochrones(
+                self.isochs_path,
+                magnitude_col=self.magnitude,
+                color_col1=col1_name,
+                color_col2=col2_name,
+            )
+        else:
+            self._isochs = _GridAdapter(self.grid, self.magnitude, col1_name, col2_name)
 
         members = select_by_probability(cluster_data, probability_column, prob_threshold)
+        om, oc1, oc2 = self.obs_columns
+        if mag_window is not None:
+            g_all = np.asarray(members[om], dtype=float)
+            inside = (g_all >= mag_window[0]) & (g_all <= mag_window[1])
+            members = members[inside]
         self._N_obs = len(members)
 
         weights = np.ones(len(members), dtype=float)
@@ -823,17 +900,16 @@ class IsochroneFitter:
             )
         self._star_weights = weights
 
-        obs_mag = np.asarray(members["Gmag"], dtype=float)
-        obs_col = np.asarray(members["G_BPmag"], dtype=float) - np.asarray(
-            members["G_RPmag"], dtype=float
-        )
-        e_mag = np.asarray(members["e_Gmag"], dtype=float)
+        em, ec1, ec2 = self.obs_error_columns
+        obs_mag = np.asarray(members[om], dtype=float)
+        obs_col = np.asarray(members[oc1], dtype=float) - np.asarray(members[oc2], dtype=float)
+        e_mag = np.asarray(members[em], dtype=float)
         if "e_BP_RP" in members.colnames:
             e_col = np.asarray(members["e_BP_RP"], dtype=float)
         else:
             e_col = np.hypot(
-                np.asarray(members["e_G_BPmag"], dtype=float),
-                np.asarray(members["e_G_RPmag"], dtype=float),
+                np.asarray(members[ec1], dtype=float),
+                np.asarray(members[ec2], dtype=float),
             )
         self._obs_mag, self._obs_col = obs_mag, obs_col
         self._e_mag_fn, self._e_col_fn = _fit_error_model(obs_mag, e_mag, e_col)
@@ -847,7 +923,8 @@ class IsochroneFitter:
 
         # Window, from the data only: the completeness cut is the faintest member (ASteCA's
         # ``cut_max_mag``); the field component is uniform over the members' bounding box.
-        self._mag_lim = float(obs_mag.max())
+        self._mag_lim = float(obs_mag.max()) if mag_window is None else float(mag_window[1])
+        self._mag_bright = None if mag_window is None else float(mag_window[0])
         span_m = max(float(np.ptp(obs_mag)), 1e-3)
         span_c = max(float(np.ptp(obs_col)), 1e-3)
         self._box_area = span_m * span_c
@@ -888,7 +965,7 @@ class IsochroneFitter:
         if lo < ages[0] - 1e-9 or hi > ages[-1] + 1e-9:
             raise ValueError(
                 f"loga_range {self.loga_range} is outside the isochrone ages "
-                f"[{ages[0]}, {ages[-1]}] in {self.isochs_path}"
+                f"[{ages[0]}, {ages[-1]}] in {self.isochs_path or self.model_name}"
             )
 
         per_node = {}
@@ -917,7 +994,7 @@ class IsochroneFitter:
                     T[i, j, r] = np.interp(axis, eep, x)  # clamps outside the node's EEPs
         if np.any(np.diff(T[:, :, 0], axis=-1) < 0):
             raise ValueError("initial mass decreases along EEP in some isochrone node")
-        self._set_nodes(T, np.log10(zs), ages)
+        self._set_nodes(T, np.log10(zs) if self._met_kind == "logz" else zs, ages)
         print(f"  EEP node table: {T.shape} (Z x age x rows x EEP)")
 
     def _set_nodes(self, T: np.ndarray, logz: np.ndarray, loga: np.ndarray) -> None:
@@ -926,6 +1003,18 @@ class IsochroneFitter:
         self._nodes, self._node_logz, self._node_loga = T, logz, loga
         # static shape: slicing rows of a shape-less shared variable gives JAX a traced length
         self._nodes_tensor = pytensor.shared(T, name="isochrone_nodes", shape=T.shape)
+
+    def _met_coord(self, met: Any, xp: Any = np) -> Any:
+        """Node coordinate of a metallicity value: log10 Z (legacy) or [Fe/H] itself (grid)."""
+        return xp.log10(met) if self._met_kind == "logz" else met
+
+    def _met_from_coord(self, x: Any) -> Any:
+        return 10.0 ** np.asarray(x, float) if self._met_kind == "logz" else np.asarray(x, float)
+
+    def _met_bounds(self) -> tuple[float, float]:
+        """Prior bounds of the metallicity parameter, in its own units (Z or [Fe/H])."""
+        lo, hi = self._met_from_coord([self._node_logz[0], self._node_logz[-1]])
+        return float(lo), float(hi)
 
     @staticmethod
     def _bracket(nodes: np.ndarray, x: Any, xp: Any) -> tuple[Any, Any, Any]:
@@ -947,7 +1036,7 @@ class IsochroneFitter:
         if self._nodes is None:
             raise RuntimeError("No node table: call setup() or build_grid() first.")
         T = self._nodes if xp is np else self._nodes_tensor
-        i0, i1, wz = self._bracket(self._node_logz, xp.log10(met), xp)
+        i0, i1, wz = self._bracket(self._node_logz, self._met_coord(met, xp), xp)
         j0, j1, wa = self._bracket(self._node_loga, loga, xp)
         return (
             (1 - wz) * (1 - wa) * T[i0, j0]
@@ -1154,24 +1243,31 @@ class IsochroneFitter:
         def psi(x: Any) -> Any:  # antiderivative of Phi
             return x * Phi(x) + phi(x)
 
-        L = self._mag_lim
         d = B - A
         short = xp.abs(d) < 1e-6
         D = xp.where(short, 1.0, d)  # safe value: no NaN in the branch not taken, nor its grad
-        u0, u1 = (L - A) / s, (L - B) / s
-        P = xp.where(short, Phi((L - mid) / s), s / D * (psi(u0) - psi(u1)))
-        if not first_moment:
-            return P
+        delta = d / s
+        small = xp.abs(delta) < 0.1
+        dl = xp.where(small, 1.0, delta)
 
         def chi(x: Any) -> Any:  # antiderivative of x Phi(x)
             return 0.5 * ((x**2 - 1.0) * Phi(x) + x * phi(x))
 
-        delta = d / s
-        small = xp.abs(delta) < 0.1
-        dl = xp.where(small, 1.0, delta)
-        exact = (u0 * (psi(u0) - psi(u1)) - (chi(u0) - chi(u1))) / dl**2
-        T = xp.where(small, 0.5 * P - delta * phi((L - mid) / s) / 12.0, exact)
-        return P, T
+        def below(L: float) -> tuple[Any, Any]:  # P(observed fainter-limit L), first moment
+            u0, u1 = (L - A) / s, (L - B) / s
+            P = xp.where(short, Phi((L - mid) / s), s / D * (psi(u0) - psi(u1)))
+            exact = (u0 * (psi(u0) - psi(u1)) - (chi(u0) - chi(u1))) / dl**2
+            T = xp.where(small, 0.5 * P - delta * phi((L - mid) / s) / 12.0, exact)
+            return P, T
+
+        # Both P and T are linear in Phi, so a two-sided window [bright, faint] is the faint
+        # probability minus the bright one, exactly (same algebra, other limit).
+        P, T = below(self._mag_lim)
+        bright = getattr(self, "_mag_bright", None)  # absent on pre-window pickles and probes
+        if bright is not None:
+            Pb, Tb = below(bright)
+            P, T = P - Pb, T - Tb
+        return (P, T) if first_moment else P
 
     def _compiled_loglike(self, mode: str | None = None) -> Any:
         """Compiled ``(log L, d log L / d params)`` of the six parameters, for optimisation."""
@@ -1211,7 +1307,7 @@ class IsochroneFitter:
         nuisance ones do, and adaptation learns its scale.
         """
         bounds = {
-            "met": (10.0 ** float(self._node_logz[0]), 10.0 ** float(self._node_logz[-1])),
+            self._met_name: tuple(self._met_bounds()),
             "loga": tuple(self.loga_range),
             "dm": tuple(self.dm_range),
             "Av": tuple(self.Av_range),
@@ -1252,13 +1348,12 @@ class IsochroneFitter:
         rng = np.random.default_rng() if rng is None else rng
         if self._nodes is None:
             raise RuntimeError("Call setup() or build_grid() first.")
-        zlo, zhi = 10 ** float(self._node_logz[0]), 10 ** float(self._node_logz[-1])
-        lo = np.array(
-            [zlo * (1 + 1e-9), self.loga_range[0], self.dm_range[0], self.Av_range[0], 1e-4, 1e-4]
-        )
-        hi = np.array(
-            [zhi * (1 - 1e-9), self.loga_range[1], self.dm_range[1], self.Av_range[1], 0.5, 0.5]
-        )
+        zlo, zhi = self._met_bounds()
+        eps = 1e-9 * max(zhi - zlo, 1e-12) if self._met_kind == "feh" else 0.0
+        zlo_in = zlo * (1 + 1e-9) if self._met_kind == "logz" else zlo + eps
+        zhi_in = zhi * (1 - 1e-9) if self._met_kind == "logz" else zhi - eps
+        lo = np.array([zlo_in, self.loga_range[0], self.dm_range[0], self.Av_range[0], 1e-4, 1e-4])
+        hi = np.array([zhi_in, self.loga_range[1], self.dm_range[1], self.Av_range[1], 0.5, 0.5])
         if len(self._node_logz) == 1:
             lo[0] = hi[0] = zlo
 
@@ -1270,7 +1365,7 @@ class IsochroneFitter:
         ages = [a for a in self._node_loga if lo[1] <= a <= hi[1]] or [
             float(np.mean(self.loga_range))
         ]
-        for z in np.clip(10.0**self._node_logz, lo[0], hi[0]):
+        for z in np.clip(self._met_from_coord(self._node_logz), lo[0], hi[0]):
             for a in ages:
 
                 def nll2(y: np.ndarray, z: float = float(z), a: float = float(a)) -> tuple:
@@ -1312,7 +1407,7 @@ class IsochroneFitter:
             ym[k] -= h
             curv = -(f6(yp)[1][k] - f6(ym)[1][k]) / (2 * h)  # -d2 logL / dx2
             sd[k] = 1 / np.sqrt(curv) if curv > 0 else 0.1 * (hi[k] - lo[k])
-        names = ("met", "loga", "dm", "Av")
+        names = (self._met_name, "loga", "dm", "Av")
         starts = []
         # strictly inside the prior: a start ON an interval bound is -inf in the sampler's
         # logit space, and the chain never moves (NGC 6383, 2026-09-24: the mode had A_V on its
@@ -1324,7 +1419,7 @@ class IsochroneFitter:
             st["sigma_int"] = float(max(best[4], 1e-3) * rng.uniform(0.7, 1.4))
             st["f_bg"] = float(np.clip(best[5], 1e-3, 0.5) * rng.uniform(0.7, 1.4))
             if len(self._node_logz) == 1:
-                st.pop("met")
+                st.pop(self._met_name)
             starts.append(st)
         return {
             "mode": dict(zip((*names, "sigma_int", "f_bg"), best.tolist(), strict=True)),
@@ -1401,6 +1496,7 @@ class IsochroneFitter:
             likelihood=np.array(self.LIKELIHOOD_VERSION),
             nodes=self._nodes,
             node_logz=self._node_logz,
+            met_kind=np.array(self._met_kind),
             node_loga=self._node_loga,
             q_nodes=_Q_NODES,
         )
@@ -1415,6 +1511,12 @@ class IsochroneFitter:
             )
         if not np.array_equal(d["q_nodes"], _Q_NODES):
             raise ValueError(f"{path} was built with other mass-ratio nodes; rebuild it.")
+        kind = str(d["met_kind"]) if "met_kind" in d.files else "logz"
+        if kind != self._met_kind:
+            raise ValueError(
+                f"{path} was built with metallicity coordinate {kind!r}; this fitter uses "
+                f"{self._met_kind!r} (legacy Z files vs a grid backend). Rebuild it."
+            )
         self._set_nodes(d["nodes"], d["node_logz"], d["node_loga"])
 
     # ------------------------------------------------------------------
@@ -1435,14 +1537,16 @@ class IsochroneFitter:
                 f"loga_range {self.loga_range} reaches beyond the node table "
                 f"[{self._node_loga[0]}, {self._node_loga[-1]}]; rebuild it with build_grid()."
             )
-        met_min, met_max = 10.0 ** float(self._node_logz[0]), 10.0 ** float(self._node_logz[-1])
+        met_min, met_max = self._met_bounds()
         weights = self._star_weights
 
         with pm.Model() as model:
+            # legacy: met = linear Z, uniform in Z; grid: feh = [Fe/H] label, uniform in [Fe/H]
+            mname = self._met_name
             if len(self._node_logz) > 1:
-                met = pm.Uniform("met", lower=met_min, upper=met_max)
-            else:  # one metallicity file: Uniform(Z, Z) has no density, so Z is fixed
-                met = pm.Deterministic("met", pt.as_tensor_variable(met_min))
+                met = pm.Uniform(mname, lower=met_min, upper=met_max)
+            else:  # one metallicity node: Uniform(Z, Z) has no density, so it is fixed
+                met = pm.Deterministic(mname, pt.as_tensor_variable(met_min))
             loga = pm.Uniform("loga", lower=loga_min, upper=loga_max)
             dm = pm.TruncatedNormal(
                 "dm",
@@ -1647,8 +1751,9 @@ class IsochroneFitter:
         import arviz as az
 
         rng = np.random.default_rng() if rng is None else rng
-        ds = az.extract(idata, num_samples=num_samples, var_names=["met", "loga", "dm", "Av"])
-        cols = [np.asarray(ds[v]).ravel() for v in ("met", "loga", "dm", "Av")]
+        vn = [self._met_name, "loga", "dm", "Av"]
+        ds = az.extract(idata, num_samples=num_samples, var_names=vn)
+        cols = [np.asarray(ds[v]).ravel() for v in vn]
         sint = (
             np.asarray(az.extract(idata, num_samples=num_samples, var_names=["sigma_int"])).ravel()
             if "sigma_int" in idata.posterior
@@ -1707,6 +1812,8 @@ class IsochroneFitter:
             Go = G + rng.normal(size=G.size) * eg
             Co = C + rng.normal(size=G.size) * ec
             keep = Go <= self._mag_lim
+            if self._mag_bright is not None:
+                keep &= Go >= self._mag_bright
             out_m.append(Go[keep])
             out_c.append(Co[keep])
         return np.concatenate(out_m)[:n], np.concatenate(out_c)[:n]
@@ -1715,10 +1822,10 @@ class IsochroneFitter:
         """Posterior-median parameters and the apparent single-star isochrone there."""
         import arviz as az
 
-        post = az.extract(idata, var_names=["met", "loga", "dm", "Av"])
-        med = {
-            v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
-        }
+        vn = [self._met_name, "loga", "dm", "Av"]
+        post = az.extract(idata, var_names=vn)
+        med = {v: float(np.median(np.asarray(post[v]).ravel())) for v in vn}
+        med["met"] = med[self._met_name]  # callers index "met" whatever the coordinate
         X = self._interp_isochrone(med["met"], med["loga"], np)
         G_app = X[1] + med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
         col_app = X[2] + self._k_col1 * med["Av"]  # type: ignore[operator]
@@ -1777,10 +1884,9 @@ class IsochroneFitter:
 
         # Observed members
         members = select_by_probability(cluster_table, probability_column, prob_threshold)
-        obs_g = np.asarray(members["Gmag"], dtype=float)
-        obs_col = np.asarray(members["G_BPmag"], dtype=float) - np.asarray(
-            members["G_RPmag"], dtype=float
-        )
+        om, oc1, oc2 = self.obs_columns
+        obs_g = np.asarray(members[om], dtype=float)
+        obs_col = np.asarray(members[oc1], dtype=float) - np.asarray(members[oc2], dtype=float)
 
         # Normalise CMD space by typical observed spreads so both axes contribute equally
         sig_g = float(np.nanstd(obs_g)) or 1.0
