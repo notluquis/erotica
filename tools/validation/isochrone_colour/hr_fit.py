@@ -11,8 +11,14 @@ Runs (``--run``):
   R3/R4.
 * ``R3``: (G, -10 log T_eff) with raw GSP-Phot T_eff, same 202, no binaries.
 * ``R4``: the same with GSP-Phot minus its bias measured on lambda Ori (Cao+22 spectroscopic T_eff),
-  binned in log T_gsp, the lambda Ori robust scatter added to the error. lambda Ori has A_V ~ 0.3 and
-  NGC 6383 ~ 1-1.5: the calibration's transfer in extinction is a declared limit, not measured.
+  binned in log T_gsp, the lambda Ori robust scatter added to the error. lambda Ori has A_V ~ 0.3
+  and NGC 6383 ~ 1-1.5: the calibration's transfer in extinction is a declared limit, not measured.
+  Stars hotter than the hottest calibration bin (5760 K) are left raw: a step at that T_eff.
+* ``R3b`` (POST HOC, added after reading R3 and R4): raw GSP-Phot T_eff with R4's error model.
+
+GSP-Phot is not colour-table-free: its T_eff comes from PARSEC 1.2S isochrones with log t >= 6.6 and
+MARCS/PHOENIX/A/OB model SEDs (Andrae+2023, 2023A&A...674A..27A, §2.3), so a 1-3 Myr star is forced
+onto a >= 4 Myr isochrone.
 
 Process behind each piece: G carries dm + k_G A_V (one A_V, anchored by the upper-MS stars once dm
 is fixed by the parallax); the "colour" column is -10 log T_eff with zero extinction coefficient
@@ -122,13 +128,17 @@ def build(run: str):
         s = t[has]
         lt_s = lt[has]
         e_lt = 0.5 * (np.log10(_f(s["teff_gspphot_upper"])) - np.log10(_f(s["teff_gspphot_lower"])))
-        if run == "R4":
+        if run in ("R4", "R3b"):
             cal = lori_calibration()
             x = np.array([b["logt_gsp_mid"] for b in cal["bins"]])
             bias = np.interp(lt_s, x, [b["bias"] for b in cal["bins"]])
             sc = np.interp(lt_s, x, [b["scatter"] for b in cal["bins"]])
             hot = lt_s > x[-1]  # no lambda Ori calibration above its hottest bin: left raw
             bias[hot], sc[hot] = 0.0, 0.0
+            if run == "R3b":
+                # POST HOC (after R3/R4 were read): raw T_eff with R4's error model, to separate
+                # the bias correction from the error-model change between R3 and R4
+                bias[:] = 0.0
             lt_s = lt_s - bias
             e_lt = np.hypot(e_lt, sc)
             out["calibration"] = cal
@@ -165,7 +175,7 @@ def build(run: str):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", required=True, choices=["R1", "R2", "R3", "R4"])
+    ap.add_argument("--run", required=True, choices=["R1", "R2", "R3", "R4", "R3b"])
     a = ap.parse_args()
     f, data, out = build(a.run)
     assert a.run in ("R1", "R2") or abs(f._k_col1) < 1e-12
