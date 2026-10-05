@@ -582,6 +582,85 @@ def export_grids() -> list[Path]:
     return out
 
 
+def export_colour() -> list[Path]:
+    """NGC 6383 from ``isochrone_colour/hr_fit_R{1..4}.json`` (hub finding
+    ``isochrone-colour-mechanism.md``): maximum a posteriori points with the parallax dm prior (NOT
+    posteriors). R1/R2 are CMD fits; R3/R4 are fitted in the (G, -10 log T_eff) plane with GSP-Phot
+    T_eff, so their ``cmd`` block has ``x`` = "-10 log Teff" and the curve is in that plane."""
+    sys.path.insert(0, str(VALIDATION / "isochrone_colour"))
+    from hr_fit import build
+
+    head = _git("rev-parse", "--short", "HEAD")
+    what = {
+        "R1": "CMD, 254 members, binaries",
+        "R2": "CMD, the 202 members with GSP-Phot T_eff, no binaries",
+        "R3": "(G, T_eff) plane, raw GSP-Phot T_eff, no binaries",
+        "R4": "(G, T_eff) plane, GSP-Phot T_eff minus its lambda Ori bias, no binaries",
+    }
+    out = []
+    for run in ("R1", "R2", "R3", "R4"):
+        src = VALIDATION / f"isochrone_colour/hr_fit_{run}.json"
+        if not src.exists():
+            continue
+        fit = json.loads(src.read_text())
+        f, table, _ = build(run)
+        m = dict(fit["mode"])
+        d = f.grid.describe()
+        cmd = observed_cmd(f, table)
+        if run in ("R3", "R4"):
+            cmd["x"] = "-10 log Teff (GSP-Phot" + (
+                ", lambda Ori-calibrated)" if run == "R4" else ")"
+            )
+        run_id = f"colour-ngc6383-{run.lower()}-{head}"
+        out.append(
+            _write(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "grid": {
+                        **d,
+                        "name": f.grid.name,
+                        "path": "erotica.analysis.grids (grid=)",
+                        "metallicity_parameter": "feh = the grid's own [Fe/H] label, uniform in it",
+                    },
+                    "id": run_id,
+                    "date": "2026-10-05",
+                    "erotica_commit": head,
+                    "cluster": "NGC 6383",
+                    "model": {
+                        "grid": "MIST",
+                        "version": "v1.2",
+                        "files": f.grid.name,
+                        "photometry": "Gaia EDR3 G"
+                        + (", BP-RP" if run in ("R1", "R2") else ", GSP-Phot T_eff"),
+                        "z_sun": None,
+                        "z_sun_source": "not used: the fit coordinate is the [Fe/H] label",
+                    },
+                    "method": "maximum a posteriori in dm (Gaussian parallax prior), likelihood "
+                    "elsewhere; common.search (coarse node lattice + L-BFGS-B); NOT a posterior",
+                    "config": {
+                        "run": what[run],
+                        "priors": fit["priors"],
+                        "binaries": {"alpha": f.alpha, "beta": f.beta},
+                        "sigma_floor": f.SIGMA_FLOOR,
+                        "at_prior_bound": fit["at_bound"],
+                    },
+                    "posterior": {k: {"q50": float(v)} for k, v in m.items()},
+                    "diagnostics": None,
+                    "cmd": cmd,
+                    "sample": "paperfaithful_reference_p06.ecsv",
+                    "isochrone": isochrone_block(
+                        f, m, None, None, f"erotica IsochroneFitter(grid=) at {head}"
+                    ),
+                    "notes": [
+                        what[run],
+                        f"source: tools/validation/isochrone_colour/hr_fit_{run}.json",
+                    ],
+                }
+            )
+        )
+    return out
+
+
 if __name__ == "__main__":
     which = sys.argv[1:] or ["c1", "hess507", "p01"]
     for w in which:
@@ -592,5 +671,6 @@ if __name__ == "__main__":
                 "p01": export_p01,
                 "migrate": migrate_v1,
                 "grids": export_grids,
+                "colour": export_colour,
             }[w]()
         )

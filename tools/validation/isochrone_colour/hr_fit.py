@@ -92,17 +92,17 @@ def hr_view(g):
     return h
 
 
-def main() -> None:
+def build(run: str):
+    """The fitter, its data table and the run metadata for ``run`` (R1-R4), set up and ready;
+    ``export_run.py colour`` rebuilds the same fitter from here."""
     from astropy.table import QTable, Table, join
 
     import erotica
     from erotica.analysis._isochrone import IsochroneFitter
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--run", required=True, choices=["R1", "R2", "R3", "R4"])
-    a = ap.parse_args()
     real = Table.read(SAMPLE)
     gs = Table.read(HERE / "gspphot_ngc6383.ecsv")
+    gs.remove_column("source_id")  # null where DR3 has no AP row; the uploaded id is `sid`
     gs.rename_column("sid", "source_id")
     t = join(real, gs, keys="source_id", join_type="left")
     assert len(t) == len(real)
@@ -110,19 +110,19 @@ def main() -> None:
     has = np.isfinite(lt)
     out = {
         "erotica_file": erotica.__file__,
-        "run": a.run,
+        "run": run,
         "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()},
     }
     g = mist()
-    if a.run in ("R1", "R2"):
-        data = QTable(t if a.run == "R1" else t[has])
-        kw = {} if a.run == "R1" else {"alpha": 0.0, "beta": 0.0}
+    if run in ("R1", "R2"):
+        data = QTable(t if run == "R1" else t[has])
+        kw = {} if run == "R1" else {"alpha": 0.0, "beta": 0.0}
         f = IsochroneFitter(grid=g, magnitude=EDR3[0], color=EDR3[1:], **kw, **PRI_PLX)
     else:
         s = t[has]
         lt_s = lt[has]
         e_lt = 0.5 * (np.log10(_f(s["teff_gspphot_upper"])) - np.log10(_f(s["teff_gspphot_lower"])))
-        if a.run == "R4":
+        if run == "R4":
             cal = lori_calibration()
             x = np.array([b["logt_gsp_mid"] for b in cal["bins"]])
             bias = np.interp(lt_s, x, [b["bias"] for b in cal["bins"]])
@@ -160,6 +160,14 @@ def main() -> None:
             **PRI_PLX,
         )
     f.setup(data, prob_threshold=0.0)
+    return f, data, out
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--run", required=True, choices=["R1", "R2", "R3", "R4"])
+    a = ap.parse_args()
+    f, data, out = build(a.run)
     assert a.run in ("R1", "R2") or abs(f._k_col1) < 1e-12
     res = search(f, verbose=False)
     res["age_Myr"] = 10 ** res["mode"]["loga"] / 1e6
