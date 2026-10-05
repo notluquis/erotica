@@ -60,8 +60,14 @@ def lori_calibration() -> dict:
         s = (tg >= a) & (tg < b)
         if s.sum() >= 5:
             med = float(np.median(d[s]))
-            rows.append({"logt_gsp_mid": float(np.median(tg[s])), "n": int(s.sum()), "bias": med,
-                         "scatter": float(1.4826 * np.median(np.abs(d[s] - med)))})
+            rows.append(
+                {
+                    "logt_gsp_mid": float(np.median(tg[s])),
+                    "n": int(s.sum()),
+                    "bias": med,
+                    "scatter": float(1.4826 * np.median(np.abs(d[s] - med))),
+                }
+            )
     return {"n": int(ok.sum()), "bins": rows}
 
 
@@ -72,9 +78,15 @@ def hr_view(g):
     from erotica.analysis.grids.base import GridNode
 
     h = copy.copy(g)
-    h._nodes = {k: GridNode(n.eep, n.mass, {"G": n.mags[EDR3[0]], "T": -10.0 * n.extra["logte"],
-                                            "zero": 0.0 * n.mass}, n.extra)
-                for k, n in g._nodes.items()}
+    h._nodes = {
+        k: GridNode(
+            n.eep,
+            n.mass,
+            {"G": n.mags[EDR3[0]], "T": -10.0 * n.extra["logte"], "zero": 0.0 * n.mass},
+            n.extra,
+        )
+        for k, n in g._nodes.items()
+    }
     h.bands = h.default_bands = ("G", "T", "zero")
     h.name = g.name + " [G-Teff]"
     return h
@@ -96,8 +108,11 @@ def main() -> None:
     assert len(t) == len(real)
     lt = np.log10(_f(t["teff_gspphot"]))
     has = np.isfinite(lt)
-    out = {"erotica_file": erotica.__file__, "run": a.run,
-           "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()}}
+    out = {
+        "erotica_file": erotica.__file__,
+        "run": a.run,
+        "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()},
+    }
     g = mist()
     if a.run in ("R1", "R2"):
         data = QTable(t if a.run == "R1" else t[has])
@@ -118,23 +133,45 @@ def main() -> None:
             e_lt = np.hypot(e_lt, sc)
             out["calibration"] = cal
             out["n_uncalibrated_hot"] = int(hot.sum())
-        data = QTable({"source_id": s["source_id"], "Gmag": _f(s["Gmag"]), "T": -10.0 * lt_s,
-                       "Z": np.zeros(len(s)), "e_Gmag": _f(s["e_Gmag"]),
-                       "e_T": 10.0 * e_lt, "e_Z": np.zeros(len(s)), "e_BP_RP": 10.0 * e_lt,
-                       "probability_hdbscan": np.ones(len(s))})
+        data = QTable(
+            {
+                "source_id": s["source_id"],
+                "Gmag": _f(s["Gmag"]),
+                "T": -10.0 * lt_s,
+                "Z": np.zeros(len(s)),
+                "e_Gmag": _f(s["e_Gmag"]),
+                "e_T": 10.0 * e_lt,
+                "e_Z": np.zeros(len(s)),
+                "e_BP_RP": 10.0 * e_lt,
+                "probability_hdbscan": np.ones(len(s)),
+            }
+        )
         out["logteff_used"] = lt_s.tolist()
-        f = IsochroneFitter(grid=hr_view(g), obs_columns=("Gmag", "T", "Z"),
-                            obs_error_columns=("e_Gmag", "e_T", "e_Z"), magnitude="G",
-                            magnitude_effl=6390.7, color=("T", "zero"),
-                            color_effl=(6390.7, 6390.7), alpha=0.0, beta=0.0, **PRI_PLX)
+        f = IsochroneFitter(
+            grid=hr_view(g),
+            obs_columns=("Gmag", "T", "Z"),
+            obs_error_columns=("e_Gmag", "e_T", "e_Z"),
+            magnitude="G",
+            magnitude_effl=6390.7,
+            color=("T", "zero"),
+            color_effl=(6390.7, 6390.7),
+            alpha=0.0,
+            beta=0.0,
+            **PRI_PLX,
+        )
     f.setup(data, prob_threshold=0.0)
     assert a.run in ("R1", "R2") or abs(f._k_col1) < 1e-12
     res = search(f, verbose=False)
     res["age_Myr"] = 10 ** res["mode"]["loga"] / 1e6
     out.update(res)
     out["source_id"] = [int(x) for x in np.asarray(data["source_id"])]
-    print(a.run, json.dumps({k: out[k] for k in ("mode", "age_Myr", "at_bound", "n", "seconds")},
-                            default=float), flush=True)
+    print(
+        a.run,
+        json.dumps(
+            {k: out[k] for k in ("mode", "age_Myr", "at_bound", "n", "seconds")}, default=float
+        ),
+        flush=True,
+    )
     (HERE / f"hr_fit_{a.run}.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
 
 

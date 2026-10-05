@@ -60,8 +60,12 @@ def main() -> None:
         assert len(r) == len(ids), (name, len(r), len(ids))  # one row per uploaded id
         r.write(HERE / f"gspphot_{name}.ecsv", overwrite=True)
         n_t = int(np.isfinite(np.asarray(r["teff_gspphot"].filled(np.nan), float)).sum())
-        meta[name] = {"n_uploaded": int(len(ids)), "n_rows": int(len(r)), "n_teff_gspphot": n_t,
-                      "job_id": jid}
+        meta[name] = {
+            "n_uploaded": int(len(ids)),
+            "n_rows": int(len(r)),
+            "n_teff_gspphot": n_t,
+            "job_id": jid,
+        }
         print(name, meta[name], flush=True)
     (HERE / "gspphot_query.json").write_text(json.dumps(meta, indent=1) + "\n")
 

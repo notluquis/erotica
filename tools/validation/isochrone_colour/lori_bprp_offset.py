@@ -9,6 +9,7 @@ not independent of a colour table). CCM89 coefficients at the band effective wav
 fitter (the same law NGC 6383 is fitted with). Class III only (no disc excess), RUWE < 1.4.
 Output ``lori_bprp_offset.json``: binned median in log T_eff with bootstrap SE.
 """
+
 from __future__ import annotations
 
 import json
@@ -51,8 +52,14 @@ def main() -> None:
             if s.sum() < 5:
                 continue
             boots = [np.median(rng.choice(r[s], s.sum())) for _ in range(2000)]
-            rows.append({"logte_mid": float(np.median(lt[s])), "n": int(s.sum()),
-                         "median": float(np.median(r[s])), "se_boot": float(np.std(boots))})
+            rows.append(
+                {
+                    "logte_mid": float(np.median(lt[s])),
+                    "n": int(s.sum()),
+                    "median": float(np.median(r[s])),
+                    "se_boot": float(np.std(boots)),
+                }
+            )
         out["nodes"][str(a)] = {"all_median": float(np.median(r)), "bins": rows}
         print(a, json.dumps(out["nodes"][str(a)]), flush=True)
     (HERE / "lori_bprp_offset.json").write_text(json.dumps(out, indent=1) + "\n")
