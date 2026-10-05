@@ -153,7 +153,7 @@ def _pair(tmp_path, pri, window=None, **kw):
 @pytest.mark.parametrize("pri", [SINGLE, BIN], ids=["single", "binaries"])
 @pytest.mark.parametrize("window", [None, (11.0, 17.5)], ids=["one-sided", "two-sided"])
 def test_gaia_only_reproduces_the_2d_likelihood(tmp_path, pri, window):
-    """Oracle: :class:`IsochroneFitter`. Mutations seen red (2026-10-05): floor added per band
+    """Oracle: :class:`IsochroneFitter`. Mutations (PENDING, see tools/validation/isochrone_multiband/mutations.json): floor added per band
     (colour gets two), background over one coordinate, Woodbury correction dropped (binaries)."""
     f2, fn = _pair(tmp_path, {**PRI, **pri}, window)
     for p in POINTS:
@@ -200,7 +200,7 @@ def test_c1_sample_mist_v12_gaia_only_equals_2d():
 
 def test_segment_integral_matches_quadrature_with_two_rank1_terms_and_a_missing_band():
     """Oracle: ``quad`` over t of ``multivariate_normal.pdf`` with the full covariance built by
-    hand, the missing coordinate's row and column deleted. Mutation seen red: the Woodbury
+    hand, the missing coordinate's row and column deleted. Mutation (PENDING, mutations.json): the Woodbury
     capacitance's off-diagonal sign flipped."""
     from scipy.integrate import quad
     from scipy.stats import multivariate_normal
@@ -269,7 +269,7 @@ def test_a_band_missing_for_every_star_is_the_fitter_without_it(tmp_path):
 @requires_bayes
 def test_zero_point_shifts_only_its_group_and_is_invariant(tmp_path):
     """Oracle: moving the group's observed J by delta and the zero point by delta changes nothing;
-    moving it with the zero point fixed does. Mutation seen red: zero point applied to all stars."""
+    moving it with the zero point fixed does. Mutation (PENDING, mutations.json): zero point applied to all stars."""
     g = _grid(tmp_path)
     base = _stars()
     shifted = _stars()
