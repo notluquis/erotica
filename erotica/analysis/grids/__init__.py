@@ -5,6 +5,7 @@ and the measured numbers live in this directory's ``AGENTS.md``.
 """
 
 from .base import GridNode, GridProvenance, IsochroneGrid, common_eep_table, safe_window
+from .holdout import holdout_feh_node, holdout_grid, holdout_node, recommended_sigma_floor
 from .mist import MISTGrid
 
 __all__ = [
@@ -13,5 +14,9 @@ __all__ = [
     "IsochroneGrid",
     "MISTGrid",
     "common_eep_table",
+    "holdout_feh_node",
+    "holdout_grid",
+    "holdout_node",
+    "recommended_sigma_floor",
     "safe_window",
 ]
