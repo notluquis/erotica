@@ -1113,3 +1113,53 @@ def test_distance_model_sin_errores_avisa_de_su_defecto(monkeypatch):
         warnings.simplefilter("error", UserWarning)
         with pytest.raises(RuntimeError, match="corte"):
             inf.distance_model(t, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo")
+
+
+# --- R30 (agent-findings/review-inference-dynamics-2026-10-05.md) ---------------------------------
+# Las tres rutas por umbral que no son la de distancia llaman a los modelos SIN errores por estrella:
+# sigma es dispersion observada. Estos dos tests dicen lo que deberian hacer y estan marcados
+# xfail(strict) porque arreglarlo cambia cifras ya publicadas (P01: "2.542 +- 0.152" es el sigma
+# observado, 0.1536; con errores 0.123). Al arreglarlo, el xfail estricto falla y obliga a quitarlo.
+
+
+def _spy_table(n: int = 30) -> QTable:
+    rng = np.random.default_rng(1)
+    return QTable(
+        {
+            "probability": np.full(n, 0.9),
+            "pmra": rng.normal(2.5, 0.15, n) * u.mas / u.yr,
+            "pmdec": rng.normal(-1.7, 0.15, n) * u.mas / u.yr,
+            "pmra_error": np.full(n, 0.1) * u.mas / u.yr,
+            "pmdec_error": np.full(n, 0.1) * u.mas / u.yr,
+            "pmra_pmdec_corr": np.full(n, 0.3),
+            "projected_velocity": rng.normal(13.0, 1.0, n) * u.km / u.s,
+            "radial_velocity": rng.normal(-9.0, 3.0, n) * u.km / u.s,
+            "radial_velocity_error": np.full(n, 2.0) * u.km / u.s,
+        }
+    )
+
+
+@pytest.mark.xfail(
+    strict=True, reason="R30-01: proper_motion_by_probability no pasa pmra_error/pmdec_error/corr"
+)
+def test_proper_motion_route_passes_per_star_errors_when_the_columns_exist(monkeypatch):
+    seen = {}
+
+    class _R:
+        results = {"mu_RA_mean": 0.0, "mu_Dec_mean": 0.0}
+        trace = None
+
+    def spy(*a, **k):
+        seen.update(k)
+        return _R()
+
+    monkeypatch.setattr(inference, "proper_motion_2d_gaussian", spy)
+    ClusterInferenceAnalyzer(_spy_table()).proper_motion_by_probability((0.5,))
+    assert {"pm_ra_error", "pm_dec_error"} <= set(seen)
+
+
+@pytest.mark.xfail(strict=True, reason="R30-01: radial_velocity_model no tiene parametro `errors`")
+def test_radial_velocity_route_accepts_per_star_errors():
+    import inspect
+
+    assert "errors" in inspect.signature(inference.radial_velocity_model).parameters

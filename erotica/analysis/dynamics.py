@@ -289,7 +289,9 @@ def calculate_hill_radius(
             cluster_mass = estimate_cluster_mass(
                 data[magnitude_column] if hasattr(data, "colnames") else data, dist
             )
-        cluster_mass_err = 0 * u.Msun
+        # R30-03: aqui se ponia `cluster_mass_err = 0` y se pisaba el error que el llamador pasaba
+        # (tambien por ClusterDynamicsAnalyzer.hill_radius). Sin argumento sigue siendo 0, mas
+        # abajo: ni la suma de una columna ni el estimador de luminosidad traen error propio.
     cluster_mass = ensure_units(cluster_mass, u.Msun)
     cluster_mass_err = ensure_units(
         0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun

@@ -17,7 +17,9 @@ from erotica.analysis.dynamics import (
     calculate_galactocentric_distance,
     calculate_hill_radius,
     crossing_time,
+    grav_bound_radius,
     half_mass_relaxation_time,
+    mass_segregation_timescale,
     posterior_summary,
     tidal_radius_prior,
 )
@@ -652,3 +654,88 @@ def test_a_timescale_has_no_error_route_at_all_so_the_samples_are_the_only_one()
     assert asimetria > 0.10, (
         f"el intervalo salió simétrico ({asimetria:.2%}): ¿se colapsó la entrada?"
     )
+
+
+# --- R30 (agent-findings/review-inference-dynamics-2026-10-05.md) ---------------------------------
+
+
+def _hill_table():
+    from astropy.table import QTable
+
+    rng = np.random.default_rng(3)
+    return QTable({"mass": rng.uniform(0.3, 3.0, 254) * u.Msun, "Gmag": rng.uniform(10, 19, 254)})
+
+
+_HILL_KW = dict(
+    center=(263.683 * u.deg, -32.584 * u.deg), distance=1.11 * u.kpc, distance_err=0.06 * u.kpc
+)
+
+
+def test_hill_radius_keeps_a_caller_supplied_cluster_mass_error_when_the_mass_comes_from_data():
+    """Con `cluster_mass=None` la masa sale de la tabla, pero el error que el llamador pasa es suyo.
+
+    Antes de R30-03 la rama `if cluster_mass is None` ponia `cluster_mass_err = 0` y pisaba el
+    argumento: el error de masa, que domina el error lineal desde sigma_M/M ~ 17 %, se perdia sin
+    aviso, tambien por `ClusterDynamicsAnalyzer.hill_radius(**kwargs)`.
+    """
+    tab = _hill_table()
+    sin = calculate_hill_radius(tab, mass_column="mass", return_cluster_mass=True, **_HILL_KW)
+    con = calculate_hill_radius(
+        tab, mass_column="mass", cluster_mass_err=100 * u.Msun, return_cluster_mass=True, **_HILL_KW
+    )
+    assert sin["cluster_mass_err"].value == 0.0  # defecto documentado: sin argumento, sin error
+    assert con["cluster_mass_err"].to_value(u.Msun) == pytest.approx(100.0)
+    assert con["angular_size_err"] > sin["angular_size_err"]
+    # la propagacion es la de la formula: dR/R = (1/3) dM/M, en cuadratura con lo demas
+    m = sin["cluster_mass"].to_value(u.Msun)
+    extra = (con["angular_size"] * (100.0 / m) / 3.0).to_value(u.arcmin)
+    assert con["angular_size_err"].to_value(u.arcmin) ** 2 == pytest.approx(
+        sin["angular_size_err"].to_value(u.arcmin) ** 2 + extra**2, rel=1e-6
+    )
+    # y por el analizador, que reenvia **kwargs
+    from erotica.analysis.dynamics import ClusterDynamicsAnalyzer
+
+    an = ClusterDynamicsAnalyzer(
+        tab, distance=1.11 * u.kpc, center=_HILL_KW["center"], mass_column="mass"
+    )
+    via = an.hill_radius(
+        cluster_mass_err=100 * u.Msun, distance_err=0.06 * u.kpc, return_cluster_mass=True
+    )
+    assert via["cluster_mass_err"].to_value(u.Msun) == pytest.approx(100.0)
+
+
+def test_grav_bound_radius_matches_the_published_value_and_an_independent_closed_form():
+    """Valor, no solo nombre exportado. Oraculo 1: la formula de Pinfield+98 a mano, en pc y km/s,
+    sin pasar por astropy.constants. Oraculo 2: la fila de P01 (42,5 +- 1,6 arcmin con 902 +- 92 Msun
+    a 1,11 kpc; la funcion da 42,7 +- 1,57, dentro de lo que redondea el articulo)."""
+    out = grav_bound_radius(902 * u.Msun, 92 * u.Msun, distance=1.11 * u.kpc)
+    g_pc = 4.30091e-3  # pc (km/s)^2 / Msun
+    a_minus_b = (15.3 + 11.9) * 1e-3  # km/s/pc
+    por_mano = (g_pc * 902.0 / (2.0 * a_minus_b**2)) ** (1.0 / 3.0)
+    assert out["linear_radius"].to_value(u.pc) == pytest.approx(por_mano, rel=1e-4)
+    assert out["angular_radius"].to_value(u.arcmin) == pytest.approx(42.7, abs=0.1)
+    assert out["angular_radius_err"].to_value(u.arcmin) == pytest.approx(1.57, abs=0.05)
+    # escala como M^(1/3)
+    doble = grav_bound_radius(8 * 902 * u.Msun)["linear_radius"]
+    assert (doble / out["linear_radius"]).decompose().value == pytest.approx(2.0, rel=1e-6)
+
+
+def test_grav_bound_radius_dispersion_branch_is_g_m_over_sigma_squared_and_says_so_in_its_type():
+    """La rama con `dispersion` devuelve G M / sigma^2 (escala virial), un Quantity desnudo; la rama de
+    Oort devuelve un dict. Este test fija el valor y el contrato de retorno de cada una, para que un
+    cambio de nombre o de tipo sea deliberado."""
+    disp = grav_bound_radius(902 * u.Msun, dispersion=1.0 * u.km / u.s)
+    assert isinstance(disp, u.Quantity)
+    assert disp.to_value(u.pc) == pytest.approx(4.30091e-3 * 902.0, rel=1e-4)
+    assert isinstance(grav_bound_radius(902 * u.Msun), dict)
+
+
+def test_mass_segregation_timescale_reproduces_the_p01_value_and_is_not_inverted():
+    """t_seg = (m_ref / m) t_rh. P01: <m> = 332/254, m = 13,56 Msun, t_rh = 24,7 Myr -> 2,38 Myr."""
+    t = mass_segregation_timescale(332 / 254 * u.Msun, 13.56 * u.Msun, 24.7 * u.Myr)
+    assert t.to_value(u.Myr) == pytest.approx(2.38, abs=0.01)
+    ligera = mass_segregation_timescale(1.0 * u.Msun, 0.5 * u.Msun, 10.0 * u.Myr)
+    pesada = mass_segregation_timescale(1.0 * u.Msun, 2.0 * u.Msun, 10.0 * u.Myr)
+    assert ligera.to_value(u.Myr) == pytest.approx(20.0) and pesada.to_value(
+        u.Myr
+    ) == pytest.approx(5.0)
