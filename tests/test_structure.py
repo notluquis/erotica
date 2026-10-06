@@ -1403,3 +1403,155 @@ def test_the_legacy_figure_facade_still_uses_the_published_fitter():
     assert "king_std" in payload["bayesian_results"], (
         "graph_king no longer runs the binned fit the published figures used"
     )
+
+
+# --- R29-02 / R29-04: errors of the centre and of the half-mass / half-light radii --------------
+
+
+def _gaussian_cluster(n, sigma=0.1, seed=1):
+    from astropy.table import QTable
+
+    rng = np.random.default_rng(seed)
+    ra = 263.0 + sigma * rng.standard_normal(n)
+    dec = -32.0 + sigma * rng.standard_normal(n)
+    return QTable({"ra": ra * u.deg, "dec": dec * u.deg})
+
+
+def test_the_center_error_is_the_scatter_of_the_peak_not_the_bandwidth():
+    """Closed form: with h >> sigma the KDE peak is the sample mean, so its error is sigma/sqrt(N).
+
+    The old error was sqrt(sigma_pos**2 + h**2) = h = 0.15 deg here, 30x the truth (R29-02).
+    """
+    from erotica.analysis.structure import center_determination
+
+    sigma, n = 0.1, 400
+    res = center_determination(
+        _gaussian_cluster(n, sigma),
+        bandwidths=[0.15],
+        return_bestparams=True,
+        seed=3,
+        n_bootstrap=60,
+    )
+    truth = sigma / np.sqrt(n)
+    for err in res["center_coords_error_bootstrap"]:
+        assert 0.6 * truth < err.to_value(u.deg) < 2.0 * truth
+    # the conservative smoothing-scale bound P01 quotes is kept, unchanged, next to it
+    assert res["center_coords_error"][0].to_value(u.deg) == pytest.approx(0.15)
+
+
+def test_the_center_error_shrinks_with_the_number_of_stars():
+    from erotica.analysis.structure import center_determination
+
+    errs = []
+    for n in (100, 400):
+        res = center_determination(
+            _gaussian_cluster(n, seed=2),
+            bandwidths=[0.15],
+            return_bestparams=True,
+            seed=4,
+            n_bootstrap=60,
+        )
+        errs.append(
+            float(np.mean([e.to_value(u.deg) for e in res["center_coords_error_bootstrap"]]))
+        )
+    assert 1.4 < errs[0] / errs[1] < 3.0  # 1/sqrt(N): expected 2
+
+
+def test_the_center_error_is_reproducible_with_a_seed_and_the_bound_is_kept():
+    from erotica.analysis.structure import center_determination
+
+    t = _gaussian_cluster(150, seed=5)
+    kw = dict(bandwidths=[0.15], return_bestparams=True, n_bootstrap=20)
+    a = center_determination(t, seed=7, **kw)["center_coords_error_bootstrap"][0]
+    b = center_determination(t, seed=7, **kw)["center_coords_error_bootstrap"][0]
+    assert a == b
+    res = center_determination(t, seed=7, **{**kw, "n_bootstrap": 0})
+    assert res["center_coords_error"][0].to_value(u.deg) == pytest.approx(0.15)
+    assert "center_coords_error_bootstrap" not in res
+
+
+def test_the_center_is_not_quantised_to_the_grid():
+    """A coarse grid (0.05 deg cell, nodes half a cell from the truth) must not floor the centre."""
+    from erotica.analysis.structure import center_determination
+
+    t = _gaussian_cluster(400, seed=1)
+    gx, gy = np.meshgrid(np.arange(262.525, 263.5, 0.05), np.arange(-32.475, -31.5, 0.05))
+    res = center_determination(t, bandwidths=[0.15], grid_ra=gx, grid_dec=gy)
+    mean_ra = float(np.mean(t["ra"].value))
+    mean_dec = float(np.mean(t["dec"].value))
+    assert abs(res.ra.value - mean_ra) < 0.01
+    assert abs(res.dec.value - mean_dec) < 0.01
+
+
+def _disc(n, radius_arcmin=10.0, seed=0):
+    from astropy.table import QTable
+
+    rng = np.random.default_rng(seed)
+    r = radius_arcmin * np.sqrt(rng.uniform(size=n)) / 60.0
+    th = rng.uniform(0, 2 * np.pi, n)
+    return QTable(
+        {
+            "ra": (r * np.cos(th)) * u.deg,
+            "dec": (r * np.sin(th)) * u.deg,
+            "mass": np.ones(n) * u.Msun,
+            "mass_std": np.full(n, 0.01) * u.Msun,
+        }
+    )
+
+
+def test_half_mass_radius_error_carries_the_sampling_of_stars():
+    """Equal masses on a uniform disc: R_h is the sample median radius, sd = R/(2 sqrt(2 N)).
+
+    The old error propagated only the 1 % mass error (about 0.002 arcmin here, R29-04).
+    """
+    from erotica.analysis.structure import half_mass_radius
+
+    n, big_r = 400, 10.0
+    radius, err = half_mass_radius(_disc(n, big_r), (0.0, 0.0), seed=1)
+    truth = big_r / (2 * np.sqrt(2 * n))
+    assert 0.6 * truth < err.to_value(u.arcmin) < 1.6 * truth
+    assert radius.to_value(u.arcmin) == pytest.approx(big_r / np.sqrt(2), rel=0.06)
+
+
+def test_half_mass_radius_error_grows_with_the_center_error():
+    from erotica.analysis.structure import half_mass_radius
+
+    t = _disc(400, 10.0)
+    _, fixed = half_mass_radius(t, (0.0, 0.0), seed=2)
+    _, moved = half_mass_radius(t, (0.0, 0.0), center_error=(0.05, 0.05), seed=2)
+    assert moved > 1.5 * fixed
+
+
+def test_half_light_radius_returns_a_sampling_error_on_request():
+    from erotica.analysis.structure import calculate_half_light_radius
+
+    t = _disc(400, 10.0)
+    t["Gmag"] = np.full(len(t), 15.0) * u.mag
+    t["e_Gmag"] = np.full(len(t), 0.003) * u.mag
+    radius, err = calculate_half_light_radius(t, (0.0, 0.0), return_error=True, seed=1)
+    truth = 10.0 / (2 * np.sqrt(2 * 400))
+    assert 0.6 * truth < err.to_value(u.arcmin) < 1.6 * truth
+    assert calculate_half_light_radius(t, (0.0, 0.0)) is not None  # default shape unchanged
+
+
+@requires_bayes_extra
+@pytest.mark.parametrize("builder", ["_king_model", "_king_corona_model"])
+def test_tidal_prior_is_a_prior_on_R_t_not_on_the_increment(builder):
+    """R29-01. With tidal_prior=(mu, sigma) the prior mean of R_t is mu, not mu + R_c.
+
+    Prior predictive with a tight prior (mu=30, sigma=1): the median R_t must sit within half a
+    sigma of mu. When the prior was put on dR = R_t - R_c it sat at mu + median(R_c), above
+    that margin for the default R_c scale.
+    """
+    import pymc as pm
+
+    from erotica.analysis import structure
+
+    r = _sample_king(11, k=50.0, b=0.001, R_c=0.5, R_t=5.0, field=FIELD)
+    mu, sigma = 30.0, 1.0
+    priors = structure.CoronaPriors() if builder == "_king_corona_model" else KingPriors()
+    model = getattr(structure, builder)(pm, r, FIELD, priors, (mu, sigma), None)
+    with model:
+        idata = pm.sample_prior_predictive(draws=2000, random_seed=0)
+    r_t = np.asarray(idata.prior["R_t"].values).ravel()
+    assert abs(np.median(r_t) - mu) < 0.5 * sigma
