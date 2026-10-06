@@ -364,9 +364,14 @@ def test_mist_feh_label_conventions_from_the_headers(path, fits, fails):
 # Hold-out validation
 # ---------------------------------------------------------------------------------------------
 
-from erotica.analysis.grids import holdout_grid  # noqa: E402
+from erotica.analysis.grids import (  # noqa: E402
+    PARSECGrid,
+    holdout_grid,
+    regrid,
+)
 from erotica.analysis.grids.base import GridNode, IsochroneGrid  # noqa: E402
 from erotica.analysis.grids.holdout import interpolate  # noqa: E402
+from erotica.analysis.grids.pseudo_eep import effective_phase, resample  # noqa: E402
 
 
 class _QuadGrid(IsochroneGrid):
@@ -428,3 +433,82 @@ def test_holdout_interpolation_is_the_fitters(tmp_path):
     np.testing.assert_allclose(X[0][idx], m, rtol=0, atol=1e-12)
     np.testing.assert_allclose(X[1][idx], G, rtol=0, atol=1e-12)
     np.testing.assert_allclose(X[2][idx], c, rtol=0, atol=1e-12)
+
+
+# ---------------------------------------------------------------------------------------------
+# Pseudo-EEP
+# ---------------------------------------------------------------------------------------------
+
+
+def test_effective_phase_is_the_running_maximum():
+    """PARSEC v1.2S flickers 0/1 at the PMS/MS boundary and labels the >= 20 Msun branch 0
+    after the MS (measured on the CMD 3.7 file); every row belongs to the latest phase reached."""
+    lab = np.array([0, 0, 1, 0, 1, 1, 0, 0, 1, 2, 3])
+    assert effective_phase(lab).tolist() == [0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 3]
+
+
+def test_arclength_points_are_equally_spaced_in_the_metric():
+    """Oracle: a straight HRD segment sampled unevenly must come out evenly spaced in D."""
+    t = np.r_[0.0, 0.01, 0.02, 0.5, 0.9, 1.0]
+    cols = {"mass": 0.1 + t, "logte": 3.5 + 0.2 * t, "logl": -1 + 2 * t, "x": t}
+    eep, r = resample(
+        cols, scheme="arclength", phase=np.zeros(6), phase_blocks={0: (10, 11)}, weights=(1.0, 1.0)
+    )
+    assert eep.tolist() == list(range(10, 21))
+    np.testing.assert_allclose(np.diff(r["x"]), 0.1, atol=1e-12)
+
+
+def test_massquantile_scheme_is_asteca_interp_isochrones():
+    """Oracle: ASteCA 0.7.0's own ``interp_isochrones`` (MIT), on the same isochrone. The
+    reimplementation is what the hold-out scored; this pins it to the code it claims to be."""
+    ip = pytest.importorskip("asteca.modules.isochrones_priv", reason="asteca extra not installed")
+    m = np.geomspace(0.1, 40.0, 300)
+    G = 10 - 3 * np.log10(m)
+    arr = np.zeros(m.size, dtype=[("Mini", float), ("Gmag", float)])
+    arr["Mini"], arr["Gmag"] = m, G
+    ref = ip.interp_isochrones(2000, "Mini", None, [["0.0152", "6.5"]], [arr])["0.0152"]["6.5"][0]
+    _, ours = resample({"mass": m, "G": G}, scheme="massquantile", n_total=2000)
+    np.testing.assert_allclose(ours["mass"], ref["Mini"], rtol=0, atol=1e-12)
+    np.testing.assert_allclose(ours["G"], ref["Gmag"], rtol=0, atol=1e-12)
+
+
+def _write_cmd(d: Path) -> Path:
+    """A CMD-format table with a flicker at the PMS/MS boundary and a 99.999 padding row."""
+    d.mkdir(parents=True, exist_ok=True)
+    head = (
+        "# isochrones based on PARSEC release v1.2S\n"
+        "# Zini     MH   logAge Mini        int_IMF         Mass   logL    logTe  logg  label "
+        "mbolmag  Gmag    G_BPmag  G_RPmag\n"
+    )
+    rows = []
+    for z, mh in ((0.01, -0.17553), (0.02, 0.14251)):
+        for a in (6.4, 6.5, 6.6):
+            m = np.geomspace(0.1, 5.0, 60)
+            lab = np.where(m < 2.0, 0, 1)
+            lab[30] = 1  # flicker
+            for i, mm in enumerate(m):
+                G = 6 - 2.5 * np.log10(mm) - 2 * (6.6 - a) + mh
+                pad = 99.999 if i == 59 and a == 6.5 else G
+                rows.append(
+                    f"{z} {mh} {a:.5f} {mm:.6f} 1.0 {mm:.3f} {np.log10(mm) * 2:.3f} "
+                    f"{3.6 + 0.2 * np.log10(mm):.4f} 4.0 {lab[i]} 0 {pad:.3f} "
+                    f"{G + 0.7:.3f} {G - 0.5:.3f}"
+                )
+    (d / "cmd.dat").write_text(head + "\n".join(rows) + "\n")
+    return d
+
+
+def test_parsec_reader_uses_mh_drops_padding_and_monotone_phases(tmp_path):
+    g = PARSECGrid(_write_cmd(tmp_path / "p"))
+    assert g.feh_nodes.tolist() == [-0.17553, 0.14251]
+    assert float(g.z_to_feh(0.01)) == pytest.approx(-0.17553)
+    n = g.node(-0.17553, 6.5)
+    assert n.mass.max() < 5.0  # the padded 99.999 row is gone
+    assert np.all(np.diff(n.mass) >= 0) and np.all(np.diff(n.eep) > 0)
+    assert g.eep_kind == "pseudo" and g.version == "v1.2S"
+
+
+def test_regrid_needs_and_uses_the_native_phase(tmp_path):
+    d = _write_family(tmp_path / "fam")
+    with pytest.raises(KeyError):  # the toy family has no log_Teff/log_L/phase columns
+        regrid(MISTGrid(d), "arclength")
