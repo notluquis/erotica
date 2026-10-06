@@ -365,9 +365,12 @@ def test_mist_feh_label_conventions_from_the_headers(path, fits, fails):
 # ---------------------------------------------------------------------------------------------
 
 from erotica.analysis.grids import (  # noqa: E402
+    BHAC15Grid,
     PARSECGrid,
+    SPOTSGrid,
     holdout_grid,
     regrid,
+    safe_window,
 )
 from erotica.analysis.grids.base import GridNode, IsochroneGrid  # noqa: E402
 from erotica.analysis.grids.holdout import interpolate  # noqa: E402
@@ -512,3 +515,117 @@ def test_regrid_needs_and_uses_the_native_phase(tmp_path):
     d = _write_family(tmp_path / "fam")
     with pytest.raises(KeyError):  # the toy family has no log_Teff/log_L/phase columns
         regrid(MISTGrid(d), "arclength")
+
+
+# ---------------------------------------------------------------------------------------------
+# PMS-only grids and the window
+# ---------------------------------------------------------------------------------------------
+
+BHAC = Path.home() / ".cache/erotica-grids/bhac15"
+SPOTS = Path.home() / ".cache/erotica-grids/spots"
+
+
+def test_spots_gaia_magnitudes_exist_only_above_half_a_solar_mass_when_spotted():
+    """Oracle: the Zenodo files (-99 outside the colour tables' calibrated range). This is the
+    limit a SPOTS f=0.34 control in Gaia inherits; 2MASS J reaches 0.10 Msun."""
+    _skip_unless(SPOTS / "f034.isoc", SPOTS / "f000.isoc")
+    s34 = SPOTSGrid(SPOTS, 0.34, loga_range=(6.0, 7.0))
+    s00 = SPOTSGrid(SPOTS, 0.0, loga_range=(6.0, 7.0))
+    assert s34.fspot == pytest.approx(0.339, abs=1e-3)
+    assert s34.node(0.0, 6.5).mass.min() == pytest.approx(0.55)
+    assert s00.node(0.0, 6.5).mass.min() == pytest.approx(0.15)
+    j = SPOTSGrid(SPOTS, 0.34, bands=("J_mag", "J_mag", "K_mag"), loga_range=(6.0, 7.0))
+    assert j.node(0.0, 6.5).mass.min() == pytest.approx(0.10)
+    assert s34.provenance.license.startswith("CC BY 4.0")
+
+
+def test_bhac15_reads_every_age_block():
+    _skip_unless(BHAC / "BHAC15_iso.GAIA")
+    b = BHAC15Grid(BHAC)
+    assert len(b.loga_nodes) == 30 and b.loga_nodes[0] == pytest.approx(np.log10(5e5), abs=1e-4)
+    n = b.node(0.0, b.loga_nodes[0])
+    assert n.mass.min() == pytest.approx(0.01) and n.eep[0] == 0.0
+    assert b.feh_nodes.tolist() == [0.0]
+
+
+def test_safe_window_is_the_intersection_over_grids_and_priors():
+    """Oracle: the closed-form grid. Brightest model G at the oldest bracketing node (largest
+    K term) plus dm_max + k Av_max; faintest at the node with the smallest, plus dm_min."""
+    g = _QuadGrid(K=1.0, step=0.1)
+    lo, hi = safe_window(
+        [g], "G", loga_range=(6.2, 6.6), dm_range=(9.0, 10.0), Av_range=(0.0, 1.0), k_mag=0.8
+    )
+    Gb = 5 - 2 * np.log10(2.0) + 1.0 * (6.2 - 6.5) ** 2  # brightest point, at the youngest node
+    Gf = 5 - 2 * np.log10(0.2) + 0.0  # faintest point, at log t 6.5
+    assert lo == pytest.approx(Gb + 10.0 + 0.8)
+    assert hi == pytest.approx(Gf + 9.0)
+    assert (
+        safe_window(
+            [g],
+            "G",
+            loga_range=(6.2, 6.6),
+            dm_range=(9.0, 10.0),
+            Av_range=(0.0, 1.0),
+            k_mag=0.8,
+            data_faint=15.35,
+        )[1]
+        == 15.35
+    )
+
+
+# ---------------------------------------------------------------------------------------------
+# Fetching: the network tests SKIP without network and say so
+# ---------------------------------------------------------------------------------------------
+
+from erotica.analysis.grids import fetch as gfetch  # noqa: E402
+
+
+def _network(host: str) -> None:
+    import socket
+
+    try:
+        socket.create_connection((host, 443), timeout=5).close()
+    except OSError as exc:
+        pytest.skip(f"no network to {host} ({exc}); the download test did not run")
+
+
+def test_a_changed_file_is_refused_not_used(tmp_path):
+    """A grid file whose hash differs from the pinned one is a different grid version."""
+    f = tmp_path / "x.dat"
+    f.write_bytes(b"models")
+    good = hashlib_sha256(b"models")
+    assert gfetch._checked(f, good, "u")["sha256"] == good
+    with pytest.raises(gfetch.ChangedUpstream):
+        gfetch._checked(f, "0" * 64, "u")
+
+
+def hashlib_sha256(b: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(b).hexdigest()
+
+
+@pytest.mark.network
+def test_fetch_spots_checks_the_zenodo_md5(tmp_path, monkeypatch):
+    _network("zenodo.org")
+    monkeypatch.setenv("EROTICA_GRIDS_CACHE", str(tmp_path))
+    d = gfetch.fetch_spots((0.34,))
+    man = json.loads((d / "manifest.json").read_text())
+    assert man[0]["file"] == "f034.isoc" and man[0]["checked_against"] == "zenodo md5"
+    assert SPOTSGrid(d, 0.34, loga_range=(6.5, 6.5)).node(0.0, 6.5).mass.min() == pytest.approx(
+        0.55
+    )
+
+
+@pytest.mark.network
+def test_fetch_bhac15_matches_the_pinned_hash(tmp_path, monkeypatch):
+    _network("perso.ens-lyon.fr")
+    monkeypatch.setenv("EROTICA_GRIDS_CACHE", str(tmp_path))
+    d = gfetch.fetch_bhac15(("BHAC15_iso.GAIA",))
+    assert len(BHAC15Grid(d).loga_nodes) == 30
+
+
+def test_cached_mist25_tarball_is_the_validated_one():
+    tar = Path.home() / ".cache/erotica-grids/mist_v2.5/raw/UBVRIplus.txz"
+    _skip_unless(tar)
+    assert gfetch._hash(tar) == gfetch.MIST25_SHA256["UBVRIplus"]
