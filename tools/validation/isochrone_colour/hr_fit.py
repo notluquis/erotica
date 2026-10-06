@@ -11,8 +11,14 @@ Runs (``--run``):
   R3/R4.
 * ``R3``: (G, -10 log T_eff) with raw GSP-Phot T_eff, same 202, no binaries.
 * ``R4``: the same with GSP-Phot minus its bias measured on lambda Ori (Cao+22 spectroscopic T_eff),
-  binned in log T_gsp, the lambda Ori robust scatter added to the error. lambda Ori has A_V ~ 0.3 and
-  NGC 6383 ~ 1-1.5: the calibration's transfer in extinction is a declared limit, not measured.
+  binned in log T_gsp, the lambda Ori robust scatter added to the error. lambda Ori has A_V ~ 0.3
+  and NGC 6383 ~ 1-1.5: the calibration's transfer in extinction is a declared limit, not measured.
+  Stars hotter than the hottest calibration bin (5760 K) are left raw: a step at that T_eff.
+* ``R3b`` (POST HOC, added after reading R3 and R4): raw GSP-Phot T_eff with R4's error model.
+
+GSP-Phot is not colour-table-free: its T_eff comes from PARSEC 1.2S isochrones with log t >= 6.6 and
+MARCS/PHOENIX/A/OB model SEDs (Andrae+2023, 2023A&A...674A..27A, §2.3), so a 1-3 Myr star is forced
+onto a >= 4 Myr isochrone.
 
 Process behind each piece: G carries dm + k_G A_V (one A_V, anchored by the upper-MS stars once dm
 is fixed by the parallax); the "colour" column is -10 log T_eff with zero extinction coefficient
@@ -92,17 +98,17 @@ def hr_view(g):
     return h
 
 
-def main() -> None:
+def build(run: str):
+    """The fitter, its data table and the run metadata for ``run`` (R1-R4), set up and ready;
+    ``export_run.py colour`` rebuilds the same fitter from here."""
     from astropy.table import QTable, Table, join
 
     import erotica
     from erotica.analysis._isochrone import IsochroneFitter
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--run", required=True, choices=["R1", "R2", "R3", "R4"])
-    a = ap.parse_args()
     real = Table.read(SAMPLE)
     gs = Table.read(HERE / "gspphot_ngc6383.ecsv")
+    gs.remove_column("source_id")  # null where DR3 has no AP row; the uploaded id is `sid`
     gs.rename_column("sid", "source_id")
     t = join(real, gs, keys="source_id", join_type="left")
     assert len(t) == len(real)
@@ -110,25 +116,29 @@ def main() -> None:
     has = np.isfinite(lt)
     out = {
         "erotica_file": erotica.__file__,
-        "run": a.run,
+        "run": run,
         "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()},
     }
     g = mist()
-    if a.run in ("R1", "R2"):
-        data = QTable(t if a.run == "R1" else t[has])
-        kw = {} if a.run == "R1" else {"alpha": 0.0, "beta": 0.0}
+    if run in ("R1", "R2"):
+        data = QTable(t if run == "R1" else t[has])
+        kw = {} if run == "R1" else {"alpha": 0.0, "beta": 0.0}
         f = IsochroneFitter(grid=g, magnitude=EDR3[0], color=EDR3[1:], **kw, **PRI_PLX)
     else:
         s = t[has]
         lt_s = lt[has]
         e_lt = 0.5 * (np.log10(_f(s["teff_gspphot_upper"])) - np.log10(_f(s["teff_gspphot_lower"])))
-        if a.run == "R4":
+        if run in ("R4", "R3b"):
             cal = lori_calibration()
             x = np.array([b["logt_gsp_mid"] for b in cal["bins"]])
             bias = np.interp(lt_s, x, [b["bias"] for b in cal["bins"]])
             sc = np.interp(lt_s, x, [b["scatter"] for b in cal["bins"]])
             hot = lt_s > x[-1]  # no lambda Ori calibration above its hottest bin: left raw
             bias[hot], sc[hot] = 0.0, 0.0
+            if run == "R3b":
+                # POST HOC (after R3/R4 were read): raw T_eff with R4's error model, to separate
+                # the bias correction from the error-model change between R3 and R4
+                bias[:] = 0.0
             lt_s = lt_s - bias
             e_lt = np.hypot(e_lt, sc)
             out["calibration"] = cal
@@ -160,6 +170,14 @@ def main() -> None:
             **PRI_PLX,
         )
     f.setup(data, prob_threshold=0.0)
+    return f, data, out
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--run", required=True, choices=["R1", "R2", "R3", "R4", "R3b"])
+    a = ap.parse_args()
+    f, data, out = build(a.run)
     assert a.run in ("R1", "R2") or abs(f._k_col1) < 1e-12
     res = search(f, verbose=False)
     res["age_Myr"] = 10 ** res["mode"]["loga"] / 1e6
