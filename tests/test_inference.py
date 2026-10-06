@@ -1116,10 +1116,11 @@ def test_distance_model_sin_errores_avisa_de_su_defecto(monkeypatch):
 
 
 # --- R30 (agent-findings/review-inference-dynamics-2026-10-05.md) ---------------------------------
-# Las tres rutas por umbral que no son la de distancia llaman a los modelos SIN errores por estrella:
-# sigma es dispersion observada. Estos dos tests dicen lo que deberian hacer y estan marcados
-# xfail(strict) porque arreglarlo cambia cifras ya publicadas (P01: "2.542 +- 0.152" es el sigma
-# observado, 0.1536; con errores 0.123). Al arreglarlo, el xfail estricto falla y obliga a quitarlo.
+# R30-01: las tres rutas por umbral llaman a los modelos SIN errores por estrella por defecto, y el
+# defecto NO se cambia (P01: "2.542 +- 0.152" es el sigma observado, 0.1536; con errores 0.123).
+# Existe el camino con errores como opcion: *_column. Un test fija el defecto publicado, los otros
+# ejercitan el camino nuevo (un parametro opcional cuyo default apaga la rama nueva deja la suite
+# vieja sin verla: lesson 29 del CLAUDE.md global).
 
 
 def _spy_table(n: int = 30) -> QTable:
@@ -1133,33 +1134,185 @@ def _spy_table(n: int = 30) -> QTable:
             "pmdec_error": np.full(n, 0.1) * u.mas / u.yr,
             "pmra_pmdec_corr": np.full(n, 0.3),
             "projected_velocity": rng.normal(13.0, 1.0, n) * u.km / u.s,
+            "projected_velocity_error": np.full(n, 0.5) * u.km / u.s,
             "radial_velocity": rng.normal(-9.0, 3.0, n) * u.km / u.s,
             "radial_velocity_error": np.full(n, 2.0) * u.km / u.s,
         }
     )
 
 
-@pytest.mark.xfail(
-    strict=True, reason="R30-01: proper_motion_by_probability no pasa pmra_error/pmdec_error/corr"
-)
-def test_proper_motion_route_passes_per_star_errors_when_the_columns_exist(monkeypatch):
-    seen = {}
+class _FakeFit:
+    results = {"mu_RA_mean": 0.0, "mu_Dec_mean": 0.0}
+    trace = None
+    mu_v_mean = std_v_mean = mu_v_std = std_v_std = 0.0
+    metadata: dict = {}
 
-    class _R:
-        results = {"mu_RA_mean": 0.0, "mu_Dec_mean": 0.0}
-        trace = None
+
+def _spy(monkeypatch, name):
+    seen = {}
 
     def spy(*a, **k):
         seen.update(k)
-        return _R()
+        return _FakeFit()
 
-    monkeypatch.setattr(inference, "proper_motion_2d_gaussian", spy)
-    ClusterInferenceAnalyzer(_spy_table()).proper_motion_by_probability((0.5,))
-    assert {"pm_ra_error", "pm_dec_error"} <= set(seen)
+    monkeypatch.setattr(inference, name, spy)
+    return seen
 
 
-@pytest.mark.xfail(strict=True, reason="R30-01: radial_velocity_model no tiene parametro `errors`")
-def test_radial_velocity_route_accepts_per_star_errors():
-    import inspect
+def test_proper_motion_route_default_does_not_pass_errors_and_says_so(monkeypatch):
+    """El defecto publicado no cambia (sigma observado), pero avisa si las columnas estan ahi."""
+    seen = _spy(monkeypatch, "proper_motion_2d_gaussian")
+    with pytest.warns(UserWarning, match="observed scatter"):
+        ClusterInferenceAnalyzer(_spy_table()).proper_motion_by_probability((0.5,))
+    assert not ({"pm_ra_error", "pm_dec_error", "pm_ra_dec_corr", "selection_radius"} & set(seen))
 
-    assert "errors" in inspect.signature(inference.radial_velocity_model).parameters
+
+def test_proper_motion_route_passes_per_star_errors_when_the_columns_are_named(monkeypatch):
+    seen = _spy(monkeypatch, "proper_motion_2d_gaussian")
+    tab = _spy_table()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        ClusterInferenceAnalyzer(tab).proper_motion_by_probability(
+            (0.5,),
+            pmra_error_column="pmra_error",
+            pmdec_error_column="pmdec_error",
+            pmra_pmdec_corr_column="pmra_pmdec_corr",
+            selection_radius=0.35,
+        )
+    assert np.allclose(np.asarray(seen["pm_ra_error"].value), 0.1)
+    assert np.allclose(np.asarray(seen["pm_ra_dec_corr"]), 0.3)
+    assert seen["selection_radius"] == 0.35
+    # sin columna de correlacion (la tabla de P01 no la trae): None, no un error
+    seen.clear()
+    ClusterInferenceAnalyzer(tab).proper_motion_by_probability(
+        (0.5,), pmra_error_column="pmra_error", pmdec_error_column="pmdec_error"
+    )
+    assert seen["pm_ra_dec_corr"] is None
+    with pytest.raises(ValueError, match="both"):
+        ClusterInferenceAnalyzer(tab).proper_motion_by_probability(
+            (0.5,), pmra_error_column="pmra_error"
+        )
+
+
+def test_velocity_routes_pass_errors_when_the_column_is_named(monkeypatch):
+    seen = _spy(monkeypatch, "velocity_model")
+    tab = _spy_table()
+    ClusterInferenceAnalyzer(tab).projected_velocity_by_probability((0.5,))
+    assert seen["errors"] is None  # defecto publicado
+    ClusterInferenceAnalyzer(tab).projected_velocity_by_probability(
+        (0.5,), errors_column="projected_velocity_error"
+    )
+    assert np.allclose(np.asarray(seen["errors"].value), 0.5)
+    ClusterInferenceAnalyzer(tab).radial_velocity_by_probability((0.5,))
+    assert seen["errors"] is None
+    ClusterInferenceAnalyzer(tab).radial_velocity_by_probability(
+        (0.5,), errors_column="radial_velocity_error"
+    )
+    assert np.allclose(np.asarray(seen["errors"].value), 2.0)
+    # un error no finito saca la fila en lugar de tumbar el ajuste
+    bad = _spy_table()
+    bad["radial_velocity_error"][0] = np.nan * u.km / u.s
+    rows = ClusterInferenceAnalyzer(bad).radial_velocity_by_probability(
+        (0.5,), errors_column="radial_velocity_error"
+    )
+    assert rows[0]["len_data"] == 29
+
+
+def test_radial_velocity_model_accepts_and_forwards_per_star_errors(monkeypatch):
+    seen = _spy(monkeypatch, "velocity_model")
+    inference.radial_velocity_model(np.array([1.0, 2.0, 3.0]) * u.km / u.s, errors=[0.5, 0.5, 0.5])
+    assert list(seen["errors"]) == [0.5, 0.5, 0.5]
+
+
+@requires_bayes_extra
+def test_error_aware_route_recovers_intrinsic_sigma_where_the_default_reports_the_scatter():
+    """El camino nuevo hace lo que dice: con errores 0.10 y sigma_int 0.05, el defecto da ~0.11
+    (dispersion observada) y *_column recupera ~0.05. Sin esto la rama nueva no la ve nadie."""
+    rng = np.random.default_rng(11)
+    n = 120
+    e = np.full(n, 0.10)
+    tab = QTable(
+        {
+            "probability": np.full(n, 0.9),
+            "pmra": (2.5 + rng.normal(0, np.hypot(0.05, e))) * u.mas / u.yr,
+            "pmdec": (-1.7 + rng.normal(0, np.hypot(0.05, e))) * u.mas / u.yr,
+            "pmra_error": e * u.mas / u.yr,
+            "pmdec_error": e * u.mas / u.yr,
+        }
+    )
+    cfg = SamplingConfig(
+        draws=400, tune=400, chains=2, random_seed=3, progressbar=False, extra_kwargs={"cores": 1}
+    )
+    an = ClusterInferenceAnalyzer(tab, sampling=cfg)
+    with pytest.warns(UserWarning, match="observed scatter"):
+        default = an.proper_motion_by_probability((0.5,))[0]
+    aware = an.proper_motion_by_probability(
+        (0.5,), pmra_error_column="pmra_error", pmdec_error_column="pmdec_error"
+    )[0]
+    assert default["sigma_RA_mean"] > 0.09
+    assert aware["sigma_RA_mean"] < 0.075
+
+
+# --- R30-07: seleccion de membresia en el PM ------------------------------------------------------
+
+
+def test_disc_log_mass_matches_the_closed_form_for_a_centred_isotropic_gaussian():
+    """Caso sin parametros con forma cerrada: N(0, s^2 I) dentro de un disco de radio R centrado en la
+    media pesa 1 - exp(-R^2 / 2 s^2). Y una cuadricula mucho mas fina da lo mismo con media
+    descentrada y covarianza general (la cuadratura polar converge)."""
+    pt = pytest.importorskip("pytensor.tensor")
+    s, r = 0.15, 0.35
+    lm = inference._disc_log_mass(
+        pt,
+        pt.as_tensor(0.0),
+        pt.as_tensor(0.0),
+        pt.as_tensor([s * s]),
+        pt.as_tensor([0.0]),
+        pt.as_tensor([s * s]),
+        (0.0, 0.0),
+        r,
+    )
+    assert float(np.exp(lm.eval())[0]) == pytest.approx(1 - np.exp(-(r**2) / (2 * s**2)), rel=1e-6)
+    args = (
+        pt.as_tensor(0.1),
+        pt.as_tensor(-0.05),
+        pt.as_tensor(np.array([0.02, 0.03])),
+        pt.as_tensor(np.array([0.005, -0.01])),
+        pt.as_tensor(np.array([0.025, 0.015])),
+        (0.0, 0.0),
+        r,
+    )
+    base = np.exp(inference._disc_log_mass(pt, *args).eval())
+    fina = np.exp(inference._disc_log_mass(pt, *args, n_r=300, n_phi=600).eval())
+    assert np.allclose(base, fina, rtol=1e-6)
+    assert np.all((base > 0.5) & (base < 1.0))
+
+
+@pytest.mark.slow
+@requires_bayes_extra
+def test_selection_radius_undoes_the_attenuation_of_a_disc_selected_sample():
+    """Verdad sigma_int = 0.15 mas/yr, errores 0.10, muestra aceptada solo si su PM observado cae en un
+    disco de 0.30 mas/yr. El ajuste sin truncar sale ~0.12 (atenuado); con `selection_radius` y el
+    centro verdadero recupera 0.15 dentro de lo estadistico."""
+    rng = np.random.default_rng(5)
+    n_parent, s0, e0, rad = 1500, 0.15, 0.10, 0.30
+    x = rng.normal(0, np.hypot(s0, e0), n_parent)
+    y = rng.normal(0, np.hypot(s0, e0), n_parent)
+    keep = np.hypot(x, y) < rad
+    x, y = x[keep][:300], y[keep][:300]
+    e = np.full(x.size, e0)
+    cfg = SamplingConfig(
+        draws=300, tune=300, chains=2, random_seed=9, progressbar=False, extra_kwargs={"cores": 1}
+    )
+    common = dict(pm_ra_error=e, pm_dec_error=e, sampling=cfg)
+    plain = inference.proper_motion_2d_gaussian(x, y, **common)
+    trunc = inference.proper_motion_2d_gaussian(
+        x, y, selection_radius=rad, selection_center=(0.0, 0.0), **common
+    )
+    assert trunc.metadata["selection_radius"] == rad
+    sig_plain = np.mean([plain.results["sigma_RA_mean"], plain.results["sigma_Dec_mean"]])
+    sig_trunc = np.mean([trunc.results["sigma_RA_mean"], trunc.results["sigma_Dec_mean"]])
+    assert sig_plain < 0.13, f"sin truncar: {sig_plain:.3f}"
+    assert abs(sig_trunc - s0) < 0.035, f"truncado: {sig_trunc:.3f}"
+    with pytest.raises(ValueError, match="positive"):
+        inference.proper_motion_2d_gaussian(x, y, selection_radius=-1.0)

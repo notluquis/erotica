@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### R30 (inference and dynamics review, hub `agent-findings/review-inference-dynamics-2026-10-05.md`)
+- **Added (opt-in, defaults unchanged):** `*_column` arguments on the `*_by_probability` routes and
+  `errors=` on `radial_velocity_model` (per-star errors, R30-01); `selection_radius` /
+  `selection_center` on `proper_motion_2d_gaussian` (truncated likelihood for a disc-selected
+  sample, R30-07); `virial_scale_radius` (R30-10); `distance_err` on `grav_bound_radius` (R30-11);
+  `half_mass_radius_ratio`, `deproject_half_mass_radius` and `radius_kind=` on
+  `half_mass_relaxation_time` (R30-12).
+- **Changed:** `calculate_hill_radius` warns when `cluster_mass_err` is not given (R30-04);
+  `half_mass_relaxation_time` warns when `radius_kind` is not declared (numbers unchanged);
+  `grav_bound_radius(dispersion=...)` is deprecated (`FutureWarning`).
+
 ### Added
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten

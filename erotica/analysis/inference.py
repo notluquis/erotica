@@ -644,6 +644,37 @@ def fit_parallax_model(
     )
 
 
+def _disc_nodes(radius: float, n_r: int = 24, n_phi: int = 48):
+    """Quadrature nodes (dx, dy) and weights over a disc of ``radius`` (polar: Gauss-Legendre in r,
+    uniform in phi). The weights include the Jacobian ``r`` and sum to ``pi * radius**2``."""
+    x, w = np.polynomial.legendre.leggauss(n_r)
+    r = 0.5 * radius * (x + 1.0)
+    wr = 0.5 * radius * w * r
+    phi = 2.0 * np.pi * (np.arange(n_phi) + 0.5) / n_phi
+    dx = (r[:, None] * np.cos(phi)[None, :]).ravel()
+    dy = (r[:, None] * np.sin(phi)[None, :]).ravel()
+    weights = (wr[:, None] * np.full(n_phi, 2.0 * np.pi / n_phi)[None, :]).ravel()
+    return dx, dy, weights
+
+
+def _disc_log_mass(pt, mu_x, mu_y, cov_xx, cov_xy, cov_yy, center, radius, *, n_r=24, n_phi=48):
+    """``log P(|X - center| < radius)`` for ``X ~ N((mu_x, mu_y), cov)``, one value per row of
+    ``cov_*`` (``pt`` is ``pytensor.tensor``). It is the per-star normalisation of the truncated
+    proper-motion density (R30-07): the membership selection accepted a star only if its *observed*
+    PM fell inside the disc, so its density is ``N(x_i; mu, S_i) / mass_i`` with
+    ``S_i = Sigma_int + C_i``, and ``mass_i`` depends on the parameters through ``Sigma_int``."""
+    dx, dy, weights = _disc_nodes(radius, n_r, n_phi)
+    px = center[0] + dx[None, :]
+    py = center[1] + dy[None, :]
+    a, b, d = cov_xx[:, None], cov_xy[:, None], cov_yy[:, None]
+    det = a * d - b * b
+    ex, ey = px - mu_x, py - mu_y
+    quad = (d * ex * ex - 2.0 * b * ex * ey + a * ey * ey) / det
+    density = pt.exp(-0.5 * quad) / (2.0 * np.pi * pt.sqrt(det))
+    mass = pt.sum(density * weights[None, :], axis=1)
+    return pt.log(mass)
+
+
 def proper_motion_2d_gaussian(
     pm_ra,
     pm_dec,
@@ -651,6 +682,8 @@ def proper_motion_2d_gaussian(
     pm_ra_error=None,
     pm_dec_error=None,
     pm_ra_dec_corr=None,
+    selection_radius=None,
+    selection_center=None,
     priors: ProperMotionPriors | None = None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
@@ -674,8 +707,19 @@ def proper_motion_2d_gaussian(
         Per-star ``pmra_pmdec_corr`` from Gaia. Ignoring it treats an error
         ellipse as if it were axis-aligned; Gaia's proper-motion correlations
         are routinely |rho| > 0.3.
-    priors : ProperMotionPriors, optional
-        Scale-free priors. Defaults are constants, **not** functions of the data.
+    selection_radius : float, optional
+        Radius (mas/yr) of a **hard disc in proper-motion space** that the membership selection
+        applied to the observed PM (R30-07, §A.1.4). The sample was chosen on the very variable
+        being fitted, so a plain Gaussian fit is attenuated: the fitted dispersion comes out
+        0.99 / 0.94 / 0.90 / 0.83 / 0.69 of the truth for a true 0.05 / 0.10 / 0.123 / 0.15 / 0.20
+        mas/yr with a 0.35 mas/yr disc (``agent-findings/review-inference-dynamics-2026-10-05.md``,
+        section 5). With a radius, each star's density is divided by the probability that a star
+        with this covariance falls inside the disc, so the likelihood is the truncated one.
+        ``None`` (default) keeps the untruncated likelihood. **A real selection is not a hard
+        disc**; a wrong radius over- or under-corrects. Use it as a bracket, not as a truth.
+    selection_center : (float, float), optional
+        Centre of that disc (mas/yr). Default: the ``nanmedian`` of the data -- a stand-in for the
+        centre the membership algorithm used; pass the real one when known.
 
     Notes
     -----
@@ -715,6 +759,15 @@ def proper_motion_2d_gaussian(
         per_star[:, 1, 1] = e_dec**2
         per_star[:, 0, 1] = per_star[:, 1, 0] = off
 
+    if selection_radius is not None:
+        if not selection_radius > 0:
+            raise ValueError("selection_radius must be positive (mas/yr).")
+        center = (
+            (float(np.nanmedian(pm_ra_values)), float(np.nanmedian(pm_dec_values)))
+            if selection_center is None
+            else (float(selection_center[0]), float(selection_center[1]))
+        )
+
     pm = _require_pymc()
     with pm.Model() as model:
         mu_ra = pm.Normal("mu_RA", mu=0.0, sigma=priors.mu_scale)
@@ -735,12 +788,32 @@ def proper_motion_2d_gaussian(
             ]
         )
         total = cov if per_star is None else cov + per_star  # broadcasts to (n, 2, 2)
-        pm.MvNormal("obs", mu=pm.math.stack([mu_ra, mu_dec]), cov=total, observed=observed)
+        if selection_radius is None:
+            pm.MvNormal("obs", mu=pm.math.stack([mu_ra, mu_dec]), cov=total, observed=observed)
+        else:
+            import pytensor.tensor as pt
+
+            n_obs = observed.shape[0]
+            total_n = pt.broadcast_to(total, (n_obs, 2, 2))
+            mu_vec = pm.math.stack([mu_ra, mu_dec])
+            logp = pm.logp(pm.MvNormal.dist(mu=mu_vec, cov=total), observed)
+            log_mass = _disc_log_mass(
+                pt,
+                mu_ra,
+                mu_dec,
+                total_n[:, 0, 0],
+                total_n[:, 0, 1],
+                total_n[:, 1, 1],
+                center,
+                float(selection_radius),
+            )
+            pm.Potential("truncated_obs", pt.sum(logp - log_mass))
     trace = _sample(pm, model, sampling)
     metadata = {
         "backend": sampling.nuts_sampler,
         "error_aware": per_star is not None,
         "correlation_used": pm_ra_dec_corr is not None,
+        "selection_radius": None if selection_radius is None else float(selection_radius),
         "prior": "scale-free",
     }
     results = {
@@ -834,16 +907,23 @@ def velocity_model(
 def radial_velocity_model(
     radial_velocity,
     *,
+    errors=None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
 ) -> VelocityFitResult:
-    """Fit a Gaussian radial-velocity model."""
+    """Fit a Gaussian radial-velocity model.
+
+    ``errors`` (km/s, optional, R30-01) are the per-star RV uncertainties; given, ``std_v`` is the
+    **intrinsic** dispersion (see :func:`velocity_model`). Without them it is the observed scatter,
+    which is mostly measurement error for Gaia RVs.
+    """
     if hasattr(radial_velocity, "colnames"):
         if "radial_velocity" not in radial_velocity.colnames:
             raise ValueError("Table input must contain a 'radial_velocity' column.")
         radial_velocity = radial_velocity["radial_velocity"]
     return velocity_model(
         radial_velocity_values(radial_velocity) * u.km / u.s,
+        errors=errors,
         return_trace=return_trace,
         sampling=sampling,
     )
@@ -1088,18 +1168,61 @@ class ClusterInferenceAnalyzer:
             results["traces"] = traces
         return results
 
+    def _warn_unused_errors(self, table, columns, route):
+        """R30-01: the default of the threshold routes ignores per-star errors, so the fitted sigma is
+        the OBSERVED dispersion. Say so when the error columns are right there."""
+        present = [c for c in columns if c in table.colnames]
+        if present:
+            warnings.warn(
+                f"{route}: the table has {present} but they are not used, so the fitted "
+                "dispersion is the observed scatter (measurement error included), not the "
+                "intrinsic one. Pass the *_column arguments to deconvolve the errors; the default "
+                "stays as published (P01 table: 2.542 +- 0.152 is the observed dispersion).",
+                stacklevel=3,
+            )
+
     def proper_motion_by_probability(
         self,
         probability_thresholds=(0.5, 0.6, 0.7, 0.8),
         *,
         pmra_column: str = "pmra",
         pmdec_column: str = "pmdec",
+        pmra_error_column: str | None = None,
+        pmdec_error_column: str | None = None,
+        pmra_pmdec_corr_column: str | None = None,
+        selection_radius: float | None = None,
         return_trace: bool = False,
         return_pmdist: bool = False,
         return_pmprob: bool = False,
         progressbar: bool | None = None,
     ):
-        """Fit proper-motion Gaussian models for each probability threshold."""
+        """Fit proper-motion Gaussian models for each probability threshold.
+
+        Parameters
+        ----------
+        pmra_error_column, pmdec_error_column : str, optional
+            **Opt in to the per-star error model** (R30-01): the columns holding each star's
+            proper-motion uncertainty, forwarded to :func:`proper_motion_2d_gaussian` so
+            ``sigma_RA``/``sigma_Dec`` are the intrinsic dispersion. Give both or neither. Without
+            them (the default, unchanged so published numbers do not move) ``sigma`` is the
+            *observed* dispersion: on the 254 members of P01 0.1536 mas/yr against 0.1232 with
+            errors. With the error columns in the table and not passed, a ``UserWarning`` says so.
+        pmra_pmdec_corr_column : str, optional
+            Column with Gaia's ``pmra_pmdec_corr``; ignored if absent from the call.
+        selection_radius : float, optional
+            Forwarded to :func:`proper_motion_2d_gaussian` (R30-07): the hard-disc truncation
+            of the membership selection. Combine with the error columns: the two corrections move
+            ``sigma`` in opposite directions.
+
+        With the error model on, sample with ``SamplingConfig(extra_kwargs={"cores": 1})``: the
+        batched covariance kills PyMC's multiprocess workers with ``EOFError`` on some machines.
+        """
+        if (pmra_error_column is None) != (pmdec_error_column is None):
+            raise ValueError("Give both pmra_error_column and pmdec_error_column, or neither.")
+        if pmra_error_column is None:
+            self._warn_unused_errors(
+                self.data, ("pmra_error", "pmdec_error"), "proper_motion_by_probability"
+            )
         thresholds = self._normalise_thresholds(probability_thresholds)
         sampling = self.sampling
         if progressbar is not None:
@@ -1109,11 +1232,23 @@ class ClusterInferenceAnalyzer:
         pm_probabilities = []
         for threshold in thresholds:
             subset = self.select(float(threshold))
+            error_kwargs = {}
+            if pmra_error_column is not None:
+                error_kwargs = {
+                    "pm_ra_error": subset[pmra_error_column],
+                    "pm_dec_error": subset[pmdec_error_column],
+                    "pm_ra_dec_corr": (
+                        None if pmra_pmdec_corr_column is None else subset[pmra_pmdec_corr_column]
+                    ),
+                }
+            if selection_radius is not None:
+                error_kwargs["selection_radius"] = selection_radius
             fit = proper_motion_2d_gaussian(
                 subset[pmra_column],
                 subset[pmdec_column],
                 return_trace=return_trace,
                 sampling=sampling,
+                **error_kwargs,
             )
             row = {"probability": float(threshold), **fit.results}
             if return_trace:
@@ -1139,10 +1274,15 @@ class ClusterInferenceAnalyzer:
         probability_thresholds=(0.5, 0.6, 0.7, 0.8),
         *,
         distance=None,
+        errors_column: str | None = None,
         return_trace: bool = False,
         progressbar: bool | None = None,
     ):
-        """Fit projected-velocity models for each probability threshold."""
+        """Fit projected-velocity models for each probability threshold.
+
+        ``errors_column`` (R30-01, opt-in) names the per-star velocity-uncertainty column (km/s)
+        forwarded to :func:`velocity_model`; without it ``std_v`` is the observed scatter.
+        """
         thresholds = self._normalise_thresholds(probability_thresholds)
         sampling = self.sampling
         if progressbar is not None:
@@ -1153,6 +1293,7 @@ class ClusterInferenceAnalyzer:
             result = velocity_model(
                 subset,
                 distance=distance,
+                errors=None if errors_column is None else subset[errors_column],
                 return_trace=return_trace,
                 sampling=sampling,
             )
@@ -1168,15 +1309,24 @@ class ClusterInferenceAnalyzer:
         self,
         probability_thresholds=(0.5, 0.6, 0.7, 0.8),
         *,
+        errors_column: str | None = None,
         return_trace: bool = False,
         progressbar: bool | None = None,
     ):
-        """Fit radial-velocity models for each probability threshold."""
+        """Fit radial-velocity models for each probability threshold.
+
+        ``errors_column`` (R30-01, opt-in) names the per-star RV-uncertainty column (km/s); rows
+        with a non-finite error are dropped along with those without an RV. Without it ``std_v`` is
+        the observed scatter.
+        """
         thresholds = self._normalise_thresholds(probability_thresholds)
         sampling = self.sampling
         if progressbar is not None:
             sampling = SamplingConfig(**{**sampling.__dict__, "progressbar": progressbar})
-        finite = self.data[np.isfinite(quantity_values(self.data["radial_velocity"], u.km / u.s))]
+        keep = np.isfinite(quantity_values(self.data["radial_velocity"], u.km / u.s))
+        if errors_column is not None:
+            keep &= np.isfinite(quantity_values(self.data[errors_column], u.km / u.s))
+        finite = self.data[keep]
         analyzer = ClusterInferenceAnalyzer(
             finite,
             probability_column=self.probability_column,
@@ -1185,7 +1335,12 @@ class ClusterInferenceAnalyzer:
         rows = []
         for threshold in thresholds:
             subset = analyzer.select(float(threshold))
-            result = radial_velocity_model(subset, return_trace=return_trace, sampling=sampling)
+            result = radial_velocity_model(
+                subset,
+                errors=None if errors_column is None else subset[errors_column],
+                return_trace=return_trace,
+                sampling=sampling,
+            )
             rows.append(
                 {
                     "probability": float(threshold),

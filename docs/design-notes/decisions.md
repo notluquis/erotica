@@ -1921,3 +1921,21 @@ parallel), float32 (−log L off by up to 2.9e-3 and one gradient component by 4
 starts), `taskpolicy -b` (0.33 s per gradient), and the persistent compilation cache as a speed
 lever (~1 s per process). The chunked driver matches `numpyro.infer.MCMC` draw for draw (max
 difference 0.0, same leapfrog counts, chains 0 and 3); a seed moved by one fails that check.
+
+## 2026-10-05 -- R30: arreglos de `inference.py` y `dynamics.py`
+
+Sintoma / causa / arreglo / oraculo / numero que se movio, por hallazgo (hub: `state/findings.yaml` R30-*).
+
+- **R30-01.** Las rutas por umbral llamaban a los modelos sin errores por estrella: sigma era la dispersion observada
+  (P01: 0.1536 contra 0.1232 con errores). No se cambia el defecto (cambia cifras publicadas): camino opt-in
+  `*_column`, aviso si las columnas estan en la tabla. Oraculo: espias de los kwargs y recuperacion con NUTS
+  (sigma_int 0.05, error 0.10: defecto >0.09, con errores <0.075).
+- **R30-07.** Una muestra elegida en el PM ajustado atenua sigma (0.83 de la verdad a sigma 0.15, disco 0.35).
+  `selection_radius` divide cada densidad por la masa del disco bajo N(mu, S_i). Oraculo: masa del disco centrado
+  1 - exp(-R^2/2s^2); recuperacion con disco de 0.30. El disco duro es una idealizacion [I].
+- **R30-04.** Sin `cluster_mass_err` el error de Hill omite el termino de masa; ahora avisa (no inventa un error).
+- **R30-10.** G M/sigma^2 con nombre propio (`virial_scale_radius`); la rama `dispersion` queda deprecada.
+- **R30-11.** `grav_bound_radius(distance_err=)`: P01 +-1.57 -> +-2.79 arcmin.
+- **R30-12.** `radius_kind` declarado; King (Abel numerico) r3D/R2D = 1.322 (5), 1.334 (20), 1.337 (27.6); Plummer
+  1.30477 (forma cerrada, pasa por la misma deproyeccion). Factor en t_rh: el cociente a la 3/2. El 1.52-1.55 es de
+  t_rh, no del radio.
