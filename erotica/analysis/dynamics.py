@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from functools import lru_cache
 
 import numpy as np
 from astropy import units as u
@@ -293,6 +294,18 @@ def calculate_hill_radius(
         # (tambien por ClusterDynamicsAnalyzer.hill_radius). Sin argumento sigue siendo 0, mas
         # abajo: ni la suma de una columna ni el estimador de luminosidad traen error propio.
     cluster_mass = ensure_units(cluster_mass, u.Msun)
+    if cluster_mass_err is None:
+        # R30-04: sin argumento el termino de masa del error es 0, y es el que domina desde
+        # sigma_M/M ~ 17 % (angular). Dos masas de la misma muestra de P01 difieren x2,7 (332 contra
+        # 902 Msun), asi que 0 no es un valor neutro. No se inventa un error: se avisa, y pasar
+        # `cluster_mass_err=0` explicito (decision del llamador) lo silencia.
+        warnings.warn(
+            "calculate_hill_radius: no cluster_mass_err was given, so the mass term of the "
+            "Hill-radius uncertainty is zero. That term dominates the angular error from "
+            "sigma_M/M ~ 17 % (two mass estimates of the same cluster can differ by x2.7). "
+            "Pass cluster_mass_err explicitly -- 0 included, if you mean it.",
+            stacklevel=2,
+        )
     cluster_mass_err = ensure_units(
         0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun
     )
@@ -332,6 +345,24 @@ def calculate_hill_radius(
     return results
 
 
+def virial_scale_radius(cluster_mass, dispersion, *, distance=None):
+    r"""Virial length scale :math:`G M / \sigma^2` (R30-10).
+
+    **Not a tidal or gravitationally bound radius.** It is the scale at which the potential
+    energy per unit mass equals :math:`\sigma^2`, and it does not distinguish a 1D from a 3D
+    dispersion, nor the total mass from the mass inside a radius. It used to live behind
+    ``grav_bound_radius(dispersion=...)``, which then returned a bare ``Quantity`` while the Oort
+    branch of the same function returns a ``dict``: one name, two return types depending on a
+    keyword. The two are now separate functions.
+
+    Returns a ``Quantity`` in pc, or in arcmin when ``distance`` is given.
+    """
+    cluster_mass = ensure_units(cluster_mass, u.Msun)
+    dispersion = ensure_units(dispersion, u.km / u.s)
+    radius = (G * cluster_mass / dispersion**2).to(u.pc)
+    return radius if distance is None else angular_size(radius, distance).to(u.arcmin)
+
+
 def grav_bound_radius(
     cluster_mass,
     cluster_mass_err=None,
@@ -342,17 +373,36 @@ def grav_bound_radius(
     B_err=0.4 * u.km / u.s / u.kpc,
     dispersion=None,
     distance=None,
+    distance_err=None,
 ):
-    """Estimate gravitationally bound radius.
+    """Gravitationally bound radius from the Oort constants (Pinfield et al. 1998).
 
-    If ``dispersion`` is provided, use ``G M / sigma^2``. Otherwise preserve the
-    Oort-constant expression used by the paper notebooks.
+    Always returns a ``dict`` with ``linear_radius`` and ``linear_radius_err`` (plus
+    ``angular_radius`` and ``angular_radius_err`` when ``distance`` is given).
+
+    Parameters
+    ----------
+    distance_err : Quantity, optional
+        Uncertainty on ``distance`` (R30-11). The angular radius is ``R / d``, so the distance
+        error enters it as ``R * sigma_d / d^2`` in quadrature with the mass and Oort terms --
+        exactly what :func:`calculate_hill_radius` does. Without it the reported angular error
+        omits the term: for P01 (``d = 1.11 +- 0.06`` kpc) +-1.57 arcmin becomes +-2.79. The
+        linear radius does not depend on the distance, so its error is unchanged. Omitted or
+        ``None`` keeps the previous behaviour (no distance term).
+    dispersion : Quantity, optional
+        **Deprecated** (R30-10): this branch computes ``G M / sigma^2``, a different quantity
+        that returned a bare ``Quantity`` under this name. Use :func:`virial_scale_radius`.
     """
     cluster_mass = ensure_units(cluster_mass, u.Msun)
     if dispersion is not None:
-        dispersion = ensure_units(dispersion, u.km / u.s)
-        radius = (G * cluster_mass / dispersion**2).to(u.pc)
-        return radius if distance is None else angular_size(radius, distance).to(u.arcmin)
+        warnings.warn(
+            "grav_bound_radius(dispersion=...) computes G M / sigma^2, not the Oort bound radius, "
+            "and returns a bare Quantity instead of a dict; use virial_scale_radius(). "
+            "This branch will be removed.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return virial_scale_radius(cluster_mass, dispersion, distance=distance)
 
     cluster_mass_err = ensure_units(
         0 * u.Msun if cluster_mass_err is None else cluster_mass_err, u.Msun
@@ -367,8 +417,16 @@ def grav_bound_radius(
     ).to(u.pc)
     results = {"linear_radius": radius, "linear_radius_err": radius_err}
     if distance is not None:
-        results["angular_radius"] = angular_size(radius, distance).to(u.arcmin)
-        results["angular_radius_err"] = angular_size(radius_err, distance).to(u.arcmin)
+        angular = angular_size(radius, distance).to(u.arcmin)
+        angular_err = angular_size(radius_err, distance).to(u.arcmin)
+        if distance_err is not None:
+            distance_q = ensure_units(distance, u.kpc)
+            rel = (ensure_units(distance_err, u.kpc) / distance_q).to_value(
+                u.dimensionless_unscaled
+            )
+            angular_err = np.sqrt(angular_err**2 + (angular * rel) ** 2)
+        results["angular_radius"] = angular
+        results["angular_radius_err"] = angular_err
     return results
 
 
@@ -636,7 +694,110 @@ def coulomb_calibration_warnings(lambda_value, n_stars, *, tidally_limited=True,
     return problems
 
 
-def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda_value=0.11):
+_PLUMMER_RADIUS_RATIO = 1.0 / np.sqrt(2.0 ** (2.0 / 3.0) - 1.0)  # r_h(3D) / R_h(2D), closed form
+
+
+def _half_mass_ratio_numeric(sigma, g_over_r, x_max, aperture=None, n_grid=1200):
+    """r_h(3D) / R_h(2D) by numerical Abel deprojection of a surface-density profile.
+
+    ``sigma(x)`` is the surface density and ``g_over_r(x2)`` is ``-(dSigma/dR) / R`` as a function
+    of ``x2 = (R / R_c)^2``; the 3D density is
+    ``rho(r) = (1/pi) int_0^{sqrt(x_max^2 - r^2)} g_over_r(r^2 + s^2) ds`` (the substitution
+    ``R^2 = r^2 + s^2`` removes the Abel singularity). Lengths are in units of the scale radius.
+    ``aperture`` is the radius of the cylinder the *projected* half-mass radius is measured in
+    (the 3D one always uses the whole cluster).
+    """
+    from scipy.integrate import cumulative_simpson, quad
+    from scipy.optimize import brentq
+
+    def rho(r):
+        smax = np.sqrt(x_max**2 - r**2) if np.isfinite(x_max) else np.inf
+        return quad(lambda t: g_over_r(r * r + t * t), 0.0, smax, limit=200)[0] / np.pi
+
+    top = x_max if np.isfinite(x_max) else 300.0
+    if top > 5.0:
+        r = np.concatenate(
+            [
+                np.linspace(0.0, 5.0, n_grid // 2, endpoint=False),
+                np.geomspace(5.0, top, n_grid // 2),
+            ]
+        )
+    else:
+        r = np.linspace(0.0, top, n_grid)
+    shell = 4.0 * np.pi * r**2 * np.array([rho(x) if x < top else 0.0 for x in r])
+    m3 = cumulative_simpson(shell, x=r, initial=0.0)
+    r_h3 = float(np.interp(0.5 * m3[-1], m3, r))
+
+    def m2(big_r):  # projected mass inside a cylinder of radius big_r
+        return 2.0 * np.pi * quad(lambda x: x * sigma(x), 0.0, big_r, limit=200)[0]
+
+    outer = top if aperture is None else min(aperture, top)
+    half = 0.5 * m2(outer)
+    r_h2 = brentq(lambda big_r: m2(big_r) - half, 1e-6, outer)
+    return r_h3 / r_h2
+
+
+@lru_cache(maxsize=64)
+def _king_ratio(tidal_over_core, aperture_over_core):
+    c = float(tidal_over_core)
+    c0 = (1.0 + c * c) ** -0.5
+
+    def sigma(x):  # King (1962): Sigma = [(1+x^2)^-1/2 - c0]^2
+        return ((1.0 + x * x) ** -0.5 - c0) ** 2
+
+    def g_over_r(x2):
+        return 2.0 * ((1.0 + x2) ** -0.5 - c0) * (1.0 + x2) ** -1.5
+
+    return _half_mass_ratio_numeric(sigma, g_over_r, c, aperture_over_core)
+
+
+def half_mass_radius_ratio(profile="king", *, tidal_over_core=None, aperture_over_core=None):
+    """Ratio ``r_h(3D) / R_h(2D)`` of the 3D half-mass radius to the projected one (R30-12).
+
+    ``profile="plummer"`` is the closed form ``1 / sqrt(2^(2/3) - 1) = 1.30477``. ``profile="king"``
+    (King 1962) needs ``tidal_over_core`` (``R_t / R_c``) and is computed by numerical Abel
+    deprojection: 1.322 for ``R_t/R_c = 5``, 1.334 for 20, 1.337 for 27.6 (NGC 6383 in P01). Since
+    ``t_rh ~ r^(3/2)``, the factor on the relaxation time is this ratio to the power 1.5
+    (1.49 for Plummer, 1.52--1.55 for King).
+
+    ``aperture_over_core`` (King only) measures the *projected* radius inside a cylinder of that
+    radius, as a survey cut does (P01 cuts at 40 arcmin = 20.4 R_c), while the 3D radius still
+    refers to the whole cluster. The ratio is a property of the profile: if the cluster is not
+    King-like, or a mass function segregates it, the number changes.
+    """
+    if profile == "plummer":
+        if aperture_over_core is not None:
+            raise ValueError("aperture_over_core is only implemented for profile='king'.")
+        return float(_PLUMMER_RADIUS_RATIO)
+    if profile == "king":
+        if tidal_over_core is None or not tidal_over_core > 1.0:
+            raise ValueError("profile='king' needs tidal_over_core = R_t / R_c > 1.")
+        ap = None if aperture_over_core is None else float(aperture_over_core)
+        return float(_king_ratio(float(tidal_over_core), ap))
+    raise ValueError(f"unknown profile {profile!r}; use 'king' or 'plummer'.")
+
+
+def deproject_half_mass_radius(
+    projected_radius, *, profile="king", tidal_over_core=None, aperture_over_core=None
+):
+    """Convert a projected (on-sky) half-mass radius to the 3D one. See :func:`half_mass_radius_ratio`."""
+    ratio = half_mass_radius_ratio(
+        profile, tidal_over_core=tidal_over_core, aperture_over_core=aperture_over_core
+    )
+    return ensure_units(projected_radius, u.pc) * ratio
+
+
+def half_mass_relaxation_time(
+    n_stars,
+    half_mass_radius,
+    cluster_mass,
+    *,
+    lambda_value=0.11,
+    radius_kind=None,
+    profile="king",
+    tidal_over_core=None,
+    aperture_over_core=None,
+):
     r"""Half-mass relaxation time.
 
     .. math:: t_{rh} = \frac{0.138\, N^{1/2} r_h^{3/2}}
@@ -679,6 +840,15 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
 
     Parameters
     ----------
+    radius_kind : {"3d", "projected"}, optional
+        **Declare which half-mass radius you pass** (R30-12). The formula needs the 3D one, and
+        ``t_rh ~ r^(3/2)``. A radius measured on the sky is projected, and for a King profile the
+        3D radius is 1.32--1.34 times larger (Plummer 1.305), so ``t_rh`` is 1.52--1.55 times
+        longer (1.49 for Plummer): P01 passed the projected 2.02 pc and obtained 24.7 Myr, which
+        becomes ~38 Myr. ``"projected"`` converts with :func:`half_mass_radius_ratio` (``profile``,
+        ``tidal_over_core``, ``aperture_over_core``); ``"3d"`` uses the radius as given. ``None``
+        (the old signature) behaves as ``"3d"`` and **warns**, because silently assuming it is the
+        error the parameter exists to prevent; the numbers of earlier calls are unchanged.
     lambda_value : float, default 0.11
         The Coulomb-logarithm argument :math:`\gamma` in :math:`\ln(\gamma N)`. **The default is
         very likely wrong for a Gaia open cluster** — see the warning below.
@@ -771,6 +941,22 @@ def half_mass_relaxation_time(n_stars, half_mass_radius, cluster_mass, *, lambda
     time, so there is no external catalogue to validate against.
     """
     half_mass_radius = ensure_units(half_mass_radius, u.pc)
+    if radius_kind is None:
+        warnings.warn(
+            "half_mass_relaxation_time: radius_kind not declared; the radius is used as a 3D "
+            "half-mass radius. If it was measured on the sky it is projected and t_rh comes out "
+            "~1.5x too short (king: r3D/R2D = 1.32-1.34). Pass radius_kind='3d' or 'projected'.",
+            stacklevel=2,
+        )
+    elif radius_kind == "projected":
+        half_mass_radius = deproject_half_mass_radius(
+            half_mass_radius,
+            profile=profile,
+            tidal_over_core=tidal_over_core,
+            aperture_over_core=aperture_over_core,
+        )
+    elif radius_kind != "3d":
+        raise ValueError(f"radius_kind must be '3d' or 'projected', got {radius_kind!r}.")
     cluster_mass = ensure_units(cluster_mass, u.Msun)
     n_stars = float(n_stars)
     for reason in coulomb_calibration_warnings(lambda_value, n_stars):
@@ -908,15 +1094,25 @@ class ClusterDynamicsAnalyzer:
         )
 
     def gravitational_bound_radius(
-        self, *, cluster_mass=None, cluster_mass_err=None, distance=None, **kwargs
+        self,
+        *,
+        cluster_mass=None,
+        cluster_mass_err=None,
+        distance=None,
+        distance_err=None,
+        **kwargs,
     ):
-        """Calculate the Oort-constant gravitationally bound radius."""
+        """Calculate the Oort-constant gravitationally bound radius.
+
+        ``distance_err`` is forwarded (R30-11); without it the angular error has no distance term.
+        """
         if cluster_mass is None:
             cluster_mass = self.cluster_mass(distance=distance or self.distance)
         return grav_bound_radius(
             cluster_mass,
             cluster_mass_err,
             distance=distance or self.distance,
+            distance_err=distance_err,
             **kwargs,
         )
 
@@ -927,8 +1123,11 @@ __all__ = [
     "calculate_galactocentric_distance",
     "calculate_hill_radius",
     "crossing_time",
+    "deproject_half_mass_radius",
     "grav_bound_radius",
+    "half_mass_radius_ratio",
     "half_mass_relaxation_time",
     "mass_segregation_timescale",
     "tidal_radius_prior",
+    "virial_scale_radius",
 ]

@@ -6,6 +6,8 @@ call — proof it was untested. These pin all five call forms, the two unpacking
 bugs found on 2026-07-27, and the posterior-propagation path.
 """
 
+import warnings
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -18,10 +20,12 @@ from erotica.analysis.dynamics import (
     calculate_hill_radius,
     crossing_time,
     grav_bound_radius,
+    half_mass_radius_ratio,
     half_mass_relaxation_time,
     mass_segregation_timescale,
     posterior_summary,
     tidal_radius_prior,
+    virial_scale_radius,
 )
 
 
@@ -720,14 +724,127 @@ def test_grav_bound_radius_matches_the_published_value_and_an_independent_closed
     assert (doble / out["linear_radius"]).decompose().value == pytest.approx(2.0, rel=1e-6)
 
 
-def test_grav_bound_radius_dispersion_branch_is_g_m_over_sigma_squared_and_says_so_in_its_type():
-    """La rama con `dispersion` devuelve G M / sigma^2 (escala virial), un Quantity desnudo; la rama de
-    Oort devuelve un dict. Este test fija el valor y el contrato de retorno de cada una, para que un
-    cambio de nombre o de tipo sea deliberado."""
-    disp = grav_bound_radius(902 * u.Msun, dispersion=1.0 * u.km / u.s)
-    assert isinstance(disp, u.Quantity)
-    assert disp.to_value(u.pc) == pytest.approx(4.30091e-3 * 902.0, rel=1e-4)
-    assert isinstance(grav_bound_radius(902 * u.Msun), dict)
+def test_virial_scale_radius_is_g_m_over_sigma_squared_and_the_old_branch_is_deprecated():
+    """R30-10: G M / sigma^2 tiene funcion propia; `grav_bound_radius(dispersion=...)` sigue
+    devolviendo lo mismo pero avisa (FutureWarning) y el retorno de `grav_bound_radius` sin
+    `dispersion` es siempre un dict."""
+    esperado = 4.30091e-3 * 902.0  # G M / sigma^2 a mano, sigma = 1 km/s
+    nueva = virial_scale_radius(902 * u.Msun, 1.0 * u.km / u.s)
+    assert isinstance(nueva, u.Quantity)
+    assert nueva.to_value(u.pc) == pytest.approx(esperado, rel=1e-4)
+    # con distancia: arcmin
+    ang = virial_scale_radius(902 * u.Msun, 1.0 * u.km / u.s, distance=1.11 * u.kpc)
+    assert ang.to_value(u.arcmin) == pytest.approx(esperado / 1110.0 * 206264.806 / 60.0, rel=1e-4)
+    with pytest.warns(FutureWarning, match="virial_scale_radius"):
+        vieja = grav_bound_radius(902 * u.Msun, dispersion=1.0 * u.km / u.s)
+    assert vieja.to_value(u.pc) == pytest.approx(esperado, rel=1e-4)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        assert isinstance(grav_bound_radius(902 * u.Msun), dict)
+
+
+def test_grav_bound_radius_propagates_the_distance_error_into_the_angular_radius():
+    """R30-11: P01 (902 +- 92 Msun, d = 1,11 +- 0,06 kpc) da +-1,57' sin distancia y ~2,79' con ella:
+    1,57 y 42,7 x 0,06/1,11 = 2,31 en cuadratura. El radio lineal no depende de la distancia."""
+    sin = grav_bound_radius(902 * u.Msun, 92 * u.Msun, distance=1.11 * u.kpc)
+    con = grav_bound_radius(
+        902 * u.Msun, 92 * u.Msun, distance=1.11 * u.kpc, distance_err=0.06 * u.kpc
+    )
+    ang = sin["angular_radius"].to_value(u.arcmin)
+    err_sin = sin["angular_radius_err"].to_value(u.arcmin)
+    assert err_sin == pytest.approx(1.57, abs=0.05)  # sin distance_err: el comportamiento previo
+    por_mano = np.hypot(err_sin, ang * 0.06 / 1.11)
+    assert con["angular_radius_err"].to_value(u.arcmin) == pytest.approx(por_mano, rel=1e-6)
+    assert con["angular_radius_err"].to_value(u.arcmin) == pytest.approx(2.79, abs=0.03)
+    assert con["angular_radius"] == sin["angular_radius"]
+    assert con["linear_radius_err"] == sin["linear_radius_err"]
+    # el analizador lo reenvia
+    from astropy.table import QTable
+
+    from erotica.analysis.dynamics import ClusterDynamicsAnalyzer
+
+    an = ClusterDynamicsAnalyzer(QTable({"Gmag": [15.0]}), distance=1.11 * u.kpc)
+    via = an.gravitational_bound_radius(
+        cluster_mass=902 * u.Msun, cluster_mass_err=92 * u.Msun, distance_err=0.06 * u.kpc
+    )
+    assert via["angular_radius_err"].to_value(u.arcmin) == pytest.approx(por_mano, rel=1e-6)
+
+
+def test_hill_radius_warns_when_no_cluster_mass_error_is_given_and_not_when_it_is():
+    """R30-04: sin `cluster_mass_err` el termino de masa del error es 0 y domina desde
+    sigma_M/M ~ 17 %. Se avisa; pasar el error (o un 0 explicito) lo silencia."""
+    kw = dict(
+        distance=1.11 * u.kpc,
+        distance_err=0.06 * u.kpc,
+        galactocentric_distance=7.19 * u.kpc,
+        galactocentric_distance_err=0.06 * u.kpc,
+        galactic_mass=8.8e10 * u.Msun,
+        galactic_mass_err=0.5e10 * u.Msun,
+        cluster_mass=902 * u.Msun,
+    )
+    with pytest.warns(UserWarning, match="cluster_mass_err"):
+        calculate_hill_radius(**kw)
+    for err in (92 * u.Msun, 0 * u.Msun):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", UserWarning)
+            calculate_hill_radius(cluster_mass_err=err, **kw)
+
+
+# --- R30-12: radio proyectado contra 3D -------------------------------------------------------------
+
+
+def test_half_mass_ratio_machinery_reproduces_the_plummer_closed_form_and_the_king_table():
+    """Caso sin parametros con forma cerrada (AGENTS.md): Plummer, r_h/R_h = 1/sqrt(2^(2/3) - 1) =
+    1,30477. Se pasa por la MISMA deproyeccion de Abel que el King, no por la formula. King medido en
+    agent-findings/review-inference-dynamics-2026-10-05.md: 1,322 (5), 1,334 (20), 1,337 (27,6)."""
+    from erotica.analysis.dynamics import _half_mass_ratio_numeric
+
+    numerico = _half_mass_ratio_numeric(
+        lambda x: (1 + x * x) ** -2, lambda x2: 4 * (1 + x2) ** -3, np.inf
+    )
+    cerrada = 1.0 / np.sqrt(2 ** (2 / 3) - 1)
+    assert numerico == pytest.approx(cerrada, rel=1e-4)
+    assert half_mass_radius_ratio("plummer") == pytest.approx(1.30477, abs=1e-5)
+    for c, esperado in ((5, 1.322), (20, 1.334), (27.6, 1.337)):
+        assert half_mass_radius_ratio("king", tidal_over_core=c) == pytest.approx(
+            esperado, abs=1e-3
+        )
+    # una apertura (corte del sondeo) moviendo la muestra proyectada cambia el cociente
+    assert half_mass_radius_ratio(
+        "king", tidal_over_core=27.6, aperture_over_core=20.4
+    ) != pytest.approx(half_mass_radius_ratio("king", tidal_over_core=27.6), abs=1e-3)
+    with pytest.raises(ValueError, match="tidal_over_core"):
+        half_mass_radius_ratio("king")
+    with pytest.raises(ValueError, match="unknown profile"):
+        half_mass_radius_ratio("sersic")
+
+
+def test_half_mass_relaxation_time_needs_a_declared_radius_kind_and_converts_projected_to_3d():
+    """R30-12: t_rh ~ r^1,5 y P01 paso el radio proyectado. `projected` multiplica t_rh por
+    (r3D/R2D)^1,5: 1,49 con Plummer, 1,55 con King 27,6 (24,7 -> ~38 Myr)."""
+    args = (687, 2.02 * u.pc, 900 * u.Msun)
+    with pytest.warns(UserWarning, match="radius_kind"):
+        sin_declarar = half_mass_relaxation_time(*args, lambda_value=0.11)
+    tres_d = half_mass_relaxation_time(*args, lambda_value=0.11, radius_kind="3d")
+    assert sin_declarar == tres_d  # la firma vieja no cambia las cifras ya publicadas
+    plummer = half_mass_relaxation_time(
+        *args, lambda_value=0.11, radius_kind="projected", profile="plummer"
+    )
+    assert (plummer / tres_d).decompose().value == pytest.approx(1.30477**1.5, rel=1e-4)
+    king = half_mass_relaxation_time(
+        *args, lambda_value=0.11, radius_kind="projected", tidal_over_core=27.6
+    )
+    assert (king / tres_d).decompose().value == pytest.approx(1.337**1.5, rel=2e-3)
+    assert (king / tres_d).decompose().value == pytest.approx(1.545, abs=0.01)
+    # el 3d NO se convierte aunque se pase un perfil
+    assert (
+        half_mass_relaxation_time(*args, lambda_value=0.11, radius_kind="3d", profile="plummer")
+        == tres_d
+    )
+    with pytest.raises(ValueError, match="radius_kind"):
+        half_mass_relaxation_time(*args, radius_kind="sky")
+    with pytest.raises(ValueError, match="tidal_over_core"):
+        half_mass_relaxation_time(*args, radius_kind="projected")
 
 
 def test_mass_segregation_timescale_reproduces_the_p01_value_and_is_not_inverted():
