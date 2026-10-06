@@ -1316,3 +1316,12 @@ def test_selection_radius_undoes_the_attenuation_of_a_disc_selected_sample():
     assert abs(sig_trunc - s0) < 0.035, f"truncado: {sig_trunc:.3f}"
     with pytest.raises(ValueError, match="positive"):
         inference.proper_motion_2d_gaussian(x, y, selection_radius=-1.0)
+
+
+def test_selection_radius_smaller_than_the_sample_extent_is_refused():
+    """R30-07: un disco duro no pudo aceptar una estrella que esta fuera de el; con R = 0,30 sobre los
+    254 de P01 (max |dmu| = 0,414) el sigma se disparaba a 1,7 mas/yr sin error alguno."""
+    x = np.array([0.0, 0.1, -0.1, 0.45])
+    y = np.zeros(4)
+    with pytest.raises(ValueError, match="outside the selection disc"):
+        inference.proper_motion_2d_gaussian(x, y, selection_radius=0.3, selection_center=(0.0, 0.0))

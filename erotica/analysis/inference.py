@@ -717,6 +717,9 @@ def proper_motion_2d_gaussian(
         with this covariance falls inside the disc, so the likelihood is the truncated one.
         ``None`` (default) keeps the untruncated likelihood. **A real selection is not a hard
         disc**; a wrong radius over- or under-corrects. Use it as a bracket, not as a truth.
+        Every star must lie inside the disc (``ValueError`` otherwise): the smallest admissible
+        radius is the largest ``|PM - centre|`` of the sample, which is also the strongest
+        correction.
     selection_center : (float, float), optional
         Centre of that disc (mas/yr). Default: the ``nanmedian`` of the data -- a stand-in for the
         centre the membership algorithm used; pass the real one when known.
@@ -767,6 +770,18 @@ def proper_motion_2d_gaussian(
             if selection_center is None
             else (float(selection_center[0]), float(selection_center[1]))
         )
+        outside = int(
+            np.sum(
+                np.hypot(pm_ra_values - center[0], pm_dec_values - center[1]) >= selection_radius
+            )
+        )
+        if outside:
+            raise ValueError(
+                f"{outside} of {pm_ra_values.size} stars lie outside the selection disc "
+                f"(radius {selection_radius} mas/yr around {center}). A hard-disc selection cannot "
+                "have accepted them, so the truncated density is not defined at those points; "
+                "the radius must exceed the largest |PM - centre| of the sample."
+            )
 
     pm = _require_pymc()
     with pm.Model() as model:
