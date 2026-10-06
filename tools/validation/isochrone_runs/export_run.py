@@ -51,7 +51,7 @@ HERE = Path(__file__).resolve().parent
 VALIDATION = HERE.parent
 REPO = VALIDATION.parent.parent
 RUNS = HERE / "runs"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # 2 (2026-10-04): top-level `grid` block; see README
 PARAMS = ["met", "loga", "dm", "Av", "sigma_int", "f_bg"]
 QS = (5, 16, 50, 84, 95)
 C1_CHAINS = Path.home() / ".cache/erotica-c1/c1"
@@ -107,7 +107,8 @@ def observed_cmd(f, table) -> dict:
 def apparent_isochrone(f, p: dict):
     """Single-star isochrone at ``p`` in the observed system: the two lines of
     ``IsochroneFitter._median_isochrone``. Returns (eep_index, mass, G_app, col_app)."""
-    X = f._interp_isochrone(p["met"], p["loga"], np)
+    met = p.get(getattr(f, "_met_name", "met"), p.get("met"))
+    X = f._interp_isochrone(met, p["loga"], np)
     G = X[1] + p["dm"] + f._kG * p["Av"]
     col = X[2] + f._k_col1 * p["Av"]
     return np.arange(X.shape[-1]), X[0], G, col
@@ -282,9 +283,21 @@ def _write(run: dict) -> Path:
     return p
 
 
+LEGACY_GRID = {
+    "name": "MIST v1.2",
+    "family": "MIST",
+    "version": "1.2",
+    "eep_kind": "native",
+    "path": "legacy isochs_path (MISTIsochrones)",
+    "metallicity_parameter": "met = linear Z (Zinit), uniform in Z",
+    "bands": ["Gaia_G_EDR3", "Gaia_BP_EDR3", "Gaia_RP_EDR3"],
+}
+
+
 def _base(f, pri, table, mist, sample) -> dict:
     return {
         "schema_version": SCHEMA_VERSION,
+        "grid": dict(LEGACY_GRID),
         "cluster": "NGC 6383",
         "model": {
             "grid": "MIST",
@@ -463,7 +476,121 @@ def export_p01() -> Path:
     return _write(run)
 
 
+def migrate_v1() -> list[Path]:
+    """Schema 1 -> 2 without re-running anything: add the ``grid`` block (every schema-1 run went
+    through the legacy MIST v1.2 path or, for P01, ASteCA on MIST v1.2) and bump the version."""
+    out = []
+    for p in sorted(RUNS.glob("*.json")):
+        run = json.loads(p.read_text())
+        if run.get("schema_version") != 1:
+            continue
+        grid = dict(LEGACY_GRID)
+        if run["id"].startswith("p01-"):
+            grid["path"] = "ASteCA 0.6.9 reading MIST v1.2 (not EROTICA)"
+        run = {
+            "schema_version": 2,
+            "grid": grid,
+            **{k: v for k, v in run.items() if k != "schema_version"},
+        }
+        p.write_text(json.dumps(run, indent=1) + "\n")
+        out.append(p)
+    return out
+
+
+def export_grids() -> list[Path]:
+    """NGC 6383 with every grid backend, from ``isochrone_grids/ngc6383_grids.json``: maximum
+    likelihood points with Laplace widths (NOT posteriors), same 254 stars as C1, so the GUI can
+    show the same cluster with several grids side by side."""
+    sys.path.insert(0, str(VALIDATION))
+    sys.path.insert(0, str(VALIDATION / "isochrone_grids"))
+    from astropy.table import QTable, Table
+    from isochrone_nuts_convergence import PRIORS, SAMPLE
+    from ngc6383_grids import CACHE, NGC
+
+    from erotica.analysis import grids as G
+    from erotica.analysis._isochrone import IsochroneFitter
+
+    src = json.loads((VALIDATION / "isochrone_grids/ngc6383_grids.json").read_text())
+    pri = {k: v for k, v in PRIORS.items() if k not in ("M_met", "M_loga")}
+    table = QTable(Table.read(SAMPLE))
+    lr = (5.9, 7.1)
+    builders = {
+        "MIST v1.2": lambda fehs: G.MISTGrid(NGC / "MIST/UBVRIplus", loga_range=lr).select(
+            feh=fehs
+        ),
+        "MIST v2.5": lambda fehs: G.MISTGrid(
+            CACHE / "mist_v2.5/UBVRIplus_afe0_vvcrit0.4", loga_range=lr
+        ).select(feh=fehs),
+        "PARSEC v1.2S": lambda fehs: G.PARSECGrid(
+            NGC / "PARSEC/gaiaedr3", loga_range=lr, max_mass=20.0
+        ),
+    }
+    head = _git("rev-parse", "--short", "HEAD")
+    out = []
+    for name, fit in src["arms"].get("main", {}).items():
+        d = fit["grid"]
+        g = builders[name](d["feh_nodes"])
+        b = fit["bands"]
+        f = IsochroneFitter(grid=g, magnitude=b[0], color=(b[1], b[2]), **pri)
+        f.setup(table, prob_threshold=0.0)
+        m = fit["mode"]
+        posterior = {k: {"q50": float(m[k]), "laplace_sd": fit["laplace_sd"].get(k)} for k in m}
+        slug = name.lower().replace(" ", "-").replace(".", "")
+        run = {
+            "schema_version": SCHEMA_VERSION,
+            "grid": {
+                **d,
+                "name": d["grid"],
+                "path": "erotica.analysis.grids (grid=)",
+                "metallicity_parameter": "feh = the grid's own [Fe/H] label, uniform in it",
+            },
+            "id": f"map-ngc6383-{slug}-{head}",
+            "date": "2026-10-04",
+            "erotica_commit": head,
+            "cluster": "NGC 6383",
+            "model": {
+                "grid": d["family"],
+                "version": d["version"],
+                "files": d["grid"],
+                "photometry": ", ".join(b),
+                "z_sun": None,
+                "z_sun_source": "not used: the fit coordinate is the [Fe/H] label",
+            },
+            "method": "maximum likelihood (IsochroneFitter.find_start: node lattice + L-BFGS-B), "
+            "Laplace widths at the mode; NOT a posterior",
+            "config": {
+                "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in pri.items()},
+                "binaries": {"alpha": f.alpha, "beta": f.beta},
+                "sigma_floor": f.SIGMA_FLOOR,
+                "at_prior_bound": fit["at_prior_bound"],
+            },
+            "posterior": posterior,
+            "diagnostics": None,
+            "cmd": observed_cmd(f, table),
+            "sample": str(Path(SAMPLE).name),
+            "isochrone": isochrone_block(
+                f, m, None, None, f"erotica IsochroneFitter(grid=) at {head}"
+            ),
+            "notes": [
+                f"mode at prior bound in {fit['at_prior_bound']}"
+                if fit["at_prior_bound"]
+                else "mode inside the prior box",
+                "source: tools/validation/isochrone_grids/ngc6383_grids.json",
+            ],
+        }
+        out.append(_write(run))
+    return out
+
+
 if __name__ == "__main__":
     which = sys.argv[1:] or ["c1", "hess507", "p01"]
     for w in which:
-        print({"c1": export_c1, "hess507": export_hess507, "p01": export_p01}[w]())
+        print(
+            {
+                "c1": export_c1,
+                "hess507": export_hess507,
+                "p01": export_p01,
+                "migrate": migrate_v1,
+                "grids": export_grids,
+            }[w]()
+        )
