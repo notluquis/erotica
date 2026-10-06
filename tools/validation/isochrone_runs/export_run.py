@@ -661,6 +661,82 @@ def export_colour() -> list[Path]:
     return out
 
 
+def export_external() -> list[Path]:
+    """NGC 6383 from ``isochrone_external/real_fit_X{1,2,3}.json`` (hub finding
+    ``isochrone-external-constraints.md`` §0.6, §5): maximum a posteriori points (NOT posteriors).
+    X1 = the CMD reference (R1 re-run); X2 = photometry corrected per star by the Edenhofer+2024
+    A_V minus its median; X3 = X2 + a Gaussian prior on the A_V level from that map. The ``cmd``
+    block is the photometry the fit saw (corrected for X2/X3)."""
+    sys.path.insert(0, str(VALIDATION / "isochrone_colour"))
+    sys.path.insert(0, str(VALIDATION / "isochrone_external"))
+    from real_fits import build
+
+    head = _git("rev-parse", "--short", "HEAD")
+    what = {
+        "X1": "CMD, 254 members, binaries, no map (= colour R1)",
+        "X2": "CMD corrected per star by Edenhofer+2024 Delta A_V, A_V level free",
+        "X3": "as X2 + Gaussian prior on the A_V level from Edenhofer+2024",
+    }
+    out = []
+    for run in ("X1", "X2", "X3"):
+        src = VALIDATION / f"isochrone_external/real_fit_{run}.json"
+        if not src.exists():
+            continue
+        fit = json.loads(src.read_text())
+        f, table, _ = build(run)
+        m = dict(fit["mode"])
+        d = f.grid.describe()
+        out.append(
+            _write(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "grid": {
+                        **d,
+                        "name": f.grid.name,
+                        "path": "erotica.analysis.grids (grid=)",
+                        "metallicity_parameter": "feh = the grid's own [Fe/H] label, uniform in it",
+                    },
+                    "id": f"external-ngc6383-{run.lower()}-{head}",
+                    "date": "2026-10-05",
+                    "erotica_commit": head,
+                    "cluster": "NGC 6383",
+                    "model": {
+                        "grid": "MIST",
+                        "version": "v1.2",
+                        "files": f.grid.name,
+                        "photometry": "Gaia EDR3 G, BP-RP",
+                        "z_sun": None,
+                        "z_sun_source": "not used: the fit coordinate is the [Fe/H] label",
+                    },
+                    "method": "maximum a posteriori in dm (Gaussian parallax prior), likelihood "
+                    "elsewhere; common.search (coarse node lattice + L-BFGS-B); NOT a posterior",
+                    "config": {
+                        "run": what[run],
+                        "priors": fit["priors"],
+                        "av_prior": fit.get("av_prior"),
+                        "binaries": {"alpha": f.alpha, "beta": f.beta},
+                        "sigma_floor": f.SIGMA_FLOOR,
+                        "at_prior_bound": fit["at_bound"],
+                    },
+                    "posterior": {k: {"q50": float(v)} for k, v in m.items()},
+                    "diagnostics": None,
+                    "cmd": observed_cmd(f, table),
+                    "sample": "paperfaithful_reference_p06.ecsv",
+                    "isochrone": isochrone_block(
+                        f, m, None, None, f"erotica IsochroneFitter(grid=) at {head}"
+                    ),
+                    "notes": [
+                        what[run],
+                        "Laplace widths in the source JSON are local curvature at one mode, not "
+                        "the posterior width (hub finding §4)",
+                        f"source: tools/validation/isochrone_external/real_fit_{run}.json",
+                    ],
+                }
+            )
+        )
+    return out
+
+
 if __name__ == "__main__":
     which = sys.argv[1:] or ["c1", "hess507", "p01"]
     for w in which:
@@ -672,5 +748,6 @@ if __name__ == "__main__":
                 "migrate": migrate_v1,
                 "grids": export_grids,
                 "colour": export_colour,
+                "external": export_external,
             }[w]()
         )

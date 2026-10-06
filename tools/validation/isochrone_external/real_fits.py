@@ -80,6 +80,15 @@ def main():
         f, [mo[k] for k in ("feh", "loga", "dm", "Av", "sigma_int", "f_bg")]
     )
     res["age_Myr"] = 10 ** mo["loga"] / 1e6
+    # Mode and runner-ups with log-likelihood and log-posterior apart (§A.1.1, C1 §4): a small
+    # loglike gap with a large logpost gap means the dm prior, not the photometry, picks the mode.
+    # In X3 ``_compiled_loglike`` already carries the A_V prior (``with_av_prior`` wraps it).
+    fl = f._compiled_loglike(None)
+    best = [mo[k] for k in ("feh", "loga", "dm", "Av", "sigma_int", "f_bg")]
+    res["modes_loglike_logpost"] = [
+        {"logpost": float(lp), "loglike": float(fl(p)[0]), "params": [float(v) for v in p]}
+        for lp, p in [(res["logpost"], best), *[tuple(x) for x in res["runner_up"]]]
+    ]
     out.update(res)
     if a.run == "X3":
         x2 = json.loads((HERE / "real_fit_X2.json").read_text())

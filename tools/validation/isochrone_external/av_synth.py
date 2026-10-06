@@ -19,6 +19,8 @@ Arms (``--arm``):
   grad-map  truth = map + radial step         fit corrected with the map only
   pri       truth = map                       corrected + Gaussian prior on the A_V level, sd 0.10 (+) map
   pri2      as pri with the 0.10 doubled (the sweep x2 of the pre-registration)
+  ctl-off   as ctl with TRUTH_OFF ([Fe/H] 0.15, log t 6.43, sigma_int 0.04): POST HOC, off the
+            ``common.search`` lattice nodes (TRUTH sits on one; see TRUTH_OFF)
 Radial step: Delta A_V = (ring median of the colour residual - its star-weighted mean) / k_col,
 with the screen's ring medians (+0.046, +0.024, +0.045, -0.051; ``isochrone-model-screen.md`` §3.1);
 residual = observed - model, so positive is redder, i.e. more A_V. Mapping a CMD colour residual
@@ -48,6 +50,11 @@ sys.path.insert(0, str(HERE.parent / "isochrone_colour"))
 from common import EDR3, PRI_PLX, SAMPLE, mist, search  # noqa: E402
 
 TRUTH = {"feh": 0.0, "loga": 6.40, "Av": 1.0, "sigma_int": 0.03, "dm_mu": 10.223, "dm_sd": 0.026}
+# POST HOC (2026-10-05, after reading ctl/map-ign/grad-map/pri, before any real fit): TRUTH sits on
+# a starting point of ``common.search`` (lattice [Fe/H] 0, node log t 6.40, polish start
+# sigma_int 0.03), so replicates 3 and 7 end exactly on it -- seeding at the truth by grid
+# coincidence (§A.1.3). ``ctl-off`` moves every one of those off the lattice.
+TRUTH_OFF = {**TRUTH, "feh": 0.15, "loga": 6.43, "sigma_int": 0.04}
 N_STARS = 254
 RINGS = [(0, 5), (5, 10), (10, 20), (20, 41.5)]
 RESID_RINGS = [0.046, 0.024, 0.045, -0.051]
@@ -59,6 +66,7 @@ ARMS = {
     "grad-map": ("map+grad", "cor", None),
     "pri": ("map", "cor", 0.10),
     "pri2": ("map", "cor", 0.20),
+    "ctl-off": (None, "plain", None),
 }
 
 
@@ -177,6 +185,7 @@ def main() -> None:
     ap.add_argument("--reps", type=int, default=8)
     a = ap.parse_args()
     truth_kind, fit_kind, pri = ARMS[a.arm]
+    truth = TRUTH_OFF if a.arm == "ctl-off" else TRUTH
 
     per = Table.read(HERE / "av_maps_perstar.ecsv")
     real = QTable(Table.read(SAMPLE))
@@ -196,7 +205,7 @@ def main() -> None:
     out = {
         "erotica_file": erotica.__file__,
         "arm": a.arm,
-        "truth": TRUTH,
+        "truth": truth,
         "main_map": mname,
         "map_column": col,
         "sigma_column": scol,
@@ -206,16 +215,16 @@ def main() -> None:
         "radial_step_AV_by_ring": [float(step[(r >= lo) & (r < hi)].mean()) for lo, hi in RINGS],
         "prior": None
         if pri is None
-        else {"mu": TRUTH["Av"], "sd": float(np.hypot(sd_level, pri)), "systematic": pri},
+        else {"mu": truth["Av"], "sd": float(np.hypot(sd_level, pri)), "systematic": pri},
         "reps": [],
     }
     path = HERE / f"av_synth_{a.arm}.json"
     order = np.argsort(Greal)
     for k in range(a.reps):
         rng = np.random.default_rng(2000 + k)  # same seeds in every arm: paired replicates
-        dm = float(rng.normal(TRUTH["dm_mu"], TRUTH["dm_sd"]))
+        dm = float(rng.normal(truth["dm_mu"], truth["dm_sd"]))
         G, C = gen._draw_stars(
-            TRUTH["feh"], TRUTH["loga"], dm, TRUTH["Av"], TRUTH["sigma_int"], N_STARS, rng
+            truth["feh"], truth["loga"], dm, truth["Av"], truth["sigma_int"], N_STARS, rng
         )
         m = order[np.argsort(np.argsort(G))]  # real member with the same G rank
         dA_true = np.zeros(N_STARS)
@@ -226,14 +235,14 @@ def main() -> None:
         G, C = G + kG * dA_true, C + kc * dA_true
         eG, eC = gen._e_mag_fn(G), gen._e_col_fn(G)
         data = fit_table(G, C, eG, eC, dA_map[m], sA[m], kG, kc, fit_kind == "cor")
-        _, res = run_fit(data, None if pri is None else out["prior"]["sd"], TRUTH["Av"])
+        _, res = run_fit(data, None if pri is None else out["prior"]["sd"], truth["Av"])
         mo = res["mode"]
         res.update(
             {
                 "truth_dm": dm,
-                "d_feh": mo["feh"] - TRUTH["feh"],
-                "d_loga": mo["loga"] - TRUTH["loga"],
-                "d_Av": mo["Av"] - TRUTH["Av"],
+                "d_feh": mo["feh"] - truth["feh"],
+                "d_loga": mo["loga"] - truth["loga"],
+                "d_Av": mo["Av"] - truth["Av"],
                 "gencheck_spearman_r_G": float(
                     __import__("scipy.stats").stats.spearmanr(r[m], G)[0]
                 ),

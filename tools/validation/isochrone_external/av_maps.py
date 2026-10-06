@@ -312,6 +312,28 @@ def main():
         s["pred_outer_minus_inner"] = pr[3] - pr[0]
         obs = RESID_RINGS[3] - RESID_RINGS[0]
         s["fraction_of_observed_gradient"] = s["pred_outer_minus_inner"] / obs
+
+    # generator predictive check (§A.1.3): can the map's star-to-star structure be the members'
+    # reddening? Its colour MAD against the MAD of the whole observed colour residual.
+    def mad(x):
+        return float(1.4826 * np.median(np.abs(x - np.median(x))))
+
+    summ["predictive"] = {"resid_col_MAD_ok": mad(rc[ok])}
+    for k, c in maps.items():
+        v = np.asarray(per[c], float)
+        summ["predictive"][k] = {
+            "kcol_dA_MAD_ok": mad(kc * v[ok]),
+            "pearson_resid_vs_AV_ok": float(np.corrcoef(rc[ok], v[ok])[0, 1]),
+        }
+    if "decaps" in maps:
+        z = np.load(HERE / "decaps_subset.npz")
+        hpi = z["healpix_index"].astype(np.int64)
+        jj = np.searchsorted(hpi, hp.ang2pix(8192, glon, b, nest=True, lonlat=True))
+        summ["decaps_los_members_median"] = {
+            str(d): 3.32
+            * float(np.median([np.interp(5 * np.log10(d / 10), z["dm"], z["mean"][k]) for k in jj]))
+            for d in (500, 800, 1000, 1108, 1300, 1600, 2500)
+        }
     summ["eden_sigma_AV_median_ind_cor"] = [
         float(np.median(per["sAV_eden_ind"])),
         float(np.median(per["sAV_eden_cor"])),
