@@ -358,3 +358,73 @@ def test_mist_feh_label_conventions_from_the_headers(path, fits, fails):
     g = MISTGrid(path, loga_range=(6.5, 6.5))
     r = g.feh_convention_residuals()
     assert r[fits] < 1e-4 and r[fails] > 0.04, r
+
+
+# ---------------------------------------------------------------------------------------------
+# Hold-out validation
+# ---------------------------------------------------------------------------------------------
+
+from erotica.analysis.grids import holdout_grid  # noqa: E402
+from erotica.analysis.grids.base import GridNode, IsochroneGrid  # noqa: E402
+from erotica.analysis.grids.holdout import interpolate  # noqa: E402
+
+
+class _QuadGrid(IsochroneGrid):
+    """Closed-form grid: at fixed mass index, G = 5 - 2 log m + K (log t - 6.5)**2, colour fixed.
+    Linear interpolation between log t +- h has error exactly K h**2 at the midpoint."""
+
+    eep_kind = "mass"
+    default_bands = ("G", "B", "R")
+
+    def __init__(self, K=1.0, step=0.1):
+        super().__init__()
+        self.bands = ("G", "B", "R")
+        m = np.geomspace(0.2, 2.0, 40)
+        for a in np.round(np.arange(6.0, 7.0 + 1e-9, step), 4):
+            G = 5 - 2 * np.log10(m) + K * (a - 6.5) ** 2
+            self._add(
+                0.0,
+                float(a),
+                GridNode(np.arange(m.size, dtype=float), m.copy(), {"G": G, "B": G + 0.8, "R": G}),
+                None,
+            )
+        self.name = "quad"
+
+
+def test_holdout_error_is_the_closed_form_second_difference():
+    """Oracle: linear interpolation of K (x-6.5)^2 between x-h and x+h errs by exactly K h^2.
+    Mutations: not removing the node (error 0, which the guard refuses) or interpolating from
+    the wrong neighbours (error 4 K h^2)."""
+    K, h = 0.8, 0.1
+    r = holdout_grid(
+        _QuadGrid(K, h), ("G", "B", "R"), feh=0.0, loga_range=(6.1, 6.9), mass_window=(0.2, 2.0)
+    )
+    for n in r["nodes"]:
+        assert n["neighbours"] == pytest.approx([n["loga"] - h, n["loga"] + h])
+        assert n["dG"]["p50"] == pytest.approx(K * h**2, rel=1e-9)
+        assert n["dcol"]["p95"] == pytest.approx(0.0, abs=1e-12)
+
+
+@requires_bayes
+def test_holdout_interpolation_is_the_fitters(tmp_path):
+    """The hold-out must measure the interpolation the fitter does, not a reimplementation of
+    it that could drift: rows (mass, G, colour) of ``_interp_isochrone`` at an off-node point."""
+    d = _write_family(tmp_path / "fam", trim=2)
+    g = MISTGrid(d)
+    f = IsochroneFitter(grid=g, **_TOY_PRIORS)
+    f.setup(_stars(), prob_threshold=0.0)
+    bands = ("Gaia_G_EDR3", "Gaia_BP_EDR3", "Gaia_RP_EDR3")
+    X = f._interp_isochrone(-0.13, 6.47, np)
+    m, G, c = interpolate(g, -0.13, 6.47, bands)
+    # the fitter's EEP axis spans every node of its table; the hold-out's spans the four
+    # bracketing nodes. Compare on the hold-out's axis (same EEP numbers, same clamping).
+    fit_axis = np.arange(int(min(g.node(*k).eep.min() for k in g.nodes())), X.shape[1] + 1)
+    four = [g.node(fe, a) for fe in (-0.25, 0.0) for a in (6.4, 6.5)]
+    ho_axis = np.arange(
+        int(min(n.eep.min() for n in four)), int(max(n.eep.max() for n in four)) + 1
+    )
+    idx = np.searchsorted(fit_axis, ho_axis)
+    assert len(ho_axis) == len(m) and len(ho_axis) < X.shape[1]  # the axes really differ
+    np.testing.assert_allclose(X[0][idx], m, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(X[1][idx], G, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(X[2][idx], c, rtol=0, atol=1e-12)
