@@ -24,6 +24,7 @@ C1_RUN = RUNS / "c1-ngc6383-unbinned-eep-v1-96ce4c0.json"
 C1_SUMMARY = ROOT / "tools/validation/isochrone_unbinned/ngc_0.json"
 REQUIRED = {
     "schema_version",
+    "grid",
     "id",
     "date",
     "erotica_commit",
@@ -44,6 +45,10 @@ def test_every_run_carries_the_schema(path):
     run = json.loads(path.read_text())
     assert REQUIRED <= set(run), REQUIRED - set(run)
     assert run["id"] == path.stem
+    assert run["schema_version"] == 2
+    assert {"name", "family", "version", "eep_kind", "path", "metallicity_parameter"} <= set(
+        run["grid"]
+    ), run["grid"]
     cmd = run["cmd"]
     n = len(cmd["mag"])
     assert n > 0 and all(len(cmd[k]) == n for k in ("color", "e_mag", "e_color", "source_id"))

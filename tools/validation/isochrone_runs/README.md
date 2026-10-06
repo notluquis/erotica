@@ -12,17 +12,19 @@ directorio desde `$EROTICA_RUNS` (apúntalo a `.../isochrone_runs/runs`).
 | `p01-ngc6383-asteca-demetropolis` | P01 publicado (ASteCA + MIST v1.2, DEMetropolis **no convergido**); punto de referencia, `q50` = moda | no |
 | `hess-ngc6383-binned-507f779` | likelihood Hess binada, 4 cadenas; convergió pero **anclada a la referencia de la grilla** (convergencia ≠ calibración) | no (sólo resumen) |
 | `c1-ngc6383-unbinned-eep-v1-96ce4c0` | C1: NUTS 4×2000, likelihood no binada por estrella, EEP | sí (`~/.cache/erotica-c1`, fuera de git) |
+| `map-ngc6383-<grilla>-<commit>` | la misma muestra de C1 con cada grilla de la capa (`isochrone_grids/ngc6383_grids.json`): **máxima verosimilitud con anchura de Laplace, no posterior**; `config.at_prior_bound` dice si el modo está en un borde | no |
 
 No se exportan: `isochrone_unbinned/ngc_attempt1_start_on_bound` (3 de 4 cadenas congeladas en el
 arranque, 6000 divergencias: no es un posterior), las corridas `A_*`/`B_*`/`loo_*` (cúmulos
 sintéticos, no NGC 6383) ni la corrida de 2026-06-11 (sin resumen en el repo). Añadirlas no exige
 MCMC nuevo salvo esta última.
 
-## Esquema (`schema_version` 1)
+## Esquema (`schema_version` 2; el 1 no traía `grid`, migrado con `export_run.py migrate`)
 
 | campo | tipo | contenido |
 |---|---|---|
-| `schema_version` | int | 1 |
+| `schema_version` | int | 2 |
+| `grid` | obj | **desde el 2 (2026-10-04)**: `name`, `family`, `version`, `eep_kind` (`native`/`pseudo`/`mass`), `path` (camino legado `isochs_path` o capa `grid=`), `metallicity_parameter` (`met` = Z lineal en el legado; `feh` = la etiqueta [Fe/H] de la grilla en la capa), `bands`; las corridas de la capa traen además `feh_nodes`, `loga_range`, `sigma_floor`, `license` y `sha256` de `IsochroneGrid.describe()` |
 | `id` | str | = nombre del fichero sin `.json` |
 | `date` | str \| null | fecha de la corrida (ISO); `null` si la fuente no la da (P01) |
 | `erotica_commit` | str \| null | commit del código que corrió (`null` si no fue EROTICA); `result_commit` opcional = commit que guardó el resultado |
