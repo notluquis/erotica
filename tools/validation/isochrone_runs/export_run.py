@@ -661,6 +661,128 @@ def export_colour() -> list[Path]:
     return out
 
 
+def export_multiband() -> list[Path]:
+    """NGC 6383 with the multiband likelihood, from ``isochrone_multiband/real_fit.json`` (hub finding
+    ``isochrone-multiband-implementation.md``): MAP points with the parallax dm prior (NOT
+    posteriors). The curve is the single-star isochrone of ``MultibandIsochroneFitter._deposit_nd`` at
+    the mode, with its own extinction law (CCM89 or the EDR3 law per EEP point), in **every** fitted
+    coordinate; ``bands`` lists, per band, the model column, the observed column, the extinction law,
+    how many members have it and the fitted zero point."""
+    sys.path.insert(0, str(VALIDATION / "isochrone_multiband"))
+    from common_mb import mist_mb
+    from real_fit import make
+
+    src = json.loads((VALIDATION / "isochrone_multiband/real_fit.json").read_text())
+    head = _git("rev-parse", "--short", "HEAD")
+    g = mist_mb()
+    out = []
+    for arm, fit in src.items():
+        if not isinstance(fit, dict) or "mode" not in fit or arm.startswith("profile"):
+            continue
+        f = make(g, arm)
+        m = fit["mode"]
+        theta = np.array([m[k] for k in f.param_names])
+        d = f._deposit_nd(m["feh"], m["loga"], m["dm"], m["Av"], np)
+        mass = f._interp_isochrone(m["feh"], m["loga"], np)[0]
+        k = _keep(mass)
+        names = ["G", "BP-RP"] + [b.model for b in f.nir_bands]
+        bands = [
+            {"coordinate": "G", "model": f.magnitude, "observed": "Gmag", "n": int(f._N_obs)},
+            {
+                "coordinate": "BP-RP",
+                "model": f"{f.color[0]} - {f.color[1]}",
+                "observed": "G_BPmag - G_RPmag",
+                "n": int(f._N_obs),
+            },
+        ]
+        for j, b in enumerate(f.nir_bands):
+            bands.append(
+                {
+                    "coordinate": b.model,
+                    "model": b.model,
+                    "observed": b.obs,
+                    "n": int(f._nir_has[j].sum()),
+                    "n_zero_point_group": int(f._nir_group[j].sum()),
+                    "zero_point": m.get(f"zp_{b.model}"),
+                }
+            )
+        for bb in bands:
+            bb["extinction"] = "EDR3 law per EEP point" if f.ext == "fitz19" else "CCM89, fixed"
+        curve = {
+            "eep": [int(v) for v in np.arange(len(mass))[k]],
+            "mass": [round(float(v), 5) for v in mass[k]],
+        }
+        for c, nm in enumerate(names):
+            curve[nm] = [round(float(v), 5) for v in d["single"][c][k]]
+        curve["color"], curve["mag"] = curve["BP-RP"], curve["G"]
+        run = {
+            "schema_version": SCHEMA_VERSION,
+            "grid": {
+                **g.describe(),
+                "name": g.name,
+                "path": "erotica.analysis.grids (grid=)",
+                "metallicity_parameter": "feh = the grid's own [Fe/H] label, uniform in it",
+            },
+            "bands": bands,
+            "id": f"multiband-ngc6383-{arm.replace('_', '-')}-{head}",
+            "date": "2026-10-05",
+            "erotica_commit": head,
+            "cluster": "NGC 6383",
+            "model": {
+                "grid": "MIST",
+                "version": "1.2",
+                "files": "UBVRIplus (Gaia EDR3 + 2MASS)",
+                "photometry": ", ".join(names),
+                "z_sun": None,
+                "z_sun_source": "not used: the fit coordinate is the [Fe/H] label",
+            },
+            "method": "MAP (common_mb.search_mb: node lattice + L-BFGS-B) with the parallax dm prior "
+            "and the zero-point priors; NOT a posterior",
+            "config": {
+                "arm": arm,
+                "ext": f.ext,
+                "sigma_av_fitted": f.fit_sigma_av,
+                "nir_floor": f.nir_floor,
+                "sigma_floor": f.SIGMA_FLOOR,
+                "zp_sigma": f.zp_sigma,
+                "binaries": {"alpha": f.alpha, "beta": f.beta},
+                "priors": {
+                    "loga_range": list(f.loga_range),
+                    "Av_range": list(f.Av_range),
+                    "dm_mu": f.dm_mu,
+                    "dm_sigma": f.dm_sigma,
+                    "dm_range": list(f.dm_range),
+                },
+                "at_prior_bound": fit["at_bound"],
+            },
+            "posterior": {kk: {"q50": float(v)} for kk, v in m.items()},
+            "diagnostics": None,
+            "cmd": {
+                "x": "BP-RP",
+                "y": "G",
+                "color": [round(float(v), 5) for v in f._obs_col],
+                "mag": [round(float(v), 5) for v in f._obs_mag],
+                "mag_limit": float(f._mag_lim),
+            },
+            "sample": "isochrone_multiband/ngc6383_multiband_members.ecsv",
+            "isochrone": {
+                "computed_with": f"MultibandIsochroneFitter at {head}",
+                "definition": "single-star isochrone at the MAP, every coordinate, "
+                "with the fit's own extinction law",
+                "median": curve,
+                "band_16_84": None,
+                "draws": None,
+            },
+            "notes": [
+                f"logpost {fit['logpost']:.3f}",
+                f"theta {theta.round(5).tolist()}",
+                "source: tools/validation/isochrone_multiband/real_fit.json",
+            ],
+        }
+        out.append(_write(run))
+    return out
+
+
 if __name__ == "__main__":
     which = sys.argv[1:] or ["c1", "hess507", "p01"]
     for w in which:
@@ -672,5 +794,6 @@ if __name__ == "__main__":
                 "migrate": migrate_v1,
                 "grids": export_grids,
                 "colour": export_colour,
+                "multiband": export_multiband,
             }[w]()
         )

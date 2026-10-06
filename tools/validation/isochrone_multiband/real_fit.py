@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """NGC 6383 with the multiband likelihood (hub finding ``isochrone-multiband-implementation.md``
-§2.3, run only because the synthetic's primary did not die).
+§2.3, run only if the synthetic's primary is confirmed, rho >= 3).
 
 Arms (MAP with ``common_mb.search_mb``, priors ``PRI_PLX``, MIST v1.2, 254 members):
 ``gaia`` (ccm, no NIR: anchor, must reproduce colour R1: [Fe/H] -0.47, log t 6.02, sigma_int 0.15),
