@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Figure of ``coverage.json``: per replicate, the error (estimate - truth) of log t and [Fe/H] with
+"""Figure of ``coverage.json`` (written by cov_summary.py; a module named coverage.py here shadowed the coverage package numba imports): per replicate, the error (estimate - truth) of log t and [Fe/H] with
 the 68 % and 90 % intervals of each estimator (control = MAP +- Laplace; NUTS = sample quantiles),
 side by side. A replicate covered by an interval is one whose bar crosses zero.
 Writes ``coverage_<cell>.png``."""
