@@ -10,9 +10,8 @@ import json
 from pathlib import Path
 
 import numpy as np
-from scipy.stats import beta
-
 from phases import profile_summary
+from scipy.stats import beta
 
 HERE = Path(__file__).resolve().parent
 WIN = ("ms", "pms", "ums", "to")
