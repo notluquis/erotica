@@ -127,52 +127,53 @@ T2M = {b: np.where(np.isfinite(M2[b]) & np.isin(Q[b], list("ABCDE")), M2[b], np.
 TR0 = to_2mass(MV["J"], MV["H"], MV["Ks"])
 BEST = best(TR0)
 CAL = corrected(cal_draw(False), False)
-print(f"entradas: con J/H/Ks validas T2M {[int(np.isfinite(T2M[b]).sum()) for b in BANDS]}, "
-      f"BEST {[int(np.isfinite(BEST[b]).sum()) for b in BANDS]}")
-print("[8] ORACULO DEL PORTE (Sagitta >= 0,6): "
-      f"BEST {int(np.sum(sag(BEST) >= .6))} (esperado 138), CAL {int(np.sum(sag(CAL) >= .6))} (esperado 120), "
-      f"T2M {int(np.sum(sag(T2M) >= .6))}")
+if __name__ == "__main__":
+    print(f"entradas: con J/H/Ks validas T2M {[int(np.isfinite(T2M[b]).sum()) for b in BANDS]}, "
+          f"BEST {[int(np.isfinite(BEST[b]).sum()) for b in BANDS]}")
+    print("[8] ORACULO DEL PORTE (Sagitta >= 0,6): "
+          f"BEST {int(np.sum(sag(BEST) >= .6))} (esperado 138), CAL {int(np.sum(sag(CAL) >= .6))} (esperado 120), "
+          f"T2M {int(np.sum(sag(T2M) >= .6))}")
 
-print("[9] censo de NGC 6383 (umbral 0,5 congelado; Sigma P)")
-for tag, nir in (("T2M", T2M), ("BEST", BEST), ("CAL", CAL)):
-    for name in ("all", "young"):
-        p = own(nir, name)
-        print(f"  {tag:5s} propio-{name:5s} N(P>=0,5) {int(np.sum(p >= .5)):3d}  N(P>=0,6) {int(np.sum(p >= .6)):3d}  "
-              f"Sigma P {p.sum():6.1f}   | Sagitta N(>=0,6) {int(np.sum(sag(nir) >= .6))}")
-pc = own(CAL)
-lab = core.label(G, MOD, AV, float(h["logAge50"]))
-print(f"  referencia: la etiqueta de §0.2 a la edad HR23 de NGC 6383 llama PMS a {lab.sum()} de {N} (M_G,0 > M_G,on); "
-      f"no es un censo: es lo que la definicion dice que deberia salir con eficiencia 1")
+    print("[9] censo de NGC 6383 (umbral 0,5 congelado; Sigma P)")
+    for tag, nir in (("T2M", T2M), ("BEST", BEST), ("CAL", CAL)):
+        for name in ("all", "young"):
+            p = own(nir, name)
+            print(f"  {tag:5s} propio-{name:5s} N(P>=0,5) {int(np.sum(p >= .5)):3d}  N(P>=0,6) {int(np.sum(p >= .6)):3d}  "
+                  f"Sigma P {p.sum():6.1f}   | Sagitta N(>=0,6) {int(np.sum(sag(nir) >= .6))}")
+    pc = own(CAL)
+    lab = core.label(G, MOD, AV, float(h["logAge50"]))
+    print(f"  referencia: la etiqueta de §0.2 a la edad HR23 de NGC 6383 llama PMS a {lab.sum()} de {N} (M_G,0 > M_G,on); "
+          f"no es un censo: es lo que la definicion dice que deberia salir con eficiencia 1")
 
-B = 200
-res = {"own": [], "sag": [], "own_young": []}
-fr = np.zeros(N)
-for _ in range(B):
-    nir = corrected(cal_draw(True), True)
-    p = own(nir)
-    res["own"].append(int(np.sum(p >= .5)))
-    res["own_young"].append(int(np.sum(own(nir, "young") >= .5)))
-    res["sag"].append(int(np.sum(sag(nir) >= .6)))
-    fr += p >= .5
-fr /= B
-for k, v in res.items():
-    v = np.array(v)
-    print(f"  bootstrap CAL B={B} {k:10s} mediana {np.median(v):.0f} [2,5; 16; 84; 97,5 %] = "
-          f"[{np.percentile(v, 2.5):.0f}; {np.percentile(v, 16):.0f}; {np.percentile(v, 84):.0f}; {np.percentile(v, 97.5):.0f}]")
-print(f"  propio: PMS en >= 95 % / >= 50 % de las realizaciones: {np.sum(fr >= .95)} / {np.sum(fr >= .5)}")
+    B = 200
+    res = {"own": [], "sag": [], "own_young": []}
+    fr = np.zeros(N)
+    for _ in range(B):
+        nir = corrected(cal_draw(True), True)
+        p = own(nir)
+        res["own"].append(int(np.sum(p >= .5)))
+        res["own_young"].append(int(np.sum(own(nir, "young") >= .5)))
+        res["sag"].append(int(np.sum(sag(nir) >= .6)))
+        fr += p >= .5
+    fr /= B
+    for k, v in res.items():
+        v = np.array(v)
+        print(f"  bootstrap CAL B={B} {k:10s} mediana {np.median(v):.0f} [2,5; 16; 84; 97,5 %] = "
+              f"[{np.percentile(v, 2.5):.0f}; {np.percentile(v, 16):.0f}; {np.percentile(v, 84):.0f}; {np.percentile(v, 97.5):.0f}]")
+    print(f"  propio: PMS en >= 95 % / >= 50 % de las realizaciones: {np.sum(fr >= .95)} / {np.sum(fr >= .5)}")
 
-print("[10] sensibilidad (CAL determinista, propio-all, N(P>=0,5))")
-for dav in (-0.3, 0.0, 0.3):
-    print("  " + "  ".join(f"AV{dav:+.1f} MOD{dm:+.1f}: {int(np.sum(own(CAL, mod=MOD + dm, av=AV + dav) >= .5))}"
-                           for dm in (-0.1, 0.0, 0.1)))
-for dj in (-0.03, 0.03):
-    nir = {b: v.copy() for b, v in CAL.items()}
-    nir["J"] = nir["J"] + dj
-    print(f"  J {dj:+.2f} mag: propio {int(np.sum(own(nir) >= .5))}, Sagitta {int(np.sum(sag(nir) >= .6))}")
-nonir = {b: np.full(N, np.nan) for b in BANDS}
-print(f"  sin NIR (solo Gaia): propio {int(np.sum(own(nonir) >= .5))}")
-ps_cal = sag(CAL) >= .6
-po = pc >= .5
-print(f"  acuerdo por estrella CAL: ambos PMS {np.sum(po & ps_cal)}, solo propio {np.sum(po & ~ps_cal)}, "
-      f"solo Sagitta {np.sum(~po & ps_cal)}, ninguno {np.sum(~po & ~ps_cal)}")
-np.savez_compressed(C / "ngc6383_pred.npz", sid=np.asarray(tab["GaiaDR3"], np.int64), p_cal=pc, p_frac=fr, sag_cal=sag(CAL))
+    print("[10] sensibilidad (CAL determinista, propio-all, N(P>=0,5))")
+    for dav in (-0.3, 0.0, 0.3):
+        print("  " + "  ".join(f"AV{dav:+.1f} MOD{dm:+.1f}: {int(np.sum(own(CAL, mod=MOD + dm, av=AV + dav) >= .5))}"
+                               for dm in (-0.1, 0.0, 0.1)))
+    for dj in (-0.03, 0.03):
+        nir = {b: v.copy() for b, v in CAL.items()}
+        nir["J"] = nir["J"] + dj
+        print(f"  J {dj:+.2f} mag: propio {int(np.sum(own(nir) >= .5))}, Sagitta {int(np.sum(sag(nir) >= .6))}")
+    nonir = {b: np.full(N, np.nan) for b in BANDS}
+    print(f"  sin NIR (solo Gaia): propio {int(np.sum(own(nonir) >= .5))}")
+    ps_cal = sag(CAL) >= .6
+    po = pc >= .5
+    print(f"  acuerdo por estrella CAL: ambos PMS {np.sum(po & ps_cal)}, solo propio {np.sum(po & ~ps_cal)}, "
+          f"solo Sagitta {np.sum(~po & ps_cal)}, ninguno {np.sum(~po & ~ps_cal)}")
+    np.savez_compressed(C / "ngc6383_pred.npz", sid=np.asarray(tab["GaiaDR3"], np.int64), p_cal=pc, p_frac=fr, sag_cal=sag(CAL))
