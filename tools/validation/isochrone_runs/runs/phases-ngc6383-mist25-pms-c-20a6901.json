@@ -81,7 +81,7 @@
   "loga": {
    "q50": 6.48929036274948,
    "plus": 0.017356362764591182,
-   "minus": 0.005899609216472257
+   "minus": 0.015001150480799197
   },
   "dm": {
    "q50": 10.194668333281149
@@ -4867,6 +4867,7 @@
  "notes": [
   "phase: pms",
   "phase pms (G in (14.0, None)), 219 members, arm c: [Fe/H] = 0, dm and A_V fixed at the global fit at [Fe/H] = 0",
-  "source: tools/validation/isochrone_phases/real_mist25.json"
+  "source: tools/validation/isochrone_phases/real_mist25.json",
+  "2026-10-11: loga plus/minus and at_prior_bound recomputed with the fixed profile_summary (R33-01); were plus=0.0174, minus=0.0059, at_prior_bound=[]. Every other field is the export at 20a6901."
  ]
 }

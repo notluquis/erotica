@@ -80,7 +80,7 @@
   },
   "loga": {
    "q50": 6.204826335712427,
-   "plus": 0.02543068568463447,
+   "plus": 0.02754001739849965,
    "minus": 0.025291303246242514
   },
   "dm": {
@@ -3091,6 +3091,7 @@
  "notes": [
   "phase: ums",
   "phase ums (G in (5.0, 12.0)), 13 members, arm a: [Fe/H], dm, A_V fixed at the global fit",
-  "source: tools/validation/isochrone_phases/real_mist25.json"
+  "source: tools/validation/isochrone_phases/real_mist25.json",
+  "2026-10-11: loga plus/minus and at_prior_bound recomputed with the fixed profile_summary (R33-01); were plus=0.0254, minus=0.0253, at_prior_bound=[]. Every other field is the export at 20a6901."
  ]
 }

@@ -671,7 +671,7 @@ def export_phases() -> list[Path]:
     ``notes`` because the panel's adapter ignores fields it does not know."""
     sys.path.insert(0, str(VALIDATION / "isochrone_phases"))
     from astropy.table import QTable, Table
-    from phases import SAMPLE, WINDOWS
+    from phases import SAMPLE, WINDOWS, profile_summary
     from real_phases import fitter_on, grid_and_pri
 
     head = _git("rev-parse", "--short", "HEAD")
@@ -697,7 +697,9 @@ def export_phases() -> list[Path]:
                 parm = "a" if arm == "c" else arm
                 if parm not in ph:
                     continue
-                sm = ph[parm]["summary"]
+                # recomputed, not the stored "summary": up to 4828762 its intervals could exclude
+                # loga_hat or come out open at both edges (hub state/findings.yaml R33-01)
+                sm = profile_summary(ph[parm]["profile"])
                 prof = ph[parm]["profile"]
                 k = int(np.argmin(np.abs(np.asarray(prof["loga"]) - sm["loga_hat"])))
                 mode = {**res[shared_src]["mode"], **prof["free_at"][k], "loga": sm["loga_hat"]}

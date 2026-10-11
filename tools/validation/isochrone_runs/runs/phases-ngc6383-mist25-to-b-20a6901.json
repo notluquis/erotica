@@ -72,10 +72,7 @@
    "beta": 0.94
   },
   "sigma_floor": 0.01,
-  "at_prior_bound": [
-   "loga_lo",
-   "loga_hi"
-  ]
+  "at_prior_bound": []
  },
  "posterior": {
   "feh": {
@@ -83,8 +80,8 @@
   },
   "loga": {
    "q50": 6.928786189714262,
-   "plus": 0.07121381028573825,
-   "minus": 1.0287861897142614
+   "plus": 0.01739313690378186,
+   "minus": 0.01281776818051572
   },
   "dm": {
    "q50": 10.215058136267201
@@ -4710,6 +4707,7 @@
  "notes": [
   "phase: to",
   "phase to (G in (12.0, 14.0)), 22 members, arm b: [Fe/H], dm fixed, A_V free in the window",
-  "source: tools/validation/isochrone_phases/real_mist25.json"
+  "source: tools/validation/isochrone_phases/real_mist25.json",
+  "2026-10-11: loga plus/minus and at_prior_bound recomputed with the fixed profile_summary (R33-01); were plus=0.0712, minus=1.0288, at_prior_bound=['loga_lo', 'loga_hi']. Every other field is the export at 20a6901."
  ]
 }
