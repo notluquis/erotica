@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### R30 inference (same review)
+- **Added (opt-in, defaults unchanged):** `*_column` arguments on the `*_by_probability` routes and
+  `errors=` on `radial_velocity_model` (per-star errors, R30-01); `selection_radius` /
+  `selection_center` on `proper_motion_2d_gaussian` (truncated likelihood for a disc-selected
+  sample, R30-07).
+
 ### R30 dynamics (inference and dynamics review, hub `agent-findings/review-inference-dynamics-2026-10-05.md`)
 - **Added (opt-in, defaults unchanged):** `virial_scale_radius` (R30-10); `distance_err` on
   `grav_bound_radius` (R30-11); `half_mass_radius_ratio`, `deproject_half_mass_radius` and
