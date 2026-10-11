@@ -140,6 +140,33 @@ def test_mst_edges_agrees_with_an_independent_prim_implementation(k):
         assert np.isclose(mst_edges(d).sum(), prim_mst_total(d), atol=1e-12)
 
 
+def test_mst_edges_keeps_zero_length_edges_between_coincident_points():
+    """Hub review R31 (2026-10-05): scipy's dense ``minimum_spanning_tree`` reads a 0 as "no edge".
+
+    Two coincident points (a resolved binary at 0", a duplicated row) have distance exactly 0, so
+    scipy dropped that edge and joined the pair through a longer one: the tree came out 20, not 10,
+    for {(0,0), (0,0), (10,0)}.  The oracle is the independent Prim implementation above, which has
+    no such convention, plus the hand-computed answer.
+    """
+    pts = np.array([[0.0, 0.0], [0.0, 0.0], [10.0, 0.0]])
+    d = squareform(pdist(pts))
+    edges = np.sort(mst_edges(d))
+    assert edges.size == 2
+    assert np.allclose(edges, [0.0, 10.0])
+    rng = np.random.default_rng(11)
+    for _ in range(50):
+        p = rng.integers(0, 4, size=(8, 2)).astype(
+            float
+        )  # small integer grid: many coincident points
+        dd = squareform(pdist(p))
+        assert np.isclose(mst_edges(dd).sum(), prim_mst_total(dd), atol=1e-12)
+        assert mst_edges(dd).size == 7
+    # a separation under scipy's absolute tolerance (~1e-8) is also an edge, not a missing one
+    tiny = np.array([[0.0, 0.0], [2e-9, 0.0], [1e-5, 0.0]])
+    assert np.isclose(mst_edges(squareform(pdist(tiny))).sum(), 1e-5, rtol=1e-6)
+    assert mst_edges(squareform(pdist(tiny))).size == 2
+
+
 def test_mst_edges_rejects_a_non_square_matrix():
     with pytest.raises(ValueError, match="square"):
         mst_edges(np.zeros((3, 4)))
