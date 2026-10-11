@@ -1,0 +1,26 @@
+ZAMS (EEP 202): 85 puntos, (BP-RP)_0 -0.47..3.59; isocronas con PMS: 84 edades
+[D1] Delta_th de las etiquetas 1 (n 51268; Delta_th finito en 50494)
+  M_G,0 -5 a +1: lt 6.0-6.8: n    99 med +1.02 <0,5 0.07
+  M_G,0 +1 a +3: lt 6.0-6.8: n  1832 med +2.18 <0,5 0.01 | lt 6.8-7.3: n  2340 med +0.95 <0,5 0.35
+  M_G,0 +3 a +5: lt 6.0-6.8: n  2612 med +1.99 <0,5 0.00 | lt 6.8-7.3: n  4655 med +1.18 <0,5 0.02 | lt 7.3-7.8: n  1811 med +0.47 <0,5 0.52
+  M_G,0 +5 a +7: lt 6.0-6.8: n  4414 med +1.90 <0,5 0.00 | lt 6.8-7.3: n  4712 med +1.39 <0,5 0.00 | lt 7.3-7.8: n  5798 med +0.46 <0,5 0.55 | lt 7.8-8.2: n   104 med -0.01 <0,5 0.88
+  M_G,0 +7 a +12: lt 6.0-6.8: n  3447 med +2.72 <0,5 0.00 | lt 6.8-7.3: n  7717 med +2.10 <0,5 0.00 | lt 7.3-7.8: n  8744 med +1.08 <0,5 0.09 | lt 7.8-8.2: n  2622 med +0.12 <0,5 0.92 | lt 8.2-8.5: n   175 med +0.04 <0,5 0.98 | lt 8.5-9.5: n    31 med +0.00 <0,5 0.87
+  delta 0.25: etiquetas 1 con Delta_th < delta (o NaN): 0.102
+  delta 0.5: etiquetas 1 con Delta_th < delta (o NaN): 0.183
+  delta 0.75: etiquetas 1 con Delta_th < delta (o NaN): 0.265
+  delta 1.0: etiquetas 1 con Delta_th < delta (o NaN): 0.354
+[D2] tasa base de la etiqueta 1 entre estrellas observadas cerca de la ZAMS (|Delta_obs| < 0,5), por prior de edad
+  M_G,0 -5 a +1 (n   1690): catalogo: 0.013  uniforme log t [6,6; 9,4]: 0.008  uniforme log t [6,6; 9,0]: 0.008
+  M_G,0 +1 a +3 (n  21087): catalogo: 0.082  uniforme log t [6,6; 9,4]: 0.082  uniforme log t [6,6; 9,0]: 0.084
+  M_G,0 +3 a +5 (n  16340): catalogo: 0.094  uniforme log t [6,6; 9,4]: 0.062  uniforme log t [6,6; 9,0]: 0.075
+  M_G,0 +5 a +7 (n  10536): catalogo: 0.244  uniforme log t [6,6; 9,4]: 0.111  uniforme log t [6,6; 9,0]: 0.139
+  M_G,0 +7 a +12 (n   2776): catalogo: 0.496  uniforme log t [6,6; 9,4]: 0.325  uniforme log t [6,6; 9,0]: 0.363
+  composicion por edad del tramo +7 a +12 cerca de la ZAMS (catalogo): lt 6.0-7.0: 239 (PMS 1.00), lt 7.0-7.6: 428 (PMS 1.00), lt 7.6-8.0: 551 (PMS 0.95), lt 8.0-8.4: 963 (PMS 0.22), lt 8.4-10.0: 632 (PMS 0.02)
+[D3] etiquetas 1 cuya posicion observada contradice la isocrona del cumulo (Delta_obs < Delta_th - kappa), por tramo; y tasa base cerca de la ZAMS (|Delta_obs| < 0,5) tras: objetivo separable (Delta_th > delta) y/o quitar esas etiquetas
+  kappa 0.75: -5..+1: 28/99, +1..+3: 1718/4172, +3..+5: 1247/9078, +5..+7: 1207/15028, +7..+12: 2460/22736
+  kappa 1.0: -5..+1: 21/99, +1..+3: 1465/4172, +3..+5: 834/9078, +5..+7: 897/15028, +7..+12: 2143/22736
+  kappa 1.5: -5..+1: 14/99, +1..+3: 924/4172, +3..+5: 377/9078, +5..+7: 476/15028, +7..+12: 1659/22736
+  delta 0.0 kappa None: +3..+5 catalogo 0.094  +3..+5 uniforme  0.062  +5..+7 catalogo 0.244  +5..+7 uniforme  0.111  +7..+12 catalogo 0.496  +7..+12 uniforme  0.325
+  delta 0.0 kappa 1.0: +3..+5 catalogo 0.066  +3..+5 uniforme  0.040  +5..+7 catalogo 0.214  +5..+7 uniforme  0.090  +7..+12 catalogo 0.398  +7..+12 uniforme  0.249
+  delta 0.5 kappa None: +3..+5 catalogo 0.070  +3..+5 uniforme  0.051  +5..+7 catalogo 0.104  +5..+7 uniforme  0.055  +7..+12 catalogo 0.254  +7..+12 uniforme  0.144
+  delta 0.5 kappa 1.0: +3..+5 catalogo 0.041  +3..+5 uniforme  0.028  +5..+7 catalogo 0.069  +5..+7 uniforme  0.032  +7..+12 catalogo 0.108  +7..+12 uniforme  0.048

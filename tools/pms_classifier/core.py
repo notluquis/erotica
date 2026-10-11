@@ -102,9 +102,11 @@ def drop_nir(X, frac, rng):
     return X
 
 
-def fit(X, y, frac_drop=0.25, seed=20261011, params=None):
+def fit(X, y, frac_drop=0.25, seed=20261011, params=None, sample_weight=None):
+    """`sample_weight` (segundo prerregistro, §2 del hallazgo): prior de edad explicito y limpieza de etiquetas. None = sin cambio
+    respecto del modelo del F2 (mismo sorteo de la aumentacion de NIR, mismos arboles)."""
     from xgboost import XGBClassifier
     rng = np.random.default_rng(seed)
     m = XGBClassifier(**(params or XGB_PARAMS))
-    m.fit(drop_nir(X, frac_drop, rng), y.astype(int))
+    m.fit(drop_nir(X, frac_drop, rng), y.astype(int), sample_weight=sample_weight)
     return m
