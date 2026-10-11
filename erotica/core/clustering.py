@@ -185,6 +185,9 @@ class Clustering:
         ``probability_times`` = fraction of sweep steps in which each source was in any cluster.
         ``probability`` = per-star membership score x ``probability_times``.
 
+        ``columns`` enter HDBSCAN on their raw scale; with mixed units that scale weights the
+        axes (R31-01, see :meth:`search_pseudoprobability_error_aware` for the measurement).
+
         Parameters
         ----------
         probability_method
@@ -636,8 +639,18 @@ class Clustering:
         Bayesian posterior is a separate step (see the membership guide). The validated
         :meth:`search_pseudoprobability` is untouched.
 
-        Note that, like the base sweep, features are used on their raw scale -- mixing
-        units (parallax with PM) still requires standardizing ``columns`` beforehand.
+        Like the base sweep (:meth:`search_pseudoprobability`), features enter HDBSCAN on
+        their **raw scale**, and nothing rescales them. With mixed units (PM in mas/yr,
+        parallax in mas, positions in degrees) that scale is an implicit per-axis weight in
+        the Euclidean metric. Standardizing is not a neutral fix but another weighting
+        (R31-01). In a synthetic with known truth (300 injected sources in 14 575 real field
+        rows, pm+plx+ra/dec, per-axis widths pm 0.20, plx 0.05, position 0.12 deg), the F1
+        of the best cluster at mcs 30/60 was 0.966/0.965 raw, 0.716/0.618 z-scored and
+        0.867/0.853 MAD-scaled. Those numbers are set by the widths given to the injected
+        cluster, so they do not show that raw is better. They show that the choice of
+        scale changes the answer. Choose the scale to match the cluster's expected
+        extent on each axis, and report it. P01 used (pmra, pmdec) only, one unit, where
+        the question does not arise.
         """
         from ._error_aware import error_aware_pseudoprobability, gaia_covariance
 
