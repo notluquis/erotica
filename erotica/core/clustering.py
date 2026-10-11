@@ -179,6 +179,8 @@ class Clustering:
         approx_min_span_tree: bool = False,
         match_reference_implementation: bool = True,
         hdbscan_kwargs: dict | None = None,
+        reference_center: Sequence[float] | None = None,
+        reference_tolerance: float | None = None,
     ) -> None:
         """Sweep min_cluster_size, build pseudoprobability, select best cluster.
 
@@ -258,6 +260,15 @@ class Clustering:
             target-aware vector is written as ``probability_times_target`` **only** when
             ``recovery_frequency="target"``, so recovering both products means running the
             sweep once per setting; a default run leaves the target column absent.
+        reference_center, reference_tolerance
+            Opt-in check of WHICH cluster was selected (R31-04). The sweep picks the branch of
+            highest lambda in the condensed tree, not a target: with a comoving neighbour twice
+            as populous at 1.5 mas/yr it returned the neighbour in 8/8 seeds under both
+            ``selection`` rules (hub ``review_core_q3_branch_target``). Given a centre in the
+            ``columns`` space, the distance from it to the median of the selected cluster is
+            stored as ``pseudoprobability_selected_["reference_distance"]``, and a
+            ``RuntimeWarning`` is raised beyond ``reference_tolerance``. It does not change the
+            selection. P01 did this check by hand (``branch_selection_pm_dist`` 0.031 mas/yr).
         match_reference_implementation
             Match the original Java HDBSCAN* reference implementation. Default ``True``, which
             is what this package has always used — but it was hardcoded and unexplained until
@@ -465,6 +476,13 @@ class Clustering:
                 "recovery_frequency='target' requires select_cluster=True: the target-aware "
                 "sweep term is defined relative to the selected cluster."
             )
+        if (reference_center is None) != (reference_tolerance is None):
+            raise ValueError("reference_center and reference_tolerance go together.")
+        if reference_center is not None:
+            if not select_cluster:
+                raise ValueError("reference_center needs select_cluster=True.")
+            if len(reference_center) != len(columns):
+                raise ValueError("reference_center needs one coordinate per column.")
         self._probability_method = probability_method
 
         # MST not needed during sweep — skip to save ~20% per iteration
@@ -609,6 +627,25 @@ class Clustering:
             sweep_labels=labels_matrix,
             recovery_frequency=recovery_frequency,
         )
+        if reference_center is not None:
+            label = self.pseudoprobability_selected_["selected_cluster"]
+            members = np.asarray(self.clusterer.labels_) == label
+            centre = np.median(np.asarray(X, dtype=float)[members], axis=0)
+            dist = float(np.linalg.norm(centre - np.asarray(reference_center, dtype=float)))
+            self.pseudoprobability_selected_ = {
+                **self.pseudoprobability_selected_,
+                "reference_center": [float(c) for c in reference_center],
+                "reference_distance": dist,
+            }
+            if dist > reference_tolerance:
+                warnings.warn(
+                    f"The selected cluster's median {np.round(centre, 3).tolist()} is {dist:.3g} "
+                    f"from reference_center {list(reference_center)} (tolerance "
+                    f"{reference_tolerance:g}): the sweep picked the densest branch, which may "
+                    "be a neighbour rather than the target (R31-04).",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
     # ------------------------------------------------------------------
     # Error-aware pseudoprobability (Monte-Carlo over Gaia errors)
