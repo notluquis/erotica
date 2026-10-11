@@ -47,9 +47,10 @@ def _nested_ok(s):
 
 # mu between nodes and s from far below to above the 0.05-dex node spacing. Before the fix, the
 # Delta ln L crossings were interpolated around the best NODE while loga_hat is the parabola vertex,
-# and the threshold llmax - 0.5 could sit above every node (vertex 1.1-1.9 above the best node in
-# synth_T1/T2.json): loga_hat fell outside [lo1, hi1], or [lo1, hi1] came out open at both grid
-# edges while [lo2, hi2] was 0.005 dex wide.
+# and the threshold llmax - 0.5 could sit above every node (vertex 0.51-3.83 above the best node in
+# 17 of 140 profiles of synth_T1/T2.json): loga_hat fell outside [lo1, hi1], or [lo1, hi1] came out
+# open at both grid edges while [lo2, hi2] was 0.005 dex wide. Not covered here: with an excess
+# > 0.5 the new interval excludes the best evaluated node (14 of 112 synthetic intervals).
 @pytest.mark.parametrize("s", [0.005, 0.01, 0.02, 0.05, 0.1, 0.2])
 @pytest.mark.parametrize("mu", [6.40, 6.405, 6.4125, 6.425, 6.435, 6.445])
 def test_profile_summary_estimator_inside_nested_intervals(mu, s):
