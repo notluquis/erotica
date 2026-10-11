@@ -516,6 +516,17 @@ def lambda_msr(
     total mass ``m1 + m2`` conditioned on a binary probability, when the claim is
     that binaries are centrally concentrated) makes the ranking and the hypothesis
     non-independent.  Rank by primary mass as a cross-check when that applies.
+
+    **The permutation null assumes mass is independent of position in the OBSERVED sample**
+    (R31-06). A completeness that depends on position and mass (crowding in the core, a
+    membership selection that thins the outskirts) breaks that assumption and manufactures
+    segregation that this p-value does not see. In a King synthetic with NGC 6383's structure
+    and no segregation (300 replicas per cell, rejection at p < 0.05), a 30 % core loss left
+    the rate at 0.057-0.070, while a 48 % loss raised it to 0.10-0.18 and a 71 % loss to
+    0.17-0.24 (hub ``review_core_q6_completeness_null``). Permuting masses within radial bins
+    restores the size but loses the power (0.16-0.37 against 0.89-0.99), so it is a control
+    that the inflation is radial, not a replacement. Measure the completeness gradient of
+    the sample before reading the p-value.
     """
     pts, unit = _as_positions(positions)
     n_total = len(pts)
