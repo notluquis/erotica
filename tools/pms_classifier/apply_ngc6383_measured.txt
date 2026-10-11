@@ -1,0 +1,23 @@
+NGC 6383 (HR23): dist50 1100.9 pc, MOD50 10.183 [10.019; 10.311], AV50 1.209 [1.025; 1.400], diffAV50 2.00 (logAge50 6.61: NO se usa)
+entradas: con J/H/Ks validas T2M [203, 172, 120], BEST [249, 249, 244]
+[8] ORACULO DEL PORTE (Sagitta >= 0,6): BEST 138 (esperado 138), CAL 120 (esperado 120), T2M 156
+[9] censo de NGC 6383 (umbral 0,5 congelado; Sigma P)
+  T2M   propio-all   N(P>=0,5) 200  N(P>=0,6) 194  Sigma P  189.6   | Sagitta N(>=0,6) 156
+  T2M   propio-young N(P>=0,5) 207  N(P>=0,6) 201  Sigma P  198.6   | Sagitta N(>=0,6) 156
+  BEST  propio-all   N(P>=0,5) 203  N(P>=0,6) 201  Sigma P  198.7   | Sagitta N(>=0,6) 138
+  BEST  propio-young N(P>=0,5) 207  N(P>=0,6) 204  Sigma P  204.2   | Sagitta N(>=0,6) 138
+  CAL   propio-all   N(P>=0,5) 202  N(P>=0,6) 200  Sigma P  196.2   | Sagitta N(>=0,6) 120
+  CAL   propio-young N(P>=0,5) 205  N(P>=0,6) 202  Sigma P  202.7   | Sagitta N(>=0,6) 120
+  referencia: la etiqueta de §0.2 a la edad HR23 de NGC 6383 llama PMS a 241 de 254 (M_G,0 > M_G,on); no es un censo: es lo que la definicion dice que deberia salir con eficiencia 1
+  bootstrap CAL B=200 own        mediana 202 [2,5; 16; 84; 97,5 %] = [200; 201; 202; 203]
+  bootstrap CAL B=200 sag        mediana 119 [2,5; 16; 84; 97,5 %] = [98; 106; 131; 138]
+  bootstrap CAL B=200 own_young  mediana 206 [2,5; 16; 84; 97,5 %] = [203; 205; 206; 207]
+  propio: PMS en >= 95 % / >= 50 % de las realizaciones: 197 / 202
+[10] sensibilidad (CAL determinista, propio-all, N(P>=0,5))
+  AV-0.3 MOD-0.1: 204  AV-0.3 MOD+0.0: 204  AV-0.3 MOD+0.1: 206
+  AV+0.0 MOD-0.1: 203  AV+0.0 MOD+0.0: 202  AV+0.0 MOD+0.1: 202
+  AV+0.3 MOD-0.1: 199  AV+0.3 MOD+0.0: 198  AV+0.3 MOD+0.1: 199
+  J -0.03 mag: propio 202, Sagitta 99
+  J +0.03 mag: propio 202, Sagitta 129
+  sin NIR (solo Gaia): propio 195
+  acuerdo por estrella CAL: ambos PMS 120, solo propio 82, solo Sagitta 0, ninguno 52

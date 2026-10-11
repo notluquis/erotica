@@ -1,0 +1,43 @@
+[0] miembros HR23 Prob>=0,7 en cumulos de entrenamiento: 146363; con G y BP-RP: 146363; cumulos 1625
+    GUARDIA: miembros de P01 (254) en el entrenamiento: 0  (debe ser 0)
+    mutacion de la guardia (se agrega 1 de los 254 a proposito): 1  (debe ser 1: la guardia ve)
+    PMS por etiqueta: 51268 (0.350); con Ks valida 0.842; edad logAge50 [p5 p50 p95] [6.68 7.6  8.95]
+[1] ruido de etiqueta: cambian con logAge16 o 84: 23352 (0.160); en logAge50 < 6,8: 0.037
+    particion 0: train 117092 test 29271 (16 s)
+    particion 1: train 117082 test 29281 (25 s)
+    particion 2: train 117093 test 29270 (35 s)
+    particion 3: train 117093 test 29270 (45 s)
+    particion 4: train 117092 test 29271 (54 s)
+[2] CV GroupKFold(5) por cumulo, umbral 0,5 (contra la etiqueta de §0.2)
+  todos                              n 146363 (PMS  51268, 1625 cum) AUC 0.929  rec 0.757 [0.753; 0.760]  FPR 0.059 [0.058; 0.061]  prec 0.874 | boot cumulos rec [0.741; 0.771] fpr [0.055; 0.064]
+  logAge < 6,8                       n  14014 (PMS  12406,  129 cum) AUC 0.997  rec 0.816 [0.809; 0.823]  FPR 0.001 [0.000; 0.003]  prec 1.000 | boot cumulos rec [0.786; 0.848] fpr [0.000; 0.002]
+  6,8-7,3                            n  28922 (PMS  19443,  330 cum) AUC 0.954  rec 0.720 [0.713; 0.726]  FPR 0.015 [0.013; 0.018]  prec 0.990 | boot cumulos rec [0.691; 0.748] fpr [0.011; 0.019]
+  7,3-7,8                            n  51335 (PMS  16446,  611 cum) AUC 0.963  rec 0.741 [0.734; 0.747]  FPR 0.039 [0.037; 0.041]  prec 0.900 | boot cumulos rec [0.713; 0.761] fpr [0.035; 0.043]
+  7,8-8,5                            n  34300 (PMS   2937,  408 cum) AUC 0.961  rec 0.837 [0.823; 0.850]  FPR 0.077 [0.074; 0.080]  prec 0.505 | boot cumulos rec [0.802; 0.872] fpr [0.070; 0.085]
+  >= 8,5                             n  17792 (PMS     36,  147 cum) AUC 0.991  rec 1.000 [0.903; 1.000]  FPR 0.096 [0.092; 0.101]  prec 0.021 | boot cumulos rec [1.000; 1.000] fpr [0.079; 0.115]
+  d < 700 pc                         n  27378 (PMS  20305,  253 cum) AUC 0.948  rec 0.879 [0.875; 0.884]  FPR 0.112 [0.105; 0.120]  prec 0.957 | boot cumulos rec [0.867; 0.890] fpr [0.089; 0.137]
+  d 700-1600                         n  51874 (PMS  21078,  588 cum) AUC 0.914  rec 0.771 [0.765; 0.777]  FPR 0.081 [0.078; 0.084]  prec 0.867 | boot cumulos rec [0.750; 0.789] fpr [0.072; 0.090]
+  d >= 1600                          n  67111 (PMS   9885,  784 cum) AUC 0.871  rec 0.475 [0.465; 0.484]  FPR 0.041 [0.039; 0.042]  prec 0.669 | boot cumulos rec [0.443; 0.500] fpr [0.037; 0.045]
+  AV < 0,6                           n  35683 (PMS  19096,  335 cum) AUC 0.948  rec 0.875 [0.870; 0.879]  FPR 0.100 [0.095; 0.104]  prec 0.910 | boot cumulos rec [0.866; 0.884] fpr [0.086; 0.111]
+  AV 0,6-2,0                         n  63854 (PMS  20787,  731 cum) AUC 0.917  rec 0.724 [0.718; 0.730]  FPR 0.059 [0.057; 0.062]  prec 0.855 | boot cumulos rec [0.700; 0.744] fpr [0.054; 0.066]
+  AV >= 2,0                          n  46826 (PMS  11385,  559 cum) AUC 0.911  rec 0.619 [0.610; 0.628]  FPR 0.040 [0.038; 0.042]  prec 0.834 | boot cumulos rec [0.570; 0.656] fpr [0.034; 0.046]
+  sin NIR                            n  23162 (PMS   8377, 1559 cum) AUC 0.868  rec 0.656 [0.646; 0.666]  FPR 0.119 [0.113; 0.124]  prec 0.758 | boot cumulos rec [0.628; 0.679] fpr [0.107; 0.132]
+  con NIR                            n 123201 (PMS  42891, 1625 cum) AUC 0.937  rec 0.776 [0.772; 0.780]  FPR 0.048 [0.047; 0.050]  prec 0.896 | boot cumulos rec [0.758; 0.789] fpr [0.044; 0.052]
+  -- celda de NGC 6383 (logAge < 6,8; 700-1600 pc; AV 0,6-2,0):
+  celda NGC 6383                     n   5102 (PMS   4682,   37 cum) AUC 0.997  rec 0.830 [0.819; 0.841]  FPR 0.000 [0.000; 0.009]  prec 1.000 | boot cumulos rec [0.777; 0.883] fpr [0.000; 0.000]
+  celda NGC 6383, sin NIR            n    457 (PMS    443,   37 cum) AUC 0.999  rec 0.837 [0.800; 0.871]  FPR 0.000 [0.000; 0.232]  prec 1.000 | boot cumulos rec [0.801; 0.877] fpr [0.000; 0.000]
+  calibracion (todos): bin de P -> fraccion PMS observada (n)
+    0.0-0.1: 0.047 (57633)  0.1-0.2: 0.133 (24067)  0.2-0.3: 0.251 (9463)  0.3-0.4: 0.343 (6068)  0.4-0.5: 0.442 (4719)  0.5-0.6: 0.554 (3912)  0.6-0.7: 0.633 (3630)  0.7-0.8: 0.738 (4003)  0.8-0.9: 0.836 (5118)  0.9-1.0: 0.977 (27750)
+    celda NGC 6383: 0.0-0.1: 0.425 (718)  0.1-0.2: 0.983 (241)  0.2-0.3: 0.978 (92)  0.3-0.4: 1.000 (78)  0.4-0.5: 0.988 (86)  0.5-0.6: 1.000 (107)  0.6-0.7: 1.000 (116)  0.7-0.8: 1.000 (197)  0.8-0.9: 1.000 (301)  0.9-1.0: 1.000 (3166)
+[3] Sagitta 1.2.3 en las mismas estrellas (NaN -> token), contra la etiqueta de §0.2 (233 s)
+  Sagitta >= 0.6 todos               n 146363 (PMS  51268, 1625 cum) AUC 0.867  rec 0.503 [0.499; 0.508]  FPR 0.059 [0.058; 0.061]  prec 0.820 | boot cumulos rec [0.481; 0.526] fpr [0.053; 0.067]
+  Sagitta >= 0.6 celda NGC 6383      n   5102 (PMS   4682,   37 cum) AUC 0.973  rec 0.636 [0.623; 0.650]  FPR 0.000 [0.000; 0.009]  prec 1.000 | boot cumulos rec [0.545; 0.724] fpr [0.000; 0.000]
+  Sagitta >= 0.5 todos               n 146363 (PMS  51268, 1625 cum) AUC 0.867  rec 0.555 [0.550; 0.559]  FPR 0.081 [0.079; 0.083]  prec 0.787 | boot cumulos rec [0.535; 0.579] fpr [0.073; 0.088]
+  Sagitta >= 0.5 celda NGC 6383      n   5102 (PMS   4682,   37 cum) AUC 0.973  rec 0.689 [0.675; 0.702]  FPR 0.000 [0.000; 0.009]  prec 1.000 | boot cumulos rec [0.602; 0.761] fpr [0.000; 0.000]
+  propio >= 0,5 celda NGC 6383       n   5102 (PMS   4682,   37 cum) AUC 0.997  rec 0.830 [0.819; 0.841]  FPR 0.000 [0.000; 0.009]  prec 1.000 | boot cumulos rec [0.781; 0.881] fpr [0.000; 0.000]
+[4] FPR en miembros de cumulos viejos (logAge >= 8,5; 600-2500 pc; etiqueta 0): n 14405, 115 cumulos
+  propio >= 0,5    FP 1402 de 14405 = 0.0973 [0.0925; 0.1023]; boot cumulos [0.0797; 0.1198]
+  Sagitta >= 0,6   FP 486 de 14405 = 0.0337 [0.0308; 0.0368]; boot cumulos [0.0211; 0.0495]
+  Sagitta >= 0,5   FP 714 de 14405 = 0.0496 [0.0461; 0.0532]; boot cumulos [0.0342; 0.0724]
+  propio, sólo G > 17: 1052 de 3711 = 0.2835 (np.float64(0.2690215721748501), np.float64(0.2982832585377481))
+[5] modelos finales guardados: todos (146363 estrellas), logAge < 8,3 (120499); sin semillas de NIR: aumentacion 25 % (308 s)

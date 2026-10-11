@@ -1,0 +1,15 @@
+NGC 6530 (HR23): MOD50 10.462, AV50 1.476, logAge50 6.592, M_G,on 0.807
+Wright+2019: 819 filas; con DR3 por X-Match (<= 0,5'', |dG| < 0,3) 750
+con G, BP, RP: 741; con J/H/Ks validas (A-E): 636/593/513
+[6] recall (fraccion clasificada PMS) en miembros jovenes confirmados de Wright+2019
+  todos con G, BP, RP                propio(0,5) 663/741 = 0.895 [0.870; 0.916] | propio-joven(0,5) 680/741 = 0.918 [0.896; 0.936] | Sagitta(0,6) 484/741 = 0.653 [0.618; 0.687] | Sagitta(0,5) 532/741 = 0.718 [0.684; 0.750]
+  etiqueta PMS (M_G,0 > M_G,on)      propio(0,5) 663/708 = 0.936 [0.916; 0.953] | propio-joven(0,5) 680/708 = 0.960 [0.943; 0.974] | Sagitta(0,6) 484/708 = 0.684 [0.648; 0.718] | Sagitta(0,5) 532/708 = 0.751 [0.718; 0.783]
+  etiqueta PMS, dominio McBride      propio(0,5) 277/303 = 0.914 [0.877; 0.943] | propio-joven(0,5) 284/303 = 0.937 [0.904; 0.962] | Sagitta(0,6) 183/303 = 0.604 [0.546; 0.659] | Sagitta(0,5) 207/303 = 0.683 [0.628; 0.735]
+  etiqueta PMS, fuera del dominio    propio(0,5) 386/405 = 0.953 [0.928; 0.972] | propio-joven(0,5) 396/405 = 0.978 [0.958; 0.990] | Sagitta(0,6) 301/405 = 0.743 [0.698; 0.785] | Sagitta(0,5) 325/405 = 0.802 [0.760; 0.840]
+  etiqueta PMS, con J H Ks           propio(0,5) 411/437 = 0.941 [0.914; 0.961] | propio-joven(0,5) 417/437 = 0.954 [0.930; 0.972] | Sagitta(0,6) 257/437 = 0.588 [0.540; 0.635] | Sagitta(0,5) 288/437 = 0.659 [0.612; 0.703]
+  etiqueta PMS, sin NIR              propio(0,5) 53/56 = 0.946 [0.851; 0.989] | propio-joven(0,5) 55/56 = 0.982 [0.904; 1.000] | Sagitta(0,6) 39/56 = 0.696 [0.559; 0.812] | Sagitta(0,5) 44/56 = 0.786 [0.656; 0.884]
+  etiqueta: 33 de 741 miembros de Wright quedan SOBRE el turn-on (no PMS por la etiqueta)
+  diferencia pareada propio(0,5) - Sagitta(0,6), etiqueta PMS: +0.253 [+0.219; +0.287]  -> F1 no falla
+  Sigma P (propio) sobre etiqueta PMS: 619.7 de 708
+[7] patron de NGC 6383 (2MASS A-E de la tabla limpia): falta J/H/Ks [0.201 0.323 0.528]; falta todo 0.126
+  propio: fraccion que cambia de clase 0.016 (sd 0.003; max 0.022) -> F3 no falla; cambio del recall en etiqueta PMS -0.013
