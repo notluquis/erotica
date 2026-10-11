@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `errors=` on `radial_velocity_model` (per-star errors, R30-01); `selection_radius` /
   `selection_center` on `proper_motion_2d_gaussian` (truncated likelihood for a disc-selected
   sample, R30-07).
+- **Changed:** `velocity_model` raises a `RuntimeWarning` when median/std of the amplitudes is
+  below 5, where a normal fitted to the Rice-distributed `|mu|` biases `std_v` low (R30-02); new
+  `values_are_amplitudes=` (False for signed components). Its docstring states that `distance`
+  enters as exact.
+- **Fixed:** `radial_velocity_model` raised `UnitConversionError` on every input: it passed km/s
+  to `velocity_model`, which read them as mas/yr. Its only test monkeypatched `velocity_model`.
 
 ### R30 dynamics (inference and dynamics review, hub `agent-findings/review-inference-dynamics-2026-10-05.md`)
 - **Added (opt-in, defaults unchanged):** `virial_scale_radius` (R30-10); `distance_err` on
