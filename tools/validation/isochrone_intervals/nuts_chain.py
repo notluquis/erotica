@@ -194,7 +194,7 @@ def summarize(post, stats) -> dict:
         q = np.quantile(flat, [0.05, 0.16, 0.5, 0.84, 0.95])
         rh = float(az.rhat(x))
         eb = float(az.ess(x, method="bulk"))
-        et = float(az.ess(x, method="tail"))
+        et = min(float(az.ess(x, method="quantile", prob=q_)) for q_ in (0.05, 0.95))  # Vehtari tail ESS
         out["params"][p] = {
             "median": q[2], "q05": q[0], "q16": q[1], "q84": q[3], "q95": q[4],
             "mean": float(flat.mean()), "sd": float(flat.std()),
@@ -202,7 +202,9 @@ def summarize(post, stats) -> dict:
             "chain_mean": x.mean(1).tolist(), "chain_sd": x.std(1).tolist(),
             # per chain: split R-hat of that chain alone (non-stationarity) and its mean's offset
             # from the other chains', in pooled sd (a chain stuck elsewhere shows here)
-            "rhat_split_chain": [float(az.rhat(x[c][None])) for c in range(nch)],
+            "rhat_split_chain": [
+                float(az.rhat(x[c][: x.shape[1] // 2 * 2].reshape(2, -1))) for c in range(nch)
+            ],
             "offset_sd": [
                 float((x[c].mean() - np.delete(x, c, 0).mean()) / max(flat.std(), 1e-12))
                 for c in range(nch)
