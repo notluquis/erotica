@@ -1,5 +1,7 @@
 """Cluster analysis helpers."""
 
+from ._isochrone import IsochroneFitter
+from .analyzer import ClusterAnalyzer
 from .debugging import (
     DistancePosteriorComparison,
     compare_legacy_output,
@@ -9,20 +11,21 @@ from .debugging import (
     validate_cluster_table,
 )
 from .dynamics import (
-    coulomb_argument_from_mass_function,
-    coulomb_calibration_warnings,
-)
-from .dynamics import (
-    posterior_summary,
     ClusterDynamicsAnalyzer,
     calculate_galactic_mass,
     calculate_galactocentric_distance,
     calculate_hill_radius,
+    coulomb_argument_from_mass_function,
+    coulomb_calibration_warnings,
     crossing_time,
+    deproject_half_mass_radius,
     grav_bound_radius,
+    half_mass_radius_ratio,
     half_mass_relaxation_time,
     mass_segregation_timescale,
+    posterior_summary,
     tidal_radius_prior,
+    virial_scale_radius,
 )
 from .figures import (
     ClusterFigureBuilder,
@@ -41,18 +44,25 @@ from .figures import (
     plot_isochrone,
     plot_isochrone_label,
 )
+from .identifiability import (
+    attach_log_likelihood,
+    identifiability_report,
+    munoz_criteria,
+    posterior_geometry,
+    prior_sensitivity,
+)
 from .inference import (
-    DistancePriors,
-    ParallaxPriors,
-    VelocityPriors,
-    ProperMotionPriors,
     ClusterInferenceAnalyzer,
     DistanceFitResult,
+    DistancePriors,
     FitProperMotion2DGaussian,
     ParallaxFitResult,
+    ParallaxPriors,
     ProperMotionFitResult,
+    ProperMotionPriors,
     SamplingConfig,
     VelocityFitResult,
+    VelocityPriors,
     distance_model,
     fit_parallax_model,
     parallax_determination,
@@ -63,13 +73,12 @@ from .inference import (
     velocity_determination,
     velocity_model,
 )
-from ._isochrone import IsochroneFitter
 from .kinematics import pm_amplitude, projected_velocity_values, radial_velocity_values
 from .photometry import (
     PhotometricMassEstimator,
     add_photometric_errors,
-    assign_masses,
     assign_mass_nearest_isochrone_point_kdtree,
+    assign_masses,
     read_isochrones_with_metadata,
     set_column_types,
 )
@@ -85,7 +94,6 @@ from .provenance import (
     summarize_trace,
     write_metadata,
 )
-from .synthetic import fractal_cluster, radial_profile_of
 from .segregation import (
     SegregationProfile,
     SegregationResult,
@@ -94,37 +102,31 @@ from .segregation import (
     lambda_msr_profile,
     mst_edges,
 )
-from .identifiability import (
-    attach_log_likelihood,
-    identifiability_report,
-    munoz_criteria,
-    posterior_geometry,
-    prior_sensitivity,
-)
 from .structure import (
-    KingPriors,
+    CenterFitResult,
+    ClusterStructureAnalyzer,
     EFFPriors,
+    KingPriors,
+    KingProfileResult,
+    RadialDensityProfile,
+    RDP_bayesian,
+    RDP_bayesian_log_space,
+    calculate_half_light_radius,
+    center_determination,
     compare_radial_profiles,
+    density_annulus_calculator_equip,
+    density_annulus_calculator_width,
     eff_expected_count,
     eff_surface_density,
     eff_unbinned,
+    half_mass_radius,
     king_expected_count,
     king_expected_count_weighted,
-    king_unbinned,
-    CenterFitResult,
-    ClusterStructureAnalyzer,
-    KingProfileResult,
-    RDP_bayesian,
-    RDP_bayesian_log_space,
-    RadialDensityProfile,
-    calculate_half_light_radius,
-    center_determination,
-    density_annulus_calculator_equip,
-    density_annulus_calculator_width,
-    half_mass_radius,
     king_profile,
+    king_unbinned,
     radial_density_profile,
 )
+from .synthetic import fractal_cluster, radial_profile_of
 from .units import (
     angular_size,
     calculate_absolute_magnitude,
@@ -136,7 +138,6 @@ from .units import (
     linear_size,
     quantity_values,
 )
-from .analyzer import ClusterAnalyzer
 
 __all__ = [
     "coulomb_argument_from_mass_function",
@@ -186,6 +187,7 @@ __all__ = [
     "compare_legacy_output",
     "compare_radial_profiles",
     "crossing_time",
+    "deproject_half_mass_radius",
     "density_annulus_calculator_equip",
     "density_annulus_calculator_width",
     "dependency_versions",
@@ -208,6 +210,7 @@ __all__ = [
     "graph_real",
     "grav_bound_radius",
     "half_mass_radius",
+    "half_mass_radius_ratio",
     "half_mass_relaxation_time",
     "histogram_mode",
     "king_expected_count",
@@ -256,5 +259,6 @@ __all__ = [
     "validate_cluster_table",
     "velocity_determination",
     "velocity_model",
+    "virial_scale_radius",
     "write_metadata",
 ]

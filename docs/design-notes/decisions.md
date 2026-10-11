@@ -1921,3 +1921,17 @@ parallel), float32 (−log L off by up to 2.9e-3 and one gradient component by 4
 starts), `taskpolicy -b` (0.33 s per gradient), and the persistent compilation cache as a speed
 lever (~1 s per process). The chunked driver matches `numpyro.infer.MCMC` draw for draw (max
 difference 0.0, same leapfrog counts, chains 0 and 3); a seed moved by one fails that check.
+
+## 2026-10-05 -- R30: arreglos de `dynamics.py`
+
+Sintoma / causa / arreglo / oraculo / numero que se movio, por hallazgo (hub: `state/findings.yaml` R30-*).
+La parte de `inference.py` (R30-01, R30-07) va en un PR aparte, apilado sobre este.
+
+- **R30-03.** `calculate_hill_radius` pisaba el `cluster_mass_err` del llamador; ya no.
+- **R30-04.** Sin `cluster_mass_err` el error de Hill omite el termino de masa; ahora avisa (no inventa un error).
+- **R30-09.** Tests de valor para `grav_bound_radius` y `mass_segregation_timescale`.
+- **R30-10.** G M/sigma^2 con nombre propio (`virial_scale_radius`); la rama `dispersion` queda deprecada.
+- **R30-11.** `grav_bound_radius(distance_err=)`: P01 +-1.57 -> +-2.79 arcmin.
+- **R30-12.** `radius_kind` declarado; King (Abel numerico) r3D/R2D = 1.322 (5), 1.334 (20), 1.337 (27.6); Plummer
+  1.30477 (forma cerrada, pasa por la misma deproyeccion). Factor en t_rh: el cociente a la 3/2. El 1.52-1.55 es de
+  t_rh, no del radio.
