@@ -152,22 +152,40 @@ def profile_summary(p: dict) -> dict:
     else:
         best, llmax = float(a[k]), float(ll[k])
     out = {"loga_hat": best, "loglike_max": llmax, "at_grid_edge": k in (0, len(a) - 1)}
+    # The crossings are scanned outwards FROM THE VERTEX (best, llmax), inserted as a node of the
+    # piecewise-linear profile. Scanning from the best grid node instead (the version up to
+    # 4828762) broke two ways, measured on synth_T1/T2.json: llmax can sit > 0.5 above every node,
+    # so no node satisfied thr <= ll and [lo1, hi1] came out open at both edges while [lo2, hi2]
+    # was closed; and the crossings bracketed the node, not the vertex, so loga_hat fell outside
+    # [lo1, hi1]. With the vertex as the start, lo2 <= lo1 <= loga_hat <= hi1 <= hi2 by construction.
+    j0 = int(np.searchsorted(a, best))
+    if j0 < len(a) and a[j0] == best:
+        aa, yy = a, ll.copy()
+        yy[j0] = llmax
+    else:
+        aa, yy = np.insert(a, j0, best), np.insert(ll, j0, llmax)
     for d, tag in ((0.5, "1"), (2.0, "2")):
         thr = llmax - d
         lo, hi = a[0], a[-1]
         open_lo = open_hi = True
-        for i in range(k, 0, -1):
-            if ll[i - 1] < thr <= ll[i]:
-                lo = a[i - 1] + (thr - ll[i - 1]) / (ll[i] - ll[i - 1]) * (a[i] - a[i - 1])
+        for i in range(j0, 0, -1):
+            if yy[i - 1] < thr <= yy[i]:
+                lo = aa[i - 1] + (thr - yy[i - 1]) / (yy[i] - yy[i - 1]) * (aa[i] - aa[i - 1])
                 open_lo = False
                 break
-        for i in range(k, len(a) - 1):
-            if ll[i + 1] < thr <= ll[i]:
-                hi = a[i] + (ll[i] - thr) / (ll[i] - ll[i + 1]) * (a[i + 1] - a[i])
+        for i in range(j0, len(aa) - 1):
+            if yy[i + 1] < thr <= yy[i]:
+                hi = aa[i] + (yy[i] - thr) / (yy[i] - yy[i + 1]) * (aa[i + 1] - aa[i])
                 open_hi = False
                 break
         out[f"lo{tag}"], out[f"hi{tag}"] = float(lo), float(hi)
         out[f"open_lo{tag}"], out[f"open_hi{tag}"] = open_lo, open_hi
+        # Narrower than the grid can resolve: no node other than the best one inside the interval,
+        # so its width is set by the interpolation between the vertex and the neighbours, not by
+        # the data. Such an interval is not read as an uncertainty and is counted apart.
+        inside = (a >= lo) & (a <= hi)
+        inside[k] = False
+        out[f"unresolved{tag}"] = bool(not inside.any())
     return out
 
 

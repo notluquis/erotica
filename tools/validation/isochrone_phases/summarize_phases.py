@@ -10,14 +10,33 @@ import json
 from pathlib import Path
 
 import numpy as np
+from scipy.stats import beta
+
+from phases import profile_summary
 
 HERE = Path(__file__).resolve().parent
 WIN = ("ms", "pms", "ums", "to")
 
 
+def _summary(p: dict) -> dict:
+    """Recomputed from the stored profile, never read from the JSON: the stored ``summary`` was
+    written by the ``profile_summary`` of the run (up to 4828762 its intervals could exclude their
+    own ``loga_hat`` and come out open at both edges). ``loga_hat`` is the same in both versions."""
+    return profile_summary(p["profile"])
+
+
+def _cp(k: int, n: int) -> list | None:
+    """Clopper-Pearson 68 % interval of a binomial proportion k/n."""
+    if n == 0:
+        return None
+    lo = 0.0 if k == 0 else float(beta.ppf(0.16, k, n - k + 1))
+    hi = 1.0 if k == n else float(beta.ppf(0.84, k + 1, n - k))
+    return [round(lo, 3), round(hi, 3)]
+
+
 def _av(ph, w, arm):
     p = ph[w][arm]
-    s = p["summary"]
+    s = _summary(p)
     k = int(np.argmin(np.abs(np.asarray(p["profile"]["loga"]) - s["loga_hat"])))
     return p["profile"]["free_at"][k].get("Av")
 
@@ -39,16 +58,27 @@ def synth(truth: str) -> dict | None:
             for w in WIN:
                 if w not in reps[0][key]:
                     continue
-                ss = [r[key][w][arm]["summary"] for r in reps]
+                ss = [_summary(r[key][w][arm]) for r in reps]
                 bias = np.array([s["loga_hat"] - t for s in ss])
                 cov = sum(s["lo1"] <= t <= s["hi1"] for s in ss)
+                opn = [s["open_lo1"] or s["open_hi1"] for s in ss]
+                unr = [s["unresolved1"] and not o for s, o in zip(ss, opn, strict=True)]
+                res = [not (o or u) for o, u in zip(opn, unr, strict=True)]
+                cov_res = sum(s["lo1"] <= t <= s["hi1"] for s, ok in zip(ss, res, strict=True) if ok)
                 out[f"{key}:{arm}:{w}"] = {
                     "bias_median": float(np.median(bias)),
                     "bias_mean": float(bias.mean()),
                     "bias_sd": float(bias.std(ddof=1)) if len(bias) > 1 else None,
                     "coverage_dlnL0.5": f"{cov}/{len(ss)}",
                     "halfwidth_median": float(np.median([(s["hi1"] - s["lo1"]) / 2 for s in ss])),
-                    "open_intervals": int(sum(s["open_lo1"] or s["open_hi1"] for s in ss)),
+                    "open_intervals": int(sum(opn)),
+                    "unresolved_intervals": int(sum(unr)),
+                    "coverage_resolved": f"{cov_res}/{sum(res)}",
+                    "coverage_resolved_cp68": _cp(cov_res, sum(res)),
+                    "coverage_all_cp68": _cp(cov, len(ss)),
+                    "estimator_outside_interval": int(
+                        sum(not (s["lo1"] <= s["loga_hat"] <= s["hi1"]) for s in ss)
+                    ),
                 }
             ten = [r["tension"][f"{key}:{arm}"] for r in reps]
             dl = np.array([x["delta_loga"] for x in ten])
@@ -89,9 +119,10 @@ def real(grid: str, null: dict | None) -> dict | None:
         for arm in arms:
             for w in WIN:
                 if w in d.get(key, {}):
-                    s = d[key][w][arm]["summary"]
+                    s = _summary(d[key][w][arm])
                     out[f"{key}:{arm}:{w}"] = {
-                        k: s[k] for k in ("loga_hat", "lo1", "hi1", "open_lo1", "open_hi1")
+                        k: s[k]
+                        for k in ("loga_hat", "lo1", "hi1", "open_lo1", "open_hi1", "unresolved1")
                     }
                     if arm == "b":
                         out[f"{key}:{arm}:{w}"]["Av"] = _av(d[key], w, "b")

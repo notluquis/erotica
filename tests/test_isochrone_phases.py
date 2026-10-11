@@ -39,3 +39,52 @@ def test_one_age_vs_two_gaussians():
     assert r["delta_loga"] == pytest.approx(-0.40, abs=1e-9)
     assert r["loga_shared"] == pytest.approx(6.30, abs=1e-9)
     assert r["two_dlnL"] == pytest.approx(8.0, rel=1e-6)
+
+
+def _nested_ok(s):
+    return s["lo2"] <= s["lo1"] <= s["loga_hat"] <= s["hi1"] <= s["hi2"]
+
+
+# mu between nodes and s from far below to above the 0.05-dex node spacing. Before the fix, the
+# Delta ln L crossings were interpolated around the best NODE while loga_hat is the parabola vertex,
+# and the threshold llmax - 0.5 could sit above every node (vertex 1.1-1.9 above the best node in
+# synth_T1/T2.json): loga_hat fell outside [lo1, hi1], or [lo1, hi1] came out open at both grid
+# edges while [lo2, hi2] was 0.005 dex wide.
+@pytest.mark.parametrize("s", [0.005, 0.01, 0.02, 0.05, 0.1, 0.2])
+@pytest.mark.parametrize("mu", [6.40, 6.405, 6.4125, 6.425, 6.435, 6.445])
+def test_profile_summary_estimator_inside_nested_intervals(mu, s):
+    p = _prof(mu, s)
+    r = phases.profile_summary(p)
+    assert _nested_ok(r), r
+    # the Gaussian is far from the grid edges: no interval may be declared open
+    assert not any(r[f"open_{x}{t}"] for x in ("lo", "hi") for t in "12"), r
+
+
+def test_profile_summary_known_failure_case():
+    # mu = 6.435, s = 0.01: parabola vertex 1.125 above the best node (6.45). Before the fix:
+    # [lo1, hi1] = [5.70, 7.00] open both sides, [lo2, hi2] closed and narrow.
+    r = phases.profile_summary(_prof(6.435, 0.01))
+    assert _nested_ok(r), r
+    assert not (r["open_lo1"] or r["open_hi1"])
+    # the crossings cannot be resolved by the grid: no node other than the best lies inside
+    assert r["unresolved1"]
+
+
+def test_profile_summary_resolved_flag_on_wide_profile():
+    r = phases.profile_summary(_prof(6.32, 0.1))
+    assert not r["unresolved1"] and not r["unresolved2"]
+
+
+def test_profile_summary_sawtooth_real_shape():
+    # T2 replica 1, `ms` arm a (synth_T2.json): node values relative to the best node 6.45
+    a = np.round(np.arange(6.30, 6.6001, 0.05), 3)
+    ll = np.array([-11.02, -2.43, -1.81, 0.0, -6.93, -10.08, -11.6])
+    r = phases.profile_summary({"loga": a.tolist(), "loglike": ll.tolist()})
+    assert _nested_ok(r), r
+
+
+def test_profile_summary_unresolved_when_only_best_node_inside():
+    # peak on a node (T2's truth 6.40 is one): the best node is inside [lo1, hi1], no other is
+    r = phases.profile_summary(_prof(6.40, 0.01))
+    assert r["lo1"] <= 6.40 <= r["hi1"]
+    assert r["unresolved1"] and r["unresolved2"]
