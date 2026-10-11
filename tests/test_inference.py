@@ -717,8 +717,8 @@ def test_velocity_errors_separate_dispersion_from_measurement_noise():
     v, e = _velocity_sample()
     cfg = SamplingConfig(draws=1200, tune=1000, chains=2, random_seed=6, progressbar=False)
 
-    naive = velocity_model(v, sampling=cfg)
-    aware = velocity_model(v, errors=e, sampling=cfg)
+    naive = velocity_model(v, sampling=cfg, values_are_amplitudes=False)
+    aware = velocity_model(v, errors=e, sampling=cfg, values_are_amplitudes=False)
 
     assert naive.metadata["error_aware"] is False
     assert aware.metadata["error_aware"] is True
@@ -753,6 +753,49 @@ def test_velocity_dispersion_prior_is_not_eighty_times_too_wide():
     assert (draws > 5.0).mean() > 0.005  # but a hot cluster is still reachable
     # the old Uniform(0, 40) put only ~5% of its mass below 2 km/s
     assert (np.random.default_rng(0).uniform(0, 40, 8000) < 2.0).mean() < 0.10
+
+
+class _StopBeforeSampling(Exception):
+    pass
+
+
+def _amplitudes(ratio, n=254, seed=20261011):
+    """|mu| of a 2-D Gaussian PM cloud whose mean amplitude is ``ratio`` component sigmas."""
+    rng = np.random.default_rng(seed)
+    return np.hypot(rng.normal(ratio, 1.0, n), rng.normal(0.0, 1.0, n)) * 0.147
+
+
+@requires_bayes_extra
+@pytest.mark.parametrize("ratio, warns", [(2.0, True), (3.0, True), (21.0, False), (10.0, False)])
+def test_velocity_model_warns_in_the_rice_regime(monkeypatch, ratio, warns):
+    """R30-02: ``velocity_model`` fits a normal to an amplitude ``4.74 d |mu|``.
+
+    That is a Rice variable, not a Gaussian component: with mean |mu| of 2 component sigmas
+    the MLE's std_v is biased by -64 % and mu_v by +14 % (hub
+    ``review_infdyn_velocity_rice_measured.txt``). P01 sits at ratio 21. The model must say so
+    when the sample is in that regime, and stay silent at P01's ratio.
+    """
+    from erotica.analysis.inference import velocity_model
+
+    def _stop(*a, **k):
+        raise _StopBeforeSampling
+
+    monkeypatch.setattr(inference, "_sample", _stop)
+    v = _amplitudes(ratio)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with pytest.raises(_StopBeforeSampling):
+            velocity_model(v)
+    rice = [w for w in caught if "Rice" in str(w.message)]
+    assert bool(rice) is warns
+    # a signed component (radial velocity) is not an amplitude: never this warning
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        with pytest.raises(_StopBeforeSampling):
+            velocity_model(v - v.mean(), values_are_amplitudes=False)
+        with pytest.raises(_StopBeforeSampling):
+            inference.radial_velocity_model(v - v.mean())
+    assert not [w for w in caught if "Rice" in str(w.message)]
 
 
 def test_velocity_error_validation():

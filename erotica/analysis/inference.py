@@ -850,6 +850,11 @@ def proper_motion_2d_gaussian(
     )
 
 
+# Below this median/std of the amplitudes, a normal fitted to |mu| is visibly biased (R30-02:
+# -10.3 % on std_v at 5 against a -3.7 % Gaussian control; -64 % at 2).
+_RICE_RATIO_WARN = 5.0
+
+
 def velocity_model(
     values,
     *,
@@ -858,6 +863,7 @@ def velocity_model(
     priors: VelocityPriors | None = None,
     return_trace: bool = False,
     sampling: SamplingConfig | None = None,
+    values_are_amplitudes: bool = True,
 ) -> VelocityFitResult:
     r"""Fit a Gaussian velocity model.
 
@@ -870,9 +876,25 @@ def velocity_model(
         inflated.
     priors : VelocityPriors, optional
         Scale-free priors. Fixed constants, **not** functions of `values`.
+    values_are_amplitudes : bool, default True
+        ``True`` for the projected velocity ``4.74 d |mu|`` this function exists for; ``False``
+        for a signed component (radial velocity), which turns off the Rice-regime warning.
 
     Notes
     -----
+    **The projected velocity is an amplitude, not a Gaussian component (R30-02).** ``|mu|`` of a
+    2-D Gaussian proper-motion cloud is Rice-distributed. A normal fitted to it is close only while
+    the mean amplitude is many component sigmas: in the review's MLE replicas (N = 254, per-star
+    errors) the bias of ``std_v`` against the truth was -3.8 % at a ratio of 20 (Gaussian control
+    -4.9 %), -10.3 % at 5 (control -3.7 %), -64 % at 2, and ``std_v`` collapsed to 0 at 1. A
+    ``RuntimeWarning`` is raised when ``median(values) / std(values) < 5``; there, fit the two
+    components with :func:`proper_motion_2d_gaussian` instead. The amplitude also sees only the
+    component parallel to the mean motion.
+
+    ``distance`` is treated as **exact**: its relative error passes whole into ``mu_v`` and
+    ``std_v`` and is not in their posterior widths (P01: 5.4 %, against 4.4 % statistical on the
+    dispersion). Propagate it outside this function.
+
     Before 2026-07-27 this model had all three defects the other three carried:
     ``mu_v`` was centred on ``nanmean`` of the data, the dispersion prior was
     ``Uniform(0, 40)`` km/s — **roughly 80x too wide for a ~0.5 km/s quantity**,
@@ -886,7 +908,14 @@ def velocity_model(
         if "projected_velocity" not in values.colnames:
             raise ValueError("Table input must contain a 'projected_velocity' column.")
         values = values["projected_velocity"]
-    velocity_values, _, _ = projected_velocity_values(values, distance=distance)
+    if isinstance(values, u.Quantity) and values.unit.is_equivalent(u.km / u.s):
+        # Already a velocity (radial_velocity_model passes km/s): projected_velocity_values
+        # would try to read it as mas/yr and raise a UnitConversionError.
+        if distance is not None:
+            raise ValueError("distance converts a proper motion; these values are already velocities.")
+        velocity_values = values.to_value(u.km / u.s)
+    else:
+        velocity_values, _, _ = projected_velocity_values(values, distance=distance)
     velocity_values = np.asarray(velocity_values, dtype=float)
 
     per_star = None
@@ -896,6 +925,20 @@ def velocity_model(
             raise ValueError("Velocity errors must match the velocities in length.")
         if not np.all(np.isfinite(per_star)) or np.any(per_star <= 0):
             raise ValueError("Per-star velocity errors must all be finite and positive.")
+
+    if values_are_amplitudes:
+        finite = velocity_values[np.isfinite(velocity_values)]
+        spread = float(np.std(finite)) if finite.size > 1 else 0.0
+        ratio = float(np.median(finite)) / spread if spread > 0 else np.inf
+        if ratio < _RICE_RATIO_WARN:
+            warnings.warn(
+                f"velocity_model: median/std of the amplitudes is {ratio:.2f} < "
+                f"{_RICE_RATIO_WARN:g}. |mu| is Rice-distributed, not Gaussian, in this regime: "
+                "std_v is biased low and mu_v high (R30-02). Fit the two proper-motion "
+                "components with proper_motion_2d_gaussian instead.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     pm = _require_pymc()
     with pm.Model() as model:
@@ -915,6 +958,8 @@ def velocity_model(
             "variables": ["mu_v", "std_v"],
             "error_aware": per_star is not None,
             "prior": "scale-free",
+            "values_are_amplitudes": values_are_amplitudes,
+            "distance_treated_as_exact": distance is not None,
         },
     )
 
@@ -941,6 +986,7 @@ def radial_velocity_model(
         errors=errors,
         return_trace=return_trace,
         sampling=sampling,
+        values_are_amplitudes=False,
     )
 
 
