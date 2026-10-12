@@ -158,8 +158,10 @@ def main(arm: str, win: str, R: int = 200) -> dict:
         asym.append([float(np.mean(r2[b2] - md > 0.3)), float(np.mean(r2[b2] - md < -0.3))])
     out["ridge_tail_red_blue_synth_median"] = np.median(np.array(asym), axis=0).tolist()
     (HERE / "ppc").mkdir(exist_ok=True)
-    A.C.dump(HERE / "ppc" / f"{arm}_{win}.json", out)
-    figure(arm, win, Gr, Cr, cats[0], rg, rc, t, S, bins)
+    sfx = "" if R == 200 else f"_R{R}"
+    A.C.dump(HERE / "ppc" / f"{arm}_{win}{sfx}.json", out)
+    if R == 200:
+        figure(arm, win, Gr, Cr, cats[0], rg, rc, t, S, bins)
     print(json.dumps({k: out[k] for k in ("passes", "K", "fails", "gate_false_fail",
                                           "old_gencheck_pass", "old_gencheck_false_fail")}))
     return out
