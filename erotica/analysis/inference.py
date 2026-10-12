@@ -311,6 +311,55 @@ def _require_pymc():
     return pm
 
 
+def _fork_safe_mp_ctx(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Keep PyMC's multi-process NUTS from forking a process where JAX already runs.
+
+    PyMC (6.3.1, ``pymc/sampling/parallel.py``) starts its chain workers with ``fork`` by
+    default on macOS/ARM, and switches away from ``fork`` only when the model is *compiled*
+    for JAX. It does not look at whether JAX is already alive in the process -- which it is
+    after any numpyro/blackjax fit, the backend the isochrone fits use. JAX is multithreaded
+    and its own at-fork hook warns that ``os.fork()`` "will likely lead to a deadlock"; a
+    session that runs an isochrone fit and then a King fit is exactly that case.
+
+    So when the caller did not choose ``mp_ctx``, PyMC's own NUTS is the sampler, and the JAX
+    runtime has started (:func:`_jax_runtime_started`), ask for the same non-fork context PyMC
+    picks for its JAX mode: ``forkserver``, else ``spawn``. Otherwise nothing changes.
+
+    The non-fork context is not free. Measured 2026-10-12 on the King fit, paired against
+    ``fork`` (hub ``agent-findings/pymc-fork-over-jax-2026-10-12.md``): +4.4 s per call at
+    draws=tune=50 and +9.0 s at draws=tune=1500, where ``fork`` took 7.8 s. ``cores=1`` cost
+    the same as ``fork`` on that model; a caller that passes ``cores=1`` or its own ``mp_ctx`` keeps it.
+    """
+    import multiprocessing
+
+    if (
+        "mp_ctx" in kwargs
+        or kwargs.get("nuts_sampler", "pymc") != "pymc"
+        or not _jax_runtime_started()
+    ):
+        return kwargs
+    methods = multiprocessing.get_all_start_methods()
+    return {**kwargs, "mp_ctx": "forkserver" if "forkserver" in methods else "spawn"}
+
+
+def _jax_runtime_started() -> bool:
+    """Whether JAX has started its runtime (XLA threads and its at-fork hook) in this process.
+
+    ``import jax`` starts neither; initialising a backend does (``jax._src.xla_bridge.backends``
+    installs the at-fork hook there). Measured with JAX 0.10.2: ``backends_are_initialized()``
+    is False after ``import jax.numpy`` and True after the first operation. The predicate is
+    private, so if it ever disappears this answers True whenever JAX is imported: wrong only in
+    the slow, safe direction. Never imports JAX itself.
+    """
+    import sys
+
+    bridge = sys.modules.get("jax._src.xla_bridge")
+    if bridge is None:
+        return "jax" in sys.modules
+    started = getattr(bridge, "backends_are_initialized", None)
+    return True if started is None else bool(started())
+
+
 def _sample(pm, model, config: SamplingConfig):
     kwargs = dict(
         draws=config.draws,
@@ -323,6 +372,7 @@ def _sample(pm, model, config: SamplingConfig):
     )
     if config.chains is not None:
         kwargs["chains"] = config.chains
+    kwargs = _fork_safe_mp_ctx(kwargs)
     with model:
         return pm.sample(**kwargs)
 

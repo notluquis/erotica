@@ -1403,3 +1403,69 @@ def test_the_legacy_figure_facade_still_uses_the_published_fitter():
     assert "king_std" in payload["bayesian_results"], (
         "graph_king no longer runs the binned fit the published figures used"
     )
+
+
+@requires_bayes_extra
+def test_multi_core_king_fit_does_not_fork_over_a_live_jax_runtime():
+    """A numpyro fit leaves JAX threads alive; a King fit after it must not ``os.fork()``.
+
+    PyMC forks its chain workers by default on macOS/ARM and only avoids ``fork`` when the
+    model is compiled for JAX, not when JAX merely runs in the process. JAX's own at-fork
+    hook calls that a likely deadlock. Measured 2026-10-11: with JAX initialised first,
+    the two King tests above failed on that warning in the full suite and passed alone.
+
+    Oracle: JAX's at-fork warning itself, recorded in a fresh interpreter (initialising JAX
+    in this one would poison every later test that forks). ``cores=2`` is explicit: with
+    one core PyMC never forks and this test could not fail. The timeout turns a real
+    deadlock into a red instead of a hung suite, and the chain count proves it sampled.
+    """
+    import subprocess
+    import sys
+    import textwrap
+    from pathlib import Path
+
+    pytest.importorskip("jax")
+    code = textwrap.dedent("""
+        import warnings
+        import jax.numpy as jnp
+        jnp.ones(2).block_until_ready()  # starts the XLA runtime and its at-fork hook
+        import astropy.units as u
+        from erotica.analysis.inference import SamplingConfig
+        from erotica.analysis.structure import ClusterStructureAnalyzer
+        from tests.test_structure import FIELD, TRUE_KING, _king_table
+
+        if __name__ == "__main__":
+            centre, table = _king_table(35, **TRUE_KING)
+            analyzer = ClusterStructureAnalyzer(table)
+            profile = analyzer.radial_density_profile(centre)
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                res = analyzer.fit_king_profile(
+                    profile,
+                    field_radius=FIELD * u.arcmin,
+                    return_trace=True,
+                    sampling=SamplingConfig(
+                        draws=100, tune=100, chains=2, random_seed=35, progressbar=False,
+                        extra_kwargs={"cores": 2},
+                    ),
+                )
+            forks = sum("os.fork() was called" in str(w.message) for w in caught)
+            print("FORK_WARNINGS", forks)
+            print("CHAINS", res["king_trace"].posterior.sizes["chain"])
+    """)
+    root = Path(__file__).resolve().parent.parent
+    out = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        cwd=root,
+        timeout=900,
+    )
+    assert out.returncode == 0, out.stderr[-3000:]
+    lines = dict(
+        line.split() for line in out.stdout.splitlines() if line.startswith(("FORK", "CHAINS"))
+    )
+    assert lines.get("CHAINS") == "2", out.stdout
+    assert lines.get("FORK_WARNINGS") == "0", (
+        f"PyMC forked over a live JAX runtime ({lines.get('FORK_WARNINGS')} at-fork warnings)"
+    )

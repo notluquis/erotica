@@ -1609,13 +1609,16 @@ class IsochroneFitter:
             extra = {} if step is not None else {"target_accept": target_accept, "init": init}
             if step is None and nuts_sampler_kwargs:
                 extra["nuts_sampler_kwargs"] = nuts_sampler_kwargs
+            # a numpyro fit earlier in the session leaves JAX threads alive; never fork over them
+            from .inference import _fork_safe_mp_ctx
+
+            extra = _fork_safe_mp_ctx({"nuts_sampler": nuts_sampler, **extra})
             idata = pm.sample(
                 draws=draws,
                 tune=tune,
                 chains=chains,
                 step=step,
                 cores=cores,
-                nuts_sampler=nuts_sampler,
                 random_seed=random_seed,
                 progressbar=progressbar,
                 initvals=initvals,
