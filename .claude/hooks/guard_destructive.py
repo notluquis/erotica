@@ -170,6 +170,12 @@ def _judge(seg: str) -> str | None:
         return "borra recursivamente sin papelera" if (recursive and forced) else None
     if toks[0] == "git":
         return _judge_git(*_git_subcommand(toks))
+    if toks[0] in ("pkill", "killall"):
+        # Mata por PATRÓN, y el patrón casa procesos de cualquier agente de la máquina. Medido
+        # 2026-10-11: un agente corrió `pkill -f "multiprocessing.spawn"` dos veces con ~10 agentes
+        # en paralelo, y pudo matar los trabajadores de los demás (lección 35 de ~/.claude/CLAUDE.md:
+        # no se mata nada ajeno). `kill <pid>` de un proceso propio sigue pasando.
+        return "mata por patrón procesos de cualquier agente; usa `kill <pid>` de los tuyos"
     if toks[0] in CMD_WRAPPERS:
         # Se juzga cada sufijo en vez de modelar la gramática del envoltorio. Cuesta O(n^2) sobre
         # una lista de tokens corta y no depende de saber cuántos argumentos come `timeout` o
