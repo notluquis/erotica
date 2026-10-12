@@ -72,7 +72,7 @@
     },
     "chain_z": {
      "z_abs_max": 2.9692992393382114,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": true,
@@ -261,7 +261,7 @@
     },
     "chain_z": {
      "z_abs_max": 2.5425418685456305,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": true,
@@ -450,7 +450,7 @@
     },
     "chain_z": {
      "z_abs_max": 1.4685088524312029,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": true,
@@ -639,7 +639,7 @@
     },
     "chain_z": {
      "z_abs_max": 3.004929325729308,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": true,
@@ -828,7 +828,7 @@
     },
     "chain_z": {
      "z_abs_max": 2.207084589888119,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": true,
@@ -1017,7 +1017,7 @@
     },
     "chain_z": {
      "z_abs_max": 2.2817077426687513,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": true,
@@ -1206,7 +1206,7 @@
     },
     "chain_z": {
      "z_abs_max": 2.377835392373897,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": false,
@@ -1395,7 +1395,7 @@
     },
     "chain_z": {
      "z_abs_max": 2.2324693392001684,
-     "z_thr": 3.3,
+     "z_thr": 3.3430173771930005,
      "pass": true
     },
     "converged": false,
