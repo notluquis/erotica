@@ -33,6 +33,11 @@ def count(flags):
     return {"k": k, "n": n, "frac": (k / n if n else None), "cp95": cp(k, n)}
 
 
+def _conv_posthoc(g):
+    return bool(g["rhat_max"] <= 1.01 and g["ess_bulk_min"] >= 400 and g["ess_tail_min"] >= 400
+                and g["divergences"] == 0)
+
+
 def main() -> None:
     out = {}
     for cell in ("A", "B", "C"):
@@ -82,7 +87,11 @@ def main() -> None:
             }
             nr = [r for r in rows if f"nuts_{p}" in r]
             if nr:
-                conv = [r for r in nr if r["nuts_gate"]["converged"]]
+                # POST HOC (gate_noise.json): the per-chain split R-hat clause fails 58-100 % of the
+                # time for a perfect sampler at 500 draws, so "converged" here drops that clause and
+                # keeps R-hat <= 1.01, ESS bulk/tail >= 400 and 0 divergences; the pre-registered
+                # flag stays in nuts.json and is counted as n_converged_prereg
+                conv = [r for r in nr if _conv_posthoc(r["nuts_gate"])]
                 errs = [r[f"nuts_{p}"]["err"] for r in nr]
                 res[f"nuts_{p}"] = {
                     "cov68_all": count([r[f"nuts_{p}"]["in68"] for r in nr]),
@@ -90,6 +99,7 @@ def main() -> None:
                     "cov68_converged": count([r[f"nuts_{p}"]["in68"] for r in conv]),
                     "cov90_converged": count([r[f"nuts_{p}"]["in90"] for r in conv]),
                     "n_converged": len(conv),
+                    "n_converged_prereg": sum(r["nuts_gate"]["converged"] for r in nr),
                     "err_median": float(np.median(errs)),
                     "err_range": [float(min(errs)), float(max(errs))],
                     "scatter_of_median": float(np.std(errs, ddof=1)) if len(errs) > 1 else None,

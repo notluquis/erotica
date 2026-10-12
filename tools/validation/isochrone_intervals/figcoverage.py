@@ -30,7 +30,8 @@ def main(cell: str) -> None:
             if f"nuts_{p}" in r:
                 n = r[f"nuts_{p}"]
                 t = n["median"] - n["err"]
-                conv = r["nuts_gate"]["converged"]
+                g = r["nuts_gate"]
+                conv = g["rhat_max"] <= 1.01 and min(g["ess_bulk_min"], g["ess_tail_min"]) >= 400 and g["divergences"] == 0
                 col = "C0" if conv else "C3"
                 a.plot([i + 0.12] * 2, [n["q05"] - t, n["q95"] - t], color=col, lw=1, alpha=0.6)
                 a.plot([i + 0.12] * 2, [n["q16"] - t, n["q84"] - t], color=col, lw=2.5)
