@@ -54,3 +54,13 @@ for i, b in enumerate(("J", "H", "Ks")):
     Mx = dict(M)
     Mx[b] = np.where(np.array([s[i] == "U" for s in q]), np.nan, M[b])
     print(f"  solo {b} U -> token: {np.sum(S.predict_pms(plx, av, G, BP, RP, Mx['J'], Mx['H'], Mx['Ks']) >= .6)}")
+
+# Revision adversarial (M3): el CDS de P01 deja 61 filas sin JHKs; de ellas, las que tienen 2MASS en la tabla limpia se rellenan, y
+# entonces la U entra como valor en TODAS las estrellas (la codificacion del entrenamiento) o como token.
+fill = ~np.isfinite(M["J"]) & np.isfinite(M2["J"]) & np.isfinite(M2["H"]) & np.isfinite(M2["Ks"])
+print(f"[M3] filas sin JHKs en el CDS con 2MASS en la tabla limpia: {fill.sum()} (de ellas con alguna U {np.sum(fill & np.array(['U' in s for s in q]))})")
+Mv = {b: np.where(fill, M2[b], M[b]) for b in ("J", "H", "Ks")}
+pv = S.predict_pms(plx, av, G, BP, RP, Mv["J"], Mv["H"], Mv["Ks"])
+Mt = {b: np.where(np.array([s[i] == "U" for s in q]), np.nan, Mv[b]) for i, b in enumerate(("J", "H", "Ks"))}
+pt = S.predict_pms(plx, av, G, BP, RP, Mt["J"], Mt["H"], Mt["Ks"])
+print(f"  2MASS completo, U como valor: {np.sum(pv >= .6)} | U -> token: {np.sum(pt >= .6)}")

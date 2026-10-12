@@ -14,3 +14,5 @@ n 254; con J,H,Ks en el CDS: 193
   solo J U -> token: 121
   solo H U -> token: 126
   solo Ks U -> token: 150
+[M3] filas sin JHKs en el CDS con 2MASS en la tabla limpia: 29 (de ellas con alguna U 18)
+  2MASS completo, U como valor: 114 | U -> token: 156
