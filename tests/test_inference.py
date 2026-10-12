@@ -1113,3 +1113,22 @@ def test_distance_model_sin_errores_avisa_de_su_defecto(monkeypatch):
         warnings.simplefilter("error", UserWarning)
         with pytest.raises(RuntimeError, match="corte"):
             inf.distance_model(t, distance_lo_column="r_lo_geo", distance_hi_column="r_hi_geo")
+
+
+def test_fork_safe_mp_ctx_only_steps_in_when_jax_is_loaded_and_pymc_samples(monkeypatch):
+    """PyMC forks its chain workers by default on macOS/ARM even with JAX threads alive
+    (it only checks the *compile* mode). The guard adds a non-fork ``mp_ctx`` exactly then,
+    and leaves every other call as the caller wrote it."""
+    import sys
+
+    from erotica.analysis.inference import _fork_safe_mp_ctx
+
+    monkeypatch.delitem(sys.modules, "jax", raising=False)
+    assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"}) == {"nuts_sampler": "pymc"}
+
+    monkeypatch.setitem(sys.modules, "jax", object())
+    assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"})["mp_ctx"] in ("forkserver", "spawn")
+    assert _fork_safe_mp_ctx({})["mp_ctx"] in ("forkserver", "spawn")  # PyMC's default sampler
+    # the caller's choice wins, even "fork"; and JAX samplers take no multiprocessing context
+    assert _fork_safe_mp_ctx({"mp_ctx": "fork"}) == {"mp_ctx": "fork"}
+    assert "mp_ctx" not in _fork_safe_mp_ctx({"nuts_sampler": "numpyro"})

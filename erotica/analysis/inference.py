@@ -311,6 +311,35 @@ def _require_pymc():
     return pm
 
 
+def _fork_safe_mp_ctx(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Keep PyMC's multi-process NUTS from forking a process where JAX already runs.
+
+    PyMC (6.3.1, ``pymc/sampling/parallel.py``) starts its chain workers with ``fork`` by
+    default on macOS/ARM, and switches away from ``fork`` only when the model is *compiled*
+    for JAX. It does not look at whether JAX is already alive in the process -- which it is
+    after any numpyro/blackjax fit, the backend the isochrone fits use. JAX is multithreaded
+    and its own at-fork hook warns that ``os.fork()`` "will likely lead to a deadlock"; a
+    session that runs an isochrone fit and then a King fit is exactly that case.
+
+    So when the caller did not choose ``mp_ctx``, PyMC's own NUTS is the sampler, and JAX is
+    imported, ask for the same non-fork context PyMC picks for its JAX mode: ``forkserver``,
+    else ``spawn``. ``"jax" in sys.modules`` is the public, conservative test (it is also
+    true when JAX is imported but has started no threads; the cost there is only the worker
+    start-up). Without JAX nothing changes, so the measured fast path is untouched.
+    """
+    import multiprocessing
+    import sys
+
+    if (
+        "mp_ctx" in kwargs
+        or kwargs.get("nuts_sampler", "pymc") != "pymc"
+        or "jax" not in sys.modules
+    ):
+        return kwargs
+    methods = multiprocessing.get_all_start_methods()
+    return {**kwargs, "mp_ctx": "forkserver" if "forkserver" in methods else "spawn"}
+
+
 def _sample(pm, model, config: SamplingConfig):
     kwargs = dict(
         draws=config.draws,
@@ -323,6 +352,7 @@ def _sample(pm, model, config: SamplingConfig):
     )
     if config.chains is not None:
         kwargs["chains"] = config.chains
+    kwargs = _fork_safe_mp_ctx(kwargs)
     with model:
         return pm.sample(**kwargs)
 

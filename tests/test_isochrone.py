@@ -490,7 +490,9 @@ class TestPyTensorCompat:
     def test_jax_graph_equals_numpy(self, base_fitter, tmp_path):
         """The sampler numpyro compiles is the JAX graph. Run in a subprocess: initialising
         JAX here would make later forking tests raise JAX's fork warning (an error under this
-        suite's warning policy -- measured 2026-09-23, two test_structure tests)."""
+        suite's warning policy -- measured 2026-09-23, two test_structure tests). The package
+        no longer forks over a live JAX (``inference._fork_safe_mp_ctx``, 2026-10-11), but a
+        test that calls ``pm.sample`` directly with its own defaults still could."""
         import subprocess
         import sys
 
@@ -512,6 +514,34 @@ class TestPyTensorCompat:
             [sys.executable, "-c", code], capture_output=True, text=True, cwd=root, check=True
         ).stdout.split()
         assert float(out[-2]) == pytest.approx(float(out[-1]), rel=1e-10, abs=1e-8)
+
+    def test_pymc_nuts_path_asks_for_a_non_fork_context_when_jax_is_loaded(
+        self, base_fitter, monkeypatch
+    ):
+        """``fit`` calls ``pm.sample`` itself, not through ``inference._sample``, so the
+        guard against forking over a live JAX runtime has to be wired here too. The real
+        fork is exercised end to end in test_structure (a subprocess, ~5 min); this pins the
+        wiring by capturing what ``fit`` hands PyMC, with no sampling."""
+        import sys
+
+        import pymc
+
+        class _Captured(Exception):
+            pass
+
+        seen = {}
+
+        def fake_sample(**kwargs):
+            seen.update(kwargs)
+            raise _Captured
+
+        base_fitter.setup(_make_cluster_data(n=40), prob_threshold=0.0)
+        monkeypatch.setattr(pymc, "sample", fake_sample)
+        monkeypatch.setitem(sys.modules, "jax", sys.modules.get("jax", object()))
+        with pytest.raises(_Captured):
+            base_fitter.fit(draws=10, tune=10, chains=2, cores=2, start="prior")
+        assert seen.get("mp_ctx") in ("forkserver", "spawn"), seen
+        assert seen.get("nuts_sampler") == "pymc"
 
     def test_build_model_after_load_grid_does_not_crash(self, base_fitter, tmp_path):
         data = _make_cluster_data(n=40)
