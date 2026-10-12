@@ -13,7 +13,7 @@ Cada factor, con el proceso que modela (§2.2 del prerregistro):
                     contaminantes o una edad de catalogo equivocada. Es SELECCION EN LAS FEATURES: se declara su costo (recall
                     de PMS reales mal desenrojecidas) y lo mide NGC 6530.
   F features   F0 = las 7 de §0.3.  F1 = + altura sobre la ZAMS en (BP-RP)_0 y en (G-Ks)_0 (Delta_obs en G y en Ks).
-  D decision   D0 = umbral 0,5.  D1 = umbral por tramo de M_G,0 elegido en la mitad de AJUSTE de los cumulos viejos para FPR <= 0,05
+  D decision   D0 = umbral 0,5.  D1 = umbral por tramo de M_G,0 elegido en la mitad de AJUSTE de los cumulos viejos para FPR <= 0,03
                (umbral max 0,99); se aplica tal cual en la mitad CONFIRMATORIA, NGC 6530 y NGC 6383.
 """
 from __future__ import annotations
