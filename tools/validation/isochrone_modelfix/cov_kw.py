@@ -78,7 +78,9 @@ def row_for(d: Path) -> dict | None:
         nu = json.loads(nj.read_text())
         czp = d / "chain_z.json"
         cz = json.loads(czp.read_text()) if czp.exists() else None
-        r["gate"] = nu["gate"]
+        # nuts_chain's gate["converged"] includes the per-chain split R-hat clause (pre-registered in X1,
+        # shown unable to pass, §1.4): renamed here so it is not mistaken for §2.5's "converged" below
+        r["gate"] = {("converged_prereg_clause" if k == "converged" else k): v for k, v in nu["gate"].items()}
         r["chain_z"] = None if cz is None else {"z_abs_max": cz["z_abs_max"], "z_thr": cz["z_thr"],
                                                "pass": cz["pass"]}
         r["converged"] = converged(nu, cz)

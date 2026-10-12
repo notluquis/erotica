@@ -68,7 +68,7 @@
      "ess_tail_min": 1023.4025701367462,
      "divergences": 0,
      "rhat_split_chain_max": 1.0232232212012389,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 2.9692992393382114,
@@ -257,7 +257,7 @@
      "ess_tail_min": 945.357465964393,
      "divergences": 0,
      "rhat_split_chain_max": 1.02069943655111,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 2.5425418685456305,
@@ -446,7 +446,7 @@
      "ess_tail_min": 1133.980888980326,
      "divergences": 0,
      "rhat_split_chain_max": 1.0126926646432493,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 1.4685088524312029,
@@ -635,7 +635,7 @@
      "ess_tail_min": 778.3408121485904,
      "divergences": 0,
      "rhat_split_chain_max": 1.021721652218355,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 3.004929325729308,
@@ -824,7 +824,7 @@
      "ess_tail_min": 885.2969048493852,
      "divergences": 0,
      "rhat_split_chain_max": 1.041922047950447,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 2.207084589888119,
@@ -1013,7 +1013,7 @@
      "ess_tail_min": 723.7347752567589,
      "divergences": 0,
      "rhat_split_chain_max": 1.0204475265497228,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 2.2817077426687513,
@@ -1202,7 +1202,7 @@
      "ess_tail_min": 46.3341836299196,
      "divergences": 0,
      "rhat_split_chain_max": 1.131060363917361,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 2.377835392373897,
@@ -1391,7 +1391,7 @@
      "ess_tail_min": 348.54096958430233,
      "divergences": 0,
      "rhat_split_chain_max": 1.0307643464045717,
-     "converged": false
+     "converged_prereg_clause": false
     },
     "chain_z": {
      "z_abs_max": 2.2324693392001684,
