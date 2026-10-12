@@ -87,7 +87,7 @@ def e3_table():
 
 def fig_e3(e3, plt):
     """log t of the pms window (filled) and the ms window (open) per transplanted grid and arm."""
-    order = ["identity", "spots17", "spots34", "spots51", "spots85", "spots34_2T", "feiden"]
+    order = ["identity", "spots17", "spots34", "spots51", "spots85", "spots34_2T", "spots51_2T", "spots85_2T", "feiden"]
     arms = [("a", "[Fe/H] −0.47, A_V 0.66"), ("s", "[Fe/H] 0, A_V 0.66"), ("m", "[Fe/H] −0.47, A_V 0.92 (maps; post hoc)"), ("g", "[Fe/H] −0.47, A_V refitted")]
     fig, axs = plt.subplots(1, len(arms), figsize=(16, 4.6), sharey=True)
     for ax, (arm, lab) in zip(axs, arms):
@@ -188,7 +188,7 @@ def main():
             y = summ["where_slices"][k]
             x = sm.get(k, {}).get("median_mass", np.nan)
             nb = (nul or {}).get(k) or {}
-            ok = nb.get("sd") is not None and abs(nb.get("bias_median", 9)) <= 0.10 and nb["sd"] <= 0.15
+            ok = nb.get("sd") is not None and nb.get("n_reps", 0) >= 6 and abs(nb.get("bias_median", 9)) <= 0.10 and nb["sd"] <= 0.15  # R45: min reps
             col = "C0" if ok else "0.6"
             err = nb.get("sd") or 0
             ax[1].errorbar(x, y, yerr=err, fmt="o", color=col, capsize=3)
