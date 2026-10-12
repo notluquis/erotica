@@ -1,0 +1,8 @@
+{"iter": 25, "phase": "warmup", "chunk_s": 41.46, "leapfrog": 919, "depth_mean": 4.76, "step_size": 0.13431928736441776, "div": 2, "accept": 0.84, "wall": "2026-10-12 00:57:39"}
+{"iter": 50, "phase": "warmup", "chunk_s": 39.15, "leapfrog": 911, "depth_mean": 4.8, "step_size": 0.16798378327227237, "div": 0, "accept": 0.891, "wall": "2026-10-12 00:58:18"}
+{"iter": 75, "phase": "warmup", "chunk_s": 35.76, "leapfrog": 1031, "depth_mean": 5.2, "step_size": 0.07722188982920739, "div": 0, "accept": 0.874, "wall": "2026-10-12 00:58:54"}
+{"iter": 100, "phase": "warmup", "chunk_s": 21.78, "leapfrog": 606, "depth_mean": 4.2, "step_size": 0.38989967902846906, "div": 1, "accept": 0.892, "wall": "2026-10-12 00:59:15"}
+{"iter": 125, "phase": "sampling", "chunk_s": 10.01, "leapfrog": 275, "depth_mean": 3.52, "step_size": 0.38989967902846906, "div": 0, "accept": 0.87, "wall": "2026-10-12 00:59:25"}
+{"iter": 150, "phase": "sampling", "chunk_s": 11.53, "leapfrog": 307, "depth_mean": 3.64, "step_size": 0.38989967902846906, "div": 0, "accept": 0.91, "wall": "2026-10-12 00:59:37"}
+{"iter": 175, "phase": "sampling", "chunk_s": 10.06, "leapfrog": 259, "depth_mean": 3.44, "step_size": 0.38989967902846906, "div": 0, "accept": 0.826, "wall": "2026-10-12 00:59:47"}
+{"iter": 200, "phase": "sampling", "chunk_s": 11.83, "leapfrog": 311, "depth_mean": 3.68, "step_size": 0.38989967902846906, "div": 0, "accept": 0.85, "wall": "2026-10-12 00:59:59"}

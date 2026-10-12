@@ -1,0 +1,39 @@
+{
+ "data": "../isochrone_intervals/members254_gaia.ecsv",
+ "starts": "smoke_starts.json",
+ "chain": 0,
+ "warmup": 100,
+ "draws": 100,
+ "chunk": 25,
+ "seed": 7,
+ "target_accept": 0.9,
+ "start": {
+  "feh": -0.45178684650223266,
+  "loga": 6.031281287453578,
+  "dm": 10.22220877343697,
+  "Av": 0.4657360240327589,
+  "sigma_int": 0.09433738800570059,
+  "f_bg": 0.0668623597974588,
+  "k": 2.4456073299081154
+ },
+ "inverse_mass_initial": [
+  0.020660661693283698,
+  0.01952973088054349,
+  0.00817536829773995,
+  0.016150990253625652,
+  1.0,
+  1.0,
+  1.0
+ ],
+ "value_vars": [
+  "feh_interval__",
+  "loga_interval__",
+  "dm_interval__",
+  "Av_interval__",
+  "sigma_int_log__",
+  "f_bg_logodds__",
+  "k_interval__"
+ ],
+ "nproc": "1",
+ "setup_s": 17.4
+}
