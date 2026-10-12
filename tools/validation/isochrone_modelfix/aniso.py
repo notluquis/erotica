@@ -29,14 +29,21 @@ import iv_common as C  # noqa: E402
 
 from erotica.analysis._isochrone import IsochroneFitter, _erf_np  # noqa: E402
 
-FULL = ("feh", "loga", "dm", "Av", "sG", "sC", "tau", "f_bg")
+FULL = ("feh", "loga", "dm", "Av", "sG", "sC", "tau", "f_bg", "k", "beta")
+DEFAULTS = {"sC": None, "tau": 0.0, "k": 1.0, "beta": 0.0}
 ARM_FREE = {  # free width parameters of each width arm (the rest tied/fixed in ``expand``)
     "I": ("sG",),
     "V": ("sG", "sC"),
     "VR": ("sG", "sC", "tau"),
+    # stage 2 (§0.6): isotropic width plus error scale k and/or exponential field in G
+    "K": ("sG", "k"),
+    "B": ("sG", "beta"),
+    "KB": ("sG", "k", "beta"),
 }
+ISOTROPIC = ("I", "K", "B", "KB")
 WINDOW = {"F": None, "W": (14.0, 19.0)}
-WBOUNDS = {"sG": (1e-4, 2.0), "sC": (1e-4, 0.5), "tau": (1e-4, 2.0), "f_bg": (1e-4, 0.5)}
+WBOUNDS = {"sG": (1e-4, 2.0), "sC": (1e-4, 0.5), "tau": (1e-4, 2.0), "f_bg": (1e-4, 0.5),
+           "k": (1.0, 6.0), "beta": (-2.0, 3.0)}
 
 
 def _seg_density_cov(xg, xc, sg, sc, s12, Ag, Ac, Bg, Bc, xp=np, smear=None, first_moment=False):
@@ -81,11 +88,25 @@ class WidthFitter(IsochroneFitter):
     """``IsochroneFitter`` with the anisotropic intrinsic covariance of arms V / VR."""
 
     def star_loglike8(self, met, loga, dm, Av, sG, sC, tau, f_bg, xp=np):
+        return self.star_loglike10(met, loga, dm, Av, sG, sC, tau, f_bg, 1.0, 0.0, xp)
+
+    def field_density(self, beta, xp=np):
+        """Field density per unit CMD area at each star: exp(beta (G - G_lo)) normalised over the
+        window's G span, uniform in colour over the box; beta = 0 is the parent's 1 / box_area."""
+        lo = float(self._obs_mag.min())
+        span = max(float(np.ptp(self._obs_mag)), 1e-3)
+        span_c = self._box_area / span
+        small = xp.abs(beta) < 1e-4
+        bs = xp.where(small, 1.0, beta)
+        norm = xp.where(small, span, (xp.exp(bs * span) - 1.0) / bs)
+        return xp.exp(beta * (self._obs_mag - lo)) / norm / span_c
+
+    def star_loglike10(self, met, loga, dm, Av, sG, sC, tau, f_bg, k, beta, xp=np):
         fl2 = self.SIGMA_FLOOR**2
         kG, kc = self._kG, self._k_col1
         xg, xc = self._obs_mag, self._obs_col
-        sg = xp.sqrt(self._e_obs_mag**2 + fl2 + sG**2 + (kG * tau) ** 2)
-        sc = xp.sqrt(self._e_obs_col**2 + fl2 + sC**2 + (kc * tau) ** 2)
+        sg = xp.sqrt((k * self._e_obs_mag) ** 2 + fl2 + sG**2 + (kG * tau) ** 2)
+        sc = xp.sqrt((k * self._e_obs_col) ** 2 + fl2 + sC**2 + (kc * tau) ** 2)
         s12 = kG * kc * tau**2
         single, binary = self._segments(met, loga, dm, Av, xp)
         Ag, Ac, Bg, Bc, c0, c1 = single
@@ -99,7 +120,7 @@ class WidthFitter(IsochroneFitter):
         # completeness / window: only the G variance matters
         sGeff2 = sG**2 + (kG * tau) ** 2
         F = self._detected_fraction(met, loga, dm, Av, xp.sqrt(sGeff2), xp, segs=(single, binary))
-        return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
+        return xp.log((1 - f_bg) * dens / F + f_bg * self.field_density(beta, xp))
 
     def compiled8(self, arm: str):
         """(log L, grad) over the arm's free parameter vector (see ``free_names``)."""
@@ -109,7 +130,7 @@ class WidthFitter(IsochroneFitter):
         names = free_names(arm)
         v = {n: pt.dscalar(n) for n in names}
         full = expand_sym(arm, v, pt)
-        ll = pt.sum(self._star_weights * self.star_loglike8(*[full[k] for k in FULL], xp=pt))
+        ll = pt.sum(self._star_weights * self.star_loglike10(*[full[k] for k in FULL], xp=pt))
         fn = pytensor.function([v[n] for n in names], [ll, *pytensor.grad(ll, [v[n] for n in names])])
         return lambda x: (lambda out: (float(out[0]), np.array(out[1:], float)))(fn(*x))
 
@@ -118,25 +139,22 @@ def free_names(arm: str) -> tuple:
     return ("feh", "loga", "dm", "Av", *ARM_FREE[arm], "f_bg")
 
 
-def expand_sym(arm, v, pt=None):
-    z = 0.0 * v["sG"]
-    out = dict(v)
-    if arm == "I":
-        out["sC"] = v["sG"]
-        out["tau"] = z
-    elif arm == "V":
-        out["tau"] = z
+def _fill(arm, d, zero):
+    out = dict(d)
+    if arm in ISOTROPIC:
+        out["sC"] = d["sG"]
+    for k_, v in DEFAULTS.items():
+        if k_ not in out:
+            out[k_] = zero + v
     return out
 
 
+def expand_sym(arm, v, pt=None):
+    return _fill(arm, v, 0.0 * v["sG"])
+
+
 def expand(arm: str, x) -> dict:
-    d = dict(zip(free_names(arm), [float(t) for t in x], strict=True))
-    if arm == "I":
-        d["sC"] = d["sG"]
-        d["tau"] = 0.0
-    elif arm == "V":
-        d["tau"] = 0.0
-    return d
+    return _fill(arm, dict(zip(free_names(arm), [float(t) for t in x], strict=True)), 0.0)
 
 
 def make_fitter(data, window: str) -> WidthFitter:
@@ -164,7 +182,7 @@ def search8(f: WidthFitter, arm: str, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_st
         blo[k], bhi[k] = a, b
     lo = np.array([blo[n] for n in names])
     hi = np.array([bhi[n] for n in names])
-    wide = {"sG": 0.05, "sC": 0.05, "tau": 1e-4, "f_bg": 0.02}
+    wide = {"sG": 0.05, "sC": 0.05, "tau": 1e-4, "f_bg": 0.02, "k": 1.0, "beta": 0.0}
 
     def fn(y):
         v, g = fl(y)
@@ -190,7 +208,7 @@ def search8(f: WidthFitter, arm: str, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_st
     cands.sort(key=lambda c: c[0])
     if verbose:
         print(f"  [{arm}] lattice {len(cands)} t={time.time() - t0:.0f}s", flush=True)
-    start_tail = {"sG": 0.03, "sC": 0.03, "tau": 0.03, "f_bg": 0.02}
+    start_tail = {"sG": 0.03, "sC": 0.03, "tau": 0.03, "f_bg": 0.02, "k": 1.5, "beta": 0.5}
 
     def nll(y):
         v, g = fn(y)
@@ -224,6 +242,8 @@ def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window):
     lo, hi = (Greal.min() - 10.0, Greal.max()) if window is None else window
     inw = (Greal >= lo) & (Greal <= hi)
     Gw, Cw = Greal[inw], Creal[inw]
+    kk = th.get("k", 1.0)
+    beta = th.get("beta", 0.0)
     n_bg = int(rng.binomial(n, th["f_bg"]))
     n_cl = n - n_bg
     fl2 = f.SIGMA_FLOOR**2
@@ -235,6 +255,7 @@ def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window):
             break
         Gt, Ct = C._true_stars(gen_full, th["feh"], th["loga"], th["dm"], th["Av"], 4 * n, rng)
         eG, eC = C._real_errors(Greal, eGr, eCr, Gt, rng)
+        eG, eC = kk * eG, kk * eC
         dA = rng.normal(size=Gt.size) * th["tau"]
         Go = Gt + kG * dA + rng.normal(size=Gt.size) * np.sqrt(eG**2 + fl2 + th["sG"] ** 2)
         Co = Ct + kc * dA + rng.normal(size=Gt.size) * np.sqrt(eC**2 + fl2 + th["sC"] ** 2)
@@ -246,7 +267,12 @@ def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window):
         got += int(keep.sum())
     G = np.concatenate(Gs)[:n_cl]
     Cc = np.concatenate(Cs)[:n_cl]
-    Gb = rng.uniform(Gw.min(), Gw.max(), n_bg)
+    span = Gw.max() - Gw.min()
+    u = rng.uniform(size=n_bg)
+    if abs(beta) < 1e-4:
+        Gb = Gw.min() + u * span
+    else:  # inverse CDF of the truncated exponential
+        Gb = Gw.min() + np.log1p(u * np.expm1(beta * span)) / beta
     Cb = rng.uniform(Cw.min(), Cw.max(), n_bg)
     return np.concatenate([G, Gb]), np.concatenate([Cc, Cb]), n_cl
 
@@ -264,3 +290,46 @@ def selftest() -> dict:
 
 if __name__ == "__main__":
     print(selftest())
+
+
+def build_model8(f: WidthFitter, arm: str):
+    """PyMC model of an arm, for NUTS: the parent's ``build_model`` priors on the shared
+    parameters (MIST [Fe/H] uniform, log t, A_V uniform, dm truncated normal from the parallax,
+    sigma_int HalfNormal(0.05), f_bg Beta(1, 19)) plus, per arm: k ~ U(1, 6) (the error scale; >= 1
+    because the hypothesis is under-estimated DR3 errors, upper end = search bound), beta ~ U(-2, 3),
+    sigma_c ~ HalfNormal(0.05), tau ~ HalfNormal(0.3) (the anchors' tau, isochrone-sed-external §2).
+    Variable names: feh (the parent's ``_met_name``), loga, dm, Av, sigma_int (= sG), f_bg, and k / beta / sigma_c / tau."""
+    import pymc as pm
+    import pytensor.tensor as pt
+
+    from erotica.analysis._isochrone import _require_pymc
+
+    _require_pymc()
+    zlo, zhi = f._met_bounds()  # as the parent: [Fe/H] on the grid layer
+    free = ARM_FREE[arm]
+    with pm.Model() as model:
+        met = pm.Uniform(f._met_name, lower=zlo, upper=zhi)
+        loga = pm.Uniform("loga", lower=f.loga_range[0], upper=f.loga_range[1])
+        dm = pm.TruncatedNormal("dm", mu=f.dm_mu, sigma=f.dm_sigma, lower=f.dm_range[0],
+                                upper=f.dm_range[1])
+        Av = pm.Uniform("Av", lower=f.Av_range[0], upper=f.Av_range[1])
+        sG = pm.HalfNormal("sigma_int", sigma=0.05)
+        f_bg = pm.Beta("f_bg", alpha=1.0, beta=19.0)
+        v = {"sG": sG}
+        if "sC" in free:
+            v["sC"] = pm.HalfNormal("sigma_c", sigma=0.05)
+        if "tau" in free:
+            v["tau"] = pm.HalfNormal("tau", sigma=0.3)
+        if "k" in free:
+            v["k"] = pm.Uniform("k", lower=1.0, upper=6.0)
+        if "beta" in free:
+            v["beta"] = pm.Uniform("beta", lower=-2.0, upper=3.0)
+        full = _fill(arm, v, 0.0 * sG)
+        w = f._star_weights
+
+        def _logp(value, met, loga, dm, Av, sG, sC, tau, f_bg, k, beta):
+            return w * f.star_loglike10(met, loga, dm, Av, sG, sC, tau, f_bg, k, beta, pt)
+
+        pm.CustomDist("y", met, loga, dm, Av, full["sG"], full["sC"], full["tau"], f_bg,
+                      full["k"], full["beta"], logp=_logp, observed=np.zeros(f._N_obs))
+    return model
