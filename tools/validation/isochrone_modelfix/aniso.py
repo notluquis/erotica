@@ -229,11 +229,11 @@ def search8(f: WidthFitter, arm: str, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_st
             "n": int(f._N_obs), "seconds": round(time.time() - t0, 1)}
 
 
-def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window):
+def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window, return_errors=False):
     """Synthetic catalogue at ``th`` (a FULL dict) for the arm's width shape and window: the
     generator of ``iv_common.draw_synthetic`` (forward model of the full-window fitter ``gen_full``,
     real per-star errors by nearest G), with intrinsic noise N(0, diag(sG^2, sC^2)) plus a common
-    extinction offset dA ~ N(0, tau) moving (k_G dA, k_col dA), the window [lo, hi] on observed G
+    extinction offset dA ~ N(0, tau) per star moving (k_G dA, k_col dA), the window [lo, hi] on observed G
     (hi = faintest real member for F) and the field uniform over the window's real CMD box."""
     Greal = np.asarray(real["Gmag"], float)
     Creal = np.asarray(real["G_BPmag"], float) - np.asarray(real["G_RPmag"], float)
@@ -267,6 +267,7 @@ def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window):
         got += int(keep.sum())
     G = np.concatenate(Gs)[:n_cl]
     Cc = np.concatenate(Cs)[:n_cl]
+    eCc = np.concatenate(eCs)[:n_cl]
     span = Gw.max() - Gw.min()
     u = rng.uniform(size=n_bg)
     if abs(beta) < 1e-4:
@@ -274,6 +275,9 @@ def draw(f: WidthFitter, gen_full, th: dict, n: int, rng, real, window):
     else:  # inverse CDF of the truncated exponential
         Gb = Gw.min() + np.log1p(u * np.expm1(beta * span)) / beta
     Cb = rng.uniform(Cw.min(), Cw.max(), n_bg)
+    if return_errors:  # the field stars' (scaled) errors: real ones nearest in G, as the likelihood sees
+        _, eCb = C._real_errors(Greal, eGr, eCr, Gb, rng)
+        return np.concatenate([G, Gb]), np.concatenate([Cc, Cb]), n_cl, np.concatenate([eCc, kk * eCb])
     return np.concatenate([G, Gb]), np.concatenate([Cc, Cb]), n_cl
 
 
