@@ -672,6 +672,26 @@ def test_lambda_ori_verdict_applies_the_preregistered_rule():
     assert lo.verdict(wide)["P1"]["pass"]  # sigma_fit enters the tolerance
 
 
+def _assert_same_verdict(got, want, path):
+    """Exact on structure, strings and every pass/fail; floats to 1e-12 relative. Exact float
+    equality failed in CI on Linux against the JSON written on macOS: the np.hypot outputs differ
+    by 1-2 ulp (run 38197719582: tolerance 0.11974519106034887 vs ...885, sigma_fit
+    0.048132660419186866 vs ...86; the platform operation was not isolated), no fit and no verdict
+    moved. A retyped or re-derived number misses 1e-12 by orders of magnitude."""
+    if isinstance(want, dict):
+        assert isinstance(got, dict) and got.keys() == want.keys(), path
+        for k in want:
+            _assert_same_verdict(got[k], want[k], f"{path}.{k}")
+    elif isinstance(want, list):
+        assert isinstance(got, list) and len(got) == len(want), path
+        for i, (g, w) in enumerate(zip(got, want)):
+            _assert_same_verdict(g, w, f"{path}[{i}]")
+    elif isinstance(want, bool) or isinstance(want, str):
+        assert type(got) is type(want) and got == want, f"{path}: {got!r} != {want!r}"
+    else:
+        assert got == pytest.approx(want, rel=1e-12, abs=1e-15), f"{path}: {got!r} != {want!r}"
+
+
 def test_lambda_ori_committed_verdict_matches_the_committed_fits():
     """The numbers the hub finding quotes come from this JSON; it must be what the rule gives on
     the committed fits (re-measure, do not retype)."""
@@ -684,6 +704,6 @@ def test_lambda_ori_committed_verdict_matches_the_committed_fits():
         ("hrd_post_unblinding", "lambda_ori_oracle_D2_hrd.json"),
     ):
         again = lo.verdict(json.loads((ORACLE_DIR / fn).read_text())["fits"])
-        assert again == committed[key]
+        _assert_same_verdict(again, committed[key], key)
     assert committed["cmd_J_JKs"]["oracle_pass"] is False
     assert committed["hrd_post_unblinding"]["oracle_pass"] is True
