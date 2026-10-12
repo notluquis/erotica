@@ -75,14 +75,35 @@ def selftest(params=PARAMS, out="chain_z_selftest.json"):
     Path(__file__).with_name(out).write_text(json.dumps(res, indent=1) + "\n")
 
 
+def gate_file(run):
+    d = np.load(Path(run) / "draws.npz")
+    return gate({p: d[p] for p in d.files}, tuple(d.files))  # every parameter the fit saved (K x W: + k)
+
+
+def check_cli():
+    """The file path must test every saved parameter: a draws.npz whose only defect is one chain
+    of k shifted by 2 sd has to fail (it passed when the CLI fell back to the six X1 names)."""
+    import tempfile
+
+    rng = np.random.default_rng(5)
+    post = {p: ar1(rng, 0.3) for p in PARAMS + ("k",)}
+    post["k"][2] += 2.0
+    with tempfile.TemporaryDirectory() as t:
+        np.savez(Path(t) / "draws.npz", **post)
+        g = gate_file(t)
+    assert "k" in g["z"] and not g["pass"], g["z_abs_max"]
+    print("check_cli ok", round(g["z_abs_max"], 2), round(g["z_thr"], 3))
+
+
 if __name__ == "__main__":
     if sys.argv[1] == "selftest":
         selftest()
     elif sys.argv[1] == "selftest7":  # the K x W arm: PARAMS + k
         selftest(PARAMS + ("k",), "chain_z_selftest_k.json")
+    elif sys.argv[1] == "check_cli":
+        check_cli()
     else:
         for r in sys.argv[1:]:
-            d = np.load(Path(r) / "draws.npz")
-            g = gate({p: d[p] for p in d.files})  # every parameter the fit saved (K x W: + k)
+            g = gate_file(r)
             (Path(r) / "chain_z.json").write_text(json.dumps(g, indent=1) + "\n")
             print(r, round(g["z_abs_max"], 2), g["pass"], {p: [round(v, 2) for v in g["z"][p]] for p in ("loga", "feh")})
