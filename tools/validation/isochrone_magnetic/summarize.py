@@ -85,6 +85,36 @@ def e3_table():
     return rows
 
 
+def fig_e3(e3, plt):
+    """log t of the pms window (filled) and the ms window (open) per transplanted grid and arm."""
+    order = ["identity", "spots17", "spots34", "spots51", "spots85", "spots34_2T", "feiden"]
+    arms = [("a", "[Fe/H] −0.47, A_V 0.66"), ("s", "[Fe/H] 0, A_V 0.66"), ("m", "[Fe/H] −0.47, A_V 0.92 (maps; post hoc)"), ("g", "[Fe/H] −0.47, A_V refitted")]
+    fig, axs = plt.subplots(1, len(arms), figsize=(16, 4.6), sharey=True)
+    for ax, (arm, lab) in zip(axs, arms):
+        for i, src in enumerate(order):
+            r = e3.get(f"e3_{src}_{arm}")
+            if not r or "pms" not in r:
+                continue
+            ax.plot(i, r["pms"], "o", color="C0")
+            ax.plot(i, r.get("ms", np.nan), "s", mfc="none", color="C3")
+            ri = e3.get(f"e3_{src}_{arm}_iso")
+            if ri and "pms" in ri:
+                ax.plot(i, ri["pms"], "x", color="C0")
+            if arm == "g" and "global" in r:
+                ax.annotate(f"A_V {r['global']['Av']:.2f}", (i, r["pms"]), fontsize=7, xytext=(2, -10), textcoords="offset points")
+        ax.set_xticks(range(len(order)))
+        ax.set_xticklabels(order, rotation=45, ha="right", fontsize=8)
+        ax.axhline(7.0, color="0.7", lw=0.6)
+        ax.set_title(lab, fontsize=9)
+    axs[0].set_ylabel("log t (profile maximum)")
+    axs[0].plot([], [], "o", color="C0", label="pms window (G ≥ 14)")
+    axs[0].plot([], [], "s", mfc="none", color="C3", label="ms window (G < 14), control")
+    axs[0].plot([], [], "x", color="C0", label="pms, alternative BC (iso)")
+    axs[0].legend(fontsize=7, loc="upper left", bbox_to_anchor=(0.0, 0.93))
+    fig.tight_layout()
+    fig.savefig(HERE / "fig_e3.png", dpi=130)
+
+
 def main():
     import matplotlib
 
@@ -173,6 +203,7 @@ def main():
         ax[1].legend(fontsize=7)
         fig.tight_layout()
         fig.savefig(HERE / "fig_where.png", dpi=130)
+    fig_e3(summ["e3"], plt)
     (HERE / "summary.json").write_text(json.dumps(summ, indent=1, default=float) + "\n")
     print(json.dumps(summ, indent=1, default=float)[:6000])
 

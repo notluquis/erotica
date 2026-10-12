@@ -37,6 +37,7 @@ Every choice and the process it models (methodology §A.1):
 from __future__ import annotations
 
 import copy
+import os
 from pathlib import Path
 
 import numpy as np
@@ -45,7 +46,9 @@ CACHE = Path.home() / ".cache/erotica-grids"
 SPOTS_DIR = CACHE / "spots"
 FEIDEN_DIR = CACHE / "feiden16"
 LOGG_SUN, LOGT_SUN, MBOL_SUN = 4.438, np.log10(5772.0), 4.74
-TAPER = 0.3  # Msun over which the shift of the top model mass decays to zero
+# Msun over which the shift of the top model mass decays to zero; TRANSPLANT_TAPER=0 cuts it at the
+# top mass instead (control of the construction choice, finding §0.6)
+TAPER = float(os.environ.get("TRANSPLANT_TAPER", "0.3"))
 
 
 def logg_of(mass, logte, logl):
@@ -163,7 +166,7 @@ def shift_at(src: dict, key: str, mass: np.ndarray, loga: float) -> np.ndarray:
     a = float(np.clip(loga, src["loga"][0], src["loga"][-1]))
     m = np.clip(mass, src["mass"][0], src["mass"][-1])
     v = f(np.column_stack([np.full_like(m, a), m]))
-    w = np.clip(1.0 - (mass - src["mass_top"]) / TAPER, 0.0, 1.0)
+    w = np.clip(1.0 - (mass - src["mass_top"]) / TAPER, 0.0, 1.0) if TAPER > 0 else np.zeros_like(mass)
     w[mass <= src["mass_top"]] = 1.0
     return v * w if key in ("dlogl", "dlogte") else v
 
@@ -292,7 +295,7 @@ def transplant(
             m2t = -2.5 * np.log10(fh + fc)
             d2 = m2t - m1t
             # only where the source mass applies (taper the correction like the shift)
-            w = np.clip(1.0 - (m - src["mass_top"]) / TAPER, 0.0, 1.0)
+            w = np.clip(1.0 - (m - src["mass_top"]) / TAPER, 0.0, 1.0) if TAPER > 0 else np.zeros_like(m)
             w[m <= src["mass_top"]] = 1.0
             for i, b in enumerate(bands):
                 mags[b] = mags[b] + w * d2[:, i]

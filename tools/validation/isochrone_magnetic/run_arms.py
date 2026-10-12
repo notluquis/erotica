@@ -38,6 +38,9 @@ from phases import (  # noqa: E402
     profile_summary,
 )
 
+# Post-hoc windows (finding §0.6): the brightest members alone (the young clock of the sample) and
+# the PMS window without the stars below MIST's 0.1 Msun floor (G ~ 19.1-19.2 at log t <= 6.0)
+WINDOWS = {**WINDOWS, "b11": (5.0, 11.0), "pms19": (14.0, 19.0)}
 OUT = HERE / "out"
 OUT.mkdir(exist_ok=True)
 REAL = json.loads((HERE.parent / "isochrone_phases/real_mist12.json").read_text())
@@ -242,6 +245,8 @@ def task_e3(src_name, arm, windows, bc_mode):
     t0 = time.time()
     grid, stats = make_grid(src_name, bc_mode)
     tag = f"e3_{src_name}_{arm}" + ("" if bc_mode == "table" else f"_{bc_mode}")
+    if os.environ.get("TRANSPLANT_TAPER") is not None:
+        tag += f"_taper{os.environ['TRANSPLANT_TAPER']}"
     path = OUT / f"{tag}.json"
     out = json.loads(path.read_text()) if path.exists() else {}
     out.update({"src": src_name, "arm": arm, "bc_mode": bc_mode, "grid": grid.name, "stats": stats})
