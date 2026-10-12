@@ -1,0 +1,6 @@
+pool: 35694 estrellas en 353 cumulos; etiqueta 0 (viejas) 35672 en 353 cumulos; etiqueta 1 (PMS por §0.2, quedan fuera de la FPR) 22
+  todos    n 35672 en 353 cumulos (max 890): P(falla | 0,03) disp 0.003 | P(falla | 0,05) binom 0.000 disp 0.080 | P(pasa | 0,15) binom 0.000 disp 0.000
+  -5..+3   n 13208 en 348 cumulos (max 388): P(falla | 0,03) disp 0.010 | P(falla | 0,05) binom 0.000 disp 0.103 | P(pasa | 0,15) binom 0.000 disp 0.000
+  +3..+5   n 12856 en 352 cumulos (max 345): P(falla | 0,03) disp 0.023 | P(falla | 0,05) binom 0.000 disp 0.093 | P(pasa | 0,15) binom 0.000 disp 0.000
+  +5..+7   n  7025 en 343 cumulos (max 211): P(falla | 0,03) disp 0.003 | P(falla | 0,05) binom 0.000 disp 0.103 | P(pasa | 0,15) binom 0.000 disp 0.000
+  +7..+12  n  2583 en 249 cumulos (max 64): P(falla | 0,03) disp 0.027 | P(falla | 0,05) binom 0.000 disp 0.217 | P(pasa | 0,15) binom 0.000 disp 0.000
