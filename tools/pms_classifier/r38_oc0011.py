@@ -99,3 +99,12 @@ for nm, a in (("(ii) A_V mapa", avm), ("(iii) AV50 + mediana dB (H1)", av + shif
     print(f"  {nm} = {a:.2f}: FP {nfp(a)[0]} de {s.sum()}  (H1 se sostiene si <= 40)")
 for a in np.arange(2.0, 5.01, 0.5):
     print(f"    barrido A_V {a:.1f}: FP {nfp(a)[0]}")
+
+print("=== (e) ¿subgigantes? magnitud de los FP respecto del turn-off de MIST a la edad, MOD y A_V de HR23")
+mi = core._read_mist()
+ages = np.unique(mi["log10_isochrone_age_yr"])
+t0 = ages[np.argmin(np.abs(ages - lt))]
+gto = mi["Gaia_G_EDR3"][(mi["log10_isochrone_age_yr"] == t0) & (mi["phase"] == 0)].min() + mod + 0.789 * av
+for dg in (0.5, 1.0, 2.0):
+    print(f"  G turn-off {gto:.2f}: FP con G > G_TO + {dg}: {np.sum(fp & (G > gto + dg))} de {fp.sum()}; no FP: "
+          f"{np.sum(~fp & (G > gto + dg))} de {(~fp).sum()}")

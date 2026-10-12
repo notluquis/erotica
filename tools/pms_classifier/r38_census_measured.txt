@@ -1,0 +1,6 @@
+-5..+3 y +5..+7 (B, §3.3)              mediana 105  [2,5; 97,5 %] [98; 110]  68 % [102; 107]  (B = 30: el 95 % es casi el rango; min 97 max 110)
+-5..+3, +3..+5 y +5..+7 (pool, §4)     mediana 150  [2,5; 97,5 %] [135; 160]  68 % [138; 157]  (B = 30: el 95 % es casi el rango; min 133 max 164)
++3..+5                                 mediana 44  [2,5; 97,5 %] [32; 55]  68 % [37; 52]  (B = 30: el 95 % es casi el rango; min 32 max 55)
++5..+7                                 mediana 101  [2,5; 97,5 %] [96; 106]  68 % [99; 104]  (B = 30: el 95 % es casi el rango; min 96 max 107)
+-5..+3                                 mediana 3  [2,5; 97,5 %] [1; 6]  68 % [2; 5]  (B = 30: el 95 % es casi el rango; min 0 max 8)
++7..+12 (no establecido)               mediana 33  [2,5; 97,5 %] [20; 55]  68 % [24; 43]  (B = 30: el 95 % es casi el rango; min 18 max 59)

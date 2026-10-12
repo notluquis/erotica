@@ -1,0 +1,44 @@
+[V0] mapa: 112 de 115 viejos dentro del cubo; AV50 - mapa: mediana +0.04
+    OC_0011: AV50 3.33, mapa 1.53
+[V1] A u B, OOF de la elegida, A_V de HR23
+  [todos] cumulos con n >= 10: 115
+    Spearman FPR vs AV50      : rho +0.237 p 0.0109 (n 115)
+    Spearman FPR vs diffAV50  : rho +0.367 p 5.35e-05 (n 115)
+    Spearman FPR vs dAVmap    : rho +0.307 p 0.000992 (n 112)
+    Spearman FPR vs dist      : rho -0.123 p 0.189 (n 115)
+    parcial FPR vs diffAV50 | AV50: r +0.300 p 0.00113
+    parcial FPR vs AV50 | diffAV50: r -0.082 p 0.382
+    Spearman AV50 vs diffAV50: +0.775
+  [sin OC_0011] cumulos con n >= 10: 114
+    Spearman FPR vs AV50      : rho +0.217 p 0.0205 (n 114)
+    Spearman FPR vs diffAV50  : rho +0.351 p 0.000132 (n 114)
+    Spearman FPR vs dAVmap    : rho +0.288 p 0.00218 (n 111)
+    Spearman FPR vs dist      : rho -0.127 p 0.179 (n 114)
+    parcial FPR vs diffAV50 | AV50: r +0.295 p 0.00146
+    parcial FPR vs AV50 | diffAV50: r -0.088 p 0.349
+    Spearman AV50 vs diffAV50: +0.770
+    leave-one-out: rho(AV50) en [+0.217; +0.260]; parcial(diffAV50 | AV50) en [+0.282; +0.327]
+    AV50 0-1: cumulos  65 FPR 0.017
+    AV50 1-2: cumulos  34 FPR 0.027
+    AV50 2-3: cumulos  10 FPR 0.039
+    AV50 3-4: cumulos   6 FPR 0.146
+    diffAV50 0-1: cumulos  62 FPR 0.017
+    diffAV50 1-2: cumulos  38 FPR 0.021
+    diffAV50 2-3: cumulos  14 FPR 0.047
+    diffAV50 3-9: cumulos   1 FPR 0.478
+[V2] re-prediccion de los viejos con la A_V del MAPA (modelos de particion; entrenamiento sin cambios)
+    FPR viejos: HR23 0.0317 -> mapa 0.0488; B: 0.0503 -> 0.0727; OC_0011 FP 153 -> 230
+    por AV50 de HR23 0-1: FPR HR23 0.017 -> mapa 0.016
+    por AV50 de HR23 1-2: FPR HR23 0.027 -> mapa 0.045
+    por AV50 de HR23 2-3: FPR HR23 0.039 -> mapa 0.090
+    por AV50 de HR23 3-4: FPR HR23 0.146 -> mapa 0.270
+    con el mapa: Spearman FPR vs AV50 rho +0.476 p 7.58e-08; parcial vs diffAV50 | AV50 +0.235
+[V3] POST HOC, no prerregistrado: el pool fuera de muestra con el modelo final (n mayor)
+load_oos: quito 28 estrellas del pool que tambien estan en el entrenamiento
+  [pool] cumulos con n >= 10: 352
+    Spearman FPR vs AV50      : rho +0.219 p 3.47e-05 (n 352)
+    Spearman FPR vs diffAV50  : rho +0.349 p 1.61e-11 (n 352)
+    Spearman FPR vs dist      : rho +0.029 p 0.591 (n 352)
+    parcial FPR vs diffAV50 | AV50: r +0.280 p 9.61e-08
+    parcial FPR vs AV50 | diffAV50: r -0.024 p 0.658
+    Spearman AV50 vs diffAV50: +0.674

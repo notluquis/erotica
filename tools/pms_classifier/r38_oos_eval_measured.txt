@@ -1,0 +1,37 @@
+configuracion T0P1K0F0D1, umbrales [0.5, 0.5, 0.63, 0.94]
+load_oos: quito 28 estrellas del pool que tambien estan en el entrenamiento
+[O1] modelo final en el pool (solo etiqueta 0)
+  todos                          615/35644 = 0.0173 CP [0.0159; 0.0187] | boot cota 97,5 % sobre 50 semillas: min 0.0203 q05 0.0204 med 0.0206 q95 0.0207 max 0.0208 frac>0,10 0.00 (cota inf ~0.0143) | cumulos 352
+  -5..+3                          87/13208 = 0.0066 CP [0.0053; 0.0081] | boot cota 97,5 % sobre 50 semillas: min 0.0091 q05 0.0092 med 0.0093 q95 0.0094 max 0.0095 frac>0,10 0.00 (cota inf ~0.0042) | cumulos 348
+  +3..+5                         212/12848 = 0.0165 CP [0.0144; 0.0189] | boot cota 97,5 % sobre 50 semillas: min 0.0212 q05 0.0213 med 0.0215 q95 0.0219 max 0.0221 frac>0,10 0.00 (cota inf ~0.0122) | cumulos 351
+  +5..+7                         262/ 7014 = 0.0374 CP [0.0330; 0.0421] | boot cota 97,5 % sobre 50 semillas: min 0.0454 q05 0.0455 med 0.0459 q95 0.0464 max 0.0465 frac>0,10 0.00 (cota inf ~0.0303) | cumulos 342
+  +7..+12                         54/ 2574 = 0.0210 CP [0.0158; 0.0273] | boot cota 97,5 % sobre 50 semillas: min 0.0290 q05 0.0292 med 0.0297 q95 0.0300 max 0.0301 frac>0,10 0.00 (cota inf ~0.0137) | cumulos 248
+  G1-OOS PASA (regla §4.3: mediana de la cota bootstrap y cota CP <= 0,10)
+  G2-OOS por tramo (cota bootstrap mediana <= 0,10): -5..+3 si  +3..+5 si  +5..+7 si  +7..+12 si
+[O2] subconjunto en condiciones de NGC 6383 (AV50 0,6-2,0; diffAV50 1,0-3,0)
+  condiciones NGC 6383           106/ 8847 = 0.0120 CP [0.0098; 0.0145] | boot cota 97,5 % sobre 20 semillas: min 0.0158 q05 0.0160 med 0.0161 q95 0.0163 max 0.0164 frac>0,10 0.00 (cota inf ~0.0086) | cumulos 80
+    cond. -5..+3                   6/ 3498 = 0.0017 CP [0.0006; 0.0037] | boot cota 97,5 % sobre 20 semillas: min 0.0033 q05 0.0033 med 0.0033 q95 0.0034 max 0.0034 frac>0,10 0.00 (cota inf ~0.0005) | cumulos 80
+    cond. +3..+5                  34/ 3264 = 0.0104 CP [0.0072; 0.0145] | boot cota 97,5 % sobre 20 semillas: min 0.0151 q05 0.0154 med 0.0155 q95 0.0157 max 0.0157 frac>0,10 0.00 (cota inf ~0.0064) | cumulos 80
+    cond. +5..+7                  59/ 1702 = 0.0347 CP [0.0265; 0.0445] | boot cota 97,5 % sobre 20 semillas: min 0.0447 q05 0.0447 med 0.0455 q95 0.0462 max 0.0462 frac>0,10 0.00 (cota inf ~0.0247) | cumulos 79
+    cond. +7..+12                  7/  383 = 0.0183 CP [0.0074; 0.0373] | boot cota 97,5 % sobre 20 semillas: min 0.0384 q05 0.0394 med 0.0406 q95 0.0418 max 0.0422 frac>0,10 0.00 (cota inf ~0.0030) | cumulos 53
+[O3] FPR del pool por AV50 y por diffAV50 (agregado)
+  AV50 0-1: cumulos 202 FPR 0.0125
+  AV50 1-2: cumulos  96 FPR 0.0123
+  AV50 2-3: cumulos  38 FPR 0.0349
+  AV50 3-4: cumulos  16 FPR 0.0569
+  diffAV50 0-1: cumulos 203 FPR 0.0116
+  diffAV50 1-2: cumulos 118 FPR 0.0172
+  diffAV50 2-3: cumulos  31 FPR 0.0471
+  diffAV50 3-9: cumulos   0 FPR nan
+  cumulos con mas FP: HSC_2833 27/270 AV50 3.66 diffAV50 2.95; CWNU_1938 21/101 AV50 2.79 diffAV50 2.52; PHOC_35 20/106 AV50 2.35 diffAV50 1.81; FSR_0442 13/178 AV50 3.56 diffAV50 2.68; Trumpler_19 13/353 AV50 0.43 diffAV50 0.88; los 5 suman 94 de 615
+[O4] semilla del modelo final: 5 reentrenamientos con todo (random_state de XGBoost y sorteo de la aumentacion de NIR)
+  semilla 777: global 0.0175 por tramo 0.0075 0.0167 0.0358 0.0229
+  semilla 778: global 0.0176 por tramo 0.0076 0.0172 0.0356 0.0214
+  semilla 779: global 0.0177 por tramo 0.0073 0.0170 0.0372 0.0214
+  semilla 780: global 0.0175 por tramo 0.0065 0.0171 0.0369 0.0225
+  semilla 781: global 0.0179 por tramo 0.0082 0.0172 0.0366 0.0198
+  rango global [0.0175; 0.0179] (modelo guardado 0.0173)
+[O5] cota de G1 en B como DISTRIBUCION: 200 particiones A/B (umbrales recalculados en A) y bootstrap R = 1000
+  cota boot de G1: q05 0.0161 q50 0.0755 q95 0.0957 max 0.1017; frac > 0,10: 0.015
+  FPR en B: q05 0.0115 q50 0.0332 q95 0.0472
+  umbrales por tramo (q05/q50/q95): -5..+3 0.50/0.50/0.54  +3..+5 0.50/0.50/0.69  +5..+7 0.64/0.70/0.73  +7..+12 0.91/0.94/0.95

@@ -1,0 +1,16 @@
+n 254; con J,H,Ks en el CDS: 193
+  J: CDS finita 193, 2MASS limpia 222, ambas 193, |CDS - 2MASS| max 0.0010; ph_qual U 19 (con magnitud en el CDS 16; con error nulo en la limpia 19)
+  H: CDS finita 193, 2MASS limpia 222, ambas 193, |CDS - 2MASS| max 0.0010; ph_qual U 50 (con magnitud en el CDS 39; con error nulo en la limpia 50)
+  Ks: CDS finita 193, 2MASS limpia 222, ambas 193, |CDS - 2MASS| max 0.0010; ph_qual U 102 (con magnitud en el CDS 85; con error nulo en la limpia 102)
+[0] CDS tal cual (U como valor): 116 (control: 116); |PMSProb CDS - red| max 0.4091
+[U -> token] PMS >= 0,6: 152; cambian a PMS 38, dejan de serlo 2; estrellas con alguna U 118
+    umbral 0.5: 139 -> 173
+    umbral 0.6: 116 -> 152
+    umbral 0.7: 91 -> 134
+[U y error nulo -> token] PMS >= 0,6: 152; cambian a PMS 38, dejan de serlo 2; estrellas con alguna U 118
+    umbral 0.5: 139 -> 173
+    umbral 0.6: 116 -> 152
+    umbral 0.7: 91 -> 134
+  solo J U -> token: 121
+  solo H U -> token: 126
+  solo Ks U -> token: 150

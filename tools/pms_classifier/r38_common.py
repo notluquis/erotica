@@ -50,8 +50,14 @@ def vergely_av(l, b, d, ds=5.0):
     return out
 
 
+_MI = None
+
+
 def ms_curve(logt, plane):
-    m = core._read_mist()
+    global _MI
+    if _MI is None:
+        _MI = core._read_mist()
+    m = _MI
     ages = np.unique(m["log10_isochrone_age_yr"])
     t0 = ages[np.argmin(np.abs(ages - logt))]
     s = (m["log10_isochrone_age_yr"] == t0) & (m["phase"] == 0)
