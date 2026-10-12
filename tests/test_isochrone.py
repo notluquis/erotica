@@ -523,6 +523,7 @@ class TestPyTensorCompat:
         fork is exercised end to end in test_structure (a subprocess, ~5 min); this pins the
         wiring by capturing what ``fit`` hands PyMC, with no sampling."""
         import sys
+        import types
 
         import pymc
 
@@ -537,7 +538,10 @@ class TestPyTensorCompat:
 
         base_fitter.setup(_make_cluster_data(n=40), prob_threshold=0.0)
         monkeypatch.setattr(pymc, "sample", fake_sample)
-        monkeypatch.setitem(sys.modules, "jax", sys.modules.get("jax", object()))
+        bridge = types.ModuleType("jax._src.xla_bridge")
+        bridge.backends_are_initialized = lambda: True  # JAX's runtime is up, no JAX started
+        monkeypatch.setitem(sys.modules, "jax", sys.modules.get("jax", types.ModuleType("jax")))
+        monkeypatch.setitem(sys.modules, "jax._src.xla_bridge", bridge)
         with pytest.raises(_Captured):
             base_fitter.fit(draws=10, tune=10, chains=2, cores=2, start="prior")
         assert seen.get("mp_ctx") in ("forkserver", "spawn"), seen

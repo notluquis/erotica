@@ -1124,11 +1124,69 @@ def test_fork_safe_mp_ctx_only_steps_in_when_jax_is_loaded_and_pymc_samples(monk
     from erotica.analysis.inference import _fork_safe_mp_ctx
 
     monkeypatch.delitem(sys.modules, "jax", raising=False)
+    monkeypatch.delitem(sys.modules, "jax._src.xla_bridge", raising=False)
     assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"}) == {"nuts_sampler": "pymc"}
 
-    monkeypatch.setitem(sys.modules, "jax", object())
+    _jax_backends(monkeypatch, initialized=True)
     assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"})["mp_ctx"] in ("forkserver", "spawn")
     assert _fork_safe_mp_ctx({})["mp_ctx"] in ("forkserver", "spawn")  # PyMC's default sampler
     # the caller's choice wins, even "fork"; and JAX samplers take no multiprocessing context
     assert _fork_safe_mp_ctx({"mp_ctx": "fork"}) == {"mp_ctx": "fork"}
     assert "mp_ctx" not in _fork_safe_mp_ctx({"nuts_sampler": "numpyro"})
+
+
+def _jax_backends(monkeypatch, *, initialized):
+    """Stand in for JAX's backend registry (``jax._src.xla_bridge``) without starting JAX."""
+    import sys
+    import types
+
+    xb = types.ModuleType("jax._src.xla_bridge")
+    if initialized is not None:
+        xb.backends_are_initialized = lambda: initialized
+    monkeypatch.setitem(sys.modules, "jax", sys.modules.get("jax", types.ModuleType("jax")))
+    monkeypatch.setitem(sys.modules, "jax._src.xla_bridge", xb)
+
+
+def test_fork_safe_mp_ctx_waits_for_the_jax_runtime_not_the_import(monkeypatch):
+    """Importing JAX starts no XLA threads and installs no at-fork hook; both happen when a
+    backend is initialised (``xla_bridge.backends``). Measured 2026-10-12, JAX 0.10.2:
+    ``backends_are_initialized()`` is False after ``import jax.numpy`` and True after the
+    first operation. Before that there is nothing to deadlock, and the non-fork context
+    costs +4 to +9 s per King fit (agent-findings pymc-fork-over-jax-2026-10-12), so the
+    guard steps in only once the runtime exists. If JAX moves the private predicate, the
+    guard must fail safe: treat JAX as running."""
+    from erotica.analysis.inference import _fork_safe_mp_ctx
+
+    _jax_backends(monkeypatch, initialized=False)
+    assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"}) == {"nuts_sampler": "pymc"}
+    _jax_backends(monkeypatch, initialized=True)
+    assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"})["mp_ctx"] in ("forkserver", "spawn")
+    _jax_backends(monkeypatch, initialized=None)  # predicate gone in some future JAX
+    assert _fork_safe_mp_ctx({"nuts_sampler": "pymc"})["mp_ctx"] in ("forkserver", "spawn")
+
+
+def test_fork_safe_mp_ctx_reads_the_real_jax_runtime_state():
+    """The same two states with the real JAX, in a fresh interpreter (starting JAX here
+    would make every later forking test in this process raise JAX's at-fork warning)."""
+    import subprocess
+    import sys
+
+    pytest.importorskip("jax")
+    code = (
+        "from erotica.analysis.inference import _fork_safe_mp_ctx as g\n"
+        "import jax.numpy as jnp\n"
+        "print('IMPORTED', g({}).get('mp_ctx'))\n"
+        "jnp.ones(2).block_until_ready()\n"
+        "print('RUNNING', g({}).get('mp_ctx'))\n"
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=300,
+        cwd=__import__("pathlib").Path(__file__).resolve().parent.parent,
+    )
+    assert out.returncode == 0, out.stderr[-2000:]
+    state = dict(line.split() for line in out.stdout.splitlines())
+    assert state["IMPORTED"] == "None", out.stdout
+    assert state["RUNNING"] in ("forkserver", "spawn"), out.stdout
