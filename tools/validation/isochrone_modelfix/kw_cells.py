@@ -7,6 +7,8 @@ before any of these fits): prepare one fit, i.e. the synthetic table, the contro
     kw_cells.py prep --cell C --rep k      ctl-off's age, [Fe/H] and A_V, sigma_int 0.04, f_bg 0, k interior
     kw_cells.py prep --cell real           the 201 members in G 14-19
     kw_cells.py selftest                   draw_table reproduces aniso.draw draw for draw
+    kw_cells.py zstarts --feh X            the Z arm: kw_runs/realZ_<X>/ from real_0 without feh
+                                           (then ZFIX=X run_kw_nuts.sh realZ_<X>)
 
 Writes ``kw_runs/<cell>_<rep>/{data.ecsv, prep.json, starts.json}``. The table carries the real
 per-star errors UNSCALED (the likelihood multiplies them by k); ``aniso.draw`` returns them scaled,
@@ -175,13 +177,34 @@ def selftest() -> dict:
     return out
 
 
+def zstarts(feh: float) -> Path:
+    """The Z arm's run dir: the data and real_0's chain starts with the "feh" entry dropped (the
+    chains then find the conditional mode along the other parameters; starts stay overdispersed)."""
+    src = RUNS / "real_0"
+    out = RUNS / f"realZ_{feh:+.3f}"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "data.ecsv").write_bytes((src / "data.ecsv").read_bytes())
+    st = json.loads((src / "starts.json").read_text())
+    st["chain_starts"] = [{k: v for k, v in c.items() if k != "feh"} for c in st["chain_starts"]]
+    st["local_sd"] = {k: v for k, v in st["local_sd"].items() if k != "feh"}
+    st["zfix"] = feh
+    C.dump(out / "starts.json", st)
+    C.dump(out / "prep.json", {"cell": "realZ", "rep": 0, "zfix": feh, "from": str(src),
+                               "started": C.now()})
+    print(out)
+    return out
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["prep", "selftest"])
+    ap.add_argument("stage", choices=["prep", "selftest", "zstarts"])
+    ap.add_argument("--feh", type=float)
     ap.add_argument("--cell", choices=["A", "C", "real"])
     ap.add_argument("--rep", type=int, default=0)
     a = ap.parse_args()
     if a.stage == "selftest":
         selftest()
+    elif a.stage == "zstarts":
+        zstarts(a.feh)
     else:
         prep(a.cell, a.rep)

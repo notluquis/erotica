@@ -71,6 +71,72 @@ N.C.PARAMS = tuple(N.C.PARAMS) + tuple(EXTRA[p] for p in A.ARM_FREE[ARM] if p in
 if ZFIX:
     N.C.PARAMS = tuple(p for p in N.C.PARAMS if p != "feh")
 
+
+_pairfig0, _tracefig0 = N.pairfig, N.tracefig
+
+
+def _present(post, names):
+    return tuple(p for p in names if p in post)
+
+
+def pairfig8(post, path, truth=None, title=""):
+    """``nuts_chain.pairfig`` on the parameters this fit has (k shown; no feh under ZFIX)."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    ps = _present(post, ("feh", "loga", "dm", "Av", "sigma_int", "k", "f_bg"))
+    n = len(ps)
+    fig, ax = plt.subplots(n, n, figsize=(2.0 * n, 2.0 * n))
+    nch = post["loga"].shape[0]
+    cols = plt.cm.tab10(np.arange(nch))
+    for i, pi in enumerate(ps):
+        for j, pj in enumerate(ps):
+            a = ax[i, j]
+            if j > i:
+                a.axis("off")
+                continue
+            for c in range(nch):
+                if i == j:
+                    a.hist(post[pi][c], bins=40, histtype="step", color=cols[c], density=True)
+                else:
+                    a.plot(post[pj][c][::4], post[pi][c][::4], ".", ms=1, alpha=0.3, color=cols[c])
+            if truth is not None and pi in truth and pj in truth:
+                if i == j:
+                    a.axvline(truth[pi], color="k", lw=1)
+                else:
+                    a.plot(truth[pj], truth[pi], "k+", ms=10, mew=1.5)
+            if i == n - 1:
+                a.set_xlabel(pj)
+            if j == 0 and i > 0:
+                a.set_ylabel(pi)
+    fig.suptitle(title + "  (colour = chain; black = truth)" if truth else title, fontsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=80)
+    plt.close(fig)
+
+
+def tracefig8(post, path, title=""):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    ps = _present(post, ("feh", "loga", "dm", "Av", "sigma_int", "k"))
+    fig, ax = plt.subplots(len(ps), 1, figsize=(8, 1.5 * len(ps)), sharex=True)
+    for a, p in zip(ax, ps, strict=True):
+        for c in range(post[p].shape[0]):
+            a.plot(post[p][c], lw=0.4)
+        a.set_ylabel(p)
+    ax[0].set_title(title, fontsize=9)
+    fig.tight_layout()
+    fig.savefig(path, dpi=80)
+    plt.close(fig)
+
+
+N.pairfig, N.tracefig = pairfig8, tracefig8
+
 if __name__ == "__main__":
     import argparse
 
