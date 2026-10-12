@@ -1287,11 +1287,23 @@ def test_error_aware_route_recovers_intrinsic_sigma_where_the_default_reports_th
         draws=400, tune=400, chains=2, random_seed=3, progressbar=False, extra_kwargs={"cores": 1}
     )
     an = ClusterInferenceAnalyzer(tab, sampling=cfg)
-    with pytest.warns(UserWarning, match="observed scatter"):
-        default = an.proper_motion_by_probability((0.5,))[0]
+    # Not pytest.warns: on exit it re-emits every unmatched warning with module="warnings"
+    # (_pytest/recwarn.py, warn_explicit(module=w.__module__)), so a NUTS divergence overflow
+    # inside the block escapes the module-scoped pymc ignore in pytest.ini and hits
+    # error::RuntimeWarning. CI on PR #28 failed exactly so. catch_warnings keeps the ini filters:
+    # pymc's overflow stays ignored, any other RuntimeWarning still raises, and the divergence
+    # gate the ini moved into the tests is asserted below. The warning itself has its own test
+    # without sampling (test_proper_motion_route_default_does_not_pass_errors_and_says_so).
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", UserWarning)
+        default = an.proper_motion_by_probability((0.5,), return_trace=True)[0]
+    assert any("observed scatter" in str(w.message) for w in caught)
     aware = an.proper_motion_by_probability(
-        (0.5,), pmra_error_column="pmra_error", pmdec_error_column="pmdec_error"
+        (0.5,), pmra_error_column="pmra_error", pmdec_error_column="pmdec_error", return_trace=True
     )[0]
+    for name, row in (("default", default), ("aware", aware)):
+        n_div = int(row["trace"].sample_stats["diverging"].sum())
+        assert n_div == 0, f"{name}: {n_div} divergent transitions"
     assert default["sigma_RA_mean"] > 0.09
     assert aware["sigma_RA_mean"] < 0.075
 
