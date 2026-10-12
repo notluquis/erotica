@@ -1,0 +1,50 @@
+NGC 6383 (HR23): dist50 1100.9 pc, MOD50 10.183 [10.019; 10.311], AV50 1.209 [1.025; 1.400], diffAV50 2.00 (logAge50 6.61: NO se usa)
+[N0] configuracion T0P1K0F0D1; veredicto §2.4 SIRVE; tramos establecidos ['-5..+3', '+5..+7']; umbrales [0.5, 0.5, 0.63, 0.94]
+[N1] censo determinista (CAL), por tramo de M_G,0: PMS / estrellas del tramo
+  T2M   elegida -5..+3 2/35  +3..+5 42/56  +5..+7 100/107  +7..+12 27/56 | establecidos 102 | total 171 || Sagitta(0,6) -5..+3 0  +3..+5 22  +5..+7 92  +7..+12 42 | en establecidos 92
+  BEST  elegida -5..+3 2/35  +3..+5 43/56  +5..+7 102/107  +7..+12 38/56 | establecidos 104 | total 185 || Sagitta(0,6) -5..+3 0  +3..+5 18  +5..+7 85  +7..+12 35 | en establecidos 85
+  CAL   elegida -5..+3 2/35  +3..+5 43/56  +5..+7 101/107  +7..+12 35/56 | establecidos 103 | total 181 || Sagitta(0,6) -5..+3 0  +3..+5 17  +5..+7 68  +7..+12 35 | en establecidos 68
+  referencia: §0.2 a la edad HR23 llama PMS a 241 de 254; con T1 (Delta_th > 0.5) quedan 241 (salen 0); por tramo T1: -5..+3 22  +3..+5 56  +5..+7 107  +7..+12 56
+[N2] intervalo (B = 30): modelo (cumulos remuestreados, umbrales en A fuera de bolsa) + CAL + A_V/MOD
+    b 0: oob A 23 cum, umbrales [0.5, 0.5, 0.64, 0.95], total [3, 46, 104, 40]
+    b 1: oob A 18 cum, umbrales [0.5, 0.5, 0.68, 0.96], total [8, 55, 101, 18]
+    b 2: oob A 24 cum, umbrales [0.5, 0.5, 0.64, 0.92], total [2, 32, 99, 59]
+    b 3: oob A 20 cum, umbrales [0.5, 0.5, 0.5, 0.96], total [4, 38, 102, 35]
+    b 4: oob A 24 cum, umbrales [0.5, 0.5, 0.63, 0.9], total [5, 53, 99, 27]
+    b 5: oob A 25 cum, umbrales [0.5, 0.5, 0.64, 0.93], total [1, 39, 96, 31]
+    b 6: oob A 29 cum, umbrales [0.5, 0.5, 0.68, 0.96], total [4, 47, 106, 25]
+    b 7: oob A 25 cum, umbrales [0.5, 0.5, 0.69, 0.93], total [2, 38, 101, 41]
+    b 8: oob A 25 cum, umbrales [0.5, 0.5, 0.62, 0.95], total [4, 53, 100, 21]
+    b 9: oob A 14 cum, umbrales [0.5, 0.5, 0.63, 0.95], total [5, 38, 101, 34]
+    b 10: oob A 15 cum, umbrales [0.5, 0.5, 0.63, 0.9], total [3, 38, 104, 47]
+    b 11: oob A 19 cum, umbrales [0.5, 0.5, 0.64, 0.92], total [3, 45, 107, 36]
+    b 12: oob A 21 cum, umbrales [0.5, 0.5, 0.65, 0.93], total [3, 42, 101, 33]
+    b 13: oob A 18 cum, umbrales [0.5, 0.5, 0.65, 0.95], total [5, 45, 104, 23]
+    b 14: oob A 22 cum, umbrales [0.53, 0.5, 0.73, 0.93], total [3, 39, 101, 39]
+    b 15: oob A 21 cum, umbrales [0.5, 0.5, 0.63, 0.9], total [5, 55, 99, 28]
+    b 16: oob A 24 cum, umbrales [0.5, 0.5, 0.63, 0.95], total [3, 36, 99, 29]
+    b 17: oob A 22 cum, umbrales [0.5, 0.5, 0.66, 0.95], total [2, 45, 104, 41]
+    b 18: oob A 27 cum, umbrales [0.5, 0.5, 0.61, 0.93], total [2, 45, 103, 33]
+    b 19: oob A 19 cum, umbrales [0.57, 0.54, 0.67, 0.95], total [0, 46, 106, 26]
+    b 20: oob A 22 cum, umbrales [0.5, 0.5, 0.65, 0.95], total [3, 33, 102, 53]
+    b 21: oob A 21 cum, umbrales [0.5, 0.5, 0.62, 0.95], total [2, 40, 96, 25]
+    b 22: oob A 22 cum, umbrales [0.5, 0.5, 0.57, 0.95], total [3, 53, 99, 25]
+    b 23: oob A 18 cum, umbrales [0.5, 0.5, 0.57, 0.93], total [3, 32, 103, 54]
+    b 24: oob A 20 cum, umbrales [0.5, 0.5, 0.58, 0.89], total [5, 50, 100, 25]
+    b 25: oob A 22 cum, umbrales [0.5, 0.5, 0.69, 0.95], total [4, 39, 100, 36]
+    b 26: oob A 18 cum, umbrales [0.5, 0.5, 0.65, 0.94], total [3, 50, 99, 21]
+    b 27: oob A 20 cum, umbrales [0.5, 0.5, 0.68, 0.9], total [4, 36, 103, 50]
+    b 28: oob A 26 cum, umbrales [0.5, 0.5, 0.53, 0.91], total [5, 52, 100, 22]
+    b 29: oob A 18 cum, umbrales [0.5, 0.5, 0.63, 0.94], total [3, 42, 104, 40]
+  solo modelo        establecidos mediana 104 [2,5; 97,5 %] = [102; 106] (68 %: [104; 105]) | por tramo -5..+3 3 [1; 4]  +3..+5 43 [42; 43]  +5..+7 101 [101; 102]  +7..+12 36 [32; 41]
+  solo calibracion   establecidos mediana 104 [2,5; 97,5 %] = [102; 106] (68 %: [103; 105]) | por tramo -5..+3 3 [1; 4]  +3..+5 43 [42; 43]  +5..+7 101 [99; 102]  +7..+12 36 [33; 38]
+  solo A_V y MOD     establecidos mediana 104 [2,5; 97,5 %] = [100; 109] (68 %: [102; 107]) | por tramo -5..+3 3 [2; 6]  +3..+5 42 [30; 56]  +5..+7 101 [96; 106]  +7..+12 33 [20; 54]
+  TOTAL              establecidos mediana 105 [2,5; 97,5 %] = [98; 110] (68 %: [102; 107]) | por tramo -5..+3 3 [1; 6]  +3..+5 44 [32; 55]  +5..+7 101 [96; 106]  +7..+12 33 [20; 55]
+[N3] sensibilidad fuera del IC (CAL determinista; umbrales recalculados en A con un modelo entrenado sin A)
+  alpha 0,5                  umbrales [0.5, 0.5, 0.77, 0.97] | -5..+3 4  +3..+5 43  +5..+7 100  +7..+12 32 | establecidos 104
+  alpha 0 (P0)               umbrales [0.5, 0.5, 0.81, 0.98] | -5..+3 2  +3..+5 43  +5..+7 100  +7..+12 30 | establecidos 102
+  referencia (misma config)  umbrales [0.5, 0.5, 0.72, 0.95] | -5..+3 3  +3..+5 43  +5..+7 100  +7..+12 34 | establecidos 103
+[N4] las `U` de 2MASS: censo en las entradas T2M (2MASS de la tabla limpia), 2 clasificadores x 2 codificaciones
+  estrellas con `U` por banda (J, H, Ks): {'J': 19, 'H': 50, 'Ks': 102}; con alguna `U`: 118 de 254
+  U -> faltante  elegida: -5..+3 2  +3..+5 42  +5..+7 100  +7..+12 27 | establecidos 102 total 171 || modelo del F2 (0,5) 200 || Sagitta(0,6) 156
+  U como valor   elegida: -5..+3 3  +3..+5 45  +5..+7 103  +7..+12 35 | establecidos 106 total 186 || modelo del F2 (0,5) 205 || Sagitta(0,6) 114

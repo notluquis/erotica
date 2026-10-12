@@ -1,0 +1,44 @@
+[C0] configuracion elegida en exp2_grid: T0P1K0F0D1; umbrales por tramo [0.5, 0.5, 0.63, 0.94]
+[G1/G2] FPR en la mitad CONFIRMATORIA B de los viejos (bootstrap por cumulo B = 1000)
+  T0P1K0F0D1             global 305/6069 = 0.0503 CP [0.0449; 0.0561] boot [0.0204; 0.0986]
+    -5..+3     65/ 1980 = 0.0328 boot [0.0014; 0.0848] <= 0,10
+    +3..+5    159/ 2254 = 0.0705 boot [0.0197; 0.1460] >  0,10
+    +5..+7     68/ 1291 = 0.0527 boot [0.0396; 0.0677] <= 0,10
+    +7..+12    13/  544 = 0.0239 boot [0.0130; 0.0352] <= 0,10
+  control T0P0K0F0D0     global 735/6069 = 0.1211 CP [0.1130; 0.1296] boot [0.0946; 0.1524]
+    -5..+3     36/ 1980 = 0.0182 boot [0.0030; 0.0438] <= 0,10
+    +3..+5    140/ 2254 = 0.0621 boot [0.0227; 0.1197] >  0,10
+    +5..+7    236/ 1291 = 0.1828 boot [0.1556; 0.2098] >  0,10
+    +7..+12   323/  544 = 0.5938 boot [0.5349; 0.6481] >  0,10
+  Sagitta(0,6) U->token  global 310/6069 = 0.0511 CP [0.0457; 0.0569] boot [0.0305; 0.0774]
+    -5..+3     15/ 1980 = 0.0076 boot [0.0005; 0.0162] <= 0,10
+    +3..+5    121/ 2254 = 0.0537 boot [0.0128; 0.1160] >  0,10
+    +5..+7    117/ 1291 = 0.0906 boot [0.0579; 0.1299] >  0,10
+    +7..+12    57/  544 = 0.1048 boot [0.0688; 0.1575] >  0,10
+  Sagitta(0,6) U listada global 189/6069 = 0.0311 CP [0.0269; 0.0358] boot [0.0162; 0.0512]
+    -5..+3      1/ 1980 = 0.0005 boot [0.0000; 0.0015] <= 0,10
+    +3..+5     82/ 2254 = 0.0364 boot [0.0053; 0.0842] <= 0,10
+    +5..+7     70/ 1291 = 0.0542 boot [0.0321; 0.0836] <= 0,10
+    +7..+12    36/  544 = 0.0662 boot [0.0364; 0.1078] >  0,10
+  G1 PASA: cota CP 0.0561, boot 0.0986
+  (referencia, viejos completos A+B, sin compuerta: T0P1K0F0D1 FPR 0.0317; F2 0,0973)
+[C1] modelo final (todo el entrenamiento) de la configuracion elegida
+[G2-sint] sintetico MIST a la MOD 10.183 y A_V 1.209 de NGC 6383, A_V por estrella ~ N(A_V, 0,5); n por tramo 2000
+  FPR (MS log t 9,0)       simples     : -5..+3 0.002  +3..+5 0.003  +5..+7 0.003  +7..+12 0.294
+  FPR (MS log t 9,0)       binarias q=1: -5..+3 0.001  +3..+5 0.076  +5..+7 0.281  +7..+12 0.291
+  recall (PMS log t 6,6)   simples     : -5..+3 0.077  +3..+5 0.824  +5..+7 0.999  +7..+12 0.788
+  recall (PMS log t 6,6)   binarias q=1: -5..+3 0.171  +3..+5 0.931  +5..+7 1.000  +7..+12 0.914
+  TRAMOS ESTABLECIDOS (G2: boot B <= 0,10 y sintetico <= 0,10): ['-5..+3', '+5..+7']
+[G3] NGC 6530 (Wright+2019, etiqueta PMS, n 708); NGC 6530 es in-sample para Sagitta
+  elegida                  632/708 = 0.893 [0.867, 0.914]
+  elegida U listada        655/708 = 0.925 [0.903, 0.943]
+  Sagitta(0,6) U->token    484/708 = 0.684 [0.648, 0.718]
+  Sagitta(0,6) U listada   405/708 = 0.572 [0.535, 0.609]
+    -5..+3   n   40: elegida 0.475  Sagitta(0,6) token 0.100  listada 0.150
+    +3..+5   n  195: elegida 0.944  Sagitta(0,6) token 0.533  listada 0.421
+    +5..+7   n  433: elegida 0.949  Sagitta(0,6) token 0.799  listada 0.670
+    +7..+12  n   40: elegida 0.450  Sagitta(0,6) token 0.750  listada 0.675
+  recall de la elegida reponderado a NGC 6383 (pesos [0.091, 0.232, 0.444, 0.232]): 0.788
+  diferencia pareada elegida - Sagitta(0,6) token: +0.209 [+0.174; +0.246] -> G3 pasa
+[G4] ablacion de NIR (patron de NGC 6383, 50 sorteos): cambia de clase 0.033 (max 0.045) -> pasa
+[VEREDICTO §2.4] G1 pasa, G3 pasa, G4 pasa -> EL ARREGLO SIRVE; tramos establecidos ['-5..+3', '+5..+7']
