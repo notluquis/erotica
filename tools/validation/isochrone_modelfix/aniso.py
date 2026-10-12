@@ -166,10 +166,12 @@ def make_fitter(data, window: str) -> WidthFitter:
 
 
 def search8(f: WidthFitter, arm: str, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_stride=2, polish=4,
-            verbose=True) -> dict:
+            verbose=True, start_av=1.0) -> dict:
     """``common.search`` generalised to the arm's parameter vector: (dm, A_V) optimised at every
     (feh, log t) lattice point at the wide width (0.05 mag, tau 0, f_bg 0.02), then the ``polish``
-    best polished on every free parameter (L-BFGS-B, bounded). Never seeded at a truth."""
+    best polished on every free parameter (L-BFGS-B, bounded). Never seeded at a truth.
+    ``start_av`` is where each lattice point's (dm, A_V) optimisation starts in A_V (1.0 as
+    ``common.search``; R32-21 asks what that start does when a synthetic truth has A_V = 1.0)."""
     from scipy.optimize import minimize
 
     t0 = time.time()
@@ -202,7 +204,7 @@ def search8(f: WidthFitter, arm: str, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_st
                 v, g = fn(np.array([z, a, y[0], y[1], *tail]))
                 return -v, -g[2:4]
 
-            r = minimize(nll2, [f.dm_mu, 1.0], jac=True, method="L-BFGS-B",
+            r = minimize(nll2, [f.dm_mu, start_av], jac=True, method="L-BFGS-B",
                          bounds=list(zip(lo[2:4], hi[2:4], strict=True)))
             cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
     cands.sort(key=lambda c: c[0])

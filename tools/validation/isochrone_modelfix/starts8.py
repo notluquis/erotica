@@ -19,12 +19,11 @@ PYMC = {"feh": "feh", "loga": "loga", "dm": "dm", "Av": "Av", "sG": "sigma_int",
         "k": "k", "beta": "beta", "sC": "sigma_c", "tau": "tau"}
 
 
-def main(arm, win, fitpath=None):
-    real = A.C.real_table()
-    f = A.make_fitter(real, win)
-    fit = json.loads(Path(fitpath or HERE / "fits" / f"{arm}_{win}.json").read_text())
+def laplace_starts(f, arm, x, seed=11):
+    """Laplace covariance of the arm's log posterior (log L + dm prior) at ``x`` and the four chain
+    starts along its ridge line; ``f`` is any fitter (the real data or a synthetic replicate)."""
     names = A.free_names(arm)
-    x = np.asarray(fit["x"], float)
+    x = np.asarray(x, float)
     fl = f.compiled8(arm)
 
     def grad(y):
@@ -45,7 +44,7 @@ def main(arm, win, fitpath=None):
     lo = np.array([f._met_bounds()[0], f.loga_range[0], f.dm_range[0], f.Av_range[0]])
     hi = np.array([f._met_bounds()[1], f.loga_range[1], f.dm_range[1], f.Av_range[1]])
     margin = 1e-3 * (hi - lo)
-    rng = np.random.default_rng(11)
+    rng = np.random.default_rng(seed)
     starts = []
     for d in A.C.START_DLOGA:
         s = np.clip(x[:4] + d * v, lo + margin, hi - margin)
@@ -54,11 +53,21 @@ def main(arm, win, fitpath=None):
             lo_, hi_ = A.WBOUNDS[k]
             st[PYMC[k]] = float(np.clip(val * rng.uniform(0.7, 1.4), lo_ + 1e-3, hi_ - 1e-3))
         starts.append(st)
-    sd = np.sqrt(np.diag(S))
-    out = {"arm": arm, "window": win, "mode": {PYMC[k]: float(val) for k, val in zip(names, x, strict=True)},
-           "local_sd": {PYMC[k]: float(val) for k, val in zip(names[:4], sd[:4], strict=True)},
-           "laplace_sd_all": {PYMC[k]: float(val) for k, val in zip(names, sd, strict=True)},
-           "laplace_cov": S.tolist(), "ridge_vector": v.tolist(), "chain_starts": starts}
+    with np.errstate(invalid="ignore"):
+        sd = np.sqrt(np.diag(S))  # NaN where -H is not positive there (reported, not hidden)
+    return {"arm": arm, "mode": {PYMC[k]: float(val) for k, val in zip(names, x, strict=True)},
+            "local_sd": {PYMC[k]: float(val) for k, val in zip(names[:4], sd[:4], strict=True)
+                         if np.isfinite(val)},
+            "laplace_sd_all": {PYMC[k]: float(val) for k, val in zip(names, sd, strict=True)},
+            "laplace_cov": S.tolist(), "ridge_vector": v.tolist(), "chain_starts": starts}
+
+
+def main(arm, win, fitpath=None):
+    real = A.C.real_table()
+    f = A.make_fitter(real, win)
+    fit = json.loads(Path(fitpath or HERE / "fits" / f"{arm}_{win}.json").read_text())
+    out = laplace_starts(f, arm, fit["x"])
+    out = {"arm": arm, "window": win, **{k: v for k, v in out.items() if k != "arm"}}
     A.C.dump(HERE / f"starts_{arm}_{win}.json", out)
     print(json.dumps({k: out[k] for k in ("mode", "laplace_sd_all")}))
 
