@@ -107,6 +107,7 @@ def mode_search(
     embed=None,
     embed_periods=None,
     draws_to_x=None,
+    per_chain=5,
 ):
     """Multi-start optimisation + ridge starts + mode clustering + Laplace per mode.
 
@@ -128,10 +129,14 @@ def mode_search(
         the bounds (10 x ``scale`` where unbounded), plus +-4 Laplace sd. Cell C's plateaus sat 25-100
         Laplace sd apart, out of reach of steps counted in sd.
     same_mode : float
-        Two optima are one mode when their Mahalanobis distance (best mode's Laplace covariance) is
-        below this.
+        Two optima are one mode when their Mahalanobis distance, under the Laplace covariance of the mode
+        already accepted, is below this.
     draws : (m, c, d) array, optional
-        Posterior draws (draw, chain/walker, dim) to compare against the modes found.
+        Posterior draws (draw, chain/walker, dim) to compare against the modes found. ``per_chain`` draws
+        of every chain, evenly spaced, are polished; the modes they reach are where that chain lives.
+    per_chain : int
+        How many draws per chain are polished (hub finding R68-05: one last draw misses a chain that
+        spent most of its run in another mode).
     pmap : callable(list of x0) -> list of (x, logp, nfev), optional
         Runs the local optimisations elsewhere (a process pool); serial ``L-BFGS-B`` otherwise.
     embed, embed_periods, draws_to_x : optional
@@ -144,6 +149,15 @@ def mode_search(
     """
     starts = np.atleast_2d(np.asarray(starts, float))
     d = starts.shape[1]
+    n_lap = [0]  # log-density or gradient calls spent on Laplace Hessians (R68-10: they were not counted)
+    _logp, _grad = logp, grad
+
+    def lp_count(x):
+        n_lap[0] += 1
+        return _logp(x)
+
+    gr_count = None if grad is None else (lambda x: (n_lap.__setitem__(0, n_lap[0] + 1), _grad(x))[1])
+    lap_cache = {}
     scale = np.ones(d) if scale is None else np.asarray(scale, float)
     periods = periods or {}
     nlp = lambda y: -lp if np.isfinite(lp := float(logp(y))) else 1e300  # noqa: E731
@@ -156,7 +170,11 @@ def mode_search(
     to_x = draws_to_x or (lambda y: y)
     emb = embed or (lambda x: x)
     eper = periods if embed is None else (embed_periods or {})
-    extra = [] if draws is None else [(f"chain{k}", to_x(y0)) for k, y0 in enumerate(np.asarray(draws, float)[-1])]
+    extra = []
+    if draws is not None:
+        dr = np.asarray(draws, float)
+        idx = np.unique(np.linspace(0, len(dr) - 1, max(1, per_chain)).round().astype(int))
+        extra = [(f"chain{k}_{i}", to_x(dr[i, k])) for k in range(dr.shape[1]) for i in idx]
     run = pmap or (lambda xs: [_optimise(nlp, x0, grad, bounds, maxiter) for x0 in xs])
     jobs = [("prior", x0) for x0 in starts] + extra
     for (src, _), (x, v, n) in zip(jobs, run([x0 for _, x0 in jobs]), strict=True):
@@ -171,16 +189,25 @@ def mode_search(
             y = np.asarray(emb(x), float)
             for m in modes:
                 dy = _wrap((y - m["y"])[None], eper)[0]
-                dist = (np.sqrt(dy @ m["prec_y"] @ dy) if m["prec_y"] is not None
-                        else np.max(np.abs(_wrap((x - m["x"])[None], periods)[0] / scale)) / 1e-3)
+                if m["prec_y"] is not None:
+                    dist = np.sqrt(dy @ m["prec_y"] @ dy)
+                elif embed is not None:  # R68-08: compare where the draws live, not in x
+                    dist = np.max(np.abs(dy) / (np.abs(m["y"]) + 1e-3)) / 1e-3
+                else:
+                    dist = np.max(np.abs(_wrap((x - m["x"])[None], periods)[0] / scale)) / 1e-3
                 if dist < same_mode:
                     m["n_starts"] += 1
                     m["sources"].add(src)
                     break
             else:
-                cov, logdet, ok = _laplace(logp, x, scale, bounds, grad)
+                key = x.tobytes()
+                if key not in lap_cache:
+                    lap_cache[key] = _laplace(lp_count, x, scale, bounds, gr_count)
+                cov, logdet, ok = lap_cache[key]
                 at = [] if bounds is None else [
                     i for i in range(d) if min(x[i] - bounds[0][i], bounds[1][i] - x[i]) < 1e-6 * scale[i]]
+                if at:  # R68-07: a Gaussian cut by a bound has no full Laplace mass; rank it by height
+                    cov, logdet, ok = cov, np.nan, False
                 prec_y, logdet_y = (np.linalg.inv(cov), logdet) if ok else (None, np.nan)
                 if ok and embed is not None:  # push the Laplace covariance through the embedding
                     h = 1e-6 * scale
@@ -243,16 +270,29 @@ def mode_search(
         # a mode at a bound or with a non-definite Hessian has no Laplace mass; it still counts (the bound
         # is part of the model, hub isochrone-intervals-nuts §2.16), ranked by its height instead
         m["dlog_key"] = m["dlog_mass"] if np.isfinite(m["dlog_mass"]) else m["dlogp"]
+    nfev["laplace"] = n_lap[0]
     out = dict(modes=modes, n_starts=len(starts), nfev=nfev, names=names)
     for m in modes:
-        m["chain_homes"] = sorted(int(s_[5:]) for s_ in m["sources"] if s_.startswith("chain"))
+        hits = [s_[5:].split("_") for s_ in m["sources"] if s_.startswith("chain")]
+        m["chain_hits"] = {}
+        for c, _ in hits:
+            m["chain_hits"][int(c)] = m["chain_hits"].get(int(c), 0) + 1
         m["sources"] = {kind(s_) for s_ in m["sources"]}
     if draws is not None:
+        c_ = np.asarray(draws).shape[1]
         out["chains"] = _assign(np.asarray(draws, float), modes, eper)
-        # a chain's home is the mode its last draw polishes into (its basin): the per-walker count of
+        # where a chain lives = the modes its polished draws reach (their basins): the per-walker count of
         # hub methodology §A.1.2. Post hoc (hub finding §3, E1b seed 2): per-draw Laplace assignment let a
         # broad junk mode take 20-99 % of the draws when the main mode was not Gaussian
-        out["chains"]["homes"] = [len(m["chain_homes"]) for m in modes]
+        tot = np.zeros(c_)
+        for m in modes:
+            for c, k in m["chain_hits"].items():
+                tot[c] += k
+        out["chains"]["homeless"] = [int(c) for c in range(c_) if tot[c] == 0]
+        # occupancy: per chain, the fraction of its polished draws in each mode; averaged over chains
+        out["chains"]["occupancy"] = [float(np.mean([m["chain_hits"].get(c, 0) / tot[c] if tot[c] else 0.0
+                                                     for c in range(c_)])) for m in modes]
+        out["chains"]["homes"] = [len(m["chain_hits"]) for m in modes]
     return out
 
 
@@ -291,18 +331,46 @@ def verdict(res, *, unvisited=UNVISITED_DLOGMASS, ratio=MASS_RATIO_TOL, min_frac
         s = (f"  [{j}] logp={m['logp']:.2f} dlogp={m['dlogp']:+.2f} dlog_mass={m['dlog_mass']:+.2f}{' AT BOUND ' + str(m['at_bound']) if m['at_bound'] else ''} starts={m['n_starts']} "
              f"from={sorted(m['sources'])} at {where}")
         if ch is not None:
-            f, h = ch["fraction"][j], ch["homes"][j] / ch["n_chains"]
-            s += (f" | chains home here {ch['homes'][j]}/{ch['n_chains']}, draws (Laplace assignment, "
-                  f"indicative) {100 * f:.2f} %")
-            if ch["homes"][j] == 0 and f == 0 and m["dlog_key"] >= unvisited:
+            f, h = ch["fraction"][j], ch["occupancy"][j]
+            s += (f" | chains in it {ch['homes'][j]}/{ch['n_chains']}, occupancy {100 * h:.2f} %, draws "
+                  f"(Laplace assignment, indicative) {100 * f:.2f} %")
+            # R68-01: the per-draw assignment is no veto; only polished chain draws count as a visit
+            if ch["homes"][j] == 0 and m["dlog_key"] >= unvisited:
                 fails.append(f"mode {j} has dlog_mass {m['dlog_key']:+.2f} >= {unvisited} and no chain visited it")
             if share is not None and np.isfinite(share[j]) and h > min_fraction and h > ratio * share[j]:
-                fails.append(f"mode {j} is home to {ch['homes'][j]}/{ch['n_chains']} chains against a Laplace "
+                fails.append(f"mode {j} holds {100 * h:.2f} % of the chains' occupancy against a Laplace "
                              f"share of {100 * share[j]:.2g} %: weight set by the initialisation, not the posterior")
         lines.append(s)
     if ch is None:
         lines.append("  no draws given: modes reported, chain coverage not checked")
     if ch is not None and len(modes) > 1:
         lines.append(f"  crossings between modes along the chains: {ch['crossings']}")
+    if ch is not None and ch["homeless"]:  # R68-09: a chain whose polished draws all failed says nothing
+        lines.append(f"  WARNING: chains with no finite polished draw (not counted): {ch['homeless']}")
     lines.append("VERDICT: " + ("FAIL -- " + "; ".join(fails) if fails else "PASS (within the limits in the docstring)"))
     return "\n".join(lines), not fails
+
+
+def like_vs_post(res_like, res_post, logpost, *, tol=2.0, names=None):
+    """Does a prior choose the mode? Mode search on log L alone against the one on the posterior.
+
+    Hub finding §3.6 (NGC 6383 isochrone): the posterior had one mode, the likelihood two humps 0.44
+    apart with dm sliding from 10.57 to 9.51 between them, and the dm prior picked the age. A posterior
+    mode search cannot see that. Here: if a likelihood mode other than the one holding the posterior's
+    best point is within ``tol`` of the best likelihood, the data do not separate them and the prior does.
+    ``logpost(x)`` evaluates the posterior at each likelihood mode (same coordinates).
+    """
+    lm = res_like["modes"]
+    xb = res_post["modes"][0]["x"]
+    home = int(np.argmin([np.sum(((m["x"] - xb) / (np.abs(m["x"]) + 1e-3)) ** 2) for m in lm]))
+    best_post = res_post["modes"][0]["logp"]
+    lines, flag = [f"likelihood vs posterior: {len(lm)} likelihood mode(s); posterior best is in likelihood mode {home}"], []
+    for j, m in enumerate(lm):
+        dpost = float(logpost(m["x"])) - best_post
+        where = ", ".join(f"{n}={v:.4g}" for n, v in zip(names or range(len(m["x"])), m["x"], strict=True))
+        lines.append(f"  L[{j}] dlogL={m['dlogp']:+.2f} dlogpost_there={dpost:+.2f} at {where}")
+        if j != home and m["dlogp"] >= -tol:
+            flag.append(f"likelihood mode {j} is {m['dlogp']:+.2f} from the best likelihood but {dpost:+.2f} in the "
+                        f"posterior: the prior, not the data, chooses between them")
+    lines.append("PRIOR CHECK: " + ("PRIOR DECIDES -- " + "; ".join(flag) if flag else "the data separate the modes"))
+    return "\n".join(lines), not flag
