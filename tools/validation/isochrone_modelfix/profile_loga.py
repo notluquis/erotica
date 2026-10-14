@@ -362,11 +362,15 @@ def figure(t, P, L, res):
     a.plot(tq, -0.5 * ((tq - TMODE) / SD_LAPLACE) ** 2, ":", color="0.4", label="cuadrática de Laplace (sd 0,0577)")
     a.axhline(-2, color="crimson", lw=1, label="umbral −2")
     a.axvline(5.965, color="k", lw=0.8)
-    a.text(5.968, 0.6, "mediana NUTS 5,965", fontsize=8)
+    a.text(5.975, -22.0, "mediana NUTS 5,965", fontsize=8)
     c = [x for i in range(8) for x in np.load(HERE / "kw_runs" / f"C_{i}" / "draws.npz")["loga"].mean(1)]
-    a.plot(c, np.full(len(c), -0.6), "|", ms=12, color="purple", label="mesetas de C (32 medias de cadena; verdad sintética)")
-    a.plot([RUNNER[1]], [-1.2], "v", color="green", label="2.º punto de search8 (6,62)")
-    a.set_ylim(-40, 2)
+    a.axhspan(1.0, 3.0, color="white", zorder=3)
+    a.plot(c, np.full(len(c), 2.0), "|", ms=10, color="purple", zorder=4,
+           label="mesetas de C, sólo posición en log t (32 medias de cadena; verdad sintética)")
+    i62 = int(np.argmin(np.abs(t - RUNNER[1])))
+    a.plot([RUNNER[1]], [P[i62] - P.max()], "v", ms=8, color="green", zorder=5,
+           label="2.º punto de search8 (6,62), en su Δ post")
+    a.set_ylim(-40, 3)
     a.set_ylabel("Δ log (respecto del máximo)")
     a.legend(fontsize=7, loc="lower left")
     a.set_title("K×W, 201 miembros G 14–19: perfil en log t (máximo sobre los 6 molestos)", fontsize=10)
