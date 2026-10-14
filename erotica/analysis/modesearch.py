@@ -173,9 +173,20 @@ def mode_search(
 
     modes = cluster(optima)
     # ridge: the best mode's lowest-curvature axis, where the plateaus of cell C lay
-    if modes and modes[0]["laplace_ok"] and ridge_fracs:
-        w, V = np.linalg.eigh(modes[0]["cov"])
-        axis, sd = V[:, -1], np.sqrt(w[-1])
+    if modes and ridge_fracs:
+        if modes[0]["laplace_ok"]:
+            w, V = np.linalg.eigh(modes[0]["cov"])
+            axis, sd = V[:, -1], np.sqrt(w[-1])
+        else:
+            axis, sd = np.eye(d)[int(np.argmax(scale))], float(np.max(scale)) * 1e-3
+        # post hoc (hub finding §3, arm T2): on a rippled ridge the local Hessian is stiff along the ridge
+        # and the softest axis is a nuisance; when >= 3 modes sit within 10 of the best, the ridge is the
+        # first principal component of their positions (in units of ``scale``) instead
+        near = np.array([_wrap((m["x"] - modes[0]["x"])[None], periods)[0] / scale
+                         for m in modes if m["logp"] >= modes[0]["logp"] - 10])
+        if len(near) >= 3:
+            axis = np.linalg.svd(near - near.mean(0), full_matrices=False)[2][0] * scale
+            axis /= np.linalg.norm(axis)
         x_b = modes[0]["x"]
         lo = bounds[0] if bounds is not None else np.full(d, -np.inf)
         hi = bounds[1] if bounds is not None else np.full(d, np.inf)
