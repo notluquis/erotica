@@ -255,8 +255,10 @@ def _assign(draws, modes, periods):
     D = np.empty((len(flat), len(modes)))
     for j, m in enumerate(modes):
         dx = _wrap(flat - m["y"], periods)
-        # Gaussian classification (Mahalanobis + log det) so a broad mode does not swallow a narrow one
-        D[:, j] = (np.einsum("ni,ij,nj->n", dx, m["prec_y"], dx) + m["logdet_y"] if m["prec_y"] is not None
+        # responsibility in the Laplace mixture: component weight exp(logp) sqrt(det) times the Gaussian
+        # exp(-D/2) / sqrt(det), so the score is logp - D/2 and det cancels. Post hoc (hub finding §3,
+        # E1b seed 2): with "D + log det" a broad junk mode 24 below the best took 99.5 % of the draws
+        D[:, j] = (np.einsum("ni,ij,nj->n", dx, m["prec_y"], dx) - 2 * m["logp"] if m["prec_y"] is not None
                    else np.sum(dx**2, 1) * 1e6)
     lab = D.argmin(1).reshape(m_, c_)
     frac = np.array([(lab == j).mean() for j in range(len(modes))])
