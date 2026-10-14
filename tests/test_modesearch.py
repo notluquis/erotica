@@ -38,7 +38,7 @@ def test_unvisited_mode_fails(mode1_draws):
     m2 = [m for m in res["modes"] if abs(m["x"][0] - 10) < 0.5]
     assert m2 and abs(m2[0]["dlog_mass"] - np.log(0.1 / 0.9)) < 0.05
     text, ok = verdict(res)
-    assert not ok and "no draw visited it" in text
+    assert not ok and "no chain visited it" in text
 
 
 def test_unimodal_passes(mode1_draws):

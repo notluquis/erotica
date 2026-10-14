@@ -148,6 +148,7 @@ def mode_search(
     periods = periods or {}
     nlp = lambda y: -lp if np.isfinite(lp := float(logp(y))) else 1e300  # noqa: E731
     nfev = {"prior": 0, "chain": 0, "ridge": 0}
+    kind = lambda src: "chain" if src.startswith("chain") else src  # noqa: E731
     optima = []
     # the last draw of every chain is also polished, so the modes the chains found are in the list and
     # each draw can be assigned to one; a mode reached ONLY from "chain" starts is not news, one reached
@@ -155,11 +156,11 @@ def mode_search(
     to_x = draws_to_x or (lambda y: y)
     emb = embed or (lambda x: x)
     eper = periods if embed is None else (embed_periods or {})
-    extra = [] if draws is None else [("chain", to_x(y0)) for y0 in np.asarray(draws, float)[-1]]
+    extra = [] if draws is None else [(f"chain{k}", to_x(y0)) for k, y0 in enumerate(np.asarray(draws, float)[-1])]
     run = pmap or (lambda xs: [_optimise(nlp, x0, grad, bounds, maxiter) for x0 in xs])
     jobs = [("prior", x0) for x0 in starts] + extra
     for (src, _), (x, v, n) in zip(jobs, run([x0 for _, x0 in jobs]), strict=True):
-        nfev[src] += n
+        nfev[kind(src)] += n
         if np.isfinite(v) and v > -1e299:
             optima.append((v, _wrap(np.array(x, float)[None], periods)[0], src))
 
@@ -243,8 +244,15 @@ def mode_search(
         # is part of the model, hub isochrone-intervals-nuts §2.16), ranked by its height instead
         m["dlog_key"] = m["dlog_mass"] if np.isfinite(m["dlog_mass"]) else m["dlogp"]
     out = dict(modes=modes, n_starts=len(starts), nfev=nfev, names=names)
+    for m in modes:
+        m["chain_homes"] = sorted(int(s_[5:]) for s_ in m["sources"] if s_.startswith("chain"))
+        m["sources"] = {kind(s_) for s_ in m["sources"]}
     if draws is not None:
         out["chains"] = _assign(np.asarray(draws, float), modes, eper)
+        # a chain's home is the mode its last draw polishes into (its basin): the per-walker count of
+        # hub methodology §A.1.2. Post hoc (hub finding §3, E1b seed 2): per-draw Laplace assignment let a
+        # broad junk mode take 20-99 % of the draws when the main mode was not Gaussian
+        out["chains"]["homes"] = [len(m["chain_homes"]) for m in modes]
     return out
 
 
@@ -283,13 +291,14 @@ def verdict(res, *, unvisited=UNVISITED_DLOGMASS, ratio=MASS_RATIO_TOL, min_frac
         s = (f"  [{j}] logp={m['logp']:.2f} dlogp={m['dlogp']:+.2f} dlog_mass={m['dlog_mass']:+.2f}{' AT BOUND ' + str(m['at_bound']) if m['at_bound'] else ''} starts={m['n_starts']} "
              f"from={sorted(m['sources'])} at {where}")
         if ch is not None:
-            f = ch["fraction"][j]
-            s += f" | draws {100 * f:.2f} %, chains wholly in it {ch['chains_whole_in'][j]}/{ch['n_chains']}"
-            if f == 0 and m["dlog_key"] >= unvisited:
-                fails.append(f"mode {j} has dlog_mass {m['dlog_key']:+.2f} >= {unvisited} and no draw visited it")
-            if share is not None and np.isfinite(share[j]) and f > min_fraction and f > ratio * share[j]:
-                fails.append(f"mode {j} holds {100 * f:.2f} % of draws against a Laplace share of "
-                             f"{100 * share[j]:.2g} %: weight set by the initialisation, not the posterior")
+            f, h = ch["fraction"][j], ch["homes"][j] / ch["n_chains"]
+            s += (f" | chains home here {ch['homes'][j]}/{ch['n_chains']}, draws (Laplace assignment, "
+                  f"indicative) {100 * f:.2f} %")
+            if ch["homes"][j] == 0 and f == 0 and m["dlog_key"] >= unvisited:
+                fails.append(f"mode {j} has dlog_mass {m['dlog_key']:+.2f} >= {unvisited} and no chain visited it")
+            if share is not None and np.isfinite(share[j]) and h > min_fraction and h > ratio * share[j]:
+                fails.append(f"mode {j} is home to {ch['homes'][j]}/{ch['n_chains']} chains against a Laplace "
+                             f"share of {100 * share[j]:.2g} %: weight set by the initialisation, not the posterior")
         lines.append(s)
     if ch is None:
         lines.append("  no draws given: modes reported, chain coverage not checked")
