@@ -103,6 +103,7 @@ def mode_search(
     draws=None,
     maxiter=2000,
     names=None,
+    pmap=None,
 ):
     """Multi-start optimisation + ridge starts + mode clustering + Laplace per mode.
 
@@ -128,6 +129,8 @@ def mode_search(
         below this.
     draws : (m, c, d) array, optional
         Posterior draws (draw, chain/walker, dim) to compare against the modes found.
+    pmap : callable(list of x0) -> list of (x, logp, nfev), optional
+        Runs the local optimisations elsewhere (a process pool); serial ``L-BFGS-B`` otherwise.
     """
     starts = np.atleast_2d(np.asarray(starts, float))
     d = starts.shape[1]
@@ -140,11 +143,12 @@ def mode_search(
     # each draw can be assigned to one; a mode reached ONLY from "chain" starts is not news, one reached
     # only from "prior"/"ridge" starts is what the chains may have missed
     extra = [] if draws is None else [("chain", x0) for x0 in np.asarray(draws, float)[-1]]
-    for src, x0 in [("prior", x0) for x0 in starts] + extra:
-        x, v, n = _optimise(nlp, x0, grad, bounds, maxiter)
+    run = pmap or (lambda xs: [_optimise(nlp, x0, grad, bounds, maxiter) for x0 in xs])
+    jobs = [("prior", x0) for x0 in starts] + extra
+    for (src, _), (x, v, n) in zip(jobs, run([x0 for _, x0 in jobs]), strict=True):
         nfev[src] += n
         if np.isfinite(v) and v > -1e299:
-            optima.append((v, _wrap(x.copy()[None], periods)[0], src))
+            optima.append((v, _wrap(np.array(x, float)[None], periods)[0], src))
 
     def cluster(optima):
         optima = sorted(optima, key=lambda o: -o[0])
@@ -185,13 +189,12 @@ def mode_search(
             tmax = float(np.min(room))
             pts += [(f"ridge{sgn * f:+g}", x_b + f * tmax * ax) for f in ridge_fracs]
             pts.append((f"ridge{sgn * 4:+g}sd", x_b + 4 * sd * ax))
-        for k, x0 in pts:
-            if bounds is not None:
-                x0 = np.clip(x0, bounds[0], bounds[1])
-            x, v, n = _optimise(nlp, x0, grad, bounds, maxiter)
+        if bounds is not None:
+            pts = [(k, np.clip(x0, bounds[0], bounds[1])) for k, x0 in pts]
+        for (k, _), (x, v, n) in zip(pts, run([x0 for _, x0 in pts]), strict=True):
             nfev["ridge"] += n
             if np.isfinite(v) and v > -1e299:
-                optima.append((v, _wrap(x.copy()[None], periods)[0], k))
+                optima.append((v, _wrap(np.array(x, float)[None], periods)[0], k))
         modes = cluster(optima)
 
     best = modes[0]
