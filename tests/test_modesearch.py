@@ -69,8 +69,8 @@ def wide_mixture(w, s, sep):
 
 
 def test_wide_unvisited_mode_fails_and_its_mass_is_right():
-    # R68-01: a broad mode the chains never visited; the per-draw assignment must not veto the failure.
-    # R68-04: unequal widths, so the Laplace log det enters the mass (Delta log mass = log(w/(1-w))).
+    # R69-01: a broad mode the chains never visited; the per-draw assignment must not veto the failure.
+    # R69-04: unequal widths, so the Laplace log det enters the mass (Delta log mass = log(w/(1-w))).
     draws = np.random.default_rng(2).standard_normal((1000, 4, D))
     rng = np.random.default_rng(3)
     res = mode_search(wide_mixture(0.3, 3.0, 10.0), rng.uniform(-15, 15, (32, D)),
@@ -82,7 +82,7 @@ def test_wide_unvisited_mode_fails_and_its_mass_is_right():
 
 
 def test_chain_that_lived_in_a_minor_mode_is_seen():
-    # R68-05: chain 3 spends 499 of 500 draws in a mode holding 1e-3 of the mass, last draw back home
+    # R69-05: chain 3 spends 499 of 500 draws in a mode holding 1e-3 of the mass, last draw back home
     draws = np.random.default_rng(1).standard_normal((500, 4, D))
     draws[:-1, 3] += MU2
     text, ok = verdict(run(1e-3, draws))
@@ -90,7 +90,7 @@ def test_chain_that_lived_in_a_minor_mode_is_seen():
 
 
 def test_embed_pushes_the_covariance_through_its_jacobian():
-    # R68-04: y = 2 x, so the covariance in y is 4 times the one in x
+    # R69-04: y = 2 x, so the covariance in y is 4 times the one in x
     lp = lambda x: -0.5 * float(np.sum(x**2))  # noqa: E731
     res = mode_search(lp, np.random.default_rng(0).uniform(-3, 3, (4, 2)), embed=lambda x: 2 * x,
                       ridge_fracs=())
@@ -99,7 +99,7 @@ def test_embed_pushes_the_covariance_through_its_jacobian():
 
 
 def test_ridge_follows_the_modes_not_the_local_hessian():
-    # R68-04 / P1: rippled ridge (hub finding T2); the global mode sits at u = 3.5 along it
+    # R69-04 / P1: rippled ridge (hub finding T2); the global mode sits at u = 3.5 along it
     def lp(x):
         u, v = (x[0] + x[1]) / np.sqrt(2), (x[0] - x[1]) / np.sqrt(2)
         env = -0.5 * u**2 + 3 * np.cos(2 * np.pi * u / 0.1)
@@ -120,7 +120,7 @@ def test_ridge_follows_the_modes_not_the_local_hessian():
 
 @pytest.mark.parametrize("gap, decides", [(0.1, True), (10.0, False)])
 def test_like_vs_post_sees_a_prior_that_picks_the_mode(gap, decides):
-    # hub finding §3.6: one posterior mode, two likelihood humps `gap` apart; the prior N(0, 1) on x0 picks
+    # hub finding §3.5: one posterior mode, two likelihood humps `gap` apart; the prior N(0, 1) on x0 picks
     from erotica.analysis.modesearch import like_vs_post
 
     def loglike(x):

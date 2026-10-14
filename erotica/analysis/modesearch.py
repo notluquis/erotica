@@ -135,7 +135,7 @@ def mode_search(
         Posterior draws (draw, chain/walker, dim) to compare against the modes found. ``per_chain`` draws
         of every chain, evenly spaced, are polished; the modes they reach are where that chain lives.
     per_chain : int
-        How many draws per chain are polished (hub finding R68-05: one last draw misses a chain that
+        How many draws per chain are polished (hub finding R69-05: one last draw misses a chain that
         spent most of its run in another mode).
     pmap : callable(list of x0) -> list of (x, logp, nfev), optional
         Runs the local optimisations elsewhere (a process pool); serial ``L-BFGS-B`` otherwise.
@@ -149,7 +149,7 @@ def mode_search(
     """
     starts = np.atleast_2d(np.asarray(starts, float))
     d = starts.shape[1]
-    n_lap = [0]  # log-density or gradient calls spent on Laplace Hessians (R68-10: they were not counted)
+    n_lap = [0]  # log-density or gradient calls spent on Laplace Hessians (R69-10: they were not counted)
     _logp, _grad = logp, grad
 
     def lp_count(x):
@@ -191,7 +191,7 @@ def mode_search(
                 dy = _wrap((y - m["y"])[None], eper)[0]
                 if m["prec_y"] is not None:
                     dist = np.sqrt(dy @ m["prec_y"] @ dy)
-                elif embed is not None:  # R68-08: compare where the draws live, not in x
+                elif embed is not None:  # R69-08: compare where the draws live, not in x
                     dist = np.max(np.abs(dy) / (np.abs(m["y"]) + 1e-3)) / 1e-3
                 else:
                     dist = np.max(np.abs(_wrap((x - m["x"])[None], periods)[0] / scale)) / 1e-3
@@ -206,7 +206,7 @@ def mode_search(
                 cov, logdet, ok = lap_cache[key]
                 at = [] if bounds is None else [
                     i for i in range(d) if min(x[i] - bounds[0][i], bounds[1][i] - x[i]) < 1e-6 * scale[i]]
-                if at:  # R68-07: a Gaussian cut by a bound has no full Laplace mass; rank it by height
+                if at:  # R69-07: a Gaussian cut by a bound has no full Laplace mass; rank it by height
                     cov, logdet, ok = cov, np.nan, False
                 prec_y, logdet_y = (np.linalg.inv(cov), logdet) if ok else (None, np.nan)
                 if ok and embed is not None:  # push the Laplace covariance through the embedding
@@ -334,7 +334,7 @@ def verdict(res, *, unvisited=UNVISITED_DLOGMASS, ratio=MASS_RATIO_TOL, min_frac
             f, h = ch["fraction"][j], ch["occupancy"][j]
             s += (f" | chains in it {ch['homes'][j]}/{ch['n_chains']}, occupancy {100 * h:.2f} %, draws "
                   f"(Laplace assignment, indicative) {100 * f:.2f} %")
-            # R68-01: the per-draw assignment is no veto; only polished chain draws count as a visit
+            # R69-01: the per-draw assignment is no veto; only polished chain draws count as a visit
             if ch["homes"][j] == 0 and m["dlog_key"] >= unvisited:
                 fails.append(f"mode {j} has dlog_mass {m['dlog_key']:+.2f} >= {unvisited} and no chain visited it")
             if share is not None and np.isfinite(share[j]) and h > min_fraction and h > ratio * share[j]:
@@ -345,7 +345,7 @@ def verdict(res, *, unvisited=UNVISITED_DLOGMASS, ratio=MASS_RATIO_TOL, min_frac
         lines.append("  no draws given: modes reported, chain coverage not checked")
     if ch is not None and len(modes) > 1:
         lines.append(f"  crossings between modes along the chains: {ch['crossings']}")
-    if ch is not None and ch["homeless"]:  # R68-09: a chain whose polished draws all failed says nothing
+    if ch is not None and ch["homeless"]:  # R69-09: a chain whose polished draws all failed says nothing
         lines.append(f"  WARNING: chains with no finite polished draw (not counted): {ch['homeless']}")
     lines.append("VERDICT: " + ("FAIL -- " + "; ".join(fails) if fails else "PASS (within the limits in the docstring)"))
     return "\n".join(lines), not fails
@@ -354,7 +354,7 @@ def verdict(res, *, unvisited=UNVISITED_DLOGMASS, ratio=MASS_RATIO_TOL, min_frac
 def like_vs_post(res_like, res_post, logpost, *, tol=2.0, names=None):
     """Does a prior choose the mode? Mode search on log L alone against the one on the posterior.
 
-    Hub finding §3.6 (NGC 6383 isochrone): the posterior had one mode, the likelihood two humps 0.44
+    Hub finding §3.5 (NGC 6383 isochrone): the posterior had one mode, the likelihood two humps 0.44
     apart with dm sliding from 10.57 to 9.51 between them, and the dm prior picked the age. A posterior
     mode search cannot see that. Here: if a likelihood mode other than the one holding the posterior's
     best point is within ``tol`` of the best likelihood, the data do not separate them and the prior does.
