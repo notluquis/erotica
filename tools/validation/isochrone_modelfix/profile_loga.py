@@ -213,6 +213,31 @@ def sweep(tol=0.01, max_pass=6):
     return max_pass
 
 
+def sweep_pass(npass, mine):
+    """One parallel (Jacobi) continuation pass over the points ``mine``: neighbours are read from
+    their current files; each point file is rewritten atomically. Prints the max gain."""
+    ts = sorted(float(p.stem[2:]) for p in OUT.glob("t_*.json"))
+    gain = 0.0
+    for t in mine:
+        i = int(np.argmin(np.abs(np.array(ts) - t)))
+        rec = json.loads(path(ts[i]).read_text())
+        for j in (i - 1, i + 1):
+            if not 0 <= j < len(ts):
+                continue
+            nrec = json.loads(path(ts[j]).read_text())
+            for k in ("post", "like"):
+                r = maximise(k, ts[i], nrec[f"best_{k}"]["x"])
+                rec[k][f"cont_{ts[j]:.5f}_p{npass}"] = r
+                g = r["value"] - rec[f"best_{k}"]["value"]
+                if g > 0:
+                    gain = max(gain, g)
+                    rec[f"best_{k}"] = r
+        tmp = path(ts[i]).with_suffix(".tmp")
+        tmp.write_text(json.dumps(rec, indent=1))
+        tmp.replace(path(ts[i]))
+    print(f"GAIN {gain:.5f}", flush=True)
+
+
 def hessian_nuis(kind, x, h=None):
     fn = objective(kind)
     x = np.asarray(x, float)
@@ -267,9 +292,97 @@ def summary():
                      "n_starts_within_0.01": int(sum(v >= spread[-1] - 0.01 for v in spread)),
                      "laplace_logdet": r.get("laplace_post", {}).get("logdet_negH"),
                      "s8_oracle": r.get("s8_oracle", {}).get("value")})
-    (OUT.parent / "profile.json").write_text(json.dumps({"tmax_post": float(t[i0]), "tmax_like": float(t[j0]),
-                                                         "rows": rows}, indent=1))
-    print(f"{len(rows)} points; argmax post {t[i0]:.4f}, like {t[j0]:.4f}")
+    res = {"tmax_post": float(t[i0]), "tmax_like": float(t[j0]), **decide(t, P, L, recs), "rows": rows}
+    (OUT.parent / "profile.json").write_text(json.dumps(res, indent=1))
+    figure(t, P, L, res)
+    print(json.dumps({k: v for k, v in res.items() if k != "rows"}, indent=1))
+
+
+SD_LAPLACE, HALF = 0.0577, 0.17
+
+
+def decide(t, P, L, recs):
+    """§2.16 rule, oracle and the non-deciding marginal approximation."""
+    i_hat = int(np.argmin(np.abs(t - TMODE)))
+    out = {}
+    s8 = recs[i_hat].get("s8_oracle", {}).get("value")
+    out["oracle_a"] = {"s8_at_that": s8, "search8": PREP["logpost"], "pass": s8 is not None and s8 >= PREP["logpost"] - 0.01}
+    i0 = int(P.argmax())
+    near = np.abs(t - t[i0]) <= 0.05 + 1e-9
+    tn, pn = t[near], P[near] - P[i0]
+    c = np.polyfit(tn - t[i0], pn, 2)
+    sd = float(np.sqrt(-0.5 / c[0])) if c[0] < 0 else float("nan")
+    left, right = pn[tn <= t[i0]], pn[tn >= t[i0]]
+    mono = bool(np.all(np.diff(left) >= -0.02) and np.all(np.diff(right) <= 0.02))
+    out["oracle_b"] = {"sd_quad": sd, "monotone": mono, "n": int(near.sum()),
+                       "pass": mono and 0.025 <= sd <= 0.07}
+    outside = np.abs(t - TMODE) > HALF
+    for name, Y in (("post", P), ("like", L)):
+        d_hat = Y - Y[i_hat]
+        d = Y - Y.max()
+        j = int(np.argmax(np.where(outside, d, -np.inf)))
+        r = recs[j][f"best_{name}"]
+        loc = [float(t[k]) for k in range(1, len(t) - 1) if Y[k] > Y[k - 1] + 0.02 and Y[k] > Y[k + 1] + 0.02]
+        out[f"rule_{name}"] = {
+            "M_out": float(d[j]), "t_M_out": float(t[j]), "at_bound_M_out": r["at_bound"],
+            "excess_over_laplace_quad": float(d[j] + 0.5 * ((t[j] - TMODE) / SD_LAPLACE) ** 2),
+            "max_gain_over_that_outside": float(np.max(np.where(outside, d_hat, -np.inf))),
+            "argmax": float(t[int(Y.argmax())]), "argmax_outside_W": bool(abs(t[int(Y.argmax())] - TMODE) > HALF),
+            "fails": bool(d[j] >= -2.0), "strong_fail": bool(np.max(np.where(outside, d_hat, -np.inf)) > 0.05),
+            "local_maxima": [{"t": x, "mist_node": bool(abs(round(x / 0.05) * 0.05 - x) < 1e-6)} for x in loc]}
+    ld = np.array([r.get("laplace_post", {}).get("logdet_negH", np.nan) for r in recs])
+    ok = np.isfinite(ld)
+    if ok.sum() > 3:
+        m = P[ok] - 0.5 * ld[ok]
+        tt = t[ok]
+        w = np.exp(m - m.max())
+        cdf = np.concatenate([[0], np.cumsum(0.5 * (w[1:] + w[:-1]) * np.diff(tt))])
+        cdf /= cdf[-1]
+        q = {f"q{int(p * 100)}": float(np.interp(p, cdf, tt)) for p in (0.16, 0.5, 0.84)}
+        lo_w, hi_w = np.interp([TMODE - HALF, TMODE + HALF], tt, cdf)
+        out["marginal_approx"] = {**q, "mass_outside_W": float(1 - (hi_w - lo_w)), "n_points": int(ok.sum()),
+                                  "n_nonposdef": int(sum(r.get("laplace_post", {}).get("sign", 1) <= 0 or
+                                                         r.get("laplace_post", {}).get("min_eig", 1) <= 0 for r in recs))}
+    return out
+
+
+def figure(t, P, L, res):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(2, 1, figsize=(8, 7.5), sharex=True, height_ratios=[2.2, 1])
+    a = ax[0]
+    a.axvspan(TMODE - HALF, TMODE + HALF, color="0.92", label="W = modo ± 0,17 (NUTS)")
+    a.axvspan(5.933, 6.000, color="#9ecae1", alpha=0.6, label="68 % citado [5,933; 6,000]")
+    a.plot(t, P - P.max(), "o-", ms=3, color="#08519c", label="perfil de log posterior")
+    a.plot(t, L - L.max(), "s--", ms=3, color="#d94801", label="perfil de log L sola (dm libre)")
+    tq = np.linspace(5.70, 7.0, 300)
+    a.plot(tq, -0.5 * ((tq - TMODE) / SD_LAPLACE) ** 2, ":", color="0.4", label="cuadrática de Laplace (sd 0,0577)")
+    a.axhline(-2, color="crimson", lw=1, label="umbral −2")
+    a.axvline(5.965, color="k", lw=0.8)
+    a.text(5.968, 0.6, "mediana NUTS 5,965", fontsize=8)
+    c = [x for i in range(8) for x in np.load(HERE / "kw_runs" / f"C_{i}" / "draws.npz")["loga"].mean(1)]
+    a.plot(c, np.full(len(c), -0.6), "|", ms=12, color="purple", label="mesetas de C (32 medias de cadena; verdad sintética)")
+    a.plot([RUNNER[1]], [-1.2], "v", color="green", label="2.º punto de search8 (6,62)")
+    a.set_ylim(-40, 2)
+    a.set_ylabel("Δ log (respecto del máximo)")
+    a.legend(fontsize=7, loc="lower left")
+    a.set_title("K×W, 201 miembros G 14–19: perfil en log t (máximo sobre los 6 molestos)", fontsize=10)
+    rows = res["rows"]
+    b = ax[1]
+    b.plot(t, [r["x_post"][0] for r in rows], "o-", ms=3, color="#08519c", label="[Fe/H] (óptimo post)")
+    b.plot(t, [r["x_post"][3] for r in rows], "^-", ms=3, color="#41ab5d", label="A_V (óptimo post)")
+    b2 = b.twinx()
+    b2.plot(t, [r["x_post"][2] for r in rows], "-", color="0.5", label="dm (post)")
+    b2.plot(t, [r["x_like"][2] for r in rows], "--", color="#d94801", label="dm (like)")
+    b2.set_ylabel("dm")
+    b.set_xlabel("log t [yr]")
+    b.legend(fontsize=7, loc="upper left")
+    b2.legend(fontsize=7, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(OUT.parent / "profile.png", dpi=130)
 
 
 if __name__ == "__main__":
@@ -277,6 +390,8 @@ if __name__ == "__main__":
     if cmd == "run":
         for tt in sys.argv[2:]:
             run_point(float(tt))
+    elif cmd == "sweep_pass":
+        sweep_pass(int(sys.argv[2]), [float(x) for x in sys.argv[3:]])
     elif cmd == "grid":
         print(" ".join(f"{x:.5f}" for x in grid()))
     else:
