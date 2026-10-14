@@ -104,6 +104,9 @@ def mode_search(
     maxiter=2000,
     names=None,
     pmap=None,
+    embed=None,
+    embed_periods=None,
+    draws_to_x=None,
 ):
     """Multi-start optimisation + ridge starts + mode clustering + Laplace per mode.
 
@@ -131,6 +134,13 @@ def mode_search(
         Posterior draws (draw, chain/walker, dim) to compare against the modes found.
     pmap : callable(list of x0) -> list of (x, logp, nfev), optional
         Runs the local optimisations elsewhere (a process pool); serial ``L-BFGS-B`` otherwise.
+    embed, embed_periods, draws_to_x : optional
+        Optimise in one parametrisation and compare in another. Needed when the density in the sampler's
+        coordinates has an integrable singularity an optimiser climbs (HD 159176: the physical prior
+        written in Thiele-Innes elements, -2 log sin i at face-on orbits; hub finding §3): optimise
+        where the density is bounded, and give ``embed(x)`` -> the draws' coordinates (where modes are
+        clustered and draws assigned, with the Laplace covariance pushed through its Jacobian), the
+        periods there, and ``draws_to_x(y)`` -> a starting point from a draw.
     """
     starts = np.atleast_2d(np.asarray(starts, float))
     d = starts.shape[1]
@@ -142,7 +152,10 @@ def mode_search(
     # the last draw of every chain is also polished, so the modes the chains found are in the list and
     # each draw can be assigned to one; a mode reached ONLY from "chain" starts is not news, one reached
     # only from "prior"/"ridge" starts is what the chains may have missed
-    extra = [] if draws is None else [("chain", x0) for x0 in np.asarray(draws, float)[-1]]
+    to_x = draws_to_x or (lambda y: y)
+    emb = embed or (lambda x: x)
+    eper = periods if embed is None else (embed_periods or {})
+    extra = [] if draws is None else [("chain", to_x(y0)) for y0 in np.asarray(draws, float)[-1]]
     run = pmap or (lambda xs: [_optimise(nlp, x0, grad, bounds, maxiter) for x0 in xs])
     jobs = [("prior", x0) for x0 in starts] + extra
     for (src, _), (x, v, n) in zip(jobs, run([x0 for _, x0 in jobs]), strict=True):
@@ -154,9 +167,11 @@ def mode_search(
         optima = sorted(optima, key=lambda o: -o[0])
         modes = []
         for v, x, src in optima:
+            y = np.asarray(emb(x), float)
             for m in modes:
-                dx = _wrap((x - m["x"])[None], periods)[0]
-                dist = np.sqrt(dx @ m["prec"] @ dx) if m["prec"] is not None else np.max(np.abs(dx / scale)) / 1e-3
+                dy = _wrap((y - m["y"])[None], eper)[0]
+                dist = (np.sqrt(dy @ m["prec_y"] @ dy) if m["prec_y"] is not None
+                        else np.max(np.abs(_wrap((x - m["x"])[None], periods)[0] / scale)) / 1e-3)
                 if dist < same_mode:
                     m["n_starts"] += 1
                     m["sources"].add(src)
@@ -165,9 +180,17 @@ def mode_search(
                 cov, logdet, ok = _laplace(logp, x, scale, bounds, grad)
                 at = [] if bounds is None else [
                     i for i in range(d) if min(x[i] - bounds[0][i], bounds[1][i] - x[i]) < 1e-6 * scale[i]]
+                prec_y, logdet_y = (np.linalg.inv(cov), logdet) if ok else (None, np.nan)
+                if ok and embed is not None:  # push the Laplace covariance through the embedding
+                    h = 1e-6 * scale
+                    J = np.array([_wrap((np.asarray(emb(x + hi_ * e), float) - np.asarray(emb(x - hi_ * e), float))[None], eper)[0]
+                                  / (2 * hi_) for hi_, e in zip(h, np.eye(d), strict=True)]).T
+                    cy = J @ cov @ J.T
+                    sgn, logdet_y = np.linalg.slogdet(cy)
+                    prec_y, logdet_y = (np.linalg.inv(cy), float(logdet_y)) if sgn > 0 else (None, np.nan)
                 modes.append(
-                    dict(x=x, logp=v, cov=cov, prec=np.linalg.inv(cov) if ok else None, logdet=logdet,
-                         laplace_ok=ok, at_bound=at, n_starts=1, sources={src})
+                    dict(x=x, y=y, logp=v, cov=cov, prec=np.linalg.inv(cov) if ok else None, logdet=logdet,
+                         prec_y=prec_y, logdet_y=logdet_y, laplace_ok=ok, at_bound=at, n_starts=1, sources={src})
                 )
         return modes
 
@@ -221,20 +244,20 @@ def mode_search(
         m["dlog_key"] = m["dlog_mass"] if np.isfinite(m["dlog_mass"]) else m["dlogp"]
     out = dict(modes=modes, n_starts=len(starts), nfev=nfev, names=names)
     if draws is not None:
-        out["chains"] = _assign(np.asarray(draws, float), modes, scale, periods)
+        out["chains"] = _assign(np.asarray(draws, float), modes, eper)
     return out
 
 
-def _assign(draws, modes, scale, periods):
+def _assign(draws, modes, periods):
     """Nearest mode (Mahalanobis, each mode's own Laplace covariance) for every draw."""
     m_, c_, d = draws.shape
     flat = draws.reshape(-1, d)
     D = np.empty((len(flat), len(modes)))
     for j, m in enumerate(modes):
-        dx = _wrap(flat - m["x"], periods)
+        dx = _wrap(flat - m["y"], periods)
         # Gaussian classification (Mahalanobis + log det) so a broad mode does not swallow a narrow one
-        D[:, j] = (np.einsum("ni,ij,nj->n", dx, m["prec"], dx) + m["logdet"] if m["prec"] is not None
-                   else np.sum((dx / scale) ** 2, 1) * 1e6)
+        D[:, j] = (np.einsum("ni,ij,nj->n", dx, m["prec_y"], dx) + m["logdet_y"] if m["prec_y"] is not None
+                   else np.sum(dx**2, 1) * 1e6)
     lab = D.argmin(1).reshape(m_, c_)
     frac = np.array([(lab == j).mean() for j in range(len(modes))])
     per_chain = np.array([[(lab[:, c] == j).mean() for j in range(len(modes))] for c in range(c_)])
