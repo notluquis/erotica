@@ -145,7 +145,7 @@ def make_fitter(data, binaries: bool):
     return f
 
 
-def prep(arm: str, rep: int) -> None:
+def prep(arm: str, rep: int, search8: bool = True) -> None:
     import erotica
 
     gen_bin, mod_bin, mult = ARMS[arm]
@@ -168,22 +168,43 @@ def prep(arm: str, rep: int) -> None:
             "truth_pymc": {K.PYMC[k]: truth[k] for k in names}, **gi}
     f = make_fitter(data, mod_bin)
     info["n_window"] = int(f._N_obs)
-    res = A.search8(f, K.ARM, verbose=False, start_av=1.0)
-    st = S8.laplace_starts(f, K.ARM, res["x"], seed=11 + rep)
-    info["control"] = {"mode": {K.PYMC[k]: v for k, v in zip(names, res["x"], strict=True)},
-                       "x": res["x"], "laplace_sd": st["laplace_sd_all"],
-                       "at_bound": res["at_bound"], "logpost": res["logpost"],
-                       "runner_up": res["runner_up"], "seconds": res["seconds"]}
-    fl = f.compiled8(K.ARM)
-    ll_t = fl(np.asarray([truth[k] for k in names], float))[0]
-    ll_m = fl(np.asarray(res["x"], float))[0]
-    info["truth_vs_mode"] = {"loglike_truth": ll_t, "loglike_mode": ll_m}
-    C.dump(out / "starts.json", st)
+    names_ = names
+    if search8:  # as cells A and C: the control and the NUTS starts (Laplace at search8's mode)
+        res = A.search8(f, K.ARM, verbose=False, start_av=1.0)
+        st = S8.laplace_starts(f, K.ARM, res["x"], seed=11 + rep)
+        info["control"] = {"mode": {K.PYMC[k]: v for k, v in zip(names_, res["x"], strict=True)},
+                           "x": res["x"], "laplace_sd": st["laplace_sd_all"],
+                           "at_bound": res["at_bound"], "logpost": res["logpost"],
+                           "runner_up": res["runner_up"], "seconds": res["seconds"]}
+        fl = f.compiled8(K.ARM)
+        info["truth_vs_mode"] = {"loglike_truth": fl(np.asarray([truth[k] for k in names_], float))[0],
+                                 "loglike_mode": fl(np.asarray(res["x"], float))[0]}
+        C.dump(out / "starts.json", st)
     info["seconds"] = round(time.time() - t0, 1)
     C.dump(out / "prep.json", info)
-    m = info["control"]["mode"]
-    print(arm, rep, {k: round(v, 4) for k, v in m.items()}, "truth loga", round(truth["loga"], 4),
-          "feh", round(truth["feh"], 3), info["control"]["at_bound"], info["seconds"], flush=True)
+    print(arm, rep, "prepared", info["n_window"], "stars", info["seconds"], "s", flush=True)
+
+
+def glob(arm: str, rep: int) -> None:
+    """Amended estimator (``search_global``) on a prepared replicate -> ``global.json``: the mode, log L
+    there and at the truth (a mode with log L(truth) > log L(mode) + 0.5 is flagged, §2.17 rule 5)."""
+    from astropy.table import Table
+
+    out = RUNS / f"{arm}_{rep}"
+    prep_ = json.loads((out / "prep.json").read_text())
+    f = make_fitter(__import__("astropy.table", fromlist=["QTable"]).QTable(Table.read(out / "data.ecsv")),
+                    prep_["binaries_in_model"])
+    names = A.free_names(K.ARM)
+    res = search_global(f)
+    fl = f.compiled8(K.ARM)
+    t = prep_["truth"]
+    llt = fl(np.asarray([t[k] for k in names], float))[0]
+    res.update({"arm": arm, "rep": rep, "loglike_truth": llt, "truth_loga": t["loga"],
+                "err_loga": res["mode"]["loga"] - t["loga"], "flag_search_missed": bool(llt > res["loglike"] + 0.5)})
+    C.dump(out / "global.json", res)
+    print(arm, rep, "global mode loga", round(res["mode"]["loga"], 4), "err", round(res["err_loga"], 4),
+          "logL", round(res["loglike"], 2), "truth", round(llt, 2), "flag", res["flag_search_missed"],
+          res["seconds"], flush=True)
 
 
 def selftest() -> dict:
@@ -229,8 +250,76 @@ def selftest() -> dict:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["prep", "selftest"])
+    ap.add_argument("stage", choices=["prep", "selftest", "glob"])
+    ap.add_argument("--no-search8", action="store_true")
     ap.add_argument("--arm", choices=list(ARMS))
     ap.add_argument("--rep", type=int, default=0)
     a = ap.parse_args()
-    selftest() if a.stage == "selftest" else prep(a.arm, a.rep)
+    if a.stage == "selftest":
+        selftest()
+    elif a.stage == "glob":
+        glob(a.arm, a.rep)
+    else:
+        prep(a.arm, a.rep, not a.no_search8)
+
+
+def search_global(f, polish=12, wide=None, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_stride=2,
+                  start_av=1.0, verbose=False) -> dict:
+    """``aniso.search8`` with two changes (hub §2.17, amendment 1, chosen on cell A replicate 0 and on
+    nothing else): the lattice stage's nuisance parameters sit at ``wide`` (default the K x W mode of the
+    REAL data, sigma_int 0.094, k 2.446, f_bg 0.067, which a real analysis has) instead of
+    (0.05, 1, 0.02), and the best ``polish`` lattice points are polished instead of 4. The objective and
+    bounds are search8's. Never seeded at a truth."""
+    from scipy.optimize import minimize
+
+    t0 = time.time()
+    names = A.free_names("K")
+    fl = f.compiled8("K")
+    zlo, zhi = f._met_bounds()
+    blo = {"feh": zlo + 1e-9, "loga": f.loga_range[0], "dm": f.dm_range[0], "Av": f.Av_range[0]}
+    bhi = {"feh": zhi - 1e-9, "loga": f.loga_range[1], "dm": f.dm_range[1], "Av": f.Av_range[1]}
+    for k, (a, b) in A.WBOUNDS.items():
+        blo[k], bhi[k] = a, b
+    lo = np.array([blo[n] for n in names])
+    hi = np.array([bhi[n] for n in names])
+    wide = wide or (K.KW["sG"], K.KW["k"], K.KW["f_bg"])
+
+    def fn(y):
+        v, g = fl(y)
+        z = (y[2] - f.dm_mu) / f.dm_sigma
+        g = g.copy()
+        g[2] -= z / f.dm_sigma
+        return v - 0.5 * z * z, g
+
+    ages = [a for a in f._node_loga if lo[1] <= a <= hi[1]][::age_stride]
+    fehs = [x for x in feh_lattice if zlo <= x <= zhi]
+    cands = []
+    for z in fehs:
+        for a in ages:
+
+            def nll2(y, z=float(z), a=float(a)):
+                v, g = fn(np.array([z, a, y[0], y[1], *wide]))
+                return -v, -g[2:4]
+
+            r = minimize(nll2, [f.dm_mu, start_av], jac=True, method="L-BFGS-B",
+                         bounds=list(zip(lo[2:4], hi[2:4], strict=True)))
+            cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
+    cands.sort(key=lambda c: c[0])
+
+    def nll(y):
+        v, g = fn(y)
+        return -v, -g
+
+    pol = []
+    for c in cands[:polish]:
+        y0 = np.clip(np.array([*c[1:], *wide]), lo, hi)
+        r = minimize(nll, y0, jac=True, method="L-BFGS-B", bounds=list(zip(lo, hi, strict=True)))
+        pol.append((-float(r.fun), np.asarray(r.x, float)))
+        if verbose:
+            print(f"  polish lp={-r.fun:.2f} loga={r.x[1]:.3f} t={time.time() - t0:.0f}s", flush=True)
+    pol.sort(key=lambda p: -p[0])
+    lp, b = pol[0]
+    at = [n for n, x, a, z in zip(names, b, lo, hi, strict=True) if min(x - a, z - x) < 1e-3 * (z - a)]
+    return {"arm": "K", "x": b.tolist(), "mode": A.expand("K", b), "logpost": lp, "loglike": fl(b)[0],
+            "runner_up": [(p[0], p[1].tolist()) for p in pol[1:]], "at_bound": at,
+            "n": int(f._N_obs), "seconds": round(time.time() - t0, 1)}
