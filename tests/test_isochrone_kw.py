@@ -55,7 +55,7 @@ PRIORS_NGC6383 = dict(
 # ---------------------------------------------------------------------------------------------
 
 
-def _toy(tmp_path, data, cls=IsochroneFitterKW, **kw):
+def _toy(tmp_path, data, cls=IsochroneFitterKW, setup_kw=None, **kw):
     """The toy family of ``test_isochrone`` (singles) fitted with ``cls``; the family is written once
     per ``tmp_path``."""
     ages = (6.3, 6.4, 6.5, 6.6, 6.7, 6.8)
@@ -72,7 +72,7 @@ def _toy(tmp_path, data, cls=IsochroneFitterKW, **kw):
     )
     args.update(kw)
     f = cls(tmp_path, **args)
-    f.setup(data, prob_threshold=0.0)
+    f.setup(data, prob_threshold=0.0, **(setup_kw or {}))
     return f
 
 
@@ -188,6 +188,92 @@ class TestErrorScale:
         assert draws.min() >= 1.0 and draws.max() <= 6.0 and draws.max() > 5.5 and draws.min() < 1.5
 
 
+class TestWeightsPriorsAndStarts:
+    @requires_bayes
+    def test_weights_enter_the_model_and_the_compiled_function(self, tmp_path):
+        """Oracle: with ``ms_weight = 0.5`` on half the stars, the compiled value and the model's
+        observed log-probability equal ``loglike`` (which applies the weights in NumPy) and differ from
+        the unweighted one. Mutation: dropping ``_star_weights`` from ``build_model`` or from
+        ``_compiled_loglike`` -> red (no other fixture has weights other than 1)."""
+        rng = np.random.default_rng(11)
+        data = _toy_with_errors(120, rng, 2.0)
+        data["pms_sagitta"] = np.where(np.arange(120) % 2 == 0, 0.9, 0.1)
+        f = _toy(tmp_path, data, setup_kw=dict(pms_column="pms_sagitta", ms_weight=0.5))
+        assert np.sum(f._star_weights == 0.5) == 60
+        point = {
+            "met": 0.0152,
+            "loga": 6.52,
+            "dm": 10.05,
+            "Av": 0.62,
+            "sigma_int": 0.02,
+            "k": 2.2,
+            "f_bg": 0.03,
+        }
+        want = f.loglike(**point)
+        unweighted = float(np.sum(f._star_loglike(**point, xp=np)))
+        assert abs(want - unweighted) > 1.0
+        got = f._compiled_loglike()(np.array(list(point.values())))[0]
+        assert got == pytest.approx(want, rel=1e-12)
+        model = f.build_model()
+        for name, val in point.items():
+            model.set_initval(model[name], val)
+        y_logp = model.compile_logp(vars=[model.observed_RVs[0]], jacobian=False)
+        assert float(y_logp(model.initial_point())) == pytest.approx(want, rel=1e-9)
+
+    @requires_bayes
+    def test_priors_of_the_nuisance_parameters(self, tmp_path):
+        """Oracle: closed-form moments of the declared priors, from 40 000 prior draws: sigma_int
+        HalfNormal(0.05) has median 0.05 * 0.67449 and f_bg Beta(1, 19) has mean 0.05 and median
+        1 - 0.5**(1/19). Mutation: HalfNormal(0.5) or Beta(1, 1) -> red."""
+        import pymc as pm
+
+        f = _toy(tmp_path, _toy_with_errors(60, np.random.default_rng(12), 1.0))
+        model = f.build_model()
+        s = pm.draw(model["sigma_int"], draws=40000, random_seed=2)
+        b = pm.draw(model["f_bg"], draws=40000, random_seed=3)
+        assert np.median(s) == pytest.approx(0.05 * 0.67449, rel=0.03)
+        assert b.mean() == pytest.approx(0.05, rel=0.03)
+        assert np.median(b) == pytest.approx(1 - 0.5 ** (1 / 19), rel=0.04)
+
+    @requires_bayes
+    def test_chain_starts_follow_the_laplace_ridge(self, tmp_path):
+        """Oracle: the Laplace covariance at the returned mode computed here by central differences of
+        the NumPy likelihood (a different path from the compiled gradient the search uses), and the ridge
+        vector ``S[:4, 1] / S[1, 1]`` from it; each start's (met, dm, A_V) is the mode plus
+        ``START_DLOGA * v`` (inside the clip). Mutation: ridge vector replaced by [0, 1, 0, 0] -> red."""
+        data = _toy_with_errors(400, np.random.default_rng(8), 2.5, loga=6.55)
+        f = _toy(tmp_path, data, dm_mu=10.0, dm_sigma=0.1, dm_range=(9.6, 10.4))
+        st = f.find_start(4, np.random.default_rng(0))
+        names = ("met", "loga", "dm", "Av", "sigma_int", "k", "f_bg")
+        x = np.array([st["mode"][n] for n in names])
+
+        def post(y):
+            return f.loglike(*y[:5], f_bg=y[6], k=y[5]) - 0.5 * ((y[2] - f.dm_mu) / f.dm_sigma) ** 2
+
+        h = np.array([2e-5, 1e-3, 1e-3, 1e-3, 1e-3, 1e-2, 1e-3])
+        H = np.empty((7, 7))
+        for i in range(7):
+            for j in range(7):
+                ei, ej = np.eye(7)[i] * h[i], np.eye(7)[j] * h[j]
+                H[i, j] = (
+                    post(x + ei + ej) - post(x + ei - ej) - post(x - ei + ej) + post(x - ei - ej)
+                ) / (4 * h[i] * h[j])
+        S = np.linalg.inv(-H)
+        v = S[:4, 1] / S[1, 1]
+        np.testing.assert_allclose(
+            np.asarray(st["ridge_vector"])[[0, 1, 2]], v[[0, 1, 2]], rtol=0.15, atol=0.02
+        )
+        assert np.sign(st["ridge_vector"][3]) == np.sign(
+            v[3]
+        )  # A_V is weakly determined: sign only
+        assert abs(v[2]) > 0.3  # a ridge that is not the loga axis itself
+        for d, s in zip((-0.17, -0.06, 0.06, 0.17), st["chain_starts"], strict=True):
+            for i, n in ((2, "dm"),):
+                lo_, hi_ = {0: f._met_bounds(), 2: f.dm_range, 3: f.Av_range}[i]
+                want = np.clip(x[i] + d * v[i], lo_ + 1e-3 * (hi_ - lo_), hi_ - 1e-3 * (hi_ - lo_))
+                assert s[n] == pytest.approx(want, rel=0.2, abs=2e-3 * (hi_ - lo_)), (d, n)
+
+
 class TestToyRecovery:
     @requires_bayes
     def test_find_start_is_a_stationary_point_of_the_log_posterior(self, tmp_path):
@@ -210,9 +296,10 @@ class TestToyRecovery:
         lo = np.array([0.01, *f.loga_range[:1], *f.dm_range[:1], *f.Av_range[:1], 1e-4, 1.0, 1e-4])
         hi = np.array([0.02, *f.loga_range[1:], *f.dm_range[1:], *f.Av_range[1:], 2.0, 6.0, 0.5])
         base = objective(x)
+        # the toy has sigma_int = 0 and no field: those two sit on their lower bounds by construction;
+        # nothing else may be excused from the check
+        assert set(st["at_bound"]) <= {"sigma_int", "f_bg"}, st["at_bound"]
         for i, n in enumerate(names):
-            if n in st["at_bound"]:
-                continue
             for sign in (-1.0, 1.0):
                 y = x.copy()
                 y[i] = np.clip(y[i] + sign * 1e-3 * (hi[i] - lo[i]), lo[i], hi[i])
@@ -270,6 +357,17 @@ class TestPosteriorCmd:
             num = out[2.0][axis] - out[1.0][axis]
             den = out[3.0][axis] - out[1.0][axis]
             np.testing.assert_allclose(num / den, (e[2.0] - e[1.0]) / (e[3.0] - e[1.0]), rtol=1e-9)
+        # absolute amplitude: Go_3 - Go_1 = z (e_3 - e_1) with z ~ N(0, 1), so its sd is e_3 - e_1
+        big = {
+            k: f._draw_stars(
+                0.0152, 6.5, 10.0, 0.6, 0.02, 3000, np.random.default_rng(5), error_scale=k
+            )
+            for k in (1.0, 3.0)
+        }
+        for axis in (0, 1):
+            assert np.std(big[3.0][axis] - big[1.0][axis]) == pytest.approx(
+                e[3.0] - e[1.0], rel=0.05
+            )
 
     @requires_bayes
     def test_posterior_cmd_uses_each_draws_k(self, tmp_path):
@@ -396,7 +494,7 @@ class TestFrozenResearchOracle:
         port is the same algorithm). Mode to 1e-3 in every parameter, log posterior to 1e-3.
         ~10 min on a loaded machine."""
         st = real.find_start(4, np.random.default_rng(0))
-        names = ("met", "loga", "dm", "Av", "sigma_int", "k", "f_bg")
+        names = (real._met_name, "loga", "dm", "Av", "sigma_int", "k", "f_bg")
         got = np.array([st["mode"][n] for n in names])
         np.testing.assert_allclose(got, _X_REAL, atol=1e-3)
         assert st["logpost"] == pytest.approx(_LOGPOST_REAL, abs=1e-3)
@@ -410,7 +508,7 @@ class TestFrozenResearchOracle:
         reproduces the failure: a test that the mode search is what was measured, not a better one.
         A search that "fixed" this would change the measured procedure silently."""
         st = a0.find_start(4, np.random.default_rng(0))
-        names = ("met", "loga", "dm", "Av", "sigma_int", "k", "f_bg")
+        names = (a0._met_name, "loga", "dm", "Av", "sigma_int", "k", "f_bg")
         got = np.array([st["mode"][n] for n in names])
         np.testing.assert_allclose(got, _X_A0_MODE, atol=2e-3)
         assert st["logpost"] == pytest.approx(_LOGPOST_A0_MODE, abs=2e-3)

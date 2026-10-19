@@ -34,9 +34,9 @@ ridge. **A mode search is not a proof that the mode is unique** — see below.
 
 | claim | where measured | status here |
 |---|---|---|
-| log L at the K x W mode and at an injected truth | research `aniso.WidthFitter`, own segment density, field term and `k` | **re-checked** to 1e-8 on two data sets (`tests/test_isochrone_kw.py`, MIST files needed) |
+| log L at the K x W mode and at an injected truth | research `aniso.WidthFitter`, own segment density, field term and `k` | **re-checked** to 1e-8 on two data sets (`tests/test_isochrone_kw.py`). **Needs the local MIST v1.2 files: skipped in CI**, so this evidence exists on the author's machine only. The segment density and `F(theta)` are inherited from the parent in both implementations, so they are not checked independently |
 | mode search finds the same mode, and the same failure on replicate A_0 | `aniso.search8` | **re-checked** (`slow`) |
-| NGC 6383: log t = 5.965 (68 %: 5.933-6.000; 90 %: 5.913-6.025), 0.92 (+0.08/-0.07) Myr | NUTS 4 x 2000, R-hat <= 1.003, ESS >= 1920, 0 divergences | **re-run with the package's `fit`** (`slow`, tolerance = Monte Carlo error of the difference) |
+| NGC 6383: log t = 5.965 (68 %: 5.933-6.000; 90 %: 5.913-6.025), 0.92 (+0.08/-0.07) Myr | NUTS 4 x 2000, R-hat <= 1.003, ESS >= 1920, 0 divergences | **re-run with the package's `fit`** (`slow`, tolerance = Monte Carlo error of the difference). The sampler is not the research one: research used numpyro NUTS in chunks, `target_accept` 0.9, jittered starts; `fit` uses PyMC NUTS with a seeded diagonal mass matrix and `target_accept` 0.8 by default. This test is the only bridge between them |
 | cell A coverage of log t: 6/8 at 68 %, 7/8 at 90 % (6 of 8 fits converged) | 8 NUTS fits, research code | **not re-run** (8 fits = hours). It carries because the likelihood is the same function. "No gross under-coverage detected at R = 8", never "calibrated": the rule passes with probability 0.58 even at true coverage 0.50 / 0.75 |
 | [Fe/H], A_V and k under-cover in cell A (1/8, 4/8, 3/8 at 68 %) | same | the [Fe/H] of the fit (-0.456) is **not citable** |
 | cell C (log t 6.43, [Fe/H] +0.15): NUTS does **not** converge (0/8, R-hat 1.76-2.76) | same | a fit in that regime is not reported without passing the gate |
@@ -61,7 +61,7 @@ smoothing), so its coverage cannot see an error in that treatment. `kw_c3.py` (b
 isochrone read at fixed mass, continuous q. Measured with 4 paired replicates of 8 x 201 stars
 (mode of the likelihood, not NUTS): the mode sits 0.010 dex younger than the truth for singles and
 0.014 dex younger for binaries; the **binary-attributable difference is -0.004 dex, 90 % interval
-[-0.015, +0.007]**, which excludes the old +0.013 to +0.024. **One regime** (log t about 5.97, G 14-19),
+[-0.015, +0.007]**: the upper end of that interval is +0.007. The old +0.013 to +0.024 was measured on another model and is not tested here. **One regime** (log t about 5.97, G 14-19),
 the model's own Offner fraction, four pairs: "no systematic detected at <= 0.015 dex", not "no
 systematic". The fraction itself being wrong was not measured.
 
