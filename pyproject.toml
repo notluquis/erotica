@@ -42,6 +42,15 @@ dependencies = [
   "dill>=0.3.8",
   "adjusttext>=1.4",
   "gaiadr3-zeropoint>=0.1.0",
+  # The NUTS engine is nutpie, compiled with the JAX backend, and PyMC's own NUTS is never the
+  # default (hub finding agent-findings/nuts-performance-2026-10-19.md), so the engine and what it
+  # needs are core. pymc[nutpie]: pymc 6.3.1 is the release whose extra pins nutpie<1,>=0.16.10 and
+  # whose auto-selection checks that floor; nutpie 0.16.11 is current (2026-06-30). jax >=0.10: the
+  # line measured (jax/jaxlib 0.10.2); nutpie's JAX backend needs it. pytensor >=3.2.4: the
+  # CauchyRV floor explained in [bayes].
+  "pymc[nutpie]>=6.3.1",
+  "pytensor>=3.2.4",
+  "jax>=0.10",
 ]
 
 [project.optional-dependencies]
