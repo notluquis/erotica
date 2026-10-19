@@ -1,6 +1,25 @@
 r"""The K x W isochrone model: :class:`IsochroneFitter` with an error-scale parameter, fitted in a
 magnitude window.
 
+
+**Scope: read this before quoting a number from this class.**
+
+* This is a model of the **pre-main-sequence in a window, G 14-19**, with the catalogue errors **scaled
+  by a free factor k**. It is **not the age of the cluster**. The log t it returns is the age at which
+  the stars *in that window* are best described by this model.
+* **Why a window.** One isochrone does not describe the main sequence and the pre-main-sequence of
+  NGC 6383 at once (the MS vs PMS tension: a single-age fit of the whole CMD is falsified, and K x F, the
+  scaled-error model on all stars, fails the predictive check). The window is what removes the tension;
+  it does not resolve it.
+* **The log t is conditional on the model and on the prior on dm.** The likelihood alone has a second
+  hump at log t ~ 6.45, which is the bound dm >= 9.50 of the prior range; the cluster parallax excludes
+  that distance (hub finding D15). Over log t 5.80-6.56 the likelihood alone is flat to within -2.7,
+  so the prior on dm is what fixes the age. A wrong centre of that prior is not in the interval.
+* **k absorbs the model mismatch.** Whether it is an error underestimate or a spread that scales with the
+  error is not identified, and a k > 1 is what makes the check pass; it is not a measurement of the errors.
+* **The coverage was calibrated on simulations of the same model**, with n = 8 replicates per cell. It is
+  "no gross under-coverage detected", not "calibrated", and it says nothing about a different truth.
+
 What changes with respect to :class:`~erotica.analysis.IsochroneFitter` (everything else, the
 EEP-interpolated isochrones, the Chabrier IMF, the Offner/Duchene-Kraus binaries, the extinction law,
 the field component and the conditional likelihood of the window, is inherited unchanged):
@@ -62,6 +81,11 @@ _NUISANCE_BOUNDS = {"sigma_int": (1e-4, 2.0), "k": (1.0, 6.0), "f_bg": (1e-4, 0.
 class IsochroneFitterKW(IsochroneFitter):
     r"""Isochrone fitting with a free scale :math:`k` of the catalogue errors (see the module
     docstring).
+
+    **A model of the PMS in the window G 14-19 with errors scaled by k; not the age of the cluster.**
+    Its log t is conditional on the model and on the prior on dm; ``k`` absorbs the mismatch; coverage
+    was calibrated on simulations of the same model with n = 8. The MS vs PMS tension is the reason for
+    the window. See the module docstring, "Scope".
 
     Workflow, as :class:`IsochroneFitter` with the window::
 

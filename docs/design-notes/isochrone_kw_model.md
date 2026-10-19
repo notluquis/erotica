@@ -5,6 +5,24 @@ window, ported from the research code on branch `isochrone-model-fix`. Numbers a
 findings `isochrone-model-fix.md` and `isochrone-intervals-nuts.md` §2; where a number is a sentence
 of those findings and not something this repository re-computes, it says so._
 
+## Scope — read this first
+
+**`IsochroneFitterKW` is a model of the pre-main-sequence in a window (G 14-19) with the catalogue errors
+scaled by a free factor `k`. It is not the age of the cluster.**
+
+- **Why a window: the MS vs PMS tension.** One isochrone does not describe the main sequence and the
+  pre-main-sequence of NGC 6383 together; a single-age fit of the whole CMD is falsified
+  (`isochrone-ms-vs-pms.md`), and the scaled-error model on all stars fails the predictive check. The window
+  removes the tension from the fit; it does not explain it.
+- **The log t is conditional on the model and on the prior on dm.** The likelihood alone has a second hump at
+  log t ~ 6.45, which is the bound dm >= 9.50 of the prior range and which the cluster parallax excludes
+  (hub finding D15). Over log t 5.80-6.56 the likelihood alone is flat within -2.7: the prior on dm fixes the
+  age, and an error in its centre is not in the interval.
+- **`k` absorbs the mismatch.** A `k` > 1 is what makes the predictive check pass. It is not a measurement of
+  the catalogue's errors.
+- **The coverage was calibrated on simulations of the same model, with n = 8** replicates per cell: "no gross
+  under-coverage detected", not "calibrated", and silent about a truth that is not this model.
+
 ## What it is
 
 `IsochroneFitter` with two changes, everything else inherited (EEP-interpolated MIST isochrones,
