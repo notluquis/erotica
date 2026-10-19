@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   off. `PyMCTarget` / `search_pymc` adapt any continuous `pm.Model` (density in the unconstrained `z`,
   `jacobian=` declared). Hub `methodology.md` §A.1.8; thresholds are uncalibrated first guesses, see
   hub finding `multimodality-automatic-check-2026-10-14.md` §3.8.
+  `mode_search(dup_tol=0.05)` joins optima of a mode with no Laplace covariance (at a bound) when their
+  heights agree to 0.05 and no dip lies between them; without it one flat-topped mode was listed up to
+  four times (post hoc, hub finding §3.9).
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
   start-up trials, i.e. after ten real HDBSCAN fits.
