@@ -134,3 +134,23 @@ def test_like_vs_post_sees_a_prior_that_picks_the_mode(gap, decides):
     rl, rp = mode_search(loglike, st, bounds=box), mode_search(logpost, st, bounds=box)
     text, ok = like_vs_post(rl, rp, logpost)
     assert ok is not decides and (("PRIOR DECIDES" in text) is decides)
+
+
+def test_at_bound_tolerance_is_relative_to_the_bound_range():
+    # Hub finding §3.5: a likelihood mode 2e-4 (of the range) inside a bound was not flagged because the
+    # tolerance was 1e-6 x scale and scale was a prior sd << range.  Here the peak is 2e-4 x range from
+    # the upper bound and the density is broad, so the optimiser stops at the interior peak.
+    lo, hi = 0.0, 1.2
+    peak = hi - 2e-4 * (hi - lo)
+
+    def lp(x):
+        return float(-0.5 * np.sum(((x - np.r_[peak, 0.6]) / np.r_[0.3, 0.3]) ** 2))
+
+    starts = np.random.default_rng(0).uniform(lo, hi, (6, 2))
+    kw = dict(bounds=(np.zeros(2), np.full(2, hi)), scale=np.full(2, 0.026), ridge_fracs=())
+    res = mode_search(lp, starts, **kw)
+    assert abs(res["modes"][0]["x"][0] - peak) < 1e-3
+    assert res["modes"][0]["at_bound"] == [0] and np.isnan(res["modes"][0]["dlog_mass"])
+    # control: a peak well inside the box is not at a bound and keeps its Laplace mass
+    res2 = mode_search(lambda x: lp(x + (0.3 - 0.0)), starts, **kw)
+    assert res2["modes"][0]["at_bound"] == []

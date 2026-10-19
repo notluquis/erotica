@@ -108,6 +108,7 @@ def mode_search(
     embed_periods=None,
     draws_to_x=None,
     per_chain=5,
+    bound_tol=1e-3,
 ):
     """Multi-start optimisation + ridge starts + mode clustering + Laplace per mode.
 
@@ -137,6 +138,11 @@ def mode_search(
     per_chain : int
         How many draws per chain are polished (hub finding R69-05: one last draw misses a chain that
         spent most of its run in another mode).
+    bound_tol : float
+        A mode within ``bound_tol`` x (upper - lower) of a bound of that coordinate counts as AT BOUND
+        (no Laplace mass, ranked by height). Relative to the bound range, not to ``scale``: the
+        NGC 6383 likelihood mode at dm = 9.500196 sat 2e-4 from the bound 9.5 and the old
+        ``1e-6 * scale`` tolerance (scale = the prior sd, 0.026) did not flag it (hub finding §3.5).
     pmap : callable(list of x0) -> list of (x, logp, nfev), optional
         Runs the local optimisations elsewhere (a process pool); serial ``L-BFGS-B`` otherwise.
     embed, embed_periods, draws_to_x : optional
@@ -205,7 +211,9 @@ def mode_search(
                     lap_cache[key] = _laplace(lp_count, x, scale, bounds, gr_count)
                 cov, logdet, ok = lap_cache[key]
                 at = [] if bounds is None else [
-                    i for i in range(d) if min(x[i] - bounds[0][i], bounds[1][i] - x[i]) < 1e-6 * scale[i]]
+                    i for i in range(d)
+                    if min(x[i] - bounds[0][i], bounds[1][i] - x[i])
+                    < max(1e-6 * scale[i], bound_tol * (bounds[1][i] - bounds[0][i]))]
                 if at:  # R69-07: a Gaussian cut by a bound has no full Laplace mass; rank it by height
                     cov, logdet, ok = cov, np.nan, False
                 prec_y, logdet_y = (np.linalg.inv(cov), logdet) if ok else (None, np.nan)
