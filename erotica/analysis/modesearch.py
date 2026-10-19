@@ -39,6 +39,11 @@ from scipy.optimize import minimize
 UNVISITED_DLOGMASS = -5.0
 MASS_RATIO_TOL = 10.0
 MIN_FRACTION = 0.01
+# Post hoc (hub finding §3.9, after C_0): two optima of a mode WITHOUT a Laplace covariance (at a bound or a
+# non-definite Hessian) are one mode when their heights differ by <= DUP_TOL log-units AND the log density
+# along the segment between them never dips more than DUP_TOL below the lower of the two. L-BFGS-B stops
+# anywhere on a flat top; without a covariance the Mahalanobis test cannot join those stops. Uncalibrated.
+DUP_TOL = 0.05
 
 
 def _wrap(d, periods):
@@ -83,6 +88,12 @@ def _laplace(logp, x, scale, bounds, grad=None):
     return cov, (float(logdet) if ok else np.nan), ok
 
 
+def _connected(f, xa, xb, floor, tol, periods, ts=(0.25, 0.5, 0.75)):
+    """True if ``f`` along the segment xa -> xb (periodic axes wrapped) stays above ``floor - tol``."""
+    dx = _wrap((xb - xa)[None], periods)[0]
+    return all(np.isfinite(val := f(xa + t * dx)) and val >= floor - tol for t in ts)
+
+
 def _optimise(neglogp, x0, grad, bounds, maxiter):
     jac = (lambda y: -grad(y)) if grad is not None else None
     b = None if bounds is None else list(zip(*bounds, strict=True))
@@ -109,6 +120,7 @@ def mode_search(
     draws_to_x=None,
     per_chain=5,
     bound_tol=1e-3,
+    dup_tol=DUP_TOL,
 ):
     """Multi-start optimisation + ridge starts + mode clustering + Laplace per mode.
 
@@ -201,6 +213,8 @@ def mode_search(
                     dist = np.max(np.abs(dy) / (np.abs(m["y"]) + 1e-3)) / 1e-3
                 else:
                     dist = np.max(np.abs(_wrap((x - m["x"])[None], periods)[0] / scale)) / 1e-3
+                if dist >= same_mode and dup_tol is not None and m["prec_y"] is None and abs(v - m["logp"]) <= dup_tol:
+                    dist = 0.0 if _connected(lp_count, m["x"], x, min(v, m["logp"]), dup_tol, periods) else dist
                 if dist < same_mode:
                     m["n_starts"] += 1
                     m["sources"].add(src)

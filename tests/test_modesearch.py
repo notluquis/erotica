@@ -154,3 +154,27 @@ def test_at_bound_tolerance_is_relative_to_the_bound_range():
     # control: a peak well inside the box is not at a bound and keeps its Laplace mass
     res2 = mode_search(lambda x: lp(x + (0.3 - 0.0)), starts, **kw)
     assert res2["modes"][0]["at_bound"] == []
+
+
+def _flat_top(barrier):
+    """Log density flat in x1 (singular Hessian: no Laplace mass); with ``barrier`` a dip separates two flat tops."""
+
+    def lp(x):
+        dip = -barrier if 0.4 < x[1] < 0.6 else 0.0
+        return float(-0.5 * ((x[0] - 1) / 0.1) ** 2 + dip)
+
+    return lp
+
+
+def _flat_run(barrier):
+    starts = np.array([[0.9, 0.1], [1.1, 0.9], [1.0, 0.12]])
+    return mode_search(_flat_top(barrier), starts, bounds=(np.zeros(2), np.full(2, 2.0)), ridge_fracs=())
+
+
+def test_two_stops_on_one_flat_top_are_one_mode():
+    # post hoc (hub finding §3.9, C_0 listed the same AT BOUND mode up to 4 times): same height, no dip between
+    assert len(_flat_run(0.0)["modes"]) == 1
+
+
+def test_two_flat_tops_with_a_barrier_stay_two_modes():
+    assert len(_flat_run(5.0)["modes"]) == 2
