@@ -61,8 +61,15 @@ def _toy(tmp_path, data, cls=IsochroneFitterKW, **kw):
     ages = (6.3, 6.4, 6.5, 6.6, 6.7, 6.8)
     if not any(tmp_path.glob("toy_*.iso.cmd")):
         _write_toy_family(tmp_path, (0.010, 0.015, 0.020), ages)
-    args = dict(loga_range=(6.3, 6.8), Av_range=(0.2, 1.0), dm_mu=10.0, dm_sigma=0.3,
-                dm_range=(9.6, 10.4), alpha=0.0, beta=0.0)
+    args = dict(
+        loga_range=(6.3, 6.8),
+        Av_range=(0.2, 1.0),
+        dm_mu=10.0,
+        dm_sigma=0.3,
+        dm_range=(9.6, 10.4),
+        alpha=0.0,
+        beta=0.0,
+    )
     args.update(kw)
     f = cls(tmp_path, **args)
     f.setup(data, prob_threshold=0.0)
@@ -147,8 +154,10 @@ class TestErrorScale:
             xp_, xm_ = x.copy(), x.copy()
             xp_[i] += h
             xm_[i] -= h
-            fd = (f.loglike(**dict(zip(names, xp_, strict=True)))
-                  - f.loglike(**dict(zip(names, xm_, strict=True)))) / (2 * h)
+            fd = (
+                f.loglike(**dict(zip(names, xp_, strict=True)))
+                - f.loglike(**dict(zip(names, xm_, strict=True)))
+            ) / (2 * h)
             assert g[i] == pytest.approx(fd, rel=2e-4, abs=2e-3), names[i]
 
     @requires_bayes
@@ -162,8 +171,15 @@ class TestErrorScale:
         data = _toy_with_errors(100, np.random.default_rng(5), 2.0)
         f = _kw_toy(tmp_path, data)
         model = f.build_model()
-        point = {"met": 0.0152, "loga": 6.52, "dm": 10.05, "Av": 0.62, "sigma_int": 0.02,
-                 "k": 2.2, "f_bg": 0.03}
+        point = {
+            "met": 0.0152,
+            "loga": 6.52,
+            "dm": 10.05,
+            "Av": 0.62,
+            "sigma_int": 0.02,
+            "k": 2.2,
+            "f_bg": 0.03,
+        }
         for name, val in point.items():
             model.set_initval(model[name], val)
         y_logp = model.compile_logp(vars=[model.observed_RVs[0]], jacobian=False)
@@ -206,9 +222,11 @@ class TestToyRecovery:
         )
 
     @requires_bayes
-    def test_find_start_recovers_the_error_scale_and_the_chain_starts_lie_along_the_ridge(self, tmp_path):
+    def test_find_start_recovers_the_error_scale_and_the_chain_starts_lie_along_the_ridge(
+        self, tmp_path
+    ):
         """Oracle: the toy was drawn with noise = 2.5 x its reported errors and ``sigma_int`` = 0. The
-        mode's ``k`` is within 0.5 of 2.5. The four chain starts sit at ``START_DLOGA`` from the mode
+        mode's ``k`` is within 0.5 of 2.5. The four chain starts sit at the measured offsets (-0.17, -0.06, +0.06, +0.17; written out here, not read from the class)
         in log t (the clip is far away), in the order given; and every start has all seven names.
         Mutation: ``START_DLOGA`` sign flipped -> red."""
         rng = np.random.default_rng(8)
@@ -218,8 +236,11 @@ class TestToyRecovery:
         assert abs(st["mode"]["k"] - 2.5) < 0.5, st["mode"]
         assert st["mode"]["sigma_int"] < 0.03
         lo, hi = f.loga_range
-        want = np.clip(st["mode"]["loga"] + np.array(f.START_DLOGA), lo + 1e-3 * (hi - lo),
-                       hi - 1e-3 * (hi - lo))
+        want = np.clip(
+            st["mode"]["loga"] + np.array([-0.17, -0.06, 0.06, 0.17]),
+            lo + 1e-3 * (hi - lo),
+            hi - 1e-3 * (hi - lo),
+        )
         np.testing.assert_allclose([s["loga"] for s in st["chain_starts"]], want, atol=1e-9)
         for s in st["chain_starts"]:
             assert set(s) == {"met", "loga", "dm", "Av", "sigma_int", "k", "f_bg"}
@@ -241,7 +262,9 @@ class TestPosteriorCmd:
         s2 = f.SIGMA_FLOOR**2 + 0.02**2
         out = {}
         for k in (1.0, 2.0, 3.0):
-            out[k] = f._draw_stars(0.0152, 6.5, 10.0, 0.6, 0.02, 60, np.random.default_rng(3), error_scale=k)
+            out[k] = f._draw_stars(
+                0.0152, 6.5, 10.0, 0.6, 0.02, 60, np.random.default_rng(3), error_scale=k
+            )
         e = {k: np.sqrt((k * c) ** 2 + s2) for k in out}
         for axis in (0, 1):
             num = out[2.0][axis] - out[1.0][axis]
@@ -256,11 +279,22 @@ class TestPosteriorCmd:
 
         data = _toy_with_errors(80, np.random.default_rng(10), 1.0)
         f = _kw_toy(tmp_path, data)
-        post = {n: np.array([[v]]) for n, v in (("met", 0.0152), ("loga", 6.5), ("dm", 10.0),
-                                                ("Av", 0.6), ("sigma_int", 0.02), ("k", 2.7))}
+        post = {
+            n: np.array([[v]])
+            for n, v in (
+                ("met", 0.0152),
+                ("loga", 6.5),
+                ("dm", 10.0),
+                ("Av", 0.6),
+                ("sigma_int", 0.02),
+                ("k", 2.7),
+            )
+        }
         idata = az.from_dict({"posterior": post})
         _, _, cmds = f.posterior_cmd(idata, num_samples=1, rng=np.random.default_rng(4))
-        ref = f._draw_stars(0.0152, 6.5, 10.0, 0.6, 0.02, f._N_obs, np.random.default_rng(4), error_scale=2.7)
+        ref = f._draw_stars(
+            0.0152, 6.5, 10.0, 0.6, 0.02, f._N_obs, np.random.default_rng(4), error_scale=2.7
+        )
         np.testing.assert_array_equal(cmds[0][0], ref[0])
         np.testing.assert_array_equal(cmds[0][1], ref[1])
         wrong = f._draw_stars(0.0152, 6.5, 10.0, 0.6, 0.02, f._N_obs, np.random.default_rng(4))
@@ -272,16 +306,37 @@ class TestPosteriorCmd:
 # ---------------------------------------------------------------------------------------------
 
 #: ``tools/validation/isochrone_modelfix/fits/K_W.json`` (aniso.search8, NGC 6383, 201 stars in G 14-19)
-_X_REAL = [-0.45178684650223266, 5.971281287453579, 10.22220877343697, 0.4657360240327589,
-           0.09433738800570059, 2.4456073299081154, 0.0668623597974588]
+_X_REAL = [
+    -0.45178684650223266,
+    5.971281287453579,
+    10.22220877343697,
+    0.4657360240327589,
+    0.09433738800570059,
+    2.4456073299081154,
+    0.0668623597974588,
+]
 _LOGL_REAL = -278.58511134967847
 _LOGPOST_REAL = -278.5855743966267
 #: kw_runs/A_0/prep.json (cell A, replicate 0): log L at the injected truth and at the control's mode
-_X_A0_TRUTH = [-0.30525315859357866, 5.965749069117828, 10.174690870818564, 0.4657360240327589,
-               0.09433738800570059, 2.4456073299081154, 0.0668623597974588]
+_X_A0_TRUTH = [
+    -0.30525315859357866,
+    5.965749069117828,
+    10.174690870818564,
+    0.4657360240327589,
+    0.09433738800570059,
+    2.4456073299081154,
+    0.0668623597974588,
+]
 _LOGL_A0_TRUTH = -279.4775311978356
-_X_A0_MODE = [-0.05849639208773076, 6.191052927418514, 10.20200339089059, 0.4752942315693778,
-              0.08959059535478102, 1.8579410095182398, 0.06742836343771298]
+_X_A0_MODE = [
+    -0.05849639208773076,
+    6.191052927418514,
+    10.20200339089059,
+    0.4752942315693778,
+    0.08959059535478102,
+    1.8579410095182398,
+    0.06742836343771298,
+]
 _LOGL_A0_MODE = -287.5913348243316
 _LOGPOST_A0_MODE = -287.9174129264717
 
@@ -299,7 +354,9 @@ def _kw_fitter(table_path):
     from astropy.table import Table
 
     f = IsochroneFitterKW(
-        grid=_mist_grid(), magnitude="Gaia_G_EDR3", color=("Gaia_BP_EDR3", "Gaia_RP_EDR3"),
+        grid=_mist_grid(),
+        magnitude="Gaia_G_EDR3",
+        color=("Gaia_BP_EDR3", "Gaia_RP_EDR3"),
         **PRIORS_NGC6383,
     )
     f.setup(QTable(Table.read(table_path)), prob_threshold=0.0, mag_window=(14.0, 19.0))
@@ -379,8 +436,15 @@ class TestAgainstTheNutsRun:
         import arviz as az
 
         f = _kw_fitter(HERE / "data" / "ngc6383_members254.ecsv")
-        idata = f.fit(draws=1000, tune=1000, chains=4, cores=4, target_accept=0.9, random_seed=7,
-                      progressbar=False)
+        idata = f.fit(
+            draws=1000,
+            tune=1000,
+            chains=4,
+            cores=4,
+            target_accept=0.9,
+            random_seed=7,
+            progressbar=False,
+        )
         loga = idata.posterior["loga"].values
         assert float(az.rhat(loga)) <= 1.01
         assert float(az.ess(loga)) > 400

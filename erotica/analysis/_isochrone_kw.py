@@ -235,10 +235,24 @@ class IsochroneFitterKW(IsochroneFitter):
         zlo, zhi = self._met_bounds()
         names = (self._met_name, "loga", "dm", "Av", "sigma_int", "k", "f_bg")
         eps = 1e-9 if self._met_kind == "feh" else 0.0
-        lo = np.array([zlo + eps, self.loga_range[0], self.dm_range[0], self.Av_range[0],
-                       *[_NUISANCE_BOUNDS[n][0] for n in names[4:]]])
-        hi = np.array([zhi - eps, self.loga_range[1], self.dm_range[1], self.Av_range[1],
-                       *[_NUISANCE_BOUNDS[n][1] for n in names[4:]]])
+        lo = np.array(
+            [
+                zlo + eps,
+                self.loga_range[0],
+                self.dm_range[0],
+                self.Av_range[0],
+                *[_NUISANCE_BOUNDS[n][0] for n in names[4:]],
+            ]
+        )
+        hi = np.array(
+            [
+                zhi - eps,
+                self.loga_range[1],
+                self.dm_range[1],
+                self.Av_range[1],
+                *[_NUISANCE_BOUNDS[n][1] for n in names[4:]],
+            ]
+        )
         lo[5], hi[5] = self.K_RANGE
         fl = self._compiled_loglike(mode)
 
@@ -264,8 +278,13 @@ class IsochroneFitterKW(IsochroneFitter):
                     v, g = objective(np.array([z, a, y[0], y[1], *wide]))
                     return -v, -g[2:4]
 
-                r = minimize(nll2, [self.dm_mu, self.SEARCH_START_AV], jac=True, method="L-BFGS-B",
-                             bounds=list(zip(lo[2:4], hi[2:4], strict=True)))
+                r = minimize(
+                    nll2,
+                    [self.dm_mu, self.SEARCH_START_AV],
+                    jac=True,
+                    method="L-BFGS-B",
+                    bounds=list(zip(lo[2:4], hi[2:4], strict=True)),
+                )
                 cands.append((float(r.fun), float(z), float(a), *map(float, r.x)))
         cands.sort(key=lambda c: c[0])
 
@@ -277,12 +296,17 @@ class IsochroneFitterKW(IsochroneFitter):
         start_tail = [0.03, 1.5, 0.02]
         for c in cands[: self.SEARCH_POLISH]:
             y0 = np.clip(np.array([*c[1:], *start_tail]), lo, hi)
-            r = minimize(nll, y0, jac=True, method="L-BFGS-B", bounds=list(zip(lo, hi, strict=True)))
+            r = minimize(
+                nll, y0, jac=True, method="L-BFGS-B", bounds=list(zip(lo, hi, strict=True))
+            )
             polished.append((-float(r.fun), np.asarray(r.x, float)))
         polished.sort(key=lambda p: -p[0])
         best_lp, x = polished[0]
-        at_bound = [n for n, v, a, b in zip(names, x, lo, hi, strict=True)
-                    if min(v - a, b - v) < 1e-3 * (b - a)]
+        at_bound = [
+            n
+            for n, v, a, b in zip(names, x, lo, hi, strict=True)
+            if min(v - a, b - v) < 1e-3 * (b - a)
+        ]
 
         n = len(x)
         h = np.array([1e-3] * 4 + [1e-4] * (n - 4))
@@ -313,8 +337,9 @@ class IsochroneFitterKW(IsochroneFitter):
             "logpost": float(best_lp),
             "runner_up": [(float(lp), xx.tolist()) for lp, xx in polished[1:]],
             "at_bound": at_bound,
-            "local_sd": {nm: float(s_) for nm, s_ in zip(names[:4], sd[:4], strict=True)
-                         if np.isfinite(s_)},
+            "local_sd": {
+                nm: float(s_) for nm, s_ in zip(names[:4], sd[:4], strict=True) if np.isfinite(s_)
+            },
             "laplace_sd": dict(zip(names, sd.tolist(), strict=True)),
             "laplace_cov": S.tolist(),
             "ridge_vector": v.tolist(),
@@ -344,7 +369,13 @@ class IsochroneFitterKW(IsochroneFitter):
         for met_v, loga_v, dm_v, Av_v, s_v, k_v in zip(*cols, strict=True):
             cmds.append(
                 self._draw_stars(
-                    float(met_v), float(loga_v), float(dm_v), float(Av_v), float(s_v), N_out, rng,
+                    float(met_v),
+                    float(loga_v),
+                    float(dm_v),
+                    float(Av_v),
+                    float(s_v),
+                    N_out,
+                    rng,
                     error_scale=float(k_v),
                 )
             )
