@@ -51,6 +51,15 @@ dependencies = [
   "pymc[nutpie]>=6.3.1",
   "pytensor>=3.2.4",
   "jax>=0.10",
+  # With pymc core, what it needs to store a trace is core too. ArviZ 1.x ships no netCDF engine,
+  # and provenance.py writes every trace with `to_netcdf`; with h5netcdf only in [bayes] the
+  # `.[dev]` CI job (test 3.13/3.14) failed 10 tests on 2026-10-19 with "cannot write NetCDF
+  # files ... none of the suitable backend libraries (netCDF4, h5netcdf) are installed" (run
+  # 39315190810). The floors and their measured reasons are the ones documented in [bayes] below.
+  "arviz>=1.2",
+  "xarray>=2025.8",
+  "h5netcdf[h5py]>=1.3",
+  "packaging",
 ]
 
 [project.optional-dependencies]
