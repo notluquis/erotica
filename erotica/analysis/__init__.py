@@ -64,6 +64,7 @@ from .inference import (
     velocity_model,
 )
 from ._isochrone import IsochroneFitter
+from ._isochrone_kw import IsochroneFitterKW
 from .kinematics import pm_amplitude, projected_velocity_values, radial_velocity_values
 from .photometry import (
     PhotometricMassEstimator,
@@ -158,6 +159,7 @@ __all__ = [
     "EFFPriors",
     "FitProperMotion2DGaussian",
     "IsochroneFitter",
+    "IsochroneFitterKW",
     "KingPriors",
     "KingProfileResult",
     "ParallaxFitResult",

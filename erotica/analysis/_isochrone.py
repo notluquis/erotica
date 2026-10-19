@@ -1110,13 +1110,26 @@ class IsochroneFitter:
         )
 
     def _star_loglike(
-        self, met: Any, loga: Any, dm: Any, Av: Any, sigma_int: Any, f_bg: Any, xp: Any = np
+        self,
+        met: Any,
+        loga: Any,
+        dm: Any,
+        Av: Any,
+        sigma_int: Any,
+        f_bg: Any,
+        xp: Any = np,
+        error_scale: Any = 1.0,
     ) -> Any:
-        """Per-star log-likelihood vector ``(N,)`` (weights :math:`\\omega_i` not applied)."""
+        """Per-star log-likelihood vector ``(N,)`` (weights :math:`\\omega_i` not applied).
+
+        ``error_scale`` multiplies each star's catalogue errors before they enter the width
+        (:math:`s^2 = (k e)^2 + \\sigma_{\\rm floor}^2 + \\sigma_{\\rm int}^2`); 1.0, the default, is
+        the likelihood exactly (the product by 1.0 is exact in floating point). It is the hook of
+        :class:`erotica.analysis.IsochroneFitterKW`, which samples it."""
         s2 = self.SIGMA_FLOOR**2 + sigma_int**2
         xg, xc = self._obs_mag, self._obs_col
-        sg = xp.sqrt(self._e_obs_mag**2 + s2)
-        sc = xp.sqrt(self._e_obs_col**2 + s2)
+        sg = xp.sqrt((error_scale * self._e_obs_mag) ** 2 + s2)
+        sc = xp.sqrt((error_scale * self._e_obs_col) ** 2 + s2)
         single, binary = self._segments(met, loga, dm, Av, xp)
         Ag, Ac, Bg, Bc, c0, c1 = single
         J0, J1 = _segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, first_moment=True)
@@ -1777,8 +1790,10 @@ class IsochroneFitter:
         sigma_int: float,
         n: int,
         rng: np.random.Generator,
+        error_scale: float = 1.0,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """``n`` observed stars (after the completeness cut) from the forward model."""
+        """``n`` observed stars (after the completeness cut) from the forward model; the error
+        model of the catalogue is multiplied by ``error_scale`` (1.0 = as fitted)."""
         d = self._deposit(met, loga, dm, Av, np)
         g1 = _dk_gamma(d["m_b"]) + 1.0
         w_single = d["w_single"]
@@ -1804,10 +1819,14 @@ class IsochroneFitter:
             G[~single] = d["Gq"][j, kb] + f * (d["Gq"][j + 1, kb] - d["Gq"][j, kb])
             C[~single] = d["cq"][j, kb] + f * (d["cq"][j + 1, kb] - d["cq"][j, kb])
             eg = np.sqrt(
-                self._e_mag_fn(np.clip(G, self._obs_mag.min(), self._obs_mag.max())) ** 2 + s2
+                (error_scale * self._e_mag_fn(np.clip(G, self._obs_mag.min(), self._obs_mag.max())))
+                ** 2
+                + s2
             )
             ec = np.sqrt(
-                self._e_col_fn(np.clip(G, self._obs_mag.min(), self._obs_mag.max())) ** 2 + s2
+                (error_scale * self._e_col_fn(np.clip(G, self._obs_mag.min(), self._obs_mag.max())))
+                ** 2
+                + s2
             )
             Go = G + rng.normal(size=G.size) * eg
             Co = C + rng.normal(size=G.size) * ec
