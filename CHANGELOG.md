@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Mode search after every PyMC fit (`SamplingConfig.mode_search`, on by default).**
+  `erotica.analysis.modesearch` (multi-start optimisation from the prior, ridge starts, Laplace per
+  mode, which modes the chains visited) now runs behind `inference._sample`, so the eight fitting
+  paths in `inference.py` and `structure.py` report it: `metadata["mode_search"]` /
+  `results["mode_search"]` / `trace.attrs["mode_search"]`. It never blocks: a FAIL warns and stays in
+  the result; a search that itself errors is recorded (`ok=None`, `error`). `mode_search=None` turns it
+  off. `PyMCTarget` / `search_pymc` adapt any continuous `pm.Model` (density in the unconstrained `z`,
+  `jacobian=` declared). Hub `methodology.md` §A.1.8; thresholds are uncalibrated first guesses, see
+  hub finding `multimodality-automatic-check-2026-10-14.md` §3.8.
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
   start-up trials, i.e. after ten real HDBSCAN fits.

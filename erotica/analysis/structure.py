@@ -934,7 +934,7 @@ def king_unbinned(
     The ``R_t`` recovered by any King fit is the cluster's *time-averaged* tidal
     radius, not its perigalactic one (Küpper et al. 2010, MNRAS 407, 2241).
     """
-    from .inference import SamplingConfig, _sample
+    from .inference import SamplingConfig, _sample, mode_search_summary
 
     try:
         import pymc as pm
@@ -969,6 +969,8 @@ def king_unbinned(
         median, std = float(np.nanmedian(arr)), float(np.nanstd(arr))
         results[f"{name}_median"] = median * unit if unit else median
         results[f"{name}_std"] = std * unit if unit else std
+    if (ms := mode_search_summary(trace)) is not None:
+        results["mode_search"] = ms
     if return_trace:
         results["king_trace"] = trace
     return results
@@ -1245,7 +1247,7 @@ def eff_unbinned(
         `field_radius` -- the normalisation integral assumes the sample is
         complete inside that disc, so a star outside it would bias the fit.
     """
-    from .inference import SamplingConfig, _sample
+    from .inference import SamplingConfig, _sample, mode_search_summary
 
     try:
         import pymc as pm
@@ -1281,6 +1283,8 @@ def eff_unbinned(
         median, std = float(np.nanmedian(arr)), float(np.nanstd(arr))
         results[f"{name}_median"] = median * unit if unit else median
         results[f"{name}_std"] = std * unit if unit else std
+    if (ms := mode_search_summary(trace)) is not None:
+        results["mode_search"] = ms
     if return_trace:
         results["eff_trace"] = trace
     return results
@@ -1669,7 +1673,7 @@ def RDP_bayesian(
     ``tools/validation/king_unbinned_delta.py`` for what the change does to the
     published NGC 6383 numbers.
     """
-    from .inference import SamplingConfig, _sample
+    from .inference import SamplingConfig, _sample, mode_search_summary
 
     warnings.warn(
         "RDP_bayesian fits a Normal likelihood to *binned* densities with "
@@ -1724,6 +1728,8 @@ def RDP_bayesian(
         pm.Normal("obs_density", mu=king, sigma=sigma, observed=density_values)
     trace = _sample(pm, model, sampling)
     results = _summarize_king_trace(trace)
+    if (ms := mode_search_summary(trace)) is not None:
+        results["mode_search"] = ms
     if return_trace:
         results["king_trace"] = trace
     if return_priors:
@@ -1765,7 +1771,7 @@ def RDP_bayesian_log_space(
        outer bins, where the density is small and its log is strongly skewed.
        Use :func:`king_unbinned`. Calling this emits a :class:`UserWarning`.
     """
-    from .inference import SamplingConfig, _sample
+    from .inference import SamplingConfig, _sample, mode_search_summary
 
     warnings.warn(
         "RDP_bayesian_log_space has the same defects as RDP_bayesian -- a Gaussian "
@@ -1831,6 +1837,8 @@ def RDP_bayesian_log_space(
         )
     trace = _sample(pm, model, sampling)
     results = _summarize_king_trace(trace)
+    if (ms := mode_search_summary(trace)) is not None:
+        results["mode_search"] = ms
     if return_trace:
         results["king_trace"] = trace
     return results

@@ -321,7 +321,7 @@ def _assign(draws, modes, periods):
     per_chain = np.array([[(lab[:, c] == j).mean() for j in range(len(modes))] for c in range(c_)])
     home = per_chain.argmax(1)
     crossings = int(np.sum(lab[1:] != lab[:-1]))
-    return dict(fraction=frac.tolist(), chains_whole_in=[int(np.sum((per_chain[:, j] == 1.0))) for j in range(len(modes))],
+    return dict(fraction=frac.tolist(), chains_whole_in=[int(np.sum(per_chain[:, j] == 1.0)) for j in range(len(modes))],
                 chain_home=home.tolist(), crossings=crossings, n_chains=c_)
 
 
@@ -380,5 +380,164 @@ def like_vs_post(res_like, res_post, logpost, *, tol=2.0, names=None):
         if j != home and m["dlogp"] >= -tol:
             flag.append(f"likelihood mode {j} is {m['dlogp']:+.2f} from the best likelihood but {dpost:+.2f} in the "
                         f"posterior: the prior, not the data, chooses between them")
-    lines.append("PRIOR CHECK: " + ("PRIOR DECIDES -- " + "; ".join(flag) if flag else "the data separate the modes"))
+    shown = flag[:3] + ([f"(+{len(flag) - 3} more likelihood modes in the same state)"] if len(flag) > 3 else [])
+    lines.append("PRIOR CHECK: " + ("PRIOR DECIDES -- " + "; ".join(shown) if flag else "the data separate the modes"))
     return "\n".join(lines), not flag
+
+
+# ---------------------------------------------------------------------------------------------------
+# PyMC adapter and the report the fitting paths attach to their output (hub finding §3.8)
+# ---------------------------------------------------------------------------------------------------
+
+
+class PyMCTarget:
+    """A ``pm.Model`` as the plain functions :func:`mode_search` takes.
+
+    Coordinates
+    -----------
+    ``z`` is the concatenation of the model's *value variables* (the unconstrained, transformed space NUTS
+    samples).  ``jacobian`` is declared, not hidden:
+
+    * ``jacobian=True`` (default): ``logp`` is the density NUTS samples, in ``z``.  Modes are those of the
+      sampler's own target, so the chains' occupancy is compared with the same density.  Hierarchical
+      models have a funnel neck whose density grows without bound in ``z`` (hub finding §4, step 2): an
+      optimiser climbs it.  There is no PyMC option that bounds it; the neck shows up as a mode with
+      ``logp`` far above the rest and no Laplace mass, and the report says "jacobian=True".
+    * ``jacobian=False``: the density in the *constrained* parameters, evaluated at ``z``.  A mode at a
+      bound of the support (a scale at 0) runs to ``|z| -> inf`` and is reported as a degenerate optimum.
+
+    ``loglike`` is the PyMC ``datalogp`` (observed variables and potentials, no priors) in the same ``z``.
+    Continuous free variables only.
+    """
+
+    def __init__(self, model, *, jacobian=True):
+        import pymc as pm
+        import pytensor
+        import pytensor.tensor as pt
+        from pytensor.graph.replace import graph_replace
+
+        self.model, self.jacobian = model, bool(jacobian)
+        ip = model.initial_point()
+        self._vv = list(model.value_vars)
+        self._rvs = list(model.free_RVs)
+        if any(np.asarray(ip[v.name]).dtype.kind != "f" for v in self._vv):
+            raise ValueError("mode search needs continuous free variables only")
+        shapes = [np.asarray(ip[v.name]).shape for v in self._vv]
+        sizes = [int(np.prod(s, dtype=int)) for s in shapes]
+        edges = np.r_[0, np.cumsum(sizes)]
+        self.dim = int(edges[-1])
+        self.names = []
+        for v, s, n in zip(self._vv, shapes, sizes, strict=True):
+            self.names += [v.name] if n == 1 and not s else [f"{v.name}[{i}]" for i in range(n)]
+        z = pt.dvector("z")
+        sub = {v: z[edges[i]:edges[i + 1]].reshape(shapes[i]) for i, v in enumerate(self._vv)}
+        comp = getattr(pm.pytensorf, "compile", None) or pytensor.function
+
+        def build(expr):
+            e = graph_replace(expr, sub, strict=False)
+            return comp([z], [e, pt.grad(e, z, disconnected_inputs="ignore")])
+
+        self._lp = build(model.logp(jacobian=self.jacobian, sum=True))
+        self._ll = build(model.datalogp)
+        # constrained -> unconstrained, for the draws and for the prior starts
+        cs = [rv.type(f"c_{rv.name}") for rv in self._rvs]
+        rv2c = dict(zip(self._rvs, cs, strict=True))
+        parts = []
+        for rv, c in zip(self._rvs, cs, strict=True):
+            tr = model.rvs_to_transforms.get(rv)
+            if tr is None:
+                parts.append(pt.reshape(c, (-1,)))
+            else:
+                ins = [graph_replace(i, rv2c, strict=False) if hasattr(i, "owner") else i for i in rv.owner.inputs]
+                parts.append(pt.reshape(tr.forward(c, *ins), (-1,)))
+        self._fwd = comp(cs, pt.concatenate(parts))
+
+    @staticmethod
+    def _quiet(f, *a):
+        with np.errstate(all="ignore"):
+            return f(*a)
+
+    def logp(self, z):
+        v = float(self._quiet(self._lp, np.asarray(z, float))[0])
+        return v if np.isfinite(v) else -np.inf
+
+    def grad(self, z):
+        return np.nan_to_num(np.asarray(self._quiet(self._lp, np.asarray(z, float))[1], float), nan=0.0)
+
+    def loglike(self, z):
+        v = float(self._quiet(self._ll, np.asarray(z, float))[0])
+        return v if np.isfinite(v) else -np.inf
+
+    def loglike_grad(self, z):
+        return np.nan_to_num(np.asarray(self._quiet(self._ll, np.asarray(z, float))[1], float), nan=0.0)
+
+    def to_z(self, constrained):
+        """``constrained``: one value per free RV, in ``model.free_RVs`` order -> the ``z`` vector."""
+        return np.asarray(self._quiet(self._fwd, *[np.asarray(c, float) for c in constrained]), float)
+
+    def prior_starts(self, n, seed=0):
+        """``n`` starting points drawn from the prior (never from the chains or a truth)."""
+        import pymc as pm
+
+        with self.model:
+            pri = pm.sample_prior_predictive(draws=n, var_names=[rv.name for rv in self._rvs],
+                                             random_seed=seed, return_inferencedata=False)
+        z = np.array([self.to_z([pri[rv.name][i] for rv in self._rvs]) for i in range(n)])
+        return z[np.all(np.isfinite(z), 1)]
+
+    def draws_z(self, idata, max_draws=500):
+        """Posterior draws as ``(draw, chain, dim)`` in ``z``, thinned evenly to at most ``max_draws``."""
+        post = idata.posterior
+        n = post.sizes["draw"]
+        sel = np.unique(np.linspace(0, n - 1, min(n, max_draws)).round().astype(int))
+        out = np.empty((len(sel), post.sizes["chain"], self.dim))
+        vals = [np.asarray(post[rv.name].values) for rv in self._rvs]
+        for a, i in enumerate(sel):
+            for c in range(out.shape[1]):
+                out[a, c] = self.to_z([v[c, i] for v in vals])
+        return out
+
+
+class ModeSearchConfig:
+    """What the fitting paths run after sampling (``SamplingConfig.mode_search``).  ``None`` there = off."""
+
+    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=0, per_chain=5, max_draws=500):
+        self.n_starts, self.jacobian, self.likelihood = int(n_starts), bool(jacobian), bool(likelihood)
+        self.seed, self.per_chain, self.max_draws = int(seed), int(per_chain), int(max_draws)
+
+    def __repr__(self):
+        return ("ModeSearchConfig(" + ", ".join(f"{k}={v!r}" for k, v in vars(self).items()) + ")")
+
+
+def search_pymc(model, idata=None, config=None):
+    """Run the §A.1.8 mode search on a ``pm.Model`` (+ its ``InferenceData``); never raises.
+
+    Returns a plain dict (JSON-serialisable, so it can ride in ``idata.attrs``): ``ok`` (True/False, or
+    None when the search itself failed), ``text`` (the mandatory output lines), ``n_modes``, ``jacobian``,
+    ``prior_decides`` (None unless ``config.likelihood``), ``nfev``, ``error``.  A FAIL does not block
+    anything: the caller warns and keeps the result.
+    """
+    cfg = config or ModeSearchConfig()
+    out = dict(ok=None, text="", n_modes=0, jacobian=cfg.jacobian, prior_decides=None, nfev=None, error=None,
+               config=repr(cfg))
+    try:
+        tg = PyMCTarget(model, jacobian=cfg.jacobian)
+        starts = tg.prior_starts(cfg.n_starts, cfg.seed)
+        if len(starts) == 0:
+            raise ValueError("no finite prior start (improper prior?)")
+        sc = np.nanstd(starts, 0)
+        sc = np.where(np.isfinite(sc) & (sc > 0), sc, 1.0)
+        draws = None if idata is None else tg.draws_z(idata, cfg.max_draws)
+        res = mode_search(tg.logp, starts, grad=tg.grad, scale=sc, draws=draws, names=tg.names,
+                          per_chain=cfg.per_chain)
+        text, ok = verdict(res)
+        text = f"[density in unconstrained z, jacobian={cfg.jacobian}]\n" + text
+        if cfg.likelihood:
+            res_l = mode_search(tg.loglike, starts, grad=tg.loglike_grad, scale=sc, names=tg.names)
+            t2, prior_ok = like_vs_post(res_l, res, tg.logp, names=tg.names)
+            text += "\n" + t2
+            out["prior_decides"] = not prior_ok
+        out.update(ok=bool(ok), text=text, n_modes=len(res["modes"]), nfev=res["nfev"])
+    except Exception as exc:  # a gate is never the reason a fit fails; the error stays visible in the result
+        out.update(ok=None, error=f"{type(exc).__name__}: {exc}", text=f"mode search ERROR: {type(exc).__name__}: {exc}")
+    return out
