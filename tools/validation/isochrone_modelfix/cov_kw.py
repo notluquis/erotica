@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -200,7 +201,8 @@ def main(cells) -> None:
               "| nuts n", r.get("n_nuts"), "conv", r.get("n_converged"),
               "loga 68/90", (r["nuts_loga"]["cov68_all"]["k"], r["nuts_loga"]["cov90_all"]["k"]) if "nuts_loga" in r else None,
               "rule", r.get("rule"))
-    (HERE / "kw_coverage.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
+    name = os.environ.get("COV_OUT", "kw_coverage.json")  # C3' arms go to their own file (§2.17)
+    (HERE / name).write_text(json.dumps(out, indent=1, default=float) + "\n")
 
 
 if __name__ == "__main__":

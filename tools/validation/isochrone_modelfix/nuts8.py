@@ -61,6 +61,8 @@ def build_model8_zfix(f, arm, feh):
 
 def _model(data_path):
     f = A.make_fitter(N._data(data_path), WIN)
+    if os.environ.get("KW_NOBIN"):  # the singles model of arm IS (hub finding §2.17): alpha = beta = 0
+        f.alpha = f.beta = 0.0
     if ZFIX:
         return f, build_model8_zfix(f, ARM, float(ZFIX))
     return f, A.build_model8(f, ARM)
