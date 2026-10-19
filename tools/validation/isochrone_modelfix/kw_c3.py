@@ -248,21 +248,6 @@ def selftest() -> dict:
     return out
 
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["prep", "selftest", "glob"])
-    ap.add_argument("--no-search8", action="store_true")
-    ap.add_argument("--arm", choices=list(ARMS))
-    ap.add_argument("--rep", type=int, default=0)
-    a = ap.parse_args()
-    if a.stage == "selftest":
-        selftest()
-    elif a.stage == "glob":
-        glob(a.arm, a.rep)
-    else:
-        prep(a.arm, a.rep, not a.no_search8)
-
-
 def search_global(f, polish=12, wide=None, feh_lattice=(-1.0, -0.5, 0.0, 0.5), age_stride=2,
                   start_av=1.0, verbose=False) -> dict:
     """``aniso.search8`` with two changes (hub §2.17, amendment 1, chosen on cell A replicate 0 and on
@@ -323,3 +308,19 @@ def search_global(f, polish=12, wide=None, feh_lattice=(-1.0, -0.5, 0.0, 0.5), a
     return {"arm": "K", "x": b.tolist(), "mode": A.expand("K", b), "logpost": lp, "loglike": fl(b)[0],
             "runner_up": [(p[0], p[1].tolist()) for p in pol[1:]], "at_bound": at,
             "n": int(f._N_obs), "seconds": round(time.time() - t0, 1)}
+
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("stage", choices=["prep", "selftest", "glob"])
+    ap.add_argument("--no-search8", action="store_true")
+    ap.add_argument("--arm", choices=list(ARMS))
+    ap.add_argument("--rep", type=int, default=0)
+    a = ap.parse_args()
+    if a.stage == "selftest":
+        selftest()
+    elif a.stage == "glob":
+        glob(a.arm, a.rep)
+    else:
+        prep(a.arm, a.rep, not a.no_search8)
