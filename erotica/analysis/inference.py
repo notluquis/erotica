@@ -374,15 +374,26 @@ def _sample(pm, model, config: SamplingConfig):
     with model:
         trace = pm.sample(**kwargs)
     if config.mode_search is not None:
-        import json
-
-        from .modesearch import search_pymc
-
-        rep = search_pymc(model, trace, config.mode_search)
-        trace.attrs["mode_search"] = json.dumps(rep, default=float)
-        if rep["ok"] is False or rep["error"]:
-            warnings.warn(f"mode search did not pass (the fit is kept): {rep['text']}", UserWarning, stacklevel=3)
+        attach_mode_search(model, trace, config.mode_search)
     return trace
+
+
+def attach_mode_search(model, trace, config, *, caveat: str = "", stacklevel: int = 4) -> dict:
+    """Run the mode search on a finished fit, store it in ``trace.attrs["mode_search"]``, warn on FAIL.
+
+    A FAIL (or a search that errors) only warns: the fit is kept. ``caveat`` is appended to the warning
+    so a fitting path can say what was measured about the verdict on its kind of posterior.
+    """
+    import json
+
+    from .modesearch import search_pymc
+
+    rep = search_pymc(model, trace, config)
+    trace.attrs["mode_search"] = json.dumps(rep, default=float)
+    if rep["ok"] is False or rep["error"]:
+        extra = f"\n{caveat}" if caveat else ""
+        warnings.warn(f"mode search did not pass (the fit is kept): {rep['text']}{extra}", UserWarning, stacklevel=stacklevel)
+    return rep
 
 
 def _moda_predictiva(mu: np.ndarray, sigma: np.ndarray, *, gamma: bool) -> float:

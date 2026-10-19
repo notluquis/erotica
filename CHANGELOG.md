@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `mode_search(dup_tol=0.05)` joins optima of a mode with no Laplace covariance (at a bound) when their
   heights agree to 0.05 and no dip lies between them; without it one flat-topped mode was listed up to
   four times (post hoc, hub finding §3.9).
+- **`IsochroneFitter.fit(mode_search=...)`, on by default (author's decision 2026-10-19).** Same search as the
+  other fitting paths, stored in `idata.attrs["mode_search"]`; a FAIL only warns, and the warning carries what
+  was measured on age--[Fe/H] ridges: false alarms (6 of 8 agreeing fits PASS, below the pre-registered 7 of 8) and a
+  power that came from flat tops at a bound, not from the Laplace-mass rule (hub finding §3.9/§3.10).
+  `mode_search=None` turns it off. `inference.attach_mode_search` is the shared helper.
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
   start-up trials, i.e. after ten real HDBSCAN fits.

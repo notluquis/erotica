@@ -556,6 +556,15 @@ def _erf_np(x: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
+_ISOCHRONE_MODE_SEARCH_CAVEAT = (
+    "Measured on synthetic age--[Fe/H] ridges (hub multimodality-automatic-check-2026-10-14.md section 3.9): "
+    "this verdict gave 2 false alarms in 8 fits whose chains agree (6/8 PASS, below the pre-registered 7/8) "
+    "- ripples of the ridge counted as modes - and its power there (6/6) came from flat tops at a bound with no "
+    "Laplace mass, not from the mass rule. Treat a FAIL as a list of modes to look at; pass "
+    "mode_search=None to turn it off."
+)
+
+
 class IsochroneFitter:
     r"""Bayesian isochrone fitting: unbinned per-star likelihood over EEP-interpolated MIST
     isochrones, sampled with NUTS (PyMC).
@@ -1502,6 +1511,7 @@ class IsochroneFitter:
         nuts_sampler_kwargs: dict | None = None,
         start: str = "search",
         start_info: dict | None = None,
+        mode_search: Any = "default",
     ) -> Any:
         """Run NUTS sampling and return ArviZ InferenceData.
 
@@ -1563,6 +1573,18 @@ class IsochroneFitter:
             fraction of 0.12, 242 log-units below the truth. **So with ``"search"`` R-hat
             certifies mixing within the mode the search found, not that no other mode
             exists**; :meth:`find_start` returns the runner-up modes so that can be checked.
+        mode_search : ModeSearchConfig or None
+            After sampling, a mode search from the prior (hub ``methodology.md`` §A.1.8) is run on the
+            model and its draws and stored in ``idata.attrs["mode_search"]`` (``mode_search_summary``).
+            On by default (``"default"`` = ``ModeSearchConfig()``); ``None`` turns it off. A FAIL only
+            warns, the fit is kept. **What was measured about the verdict on this posterior** (hub
+            ``multimodality-automatic-check-2026-10-14.md`` §3.9, synthetic K x W clusters, n = 16
+            starts): on age--[Fe/H] ridges it **raises false alarms** (6 of 8 fits whose chains agree
+            PASS, below the pre-registered 7 of 8; the two FAILs were ripples of the ridge, not a missed
+            region), and its power on the multi-plateau cell (6 of 6 FAIL) was measured on flat tops
+            that no chain visited, **not on the Laplace-mass rule** (every mode there sat at a bound
+            and had no Laplace mass). Read a FAIL as "look at the modes it lists", not as a defect. It
+            costs 2000-3400 density+gradient evaluations (minutes on a real fit).
         """
         pm = _require_pymc()
         warn_if_pymc_engine(nuts_sampler)
@@ -1595,7 +1617,7 @@ class IsochroneFitter:
                 seed = np.diag(inv_mass) if user.get("dense_mass") else inv_mass
                 kw = {"inverse_mass_matrix": seed, **user}
                 with model:
-                    return sample_jax_nuts(
+                    idata = sample_jax_nuts(
                         draws=draws,
                         tune=tune,
                         chains=n_chains,
@@ -1608,6 +1630,7 @@ class IsochroneFitter:
                         nuts_kwargs=kw,
                         idata_kwargs={"log_likelihood": log_likelihood},
                     )
+                return self._attach_mode_search(model, idata, mode_search)
             # PyMC's own NUTS, seeded the same way (and still adapting); no jitter on the starts
             from pymc.step_methods.hmc.quadpotential import QuadPotentialDiagAdapt
 
@@ -1644,6 +1667,17 @@ class IsochroneFitter:
                 **extra_compile,
                 **extra,
             )
+        return self._attach_mode_search(model, idata, mode_search)
+
+    @staticmethod
+    def _attach_mode_search(model, idata, mode_search):
+        """The post-fit mode search of :meth:`fit` (never raises, never blocks; ``None`` = off)."""
+        if mode_search is None:
+            return idata
+        from .inference import _default_mode_search, attach_mode_search
+
+        cfg = _default_mode_search() if isinstance(mode_search, str) and mode_search == "default" else mode_search
+        attach_mode_search(model, idata, cfg, caveat=_ISOCHRONE_MODE_SEARCH_CAVEAT, stacklevel=4)
         return idata
 
     # ------------------------------------------------------------------
