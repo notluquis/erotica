@@ -178,3 +178,13 @@ def test_two_stops_on_one_flat_top_are_one_mode():
 
 def test_two_flat_tops_with_a_barrier_stay_two_modes():
     assert len(_flat_run(5.0)["modes"]) == 2
+
+
+def test_flat_tops_of_different_height_are_not_joined():
+    # a step, no dip between the tops: only the height condition of dup_tol keeps them apart
+    def lp(x):
+        return float(-0.5 * ((x[0] - 1) / 0.1) ** 2 - (0.5 if x[1] > 0.5 else 0.0))
+
+    starts = np.array([[0.9, 0.1], [1.1, 0.9]])
+    res = mode_search(lp, starts, bounds=(np.zeros(2), np.full(2, 2.0)), ridge_fracs=())
+    assert len(res["modes"]) == 2
