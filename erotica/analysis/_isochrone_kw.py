@@ -218,7 +218,7 @@ class IsochroneFitterKW(IsochroneFitter):
            ``START_DLOGA`` in log t, the nuisance parameters at the mode times U(0.7, 1.4).
 
         **A mode search is not a proof of uniqueness**: it found the old stretch of the age ridge, 0.2
-        dex from the truth, with log L 5-8 units below the truth's, in 3 of 8 synthetic replicates of cell A and
+        dex from the truth, with log L 0.6 to 46 units below the truth's, in 3 of 8 synthetic replicates of cell A and
         in 3 of 3 replicates of the binary experiment prepared with it (hub finding
         ``isochrone-intervals-nuts.md`` §2.9, §2.17.1), and NUTS did not converge in the harder cell. ``mode`` is the search's maximum, and a
         reported age needs the profile of the posterior in log t as well (§2.16).
