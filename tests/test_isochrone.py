@@ -1689,6 +1689,7 @@ def test_fit_runs_the_mode_search_by_default_and_none_turns_it_off(tmp_path):
     kw = dict(draws=20, tune=20, chains=2, cores=1, random_seed=3, progressbar=False)
     rep = mode_search_summary(f.fit(**kw))
     assert rep is not None and rep["error"] is None and rep["n_modes"] >= 1
+    assert "backend='JAX'" in rep["config"]  # the isochrone compiles the search with JAX
     assert mode_search_summary(f.fit(mode_search=None, **kw)) is None
 
     from erotica.analysis import modesearch

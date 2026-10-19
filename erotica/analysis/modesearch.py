@@ -424,7 +424,7 @@ class PyMCTarget:
     Continuous free variables only.
     """
 
-    def __init__(self, model, *, jacobian=True):
+    def __init__(self, model, *, jacobian=True, backend=None):
         import pymc as pm
         import pytensor
         import pytensor.tensor as pt
@@ -446,6 +446,10 @@ class PyMCTarget:
         z = pt.dvector("z")
         sub = {v: z[edges[i]:edges[i + 1]].reshape(shapes[i]) for i, v in enumerate(self._vv)}
         comp = getattr(pm.pytensorf, "compile", None) or pytensor.function
+        self.backend = backend
+        if backend is not None:  # e.g. "JAX": ~3-5x cheaper per density+gradient on the isochrone likelihood
+            def comp(ins, outs):
+                return pytensor.function(ins, outs, mode=backend)
 
         def build(expr):
             e = graph_replace(expr, sub, strict=False)
@@ -515,8 +519,9 @@ class PyMCTarget:
 class ModeSearchConfig:
     """What the fitting paths run after sampling (``SamplingConfig.mode_search``).  ``None`` there = off."""
 
-    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=0, per_chain=5, max_draws=500):
+    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=0, per_chain=5, max_draws=500, backend=None):
         self.n_starts, self.jacobian, self.likelihood = int(n_starts), bool(jacobian), bool(likelihood)
+        self.backend = backend
         self.seed, self.per_chain, self.max_draws = int(seed), int(per_chain), int(max_draws)
 
     def __repr__(self):
@@ -535,7 +540,7 @@ def search_pymc(model, idata=None, config=None):
     out = dict(ok=None, text="", n_modes=0, jacobian=cfg.jacobian, prior_decides=None, nfev=None, error=None,
                config=repr(cfg))
     try:
-        tg = PyMCTarget(model, jacobian=cfg.jacobian)
+        tg = PyMCTarget(model, jacobian=cfg.jacobian, backend=getattr(cfg, "backend", None))
         starts = tg.prior_starts(cfg.n_starts, cfg.seed)
         if len(starts) == 0:
             raise ValueError("no finite prior start (improper prior?)")

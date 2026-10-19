@@ -159,3 +159,16 @@ def test_a_fit_never_fails_because_the_search_does(monkeypatch):
     rep = mode_search_summary(trace)
     assert rep["ok"] is None and "optimiser exploded" in rep["error"]
     assert any("mode search did not pass" in str(x.message) for x in w)
+
+
+def test_search_backend_is_honoured_and_agrees_with_the_default():
+    """Non-default knob first (lesson 29): ``backend="JAX"`` must reach the compiled functions, and give
+    the same density and gradient as the default backend."""
+    pytest.importorskip("jax")
+    m = _gauss_model()
+    a, b = PyMCTarget(m), PyMCTarget(m, backend="JAX")
+    assert type(b._lp.maker.linker).__name__ == "JAXLinker" and type(a._lp.maker.linker).__name__ != "JAXLinker"
+    z = a.to_z([1.0, 2.0, 0.3, 1.0])
+    assert b.logp(z) == pytest.approx(a.logp(z), rel=1e-9)
+    assert np.allclose(b.grad(z), a.grad(z), rtol=1e-7, atol=1e-9)
+    assert search_pymc(m, None, ModeSearchConfig(n_starts=4, backend="JAX"))["error"] is None

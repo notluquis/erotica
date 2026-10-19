@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   was measured on age--[Fe/H] ridges: false alarms (6 of 8 agreeing fits PASS, below the pre-registered 7 of 8) and a
   power that came from flat tops at a bound, not from the Laplace-mass rule (hub finding §3.9/§3.10).
   `mode_search=None` turns it off. `inference.attach_mode_search` is the shared helper.
+  With the nutpie default every chain starts from the same mode, so this search is the only check for a mode
+  the chains never visit. The search runs on a JAX-compiled density+gradient (`ModeSearchConfig(backend="JAX")`,
+  `PyMCTarget(backend=...)`; the default backend of the other paths is unchanged).
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
   start-up trials, i.e. after ten real HDBSCAN fits.
