@@ -18,8 +18,9 @@
 # The real dependency resolution for this package happens through conda-forge
 # (`environment.yml`), which Dependabot cannot see. The floors in `pyproject.toml` were set from
 # a measured 389-package solve, not from convenience, so a PyPI-side bump is a prompt to re-solve
-# the conda environment, not a change to merge on sight. One batched monthly PR is a review
-# prompt; twenty weekly ones get ignored, which is worse than not running it at all.
+# the conda environment, not a change to merge on sight. Weekly since 2026-10-19, by the author's
+# decision (it was monthly): the batching by group and the cooldowns below are what keep a weekly
+# run to a few reviewable PRs instead of twenty.
 #
 # WHY github-actions MATTERS MORE THAN IT LOOKS
 # ---------------------------------------------
@@ -35,8 +36,10 @@ updates:
   # ---------------------------------------------------------------------------------------
   - package-ecosystem: github-actions
     directory: /
+    # Work happens on dev; main only receives releases (2026-10-19).
+    target-branch: dev
     schedule:
-      interval: monthly
+      interval: weekly
     cooldown:
       default-days: 3
       semver-major-days: 7
@@ -58,8 +61,10 @@ updates:
   # ---------------------------------------------------------------------------------------
   - package-ecosystem: pip
     directory: /
+    # Work happens on dev; main only receives releases (2026-10-19).
+    target-branch: dev
     schedule:
-      interval: monthly
+      interval: weekly
     cooldown:
       # Longer than for actions: a numerical stack regression is harder to notice than a
       # broken CI step, because the run still passes and only the numbers move.
