@@ -46,6 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start-up trials, i.e. after ten real HDBSCAN fits.
 
 ### Fixed
+- **`IsochroneFitter.fit` on nutpie: a start exactly on a prior bound no longer stops the fit.** `find_start`
+  optimises inside closed bounds and can return a mode ON one (A_V = 0.5 with `Av_range=(0.5, 2.0)` on
+  NGC 6383); PyMC's interval transform sends it to +-inf, so nutpie's single common start was `-inf` and it died with
+  `All initialization points failed ... BadLogp(NaN)`. The start is now moved strictly inside the support in the
+  transformed space with the model's own transforms (`_strictly_inside_support`, clipped to +-20, i.e. ~2e-9 of
+  the range from the bound). A start that is moved raises a `UserWarning` naming it (a mode on a prior bound means the bound
+  binds at the likelihood optimum); a value outside the support raises `ValueError` instead of being carried to the
+  centre of the interval.
+
 - **structure: bootstrap errors of `half_mass_radius`, `calculate_half_light_radius` and `center_determination` are reproducible by default** (`DEFAULT_BOOTSTRAP_SEED`); pass `seed=None` for the old behaviour.
 - **`IsochroneFitter._seeded_inverse_mass`: a parameter whose search mode lies within 3 local sd
   of an interval bound gets the unseeded entry 1** instead of the logit-Jacobian map, which
