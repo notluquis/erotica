@@ -39,6 +39,12 @@ from scipy.optimize import minimize
 UNVISITED_DLOGMASS = -5.0
 MASS_RATIO_TOL = 10.0
 MIN_FRACTION = 0.01
+# Post hoc (2026-10-20, hub finding §3.11, R75-04; chosen by the author as V1 + V3 after seeing NGC 6383, A and C):
+# the occupancy of a mode moves in steps of ``grain = 1 / (polished draws per chain x chains)``, so the weight
+# rule asks for ``occupancy > MASS_RATIO_TOL x share + grain`` and the fitting paths polish
+# ``MIN_POLISHED / chains`` draws per chain. With it A_7 and NGC 6383 r1 PASS and A is 7/8 PASS, exactly the
+# pre-registered threshold: that is not "A passes". Not re-measured with nutpie's common start.
+MIN_POLISHED = 100
 # Post hoc (hub finding §3.9, after C_0): two optima of a mode WITHOUT a Laplace covariance (at a bound or a
 # non-definite Hessian) are one mode when their heights differ by <= DUP_TOL log-units AND the log density
 # along the segment between them never dips more than DUP_TOL below the lower of the two. L-BFGS-B stops
@@ -121,6 +127,7 @@ def mode_search(
     per_chain=5,
     bound_tol=1e-3,
     dup_tol=DUP_TOL,
+    min_polished=None,
 ):
     """Multi-start optimisation + ridge starts + mode clustering + Laplace per mode.
 
@@ -150,6 +157,12 @@ def mode_search(
     per_chain : int
         How many draws per chain are polished (hub finding R69-05: one last draw misses a chain that
         spent most of its run in another mode).
+    min_polished : int or None
+        Draws polished are ``max(per_chain, ceil(min_polished / chains))`` per chain (capped by the draws given),
+        so the occupancy grain ``1 / (polished per chain x chains)`` is at most ``1 / min_polished``. ``None``
+        (default of this function) polishes ``per_chain`` only; the fitting paths pass ``MIN_POLISHED`` = 100
+        (1 %). Post hoc, 2026-10-20 (hub finding §3.11, R75-04): with 5 draws and 2 chains the grain was 10 %
+        and a mode of Laplace share 0.55 % could not PASS.
     bound_tol : float
         A mode within ``bound_tol`` x (upper - lower) of a bound of that coordinate counts as AT BOUND
         (no Laplace mass, ranked by height). Relative to the bound range, not to ``scale``: the
@@ -191,7 +204,8 @@ def mode_search(
     extra = []
     if draws is not None:
         dr = np.asarray(draws, float)
-        idx = np.unique(np.linspace(0, len(dr) - 1, max(1, per_chain)).round().astype(int))
+        n_pc = max(1, per_chain, -(-int(min_polished or 0) // max(1, dr.shape[1])))
+        idx = np.unique(np.linspace(0, len(dr) - 1, n_pc).round().astype(int))
         extra = [(f"chain{k}_{i}", to_x(dr[i, k])) for k in range(dr.shape[1]) for i in idx]
     run = pmap or (lambda xs: [_optimise(nlp, x0, grad, bounds, maxiter) for x0 in xs])
     jobs = [("prior", x0) for x0 in starts] + extra
@@ -294,6 +308,9 @@ def mode_search(
         m["dlog_key"] = m["dlog_mass"] if np.isfinite(m["dlog_mass"]) else m["dlogp"]
     nfev["laplace"] = n_lap[0]
     out = dict(modes=modes, n_starts=len(starts), nfev=nfev, names=names)
+    if draws is not None:
+        out["polished_per_chain"] = len(idx)
+        out["grain"] = 1.0 / (len(idx) * dr.shape[1])  # step of the per-chain occupancy
     for m in modes:
         hits = [s_[5:].split("_") for s_ in m["sources"] if s_.startswith("chain")]
         m["chain_hits"] = {}
@@ -359,7 +376,7 @@ def verdict(res, *, unvisited=UNVISITED_DLOGMASS, ratio=MASS_RATIO_TOL, min_frac
             # R69-01: the per-draw assignment is no veto; only polished chain draws count as a visit
             if ch["homes"][j] == 0 and m["dlog_key"] >= unvisited:
                 fails.append(f"mode {j} has dlog_mass {m['dlog_key']:+.2f} >= {unvisited} and no chain visited it")
-            if share is not None and np.isfinite(share[j]) and h > min_fraction and h > ratio * share[j]:
+            if share is not None and np.isfinite(share[j]) and h > min_fraction and h > ratio * share[j] + res.get("grain", 0.0):
                 fails.append(f"mode {j} holds {100 * h:.2f} % of the chains' occupancy against a Laplace "
                              f"share of {100 * share[j]:.2g} %: weight set by the initialisation, not the posterior")
         lines.append(s)
@@ -519,9 +536,11 @@ class PyMCTarget:
 class ModeSearchConfig:
     """What the fitting paths run after sampling (``SamplingConfig.mode_search``).  ``None`` there = off."""
 
-    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=0, per_chain=5, max_draws=500, backend=None):
+    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=0, per_chain=5, max_draws=500, backend=None,
+                 min_polished=MIN_POLISHED):
         self.n_starts, self.jacobian, self.likelihood = int(n_starts), bool(jacobian), bool(likelihood)
         self.backend = backend
+        self.min_polished = int(min_polished)
         self.seed, self.per_chain, self.max_draws = int(seed), int(per_chain), int(max_draws)
 
     def __repr__(self):
@@ -548,7 +567,7 @@ def search_pymc(model, idata=None, config=None):
         sc = np.where(np.isfinite(sc) & (sc > 0), sc, 1.0)
         draws = None if idata is None else tg.draws_z(idata, cfg.max_draws)
         res = mode_search(tg.logp, starts, grad=tg.grad, scale=sc, draws=draws, names=tg.names,
-                          per_chain=cfg.per_chain)
+                          per_chain=cfg.per_chain, min_polished=getattr(cfg, "min_polished", MIN_POLISHED))
         text, ok = verdict(res)
         text = f"[density in unconstrained z, jacobian={cfg.jacobian}]\n" + text
         if cfg.likelihood:

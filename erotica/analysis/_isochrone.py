@@ -557,14 +557,17 @@ def _erf_np(x: Any) -> Any:
 
 
 _ISOCHRONE_MODE_SEARCH_CAVEAT = (
-    "Measured (hub multimodality-automatic-check-2026-10-14.md sections 3.9-3.10). Real NGC 6383, nutpie, 2 chains, "
-    "300+300, 2 repetitions: this verdict gave FAIL both times for the same interior mode (Laplace share ~0.55 %); "
-    "its occupancy has a grain of 1/(5 x chains), so with 2 chains a mode of that share cannot PASS "
-    "(a FAIL by construction, not evidence of a missed region; the rule is under review, R75-04). Synthetic "
-    "age--[Fe/H] ridges, numpyro, 4 chains from spread starts (nutpie's single common start does not reproduce "
-    "them): 6 of 8 fits whose chains agree PASS, below the pre-registered 7 of 8; the 2 FAILs read as ripples of "
-    "the ridge (not tested). With nutpie all chains start from one mode, so this is the only check for a mode "
-    "they never visit: treat a FAIL as a list of modes to look at; mode_search=None turns it off."
+    "Measured (hub multimodality-automatic-check-2026-10-14.md sections 3.9-3.11). Real NGC 6383, nutpie, 2 chains, "
+    "300 + 300, 2 repetitions: this verdict gave FAIL both times for the same interior mode (Laplace share ~0.55 %) "
+    "under the rule as first written, whose occupancy had a grain of 1/(5 x chains) that it ignored. The rule was "
+    "then changed (post hoc, 2026-10-20, chosen by the author after seeing these cases): the weight rule adds that "
+    "grain and >= 100 draws are polished in total; one of the two repetitions then PASSes by weight and the other "
+    "still FAILs by a mode no chain visited. Synthetic age--[Fe/H] ridges, numpyro, 4 chains from spread starts "
+    "(nutpie's single common start does not reproduce them): with the new rule 7 of 8 fits whose chains agree PASS, "
+    "exactly the pre-registered threshold, which does not mean A passes; the FAILs read as ripples of the ridge "
+    "(not tested). The gate has not been re-measured with nutpie's common start. With nutpie all chains start from "
+    "one mode, so this is the only check for a mode they never visit: treat a FAIL as a list of modes to look at; "
+    "mode_search=None turns it off."
 )
 
 
@@ -1583,15 +1586,20 @@ class IsochroneFitter:
             warns, the fit is kept. **What was measured about the verdict on this posterior** (hub
             ``multimodality-automatic-check-2026-10-14.md`` §3.9-§3.10):
 
-            * real NGC 6383 (254 stars), nutpie, 2 chains, 300 + 300, two repetitions: **FAIL both times**,
-              for the same interior mode (Laplace share ~0.55 %). The occupancy rule has a grain of
-              ``1 / (per_chain x chains)`` and ignores it, so with 2 chains a mode of that share cannot
-              PASS: a FAIL by construction, not evidence of a missed region (under review, R75-04);
+            * real NGC 6383 (254 stars), nutpie, 2 chains, 300 + 300, two repetitions: **FAIL both times**
+              for the same interior mode (Laplace share ~0.55 %) under the first rule, whose occupancy grain
+              ``1 / (polished draws per chain x chains)`` it ignored (with 2 chains such a mode could not PASS);
+            * **the rule was then changed, post hoc (2026-10-20), by the author's choice after seeing those
+              cases**: the weight rule asks ``occupancy > 10 x share + grain`` and ``min_polished = 100`` draws
+              are polished in total. NGC 6383 r1 and A_7 then PASS; NGC 6383 r0 (a mode no chain visited) and
+              A_6 still FAIL;
             * synthetic age--[Fe/H] ridges, numpyro, 4 chains from spread starts (a nutpie common start does
-              not reproduce them): 6 of 8 fits whose chains agree PASS, below the pre-registered 7 of 8; the two
-              FAILs are read as ripples of the ridge (not tested);
+              not reproduce them): with the new rule 7 of 8 fits whose chains agree PASS, **exactly the
+              pre-registered threshold: that is not "A passes"**; the FAILs are read as ripples of the ridge
+              (not tested);
             * the 6 of 6 power on the multi-plateau cell was measured on flat tops at a bound with no Laplace
-              mass, **not on the mass rule**.
+              mass, **not on the mass rule**;
+            * **the gate has not been re-measured with nutpie's common start** (plan in the hub finding §3.11).
 
             **With nutpie every chain starts from the same mode** (no per-chain starts), so this search is the
             only check for a mode the chains never visit. Read a FAIL as "look at the modes it lists". It

@@ -188,3 +188,38 @@ def test_flat_tops_of_different_height_are_not_joined():
     starts = np.array([[0.9, 0.1], [1.1, 0.9]])
     res = mode_search(lp, starts, bounds=(np.zeros(2), np.full(2, 2.0)), ridge_fracs=())
     assert len(res["modes"]) == 2
+
+
+def _fake_res(occupancy, share_dlog, grain, n_chains=2):
+    """A hand-made search result: one dominant mode and a minor one of Laplace share ~exp(share_dlog)."""
+    mk = lambda dlp: dict(x=np.zeros(1), logp=dlp, dlogp=dlp, dlog_mass=dlp, dlog_key=dlp, at_bound=[], n_starts=1, sources={"prior"})  # noqa: E731
+    return dict(modes=[mk(0.0), mk(share_dlog)], names=["a"], n_starts=1, nfev={}, grain=grain,
+                chains=dict(fraction=[1 - occupancy, occupancy], homes=[n_chains, 1], occupancy=[1 - occupancy, occupancy],
+                            crossings=0, homeless=[], n_chains=n_chains))
+
+
+def test_weight_rule_has_the_occupancy_grain():
+    """R75-04 / V1 (post hoc 2026-10-20): 2 chains x 5 polished draws -> grain 0.1; one polished draw in a mode of
+    Laplace share 0.55 % (occupancy 0.1 > 10 x 0.0055) is no evidence of weight set by the initialisation."""
+    res = _fake_res(occupancy=0.1, share_dlog=np.log(0.0055 / 0.9945), grain=0.1)
+    assert verdict(res)[1]
+    # without the grain (the old rule) the same inputs FAIL, and two polished draws (0.2 > 0.055 + 0.1) FAIL
+    no_grain = dict(res, grain=0.0)
+    assert not verdict(no_grain)[1]
+    assert not verdict(_fake_res(0.2, np.log(0.0055 / 0.9945), 0.1))[1]
+
+
+@pytest.mark.parametrize("n_chains,want", [(2, 50), (4, 25)])
+def test_polished_draws_scale_with_the_chains(n_chains, want):
+    """V3: per_chain x chains >= min_polished; the grain is recorded; None keeps per_chain alone."""
+    rng = np.random.default_rng(0)
+    draws = rng.standard_normal((300, n_chains, 2))
+    lp = lambda x: float(-0.5 * np.sum(x**2))  # noqa: E731
+    starts = rng.uniform(-3, 3, (4, 2))
+    res = mode_search(lp, starts, draws=draws, min_polished=100, ridge_fracs=())
+    assert res["polished_per_chain"] == want and res["grain"] == pytest.approx(1 / (want * n_chains))
+    base = mode_search(lp, starts, draws=draws, ridge_fracs=())
+    assert base["polished_per_chain"] == 5
+    from erotica.analysis.modesearch import MIN_POLISHED, ModeSearchConfig
+
+    assert MIN_POLISHED == 100 and ModeSearchConfig().min_polished == 100

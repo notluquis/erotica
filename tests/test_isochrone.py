@@ -1705,6 +1705,6 @@ def test_fit_runs_the_mode_search_by_default_and_none_turns_it_off(tmp_path):
     msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning) and "FAKE FAIL" in str(x.message)]
     assert msgs and mode_search_summary(idata)["ok"] is False
     # R75-01/03: the warning carries the NGC 6383 result, the occupancy grain and the untested reading
-    for needle in ("NGC 6383", "FAIL both times", "grain of 1/(5 x chains)", "(not tested)"):
+    for needle in ("NGC 6383", "FAIL both times", "grain of 1/(5 x chains)", "post hoc, 2026-10-20", "does not mean A passes", "not been re-measured", "(not tested)"):
         assert needle in msgs[0], needle
     assert "ripples of the ridge, not a missed region" not in msgs[0]

@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   With the nutpie default every chain starts from the same mode, so this search is the only check for a mode
   the chains never visit. The search runs on a JAX-compiled density+gradient (`ModeSearchConfig(backend="JAX")`,
   `PyMCTarget(backend=...)`; the default backend of the other paths is unchanged).
+- **Mode-search verdict, post hoc (2026-10-20, author's choice after seeing NGC 6383, A and C; hub finding §3.11,
+  R75-04).** The weight rule now asks `occupancy > 10 x share + grain` (`grain = 1 / (polished draws per chain x
+  chains)`, kept in the result), and the fitting paths polish `min_polished = 100` draws in total
+  (`ModeSearchConfig(min_polished=...)`, `mode_search(min_polished=...)`; the function's own default stays
+  `per_chain`). A mode of Laplace share 0.55 % could not PASS with 2 chains before. A is 7/8 PASS with it,
+  exactly the pre-registered threshold (not "A passes"), and the gate is not re-measured with nutpie's common start.
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
   start-up trials, i.e. after ten real HDBSCAN fits.
