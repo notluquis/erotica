@@ -1371,3 +1371,57 @@ def test_search_pseudoprobability_depende_del_orden_del_barrido():
             "construccion (labels_matrix[:, :i+1]) y este caso no la ejercita"
         )
     assert not iguales or not mismo
+
+
+# --- R31-04: el barrido elige la rama mas densa, no el objetivo -------------------------------
+
+
+def _target_plus_denser_neighbour(seed: int = 0) -> QTable:
+    """Hub q3 geometry: target 200 at the origin (sigma 0.30), a comoving neighbour twice as
+    populous at 1.5 mas/yr with the same width, Gaussian field sigma 3 with 3000 stars. At this
+    density ratio the review measured the neighbour picked in 8/8 seeds by both rules."""
+    rng = np.random.default_rng(seed)
+    pmra = np.concatenate(
+        [rng.normal(0.0, 0.3, 200), rng.normal(1.5, 0.3, 400), rng.normal(0.0, 3.0, 3000)]
+    )
+    pmdec = np.concatenate(
+        [rng.normal(0.0, 0.3, 200), rng.normal(0.0, 0.3, 400), rng.normal(0.0, 3.0, 3000)]
+    )
+    n = pmra.size
+    return QTable(
+        {
+            "pmra": pmra * u.mas / u.yr,
+            "pmdec": pmdec * u.mas / u.yr,
+            "ra": rng.uniform(263, 264, n) * u.deg,
+            "dec": rng.uniform(-32, -31, n) * u.deg,
+        }
+    )
+
+
+def _run_with_reference(reference):
+    from erotica.core.clustering import Clustering
+
+    clust = Clustering(_target_plus_denser_neighbour(), _make_qtable(n=20, seed=99))
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        clust.search_pseudoprobability(
+            columns=["pmra", "pmdec"],
+            min_cluster_size_samples=range(10, 111, 20),
+            reference_center=reference,
+            reference_tolerance=0.5,
+        )
+    return clust, [w for w in caught if "reference_center" in str(w.message)]
+
+
+def test_reference_center_flags_a_sweep_that_picked_the_denser_neighbour():
+    """R31-04: with no way to say which cluster is wanted, the sweep returns the neighbour and
+    says nothing. ``reference_center`` (opt-in) measures the selected cluster's median against
+    it and warns beyond ``reference_tolerance``; it does not change which cluster is chosen."""
+    clust, flagged = _run_with_reference((0.0, 0.0))
+    sel = clust.pseudoprobability_selected_
+    assert sel["reference_distance"] == pytest.approx(1.5, abs=0.2)  # it is the neighbour
+    assert flagged
+    # the neighbour's own centre is accepted silently
+    clust, flagged = _run_with_reference((1.5, 0.0))
+    assert clust.pseudoprobability_selected_["reference_distance"] < 0.2
+    assert not flagged

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### R31 (core and segregation review, hub `agent-findings/review-core-synthetic-segregation-2026-10-05.md`)
+- **Changed:** `gaia_covariance` raises `ValueError` when an error is NaN/inf on a finite value
+  (R31-02); it used to become zero variance, leaving the most uncertain source unperturbed.
+- **Added (opt-in):** `reference_center` / `reference_tolerance` on `search_pseudoprobability`:
+  distance from the selected cluster's median, and a `RuntimeWarning` when the sweep picked a
+  denser neighbour (R31-04). The selection rule is unchanged.
+- **Fixed:** `mst_edges` keeps zero-length edges between coincident points (R31-05).
+  Consequence: `lambda_msr(statistic="geometric_edge")` with coincident points used to run on a
+  wrong tree and now raises `ValueError` (the log of a zero edge is undefined); drop duplicates
+  first or use `total` / `median_edge`.
+- **Docs:** raw feature scale is an implicit per-axis weighting; standardizing is not neutral
+  (R31-01). `lambda_msr` states that its permutation null assumes mass independent of position
+  (R31-06).
+
 ### Added
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
