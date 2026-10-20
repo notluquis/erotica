@@ -139,19 +139,31 @@ def test_gaia_covariance_uses_errors_and_correlations():
     assert np.allclose(cov[0, 0, 1], cov[0, 1, 0])  # symmetric
 
 
-def test_gaia_covariance_missing_corr_is_zero_and_nan_error_unperturbed():
-    t = QTable(
-        {
-            "pmra": [1.0],
-            "pmdec": [1.0],
-            "pmra_error": [np.nan],
-            "pmdec_error": [0.4],  # missing pmra error
-        }
-    )
+def test_gaia_covariance_missing_corr_is_zero():
+    t = QTable({"pmra": [1.0], "pmdec": [1.0], "pmra_error": [0.2], "pmdec_error": [0.4]})
     cov = gaia_covariance(t, ["pmra", "pmdec"])
-    assert cov[0, 0, 0] == 0.0  # NaN error -> zero variance (unperturbed)
     assert np.allclose(cov[0, 1, 1], 0.16)
     assert cov[0, 0, 1] == 0.0  # no corr column -> zero off-diagonal
+
+
+def test_gaia_covariance_rejects_a_nan_error_on_a_measured_value():
+    """R31-02: a NaN error used to become zero variance, so the MOST uncertain star was left
+    unperturbed and earned a high pFreqMC (0.60 against 0.18 for the same star with error 0.5 in
+    the hub's mock). A missing error is not a known-exact value: refuse it, and say how many."""
+    t = QTable(
+        {
+            "pmra": [1.0, 2.0, 3.0],
+            "pmdec": [1.0, 2.0, 3.0],
+            "pmra_error": [np.nan, 0.3, np.nan],
+            "pmdec_error": [0.4, 0.4, 0.4],
+        }
+    )
+    with pytest.raises(ValueError, match="2 source"):
+        gaia_covariance(t, ["pmra", "pmdec"])
+    # a value that is itself missing is not this defect: its row is unusable anyway
+    t["pmra"][0] = t["pmra"][2] = np.nan
+    cov = gaia_covariance(t, ["pmra", "pmdec"])
+    assert np.allclose(cov[1, 0, 0], 0.09)
 
 
 # ---------------------------------------------------------------------------

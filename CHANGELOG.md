@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### R30 inference (same review)
+- **Added (opt-in, defaults unchanged):** `*_column` arguments on the `*_by_probability` routes and
+  `errors=` on `radial_velocity_model` (per-star errors, R30-01); `selection_radius` /
+  `selection_center` on `proper_motion_2d_gaussian` (truncated likelihood for a disc-selected
+  sample, R30-07).
+- **Changed:** `velocity_model` raises a `RuntimeWarning` when median/std of the amplitudes is
+  below 5, where a normal fitted to the Rice-distributed `|mu|` biases `std_v` low (R30-02); new
+  `values_are_amplitudes=` (False for signed components). Its docstring states that `distance`
+  enters as exact.
+- **Fixed:** `radial_velocity_model` raised `UnitConversionError` on every input: it passed km/s
+  to `velocity_model`, which read them as mas/yr. Its only test monkeypatched `velocity_model`.
+
+### R30 dynamics (inference and dynamics review, hub `agent-findings/review-inference-dynamics-2026-10-05.md`)
+- **Added (opt-in, defaults unchanged):** `virial_scale_radius` (R30-10); `distance_err` on
+  `grav_bound_radius` (R30-11); `half_mass_radius_ratio`, `deproject_half_mass_radius` and
+  `radius_kind=` on `half_mass_relaxation_time` (R30-12).
+- **Changed:** `calculate_hill_radius` no longer overwrites the caller's `cluster_mass_err` (R30-03)
+  and warns when it is not given (R30-04); `half_mass_relaxation_time` warns when `radius_kind` is
+  not declared (numbers unchanged); `grav_bound_radius(dispersion=...)` is deprecated (`FutureWarning`).
+### R31 (core and segregation review, hub `agent-findings/review-core-synthetic-segregation-2026-10-05.md`)
+- **Changed:** `gaia_covariance` raises `ValueError` when an error is NaN/inf on a finite value
+  (R31-02); it used to become zero variance, leaving the most uncertain source unperturbed.
+- **Added (opt-in):** `reference_center` / `reference_tolerance` on `search_pseudoprobability`:
+  distance from the selected cluster's median, and a `RuntimeWarning` when the sweep picked a
+  denser neighbour (R31-04). The selection rule is unchanged.
+- **Fixed:** `mst_edges` keeps zero-length edges between coincident points (R31-05).
+  Consequence: `lambda_msr(statistic="geometric_edge")` with coincident points used to run on a
+  wrong tree and now raises `ValueError` (the log of a zero edge is undefined); drop duplicates
+  first or use `total` / `median_edge`.
+- **Docs:** raw feature scale is an implicit per-axis weighting; standardizing is not neutral
+  (R31-01). `lambda_msr` states that its permutation null assumes mass independent of position
+  (R31-06).
+
 ### Added
 - **Mode search after every PyMC fit (`SamplingConfig.mode_search`, on by default).**
   `erotica.analysis.modesearch` (multi-start optimisation from the prior, ridge starts, Laplace per
@@ -39,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start-up trials, i.e. after ten real HDBSCAN fits.
 
 ### Fixed
+- **structure: bootstrap errors of `half_mass_radius`, `calculate_half_light_radius` and `center_determination` are reproducible by default** (`DEFAULT_BOOTSTRAP_SEED`); pass `seed=None` for the old behaviour.
 - **`IsochroneFitter._seeded_inverse_mass`: a parameter whose search mode lies within 3 local sd
   of an interval bound gets the unseeded entry 1** instead of the logit-Jacobian map, which
   diverges at the bound. On NGC 6383 the mode had A_V on its lower bound and the entry was

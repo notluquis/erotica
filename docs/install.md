@@ -1,7 +1,7 @@
 # Installation
 
-EROTICA requires **Python ≥ 3.13**. This is `requires-python` in `pyproject.toml`, and it is what
-CI runs (3.13 and 3.14) — an older version cannot install the package at all, so the "≥ 3.11" this
+EROTICA requires **Python ≥ 3.14**. This is `requires-python` in `pyproject.toml`, and it is what
+CI runs (3.14) — an older version cannot install the package at all, so the "≥ 3.11" this
 page used to state was not a soft floor but a wrong one.
 
 ```bash
