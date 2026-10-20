@@ -556,6 +556,35 @@ def _erf_np(x: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
+def _strictly_inside_support(model, point: dict, z_max: float = 20.0) -> dict:
+    """``point`` (constrained values) with every coordinate moved strictly inside its support.
+
+    ``find_start`` optimises inside closed bounds and can return a mode exactly ON one (A_V = 0.5 with
+    ``Av_range=(0.5, 2.0)`` on NGC 6383). PyMC's interval transform sends a value on the bound to
+    +-inf, nutpie's single common start is then ``-inf`` and it stops with ``All initialization points
+    failed ... BadLogp(NaN)``. The transformed space is where the support is all of R, so: forward with
+    the model's own transform, clip the non-finite or extreme coordinates to ``+-z_max`` (the bound
+    plus ~2e-9 of the range for an interval), and back. Values already inside are returned unchanged
+    up to round-off; a transform that cannot be evaluated on its own (bounds that depend on another
+    variable) leaves its value as it was.
+    """
+    out = dict(point)
+    with model:
+        for rv in model.free_RVs:
+            name, tr = rv.name, model.rvs_to_transforms.get(rv)
+            if tr is None or name not in point:
+                continue
+            try:
+                z = np.asarray(tr.forward(point[name], *rv.owner.inputs).eval(), float)
+                if np.all(np.isfinite(z)) and np.all(np.abs(z) <= z_max):
+                    continue
+                zc = np.clip(np.nan_to_num(z, nan=0.0, posinf=z_max, neginf=-z_max), -z_max, z_max)
+                out[name] = np.asarray(tr.backward(zc, *rv.owner.inputs).eval(), float).reshape(np.shape(point[name]))
+            except Exception:  # noqa: BLE001 - leave this coordinate as it was; nutpie reports a bad start itself
+                continue
+    return out
+
+
 class IsochroneFitter:
     r"""Bayesian isochrone fitting: unbinned per-star likelihood over EEP-interpolated MIST
     isochrones, sampled with NUTS (PyMC).
@@ -1579,6 +1608,8 @@ class IsochroneFitter:
                     )
                 if initvals is None:
                     initvals = dict(start_info["mode"])  # ONE common start: nutpie takes no list
+            if initvals is not None and not isinstance(initvals, (list, tuple)):
+                initvals = _strictly_inside_support(model, initvals)
         if start == "search" and nuts_sampler != "nutpie":
             n_chains = chains if chains is not None else 4
             jax_sampler = nuts_sampler in ("numpyro", "blackjax")

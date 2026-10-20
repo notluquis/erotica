@@ -1674,3 +1674,18 @@ def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatc
     assert seen["compile_kwargs"]["mode"] == "JAX"
     assert isinstance(seen["initvals"], dict)  # one common start, not a per-chain list
     assert idata.posterior.sizes["chain"] == 2
+
+
+@requires_bayes_extra
+def test_nutpie_start_on_a_prior_bound_still_samples(tmp_path):
+    """``find_start`` can return a mode exactly ON a bound (A_V = 0.5 with ``Av_range=(0.5, 2.0)`` on NGC 6383);
+    PyMC's interval transform sends it to +-inf and nutpie stopped with ``All initialization points failed ...
+    BadLogp(NaN)``. The start is passed in as ``start_info`` so the test does not wait for ``find_start``.
+    Red without ``_strictly_inside_support``."""
+    f = _toy_fitter(tmp_path, Av_range=(0.2, 1.0))
+    f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
+    mode = dict(met=0.015, loga=6.5, dm=10.0, Av=0.2, sigma_int=0.05, f_bg=0.05)  # Av ON the lower bound
+    idata = f.fit(draws=20, tune=20, chains=2, random_seed=3, progressbar=False, start_info={"mode": mode})
+    assert idata.posterior.attrs["inference_library"] == "nutpie"
+    assert idata.posterior["Av"].values.min() >= 0.2
+    assert np.isfinite(idata.posterior["Av"].values).all()
