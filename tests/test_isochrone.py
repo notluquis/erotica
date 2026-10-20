@@ -1541,10 +1541,12 @@ def toy_nuts_fit(tmp_path_factory):
 
     Stars drawn star by star from the closed-form toy family (``_toy_stars``), never through
     the likelihood; truth off every node and off the prior centre (dm_mu = 10.0,
-    mean(Av_range) = 0.6), so a posterior stuck on either cannot pass. numpyro (in the bayes
-    extra): PyMC's own NUTS took 3 h 25 min here on a loaded machine. target_accept 0.9 as
+    mean(Av_range) = 0.6), so a posterior stuck on either cannot pass. The default engine, nutpie on
+    JAX (numpyro until 2026-10-19; both ran here): PyMC's own NUTS took 3 h 25 min here on a
+    loaded machine. target_accept 0.9 as
     pre-registered for the recovery runs; at 0.8 this fit had 2 divergences. 2000 draws per
-    chain since 2026-09-24 (was 1000), for margin on the ESS gate.
+    chain since 2026-09-24 (was 1000), for margin on the ESS gate; 4000 since 2026-10-19 (see the
+    Vehtari gate below).
     """
     f = _toy_fitter(tmp_path_factory.mktemp("toy_nuts"))
     t = _TOY_TRUTH
@@ -1553,14 +1555,13 @@ def toy_nuts_fit(tmp_path_factory):
         prob_threshold=0,
     )
     return f.fit(
-        draws=2000,
+        draws=4000,
         tune=1000,
         chains=2,
-        cores=1,
+        cores=2,
         random_seed=11,
         progressbar=False,
-        nuts_sampler="numpyro",
-        target_accept=0.9,
+        target_accept=0.9,  # nuts_sampler left at the default (nutpie on JAX), as users get it
     )
 
 
@@ -1603,6 +1604,18 @@ def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
     ESS/draw is 0.23-0.29 on dm and 0.25-0.26 on A_V (sampler seeds 11 and 12, 2 x 1000);
     the fixture runs 2 x 2000 so the gate has margin rather than passing at ESS ~ 460.
     Mutation: the midpoint rule restored in ``_p_observed`` turns this red.
+
+    2026-10-19, nutpie as the engine (its default ``"diag"`` adaptation, kept): ESS_bulk(dm) at
+    2 x 2000 was 372 in CI and 401-617 in six local runs (seeds 11 and 12, two star draws,
+    pymc 6.3.1 and 6.3.2): ESS/draw 0.09-0.15, with ``met``-``log t``-``dm`` correlated 0.7-0.9. The
+    gate sat in the middle of that range, so the fixture now runs 2 x 4000. Measured with the CI
+    versions (pymc 6.3.2, jax 0.12.0, nutpie 0.16.11), sampler/star seeds 11/11, 12/11, 11/21:
+    ESS(dm) 1210, 829, 697 (ESS/draw 0.151, 0.104, 0.087), R-hat <= 1.0061, 0 divergences; the
+    lowest ESS/draw seen in any run, 0.087, would give 696 at 2 x 4000, 1.7x the gate. 3000 draws was not enough:
+    one of three seeds had R-hat(dm) 1.013. The gate is unchanged. The mutation still turns it
+    red at 4000 draws: ESS(dm) 296 and 345, ESS(A_V) 325 and 263 (ESS/draw 0.03-0.04, two seeds).
+    Cost: twice the draws of before, same per-draw cost. Numbers: hub
+    agent-findings/nuts-performance-2026-10-19.md section 12.
     """
     import arviz as az
 
@@ -1636,6 +1649,41 @@ def test_default_pymc_sampler_path_runs(tmp_path):
     empty ``nuts_sampler_kwargs``) and the slow tests use numpyro, so nothing else runs it."""
     f = _toy_fitter(tmp_path)
     f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
-    idata = f.fit(draws=20, tune=20, chains=1, cores=1, random_seed=3, progressbar=False)
+    with pytest.warns(UserWarning, match="PyMC's own NUTS"):  # asking for it is allowed, and warns
+        idata = f.fit(
+            draws=20, tune=20, chains=1, cores=1, random_seed=3, progressbar=False,
+            nuts_sampler="pymc",
+        )  # fmt: skip
     for p in ("met", "loga", "dm", "Av", "sigma_int", "f_bg"):
         assert idata.posterior[p].values.size == 20
+
+
+@requires_bayes_extra
+def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatch):
+    """``fit()`` with no engine chosen: nutpie, compiled with the JAX backend, started from ONE
+    common point (the best mode of ``find_start``) because nutpie takes no per-chain start list
+    (PyMC raises NotImplementedError for one). The existing suite names its sampler or runs the
+    slow numpyro fixture, so nothing else runs the default path; before 2026-10-19 the default
+    was PyMC's own NUTS.
+
+    Mutations (2026-10-19): default back to ``"pymc"`` -> the library assertion is red;
+    ``initvals = start_info["chain_starts"]`` (a list) for nutpie -> NotImplementedError;
+    ``compile_kwargs`` dropped -> the backend assertion is red."""
+    import pymc as pm
+
+    seen = {}
+    real_sample = pm.sample
+
+    def spy(*a, **k):
+        seen.update(k)
+        return real_sample(*a, **k)
+
+    monkeypatch.setattr(pm, "sample", spy)
+    f = _toy_fitter(tmp_path)
+    f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
+    idata = f.fit(draws=20, tune=20, chains=2, random_seed=3, progressbar=False)
+    assert idata.posterior.attrs["inference_library"] == "nutpie"
+    assert seen["nuts_sampler"] == "nutpie"
+    assert seen["compile_kwargs"]["mode"] == "JAX"
+    assert isinstance(seen["initvals"], dict)  # one common start, not a per-chain list
+    assert idata.posterior.sizes["chain"] == 2

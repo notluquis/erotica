@@ -157,7 +157,7 @@ the point:
   value at which EFF and an untruncated King profile coincide — so an apparent pile-up there
   can be an artifact of the assumed geometry.
 
-In continuous integration on Python 3.13 and 3.14, with a separate job for the `bayes`
+In continuous integration on Python 3.14, with a separate job for the `bayes`
 extra: **562 tests at the v0.2.0 release**, 558 without the extra.
 
 The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied
