@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   distance from the selected cluster's median, and a `RuntimeWarning` when the sweep picked a
   denser neighbour (R31-04). The selection rule is unchanged.
 - **Fixed:** `mst_edges` keeps zero-length edges between coincident points (R31-05).
+  Consequence: `lambda_msr(statistic="geometric_edge")` with coincident points used to run on a
+  wrong tree and now raises `ValueError` (the log of a zero edge is undefined); drop duplicates
+  first or use `total` / `median_edge`.
 - **Docs:** raw feature scale is an implicit per-axis weighting; standardizing is not neutral
   (R31-01). `lambda_msr` states that its permutation null assumes mass independent of position
   (R31-06).

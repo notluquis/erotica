@@ -167,6 +167,27 @@ def test_mst_edges_keeps_zero_length_edges_between_coincident_points():
     assert mst_edges(squareform(pdist(tiny))).size == 2
 
 
+def test_geometric_edge_with_coincident_points_raises_instead_of_using_a_wrong_tree():
+    """Before R31-05 scipy dropped the zero edge, so ``geometric_edge`` ran on a wrong tree; now the
+    zero edge is kept and the statistic, undefined there, refuses. ``total`` and ``median_edge``
+    still work on the same input."""
+    from erotica.analysis.segregation import _tree_statistic
+
+    pts = np.array([[0.0, 0.0], [0.0, 0.0], [10.0, 0.0], [25.0, 0.0]])
+    edges = mst_edges(squareform(pdist(pts)))
+    assert np.sort(edges).tolist() == [0.0, 10.0, 15.0]
+    with pytest.raises(ValueError, match="zero-length"):
+        _tree_statistic(edges, "geometric_edge")
+    assert _tree_statistic(edges, "total") == pytest.approx(25.0)
+    assert _tree_statistic(edges, "median_edge") == pytest.approx(10.0)
+    rng = np.random.default_rng(0)
+    p = rng.normal(size=(60, 2))
+    p[1] = p[0]
+    m = rng.uniform(1, 5, 60)
+    with pytest.raises(ValueError, match="zero-length"):
+        quiet(lambda_msr, p, m, 10, statistic="geometric_edge", n_sets=200, rng=1)
+
+
 def test_mst_edges_rejects_a_non_square_matrix():
     with pytest.raises(ValueError, match="square"):
         mst_edges(np.zeros((3, 4)))
