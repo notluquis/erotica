@@ -557,12 +557,14 @@ def _erf_np(x: Any) -> Any:
 
 
 _ISOCHRONE_MODE_SEARCH_CAVEAT = (
-    "Measured on synthetic age--[Fe/H] ridges (hub multimodality-automatic-check-2026-10-14.md section 3.9): "
-    "this verdict gave 2 false alarms in 8 fits whose chains agree (6/8 PASS, below the pre-registered 7/8) "
-    "- ripples of the ridge counted as modes - and its power there (6/6) came from flat tops at a bound with no "
-    "Laplace mass, not from the mass rule. With nutpie all chains start from one mode, so this is the only check for a "
-    "mode they never visit. Treat a FAIL as a list of modes to look at; pass "
-    "mode_search=None to turn it off."
+    "Measured (hub multimodality-automatic-check-2026-10-14.md sections 3.9-3.10). Real NGC 6383, nutpie, 2 chains, "
+    "300+300, 2 repetitions: this verdict gave FAIL both times for the same interior mode (Laplace share ~0.55 %); "
+    "its occupancy has a grain of 1/(5 x chains), so with 2 chains a mode of that share cannot PASS "
+    "(a FAIL by construction, not evidence of a missed region; the rule is under review, R75-04). Synthetic "
+    "age--[Fe/H] ridges, numpyro, 4 chains from spread starts (nutpie's single common start does not reproduce "
+    "them): 6 of 8 fits whose chains agree PASS, below the pre-registered 7 of 8; the 2 FAILs read as ripples of "
+    "the ridge (not tested). With nutpie all chains start from one mode, so this is the only check for a mode "
+    "they never visit: treat a FAIL as a list of modes to look at; mode_search=None turns it off."
 )
 
 
@@ -1579,14 +1581,22 @@ class IsochroneFitter:
             model and its draws and stored in ``idata.attrs["mode_search"]`` (``mode_search_summary``).
             On by default (``"default"`` = ``ModeSearchConfig()``); ``None`` turns it off. A FAIL only
             warns, the fit is kept. **What was measured about the verdict on this posterior** (hub
-            ``multimodality-automatic-check-2026-10-14.md`` §3.9, synthetic K x W clusters, n = 16
-            starts): on age--[Fe/H] ridges it **raises false alarms** (6 of 8 fits whose chains agree
-            PASS, below the pre-registered 7 of 8; the two FAILs were ripples of the ridge, not a missed
-            region), and its power on the multi-plateau cell (6 of 6 FAIL) was measured on flat tops
-            that no chain visited, **not on the Laplace-mass rule** (every mode there sat at a bound
-            and had no Laplace mass). **With nutpie every chain starts from the same mode** (no per-chain
-            starts), so this search is the only check for a mode the chains never visit. Read a FAIL as "look at the modes it lists", not as a defect. It
-            costs 1900-3400 density+gradient evaluations (compiled with JAX here).
+            ``multimodality-automatic-check-2026-10-14.md`` §3.9-§3.10):
+
+            * real NGC 6383 (254 stars), nutpie, 2 chains, 300 + 300, two repetitions: **FAIL both times**,
+              for the same interior mode (Laplace share ~0.55 %). The occupancy rule has a grain of
+              ``1 / (per_chain x chains)`` and ignores it, so with 2 chains a mode of that share cannot
+              PASS: a FAIL by construction, not evidence of a missed region (under review, R75-04);
+            * synthetic age--[Fe/H] ridges, numpyro, 4 chains from spread starts (a nutpie common start does
+              not reproduce them): 6 of 8 fits whose chains agree PASS, below the pre-registered 7 of 8; the two
+              FAILs are read as ripples of the ridge (not tested);
+            * the 6 of 6 power on the multi-plateau cell was measured on flat tops at a bound with no Laplace
+              mass, **not on the mass rule**.
+
+            **With nutpie every chain starts from the same mode** (no per-chain starts), so this search is the
+            only check for a mode the chains never visit. Read a FAIL as "look at the modes it lists". It
+            costs 1900-3400 density+gradient evaluations (compiled with JAX here; 0.26-0.37 of the wall
+            clock of a 300 + 300 fit, two repetitions on a loaded machine).
         """
         pm = _require_pymc()
         warn_if_pymc_engine(nuts_sampler)
