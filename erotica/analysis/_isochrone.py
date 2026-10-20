@@ -5,7 +5,8 @@ Forward model with ASteCA's ingredients, likelihood unbinned per star (since 202
   - Chabrier (2014) IMF
   - Offner binary fraction + Duchêne & Kraus (2013) mass-ratio distribution, marginalised
   - Per-star photometric errors, a fitted error model for the completeness cut
-  - Cardelli, Clayton & Mathis (1989) + O'Donnell (1994) extinction law
+  - Extinction: the Gaia EDR3 colour-dependent law (Riello+2020, Fitzpatrick+2019 curve; default for
+    Gaia EDR3 bands) or Cardelli, Clayton & Mathis (1989) + O'Donnell (1994) at fixed wavelengths
 """
 
 from __future__ import annotations
@@ -83,6 +84,77 @@ def _ccm89(lam_aa: float, Rv: float = 3.1) -> float:
         a = 0.574 * x**1.61
         b = -0.527 * x**1.61
     return a + b / Rv
+
+
+# ---------------------------------------------------------------------------
+# Gaia EDR3 extinction law  (k_x = A_x / A_0 as a function of intrinsic colour and A_0)
+# ---------------------------------------------------------------------------
+
+EXTINCTION_LAWS = ("gaia_edr3", "ccm89")
+
+# Main-sequence fit (log g > 4.5) in X = (BP-RP)_0, from Fitz19_EDR3_MainSequence.csv, "BPRP" rows
+# (ESA, https://www.cosmos.esa.int/web/gaia/edr3-extinction-law; Riello+2020 2021A&A...649A...3R).
+# Order: Intercept, X, X2, X3, A, A2, A3, XA, AX2, XA2, with A = A_0 (extinction at 550 nm).
+# Riello+2020 fitted it on Kurucz spectra (solar metallicity) reddened with the Fitzpatrick+2019
+# curve (R_V = 3.1), over 3500 K < Teff < 10000 K and 0.01 < A_0 < 20 mag. The coefficients are
+# guarded against the official CSV by tests/test_isochrone.py (copy in tests/data/).
+_GAIA_EDR3_MS_BPRP = {
+    "G": (
+        0.995969721536602,
+        -0.159726460302015,
+        0.0122380738156057,
+        0.00090726555099859,
+        -0.0377160263914123,
+        0.00151347495244888,
+        -2.52364537395142e-05,
+        0.0114522658102451,
+        -0.000936914989014318,
+        -0.000260296774134201,
+    ),
+    "BP": (
+        1.15363197483424,
+        -0.0814012991657388,
+        -0.036013023976704,
+        0.0192143585568966,
+        -0.022397548243016,
+        0.000840562680547171,
+        -1.31018008013549e-05,
+        0.00660124080271006,
+        -0.000882247501989453,
+        -0.000111215755291684,
+    ),
+    "RP": (
+        0.66320787941067,
+        -0.0179847164933981,
+        0.000493769449961458,
+        -0.00267994405695751,
+        -0.00651422146709376,
+        3.30179903473159e-05,
+        1.57894227641527e-06,
+        -7.9800898337247e-05,
+        0.000255679812110045,
+        1.10476584967393e-05,
+    ),
+}
+_GAIA_EDR3_X_RANGE = (-0.06, 2.5)  # intrinsic (BP-RP)_0 the fit is evaluated on; clipped outside
+_GAIA_EDR3_A0_FLOOR = 0.01  # the fit starts at A_0 = 0.01 mag
+
+
+def _gaia_edr3_k(band: str, X: Any, A0: Any, xp: Any = np) -> Any:
+    """Gaia EDR3 extinction coefficient :math:`k = A_x / A_0` for ``band`` in G, BP, RP.
+
+    ``X`` is the intrinsic :math:`(G_{BP}-G_{RP})_0`, clipped to [-0.06, 2.5]; ``A0`` is the
+    extinction at 550 nm, floored at 0.01 mag. Pure arithmetic on ``xp`` arrays, so it traces
+    in PyTensor and JAX.
+    """
+    c = _GAIA_EDR3_MS_BPRP[band]
+    X = xp.clip(X, *_GAIA_EDR3_X_RANGE)
+    A = xp.maximum(A0, _GAIA_EDR3_A0_FLOOR)
+    return (
+        c[0] + c[1] * X + c[2] * X**2 + c[3] * X**3
+        + c[4] * A + c[5] * A**2 + c[6] * A**3
+        + c[7] * X * A + c[8] * A * X**2 + c[9] * X * A**2
+    )  # fmt: skip
 
 
 # ---------------------------------------------------------------------------
@@ -642,6 +714,7 @@ class IsochroneFitter:
         color_effl: tuple[float, float] = (5182.6, 7825.1),
         model: str = "MIST",
         Rv: float = 3.1,
+        extinction_law: str | None = None,
         # Binary fraction (Offner et al. 2022 / ASteCA default)
         alpha: float = 0.09,
         beta: float = 0.94,
@@ -679,6 +752,29 @@ class IsochroneFitter:
             Total-to-selective extinction ratio :math:`R_V = A_V/E(B-V)`,
             dimensionless. 3.1 is the diffuse-ISM average; sightlines through
             dense cloud material run higher. It is **fixed, not fitted**.
+        extinction_law : {"gaia_edr3", "ccm89"} or None, default None
+            How the sampled ``Av`` becomes a shift of the G magnitude and of the colour.
+
+            - ``"gaia_edr3"``: the official Gaia EDR3 law (Riello+2020, Fitzpatrick+2019
+              curve), :math:`k_x = A_x/A_0` as a polynomial in the model point's **intrinsic**
+              :math:`(G_{BP}-G_{RP})_0` and in :math:`A_0`. So a hot star and a cool one are
+              reddened differently, which a single coefficient cannot do. **Under this law the
+              parameter named ``Av`` is** :math:`A_0`, **the extinction at 550 nm**, not
+              :math:`A_V` of CCM89 (the two differ by a few percent and by the filter
+              response; the Gaia law is defined on :math:`A_0`). It is only defined for the
+              Gaia EDR3 G, BP, RP bands and fixes :math:`R_V = 3.1` (the Fitzpatrick+2019
+              curve), so any other band or ``Rv`` raises ``ValueError``. Domain: Teff 3500 to
+              10000 K, :math:`0.01 < A_0 < 20` mag; the colour is clipped to [-0.06, 2.5] and
+              :math:`A_0` floored at 0.01 inside the coefficient, **not** in the shift.
+            - ``"ccm89"``: constant coefficients from CCM89 + O'Donnell94 at the effective
+              wavelengths ``magnitude_effl`` / ``color_effl`` and ``Rv``. This is what P01
+              used (and what the fitter did until 2026-10-20); choose it to reproduce
+              published numbers. ``Av`` is then :math:`A_V` in the CCM89 frame.
+            - ``None`` (default): ``"gaia_edr3"`` when the bands are the Gaia EDR3 defaults
+              and ``Rv == 3.1``, else ``"ccm89"``.
+
+            Measured on NGC 6383 (2026-10-20): the Gaia law raises the free-fit log L by 4.4
+            with the same six parameters, and the free ``Av`` from 0.649 to 0.770.
         alpha, beta : float, default 0.09 and 0.94
             Binary-fraction parameters in
             :math:`b_p = \alpha + \beta / (1 + 1.4/m)`, with :math:`m` in
@@ -734,6 +830,7 @@ class IsochroneFitter:
         self.color_effl = color_effl
         self.model_name = model
         self.Rv = Rv
+        self.extinction_law = self._resolve_extinction_law(extinction_law)
         self.alpha = alpha
         self.beta = beta
         self.loga_range = loga_range
@@ -863,6 +960,32 @@ class IsochroneFitter:
         if precompute_grid:
             self._build_nodes()
 
+    def _resolve_extinction_law(self, law: str | None) -> str:
+        gaia_bands = self.magnitude == "Gaia_G_EDR3" and tuple(self.color) == (
+            "Gaia_BP_EDR3",
+            "Gaia_RP_EDR3",
+        )
+        if law is None:
+            return "gaia_edr3" if gaia_bands and self.Rv == 3.1 else "ccm89"
+        if law not in EXTINCTION_LAWS:
+            raise ValueError(
+                f"extinction_law must be one of {EXTINCTION_LAWS} or None, got {law!r}"
+            )
+        if law == "gaia_edr3" and not (gaia_bands and self.Rv == 3.1):
+            raise ValueError(
+                "extinction_law='gaia_edr3' is defined only for the Gaia EDR3 G, BP, RP bands and "
+                f"R_V = 3.1 (got {self.magnitude!r}, {self.color!r}, Rv={self.Rv}); use 'ccm89'"
+            )
+        return law
+
+    def _extinguish(self, G: Any, col: Any, Av: Any, xp: Any = np) -> tuple[Any, Any]:
+        """Apply the extinction ``Av`` to intrinsic G (already with the distance modulus) and colour."""
+        if self.extinction_law == "ccm89":
+            return G + self._kG * Av, col + self._k_col1 * Av
+        kg = _gaia_edr3_k("G", col, Av, xp)
+        kc = _gaia_edr3_k("BP", col, Av, xp) - _gaia_edr3_k("RP", col, Av, xp)
+        return G + kg * Av, col + kc * Av
+
     def _compute_ext_coefs(self) -> tuple[float, float, float]:
         kG = _ccm89(self.magnitude_effl, self.Rv)
         kBP = _ccm89(self.color_effl[0], self.Rv)
@@ -969,7 +1092,10 @@ class IsochroneFitter:
         """Segments and weights of the model population at the sampled parameters."""
         X = self._interp_isochrone(met, loga, xp)
         mass = xp.maximum(X[0], 1e-9)
-        dmag, dcol = dm + self._kG * Av, self._k_col1 * Av
+        if self.extinction_law == "ccm89":  # constant shifts, applied here
+            dmag, dcol = dm + self._kG * Av, self._k_col1 * Av
+        else:  # colour-dependent: applied per model point below, once the sheet is subsampled
+            dmag, dcol = dm, 0.0
         G, col = X[1] + dmag, X[2] + dcol
         Gq, cq = X[3::2] + dmag, X[4::2] + dcol  # (n_q, n_eep)
 
@@ -1012,11 +1138,18 @@ class IsochroneFitter:
         g1 = _dk_gamma(m_b, xp, smooth=True) + 1.0
         cdf = [m_b * 0.0] + [m_b * 0.0 + 1.0 if q == 1.0 else q**g1 for q in _Q_NODES[1:]]
         pq = [cdf[k + 1] - cdf[k] for k in range(len(_Q_NODES) - 1)]
+        Gq_s, cq_s = _sub(Gq_c), _sub(cq_c)
+        if self.extinction_law != "ccm89":
+            # each point is reddened by the law at its own intrinsic colour; the sheet's
+            # sub-primary steps vq, vc below keep their A_0 = 0 values (a colour-dependent
+            # law changes them by dk * A_0 across one EEP step, neglected)
+            G, col = self._extinguish(G, col, Av, xp)
+            Gq_s, cq_s = self._extinguish(Gq_s, cq_s, Av, xp)
         return dict(
             G=G,
             col=col,
-            Gq=_sub(Gq_c),
-            cq=_sub(cq_c),
+            Gq=Gq_s,
+            cq=cq_s,
             # step between neighbouring sub-primaries along the primary direction, per q node
             vq=_step(Gq_c),
             vc=_step(cq_c),
@@ -1742,8 +1875,7 @@ class IsochroneFitter:
             v: float(np.median(np.asarray(post[v]).ravel())) for v in ["met", "loga", "dm", "Av"]
         }
         X = self._interp_isochrone(med["met"], med["loga"], np)
-        G_app = X[1] + med["dm"] + self._kG * med["Av"]  # type: ignore[operator]
-        col_app = X[2] + self._k_col1 * med["Av"]  # type: ignore[operator]
+        G_app, col_app = self._extinguish(X[1] + med["dm"], X[2], med["Av"], np)
         return med, X[0], G_app, col_app
 
     # ------------------------------------------------------------------

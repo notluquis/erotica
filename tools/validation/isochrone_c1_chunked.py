@@ -92,6 +92,7 @@ def _fitter():
     from erotica.analysis._isochrone import IsochroneFitter
 
     pri = {k: v for k, v in PRIORS.items() if k not in ("M_met", "M_loga")}
+    pri["extinction_law"] = "ccm89"  # the C1 certificate is a CCM89 fit (default changed 2026-10-20)
     f = IsochroneFitter(isochs_path=MIST, **pri)
     f.setup(QTable(Table.read(SAMPLE)), prob_threshold=0.0)
     return f

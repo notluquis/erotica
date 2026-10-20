@@ -391,6 +391,7 @@ class ClusterAnalyzer:
         dm_range: tuple[float, float],
         M_met: int = 200,
         M_loga: int = 200,
+        extinction_law: str | None = None,
         pms_column: str | None = None,
         pms_max: float = 0.5,
         ms_weight: float = 1.0,
@@ -414,6 +415,10 @@ class ClusterAnalyzer:
             ``probabilities_ x probability_times`` y por tanto siempre <= esta. El ajuste de
             isocrona conserva ``probability_hdbscan`` porque el manuscrito de NGC 6383 esta
             enviado; ver el docstring de :mod:`erotica._membership`.
+        extinction_law : {"gaia_edr3", "ccm89"} or None, default None
+            Passed to :class:`IsochroneFitter` (see there). ``None`` picks the Gaia EDR3
+            colour-dependent law for Gaia EDR3 bands, where ``Av`` is then :math:`A_0`;
+            ``"ccm89"`` keeps the constant CCM89 coefficients of the P01 analysis.
 
         Returns
         -------
@@ -450,6 +455,7 @@ class ClusterAnalyzer:
             dm_range=dm_range,
             M_met=M_met,
             M_loga=M_loga,
+            extinction_law=extinction_law,
         )
         fitter.setup(
             cluster_data,
@@ -476,6 +482,7 @@ class ClusterAnalyzer:
         dm_range: tuple[float, float],
         M_met: int = 200,
         M_loga: int = 200,
+        extinction_law: str | None = None,
         grid_cache: str | Path | None = None,
         draws: int = 2000,
         tune: int = 1000,
@@ -527,6 +534,7 @@ class ClusterAnalyzer:
             dm_range=dm_range,
             M_met=M_met,
             M_loga=M_loga,
+            extinction_law=extinction_law,
         )
 
         if grid_cache is not None and _Path(grid_cache).exists():

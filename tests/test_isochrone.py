@@ -26,12 +26,14 @@ import pytest
 from astropy.table import QTable
 
 from erotica.analysis._isochrone import (
+    _GAIA_EDR3_MS_BPRP,
     IsochroneFitter,
     MISTIsochrones,
     _ccm89,
     _chabrier2014_weights,
     _dk_mean_q,
     _fit_error_model,
+    _gaia_edr3_k,
     _mag_combine,
 )
 
@@ -1203,6 +1205,9 @@ def _toy_fitter(tmp_path, *, Zs=(0.010, 0.015, 0.020), trim_per_age=0, **kw):
         dm_range=(9.6, 10.4),
         alpha=0.0,  # single stars unless a test asks for the toy binaries
         beta=0.0,
+        # _toy_stars reddens with CCM89 constants, so the fitter that inverts it must use them
+        # too; the Gaia law has its own simulator, _toy_stars_gaia_law
+        extinction_law="ccm89",
     )
     args.update(kw)
     return IsochroneFitter(tmp_path, **args)
@@ -1674,3 +1679,237 @@ def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatc
     assert seen["compile_kwargs"]["mode"] == "JAX"
     assert isinstance(seen["initvals"], dict)  # one common start, not a per-chain list
     assert idata.posterior.sizes["chain"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Gaia EDR3 colour-dependent extinction law  (default since 2026-10-20)
+# ---------------------------------------------------------------------------
+
+_FITZ_CSV = Path(__file__).parent / "data" / "Fitz19_EDR3_MainSequence.csv"
+# Where the NGC 6383 inputs of the hub finding live. The MIST grid is 1 GB and git-ignored, so the
+# oracle below runs only where it is present (the author's machine), and says so when it is not.
+_NGC6383 = Path.home() / "erotica" / "data" / "test" / "NGC6383"
+_NGC6383_SAMPLE = (
+    _NGC6383 / "comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv"
+)
+requires_ngc6383_inputs = pytest.mark.skipif(
+    not ((_NGC6383 / "MIST" / "UBVRIplus").is_dir() and _NGC6383_SAMPLE.is_file()),
+    reason="needs the git-ignored MIST UBVRIplus grid and the NGC 6383 sample (author's machine)",
+)
+# Hub finding ngc6383-av-prior-2026-10-20.md section 6, scripts/ngc6383_av_perstar.json: the
+# optimum and its log L under each law, computed OUTSIDE the package (per-point subclass of the
+# fitter that read the official CSV). Same six parameters, same N = 254.
+_ORACLE_CCM = (
+    (0.004814116144926579, 6.000071687173007, 10.258922973886124, 0.6490601796991984,
+     0.1530460009987517, 0.17027196458503782),
+    -578.864870861596,
+)  # fmt: skip
+_ORACLE_GAIA = (
+    (0.004683076971848369, 6.0, 10.242257483559875, 0.7700972415946532,
+     0.14622890813728065, 0.17040335631371567),
+    -574.5103364045469,
+)  # fmt: skip
+
+
+def _fitz_k_from_csv(name, X, A):
+    """The official table evaluated straight from the CSV, sharing no code with the package."""
+    import csv
+
+    row = next(
+        r for r in csv.DictReader(_FITZ_CSV.open()) if r["Xname"] == "BPRP" and r["Kname"] == name
+    )
+    c = {k: float(v) for k, v in row.items() if k not in ("Xname", "Kname")}
+    X = np.clip(X, -0.06, 2.5)
+    A = np.maximum(A, 0.01)
+    return (
+        c["Intercept"] + c["X"] * X + c["X2"] * X**2 + c["X3"] * X**3
+        + c["A"] * A + c["A2"] * A**2 + c["A3"] * A**3
+        + c["XA"] * X * A + c["AX2"] * A * X**2 + c["XA2"] * X * A**2
+    )  # fmt: skip
+
+
+def _toy_stars_gaia_law(n, loga, Z, dm, A0, rng, e=0.01):
+    """Single toy stars reddened with the Gaia EDR3 law read from the CSV (not the package's
+    constants), at each star's own intrinsic BP-RP."""
+    m = np.geomspace(0.1, 8.0, 20000)
+    ln = np.exp(-0.5 * ((np.log10(m) - np.log10(0.2)) / 0.55) ** 2) / m
+    pdf = np.where(m < 1.0, ln, np.exp(-0.5 * (np.log10(0.2) / 0.55) ** 2) * m**-2.35)
+    cdf = np.concatenate([[0.0], np.cumsum(0.5 * (pdf[1:] + pdf[:-1]) * np.diff(m))])
+    mass = np.interp(rng.uniform(size=n), cdf / cdf[-1], m)
+    G, col = _toy_photometry(mass, loga, Z)
+    BP0, RP0 = G + 0.6 * col, G - 0.4 * col
+    X0 = BP0 - RP0
+    Gapp = G + dm + _fitz_k_from_csv("kG", X0, A0) * A0 + rng.normal(0, e, n)
+    BP = BP0 + dm + _fitz_k_from_csv("kBP", X0, A0) * A0 + rng.normal(0, e, n)
+    RP = RP0 + dm + _fitz_k_from_csv("kRP", X0, A0) * A0 + rng.normal(0, e, n)
+    return QTable(
+        {
+            "Gmag": Gapp,
+            "G_BPmag": BP,
+            "G_RPmag": RP,
+            "e_Gmag": np.full(n, e),
+            "e_G_BPmag": np.full(n, e),
+            "e_G_RPmag": np.full(n, e),
+            "probability_hdbscan": np.ones(n),
+        }
+    )
+
+
+class TestGaiaExtinctionLaw:
+    def test_coefficients_equal_the_official_csv(self):
+        """Guards the transcription of 30 numbers. Mutation: change any digit of a coefficient, or
+        drop the A2 term of kG, and the grid below is red."""
+        X, A = np.meshgrid(np.linspace(-0.2, 3.0, 17), np.array([0.0, 0.005, 0.3, 1.0, 3.0, 10.0]))
+        for band, name in (("G", "kG"), ("BP", "kBP"), ("RP", "kRP")):
+            np.testing.assert_allclose(
+                _gaia_edr3_k(band, X, A, np), _fitz_k_from_csv(name, X, A), rtol=1e-13, atol=1e-13
+            )
+        assert set(_GAIA_EDR3_MS_BPRP) == {"G", "BP", "RP"}
+
+    def test_the_law_depends_on_colour_and_on_a0(self):
+        """Not a constant: kBP - kRP changes by >5% between a hot and a cool star at A_0 = 1, and
+        by >2% between A_0 = 0.3 and 3 at a fixed colour (hence not CCM-like). Mutation: a constant
+        coefficient (e.g. kc = 0.449) fails both."""
+
+        def kc(X, A):
+            return _gaia_edr3_k("BP", X, A, np) - _gaia_edr3_k("RP", X, A, np)
+
+        assert abs(kc(0.0, 1.0) / kc(2.0, 1.0) - 1) > 0.05
+        assert abs(kc(1.0, 3.0) / kc(1.0, 0.3) - 1) > 0.02
+        # sanity against the published numbers: kG ~ 0.8-1.0, kBP > kG > kRP at an intermediate colour
+        assert (
+            _gaia_edr3_k("BP", 1.0, 1.0, np)
+            > _gaia_edr3_k("G", 1.0, 1.0, np)
+            > _gaia_edr3_k("RP", 1.0, 1.0, np)
+        )
+
+    def test_clip_and_floor_are_where_documented(self):
+        k = lambda X, A: _gaia_edr3_k("G", X, A, np)  # noqa: E731
+        assert k(5.0, 1.0) == k(2.5, 1.0) and k(-3.0, 1.0) == k(-0.06, 1.0)
+        assert k(1.0, 0.0) == k(1.0, 0.01) == k(1.0, -2.0)
+
+    def test_default_law_follows_the_bands(self, tmp_path):
+        _make_mist_file(tmp_path)
+        kw = dict(loga_range=(6.5, 6.7), dm_mu=10.0, dm_range=(9.0, 11.0))
+        assert IsochroneFitter(tmp_path, **kw).extinction_law == "gaia_edr3"
+        assert IsochroneFitter(tmp_path, extinction_law="ccm89", **kw).extinction_law == "ccm89"
+        assert IsochroneFitter(tmp_path, Rv=5.0, **kw).extinction_law == "ccm89"
+        other = dict(
+            magnitude="V", color=("B", "V"), color_effl=(4400.0, 5500.0), magnitude_effl=5500.0
+        )
+        assert IsochroneFitter(tmp_path, **other, **kw).extinction_law == "ccm89"
+        with pytest.raises(ValueError, match="Gaia EDR3"):
+            IsochroneFitter(tmp_path, extinction_law="gaia_edr3", **other, **kw)
+        with pytest.raises(ValueError, match="Gaia EDR3"):
+            IsochroneFitter(tmp_path, extinction_law="gaia_edr3", Rv=5.0, **kw)
+        with pytest.raises(ValueError, match="extinction_law"):
+            IsochroneFitter(tmp_path, extinction_law="fitz", **kw)
+
+    def test_the_analyzer_passes_the_law_through(self, monkeypatch):
+        """Both Analyzer methods that build a fitter forward ``extinction_law``; before this the
+        law would have been reachable only by building the fitter by hand."""
+        import inspect
+
+        from erotica.analysis import analyzer as an
+
+        for name in ("prepare_isochrone_fitter", "fit_isochrone"):
+            p = inspect.signature(getattr(an.ClusterAnalyzer, name)).parameters
+            assert p["extinction_law"].default is None
+        seen = []
+
+        class Stop(Exception):
+            pass
+
+        def fake(*a, **k):
+            seen.append(k.get("extinction_law", "MISSING"))
+            raise Stop
+
+        monkeypatch.setattr(an, "IsochroneFitter", fake)
+        ca = an.ClusterAnalyzer.__new__(an.ClusterAnalyzer)
+        ca.data = QTable({"cluster": np.array([1])})
+        ca.selected_cluster = 1
+        kw = dict(
+            isochs_path=".", loga_range=(6, 7), dm_mu=10.0, dm_range=(9, 11), extinction_law="ccm89"
+        )
+        for name in ("prepare_isochrone_fitter", "fit_isochrone"):
+            with pytest.raises(Stop):
+                getattr(ca, name)(**kw)
+        assert seen == ["ccm89", "ccm89"]
+
+    @requires_bayes_extra
+    def test_ccm89_option_keeps_the_constant_shift(self, tmp_path):
+        """Non-default value: the explicit CCM option is the old arithmetic, exactly."""
+        f = _toy_fitter(tmp_path, extinction_law="ccm89")
+        f.setup(_toy_stars(60, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(0)), prob_threshold=0)
+        met, loga, dm, Av = 0.015, 6.5, 10.0, 0.7
+        X = f._interp_isochrone(met, loga, np)
+        d = f._deposit(met, loga, dm, Av, np)
+        np.testing.assert_allclose(d["G"], X[1] + dm + f._kG * Av, rtol=0, atol=1e-13)
+        np.testing.assert_allclose(d["col"], X[2] + f._k_col1 * Av, rtol=0, atol=1e-13)
+        np.testing.assert_allclose(
+            d["cq"], f._deposit(met, loga, dm, 0.0, np)["cq"] + f._k_col1 * Av, atol=1e-13
+        )
+
+    @requires_bayes_extra
+    def test_gaia_law_deposit_is_the_colour_dependent_shift(self, tmp_path):
+        f = _toy_fitter(tmp_path, extinction_law="gaia_edr3")
+        f.setup(_toy_stars(60, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(0)), prob_threshold=0)
+        met, loga, dm, Av = 0.015, 6.5, 10.0, 0.7
+        X = f._interp_isochrone(met, loga, np)
+        d = f._deposit(met, loga, dm, Av, np)
+        X0 = X[2]
+        kc = _fitz_k_from_csv("kBP", X0, Av) - _fitz_k_from_csv("kRP", X0, Av)
+        np.testing.assert_allclose(
+            d["G"], X[1] + dm + _fitz_k_from_csv("kG", X0, Av) * Av, atol=1e-12
+        )
+        np.testing.assert_allclose(d["col"], X0 + kc * Av, atol=1e-12)
+        assert np.ptp(kc) > 0.01  # the shift is not a constant over the isochrone
+
+    @requires_bayes_extra
+    def test_injection_with_the_gaia_law_is_recovered_only_by_the_gaia_law(self, tmp_path):
+        """Stars reddened by the CSV law (A_0 = 0.8). The fitter that uses the Gaia law recovers A_0
+        at the likelihood maximum; the CCM89 fitter on the same stars has a lower maximum. Control
+        arm: both fitters are otherwise identical. Likelihood only, no sampler."""
+        data = _toy_stars_gaia_law(1500, 6.5, 0.015, 10.0, 0.8, np.random.default_rng(11))
+        grid = np.linspace(0.5, 1.1, 61)
+        best = {}
+        for law in ("gaia_edr3", "ccm89"):
+            f = _toy_fitter(tmp_path, extinction_law=law, Av_range=(0.2, 1.5))
+            f.setup(data, prob_threshold=0)
+            ll = np.array([f.loglike(0.015, 6.5, 10.0, a, 0.02, 0.02) for a in grid])
+            best[law] = (grid[np.argmax(ll)], ll.max())
+        assert best["gaia_edr3"][0] == pytest.approx(0.8, abs=0.03)
+        assert best["gaia_edr3"][1] > best["ccm89"][1] + 5.0, best
+
+    @requires_bayes_extra
+    def test_gaia_law_graph_equals_numpy_in_pytensor(self, tmp_path):
+        """The law inside the compiled PyTensor graph (the one JAX and nutpie compile) against the
+        NumPy evaluation, at a point where clip and floor are both active in places."""
+        import pytensor
+        import pytensor.tensor as pt
+
+        f = _toy_fitter(tmp_path, extinction_law="gaia_edr3", alpha=0.09, beta=0.94)
+        f.setup(_toy_stars(80, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(2)), prob_threshold=0)
+        v = [pt.dscalar(n) for n in ("met", "loga", "dm", "Av", "s", "f")]
+        fn = pytensor.function(v, pt.sum(f._star_loglike(*v, pt)))
+        for x in ((0.015, 6.5, 10.0, 0.6, 0.03, 0.02), (0.012, 6.4, 9.9, 0.0, 0.05, 0.05)):
+            assert float(fn(*x)) == pytest.approx(f.loglike(*x), rel=1e-10, abs=1e-8)
+
+    @requires_ngc6383_inputs
+    @pytest.mark.parametrize(
+        "law, oracle", [("gaia_edr3", _ORACLE_GAIA), ("ccm89", _ORACLE_CCM)], ids=["gaia", "ccm89"]
+    )
+    def test_ngc6383_log_likelihood_reproduces_the_hub_finding(self, law, oracle):
+        """The log L of the free optimum under each law, computed by the package, against the
+        hub finding's independent per-point implementation (section 6: -574.5103 Gaia, -578.8649
+        CCM; +4.35 for the law). Sample N = 254, prob_threshold 0, loga in (6, 7), A_V in (0, 3)."""
+        from astropy.table import Table
+
+        f = IsochroneFitter(
+            isochs_path=_NGC6383 / "MIST" / "UBVRIplus", loga_range=(6.0, 7.0), Av_range=(0.0, 3.0),
+            dm_mu=10.3, dm_sigma=0.2, dm_range=(9.5, 10.7), extinction_law=law,
+        )  # fmt: skip
+        f.setup(QTable(Table.read(_NGC6383_SAMPLE)), prob_threshold=0.0)
+        assert f._N_obs == 254
+        params, expected = oracle
+        assert f.loglike(*params) == pytest.approx(expected, abs=1e-6)

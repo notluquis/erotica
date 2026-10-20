@@ -69,6 +69,8 @@ SUMMARY = HERE / "isochrone_unbinned_recovery.json"
 Z_NODES = np.array([2.540e-3, 4.518e-3, 8.033e-3, 1.4286e-2, 2.5404e-2, 4.5175e-2])
 PARAMS = ["met", "loga", "dm", "Av", "sigma_int", "f_bg"]
 PRIORS = {k: v for k, v in PRIORS.items() if k not in ("M_met", "M_loga")}
+# these runs simulate with CCM89 constants and reproduce CCM-era numbers: pin the law the default left on 2026-10-20
+PRIORS["extinction_law"] = "ccm89"
 
 
 def _strict(x):
