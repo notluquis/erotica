@@ -1603,6 +1603,16 @@ def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
     ESS/draw is 0.23-0.29 on dm and 0.25-0.26 on A_V (sampler seeds 11 and 12, 2 x 1000);
     the fixture runs 2 x 2000 so the gate has margin rather than passing at ESS ~ 460.
     Mutation: the midpoint rule restored in ``_p_observed`` turns this red.
+
+    2026-10-19, nutpie as the engine: with nutpie's own ``"diag"`` adaptation the ESS of ``dm``
+    was 372 in CI (the gate failed) and 401-617 in six local runs of the same fixture (2 x 2000,
+    seeds 11 and 12, two star draws, pymc 6.3.1 and 6.3.2): ESS/draw 0.09-0.15, step 0.19 x 34
+    leapfrog steps, because ``met``-``log t``-``dm`` are correlated 0.7-0.9 and that adaptation
+    takes trajectories 3x shorter than the old engine's. ``"draw_diag"`` (NUTPIE_ADAPTATION) gives
+    step 0.045 x 60-67 steps and ESS/draw 0.23-0.26 on ``dm`` (ESS 915-1034, three runs), the
+    old engine's value, on the same posterior. The gate itself is unchanged. Longer warm-up
+    (tune 2000) and ``"low_rank"`` did not recover it. Numbers: agent-findings/nuts-performance-2026-10-19.md
+    section 12 of the hub.
     """
     import arviz as az
 
@@ -1655,11 +1665,20 @@ def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatc
 
     Mutations (2026-10-19): default back to ``"pymc"`` -> the library assertion is red;
     ``initvals = start_info["chain_starts"]`` (a list) for nutpie -> NotImplementedError;
-    ``compile_kwargs`` dropped -> the backend assertion is red."""
+    ``compile_kwargs`` dropped -> the backend assertion is red; the adaptation dropped or
+    renamed -> the ``nutpie.sample`` assertion is red (2026-10-19, see the Vehtari gate below)."""
+    import nutpie
     import pymc as pm
 
-    seen = {}
+    seen, seen_nutpie = {}, {}
     real_sample = pm.sample
+    real_nutpie_sample = nutpie.sample
+
+    def nutpie_spy(*a, **k):
+        seen_nutpie.update(k)
+        return real_nutpie_sample(*a, **k)
+
+    monkeypatch.setattr(nutpie, "sample", nutpie_spy)
 
     def spy(*a, **k):
         seen.update(k)
@@ -1673,4 +1692,6 @@ def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatc
     assert seen["nuts_sampler"] == "nutpie"
     assert seen["compile_kwargs"]["mode"] == "JAX"
     assert isinstance(seen["initvals"], dict)  # one common start, not a per-chain list
+    assert seen_nutpie["adaptation"] == "draw_diag"  # reaches the sampler, not just pm.sample
+    assert seen_nutpie["target_accept"] == 0.8
     assert idata.posterior.sizes["chain"] == 2

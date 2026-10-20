@@ -21,6 +21,7 @@ from astropy.table import QTable
 from .._membership import COLUMNA_ISOCRONA, select_by_probability
 from .inference import (
     DEFAULT_NUTS_SAMPLER,
+    NUTPIE_ADAPTATION,
     NUTPIE_COMPILE_KWARGS,
     warn_if_pymc_engine,
 )
@@ -1528,7 +1529,10 @@ class IsochroneFitter:
             slower per gradient on this likelihood). **nutpie takes ONE common start**, so with
             ``start="search"`` the chains start at the best mode of :meth:`find_start` (not at the
             per-chain over-dispersed starts) and the diagonal mass matrix is not seeded; nutpie adapts
-            it. The mode search itself is :meth:`find_start`; the engine does none.
+            it, with ``adaptation="draw_diag"`` unless ``nuts_sampler_kwargs`` says otherwise
+            (:data:`~erotica.analysis.inference.NUTPIE_ADAPTATION`: nutpie's own ``"diag"`` gave
+            ESS/draw 0.09-0.15 on this posterior against 0.23-0.26).
+            The mode search itself is :meth:`find_start`; the engine does none.
         init : str
             Initialisation strategy passed to ``pm.sample``.  Options:
             ``"auto"`` (default), ``"advi"``, ``"advi+adapt_diag"``,
@@ -1628,7 +1632,10 @@ class IsochroneFitter:
         with model:
             # with our own step, target_accept already lives in it (pm.sample rejects it twice)
             extra = {} if step is not None else {"target_accept": target_accept, "init": init}
-            if step is None and nuts_sampler_kwargs:
+            if nuts_sampler == "nutpie":
+                # ``nuts=`` is the non-deprecated route; the caller's keys win over ours
+                extra["nuts"] = {"adaptation": NUTPIE_ADAPTATION, **(nuts_sampler_kwargs or {})}
+            elif step is None and nuts_sampler_kwargs:
                 extra["nuts_sampler_kwargs"] = nuts_sampler_kwargs
             idata = pm.sample(
                 draws=draws,
