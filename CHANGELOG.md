@@ -72,6 +72,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start-up trials, i.e. after ten real HDBSCAN fits.
 
 ### Fixed
+- **`IsochroneFitter.fit` on nutpie: a start exactly on a prior bound no longer stops the fit.** `find_start`
+  optimises inside closed bounds and can return a mode ON one (A_V = 0.5 with `Av_range=(0.5, 2.0)` on
+  NGC 6383); PyMC's interval transform sends it to +-inf, so nutpie's single common start was `-inf` and it died with
+  `All initialization points failed ... BadLogp(NaN)`. The start is now moved strictly inside the support in the
+  transformed space with the model's own transforms (`_strictly_inside_support`, clipped to +-20, i.e. ~2e-9 of
+  the range from the bound). A start that is moved raises a `UserWarning` naming it (a mode on a prior bound means the bound
+  binds at the likelihood optimum); a value outside the support raises `ValueError` instead of being carried to the
+  centre of the interval.
+
 - **structure: bootstrap errors of `half_mass_radius`, `calculate_half_light_radius` and `center_determination` are reproducible by default** (`DEFAULT_BOOTSTRAP_SEED`); pass `seed=None` for the old behaviour.
 - **`IsochroneFitter._seeded_inverse_mass`: a parameter whose search mode lies within 3 local sd
   of an interval bound gets the unseeded entry 1** instead of the logit-Jacobian map, which
@@ -111,6 +120,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   half a bin gives R-hat 1.03, ESS 152) and not robust on synthetic data (6 of 16 runs fail it).
 
 ### Changed
+- **`IsochroneFitter`: the default extinction law for Gaia EDR3 bands is now the official Gaia
+  colour-dependent law** (Riello+2020 coefficients, Fitzpatrick+2019 curve), new argument
+  `extinction_law` (`None` | `"gaia_edr3"` | `"ccm89"`; also on `ClusterAnalyzer.prepare_isochrone_fitter`
+  and `fit_isochrone`). Until now the shift was a constant CCM89 coefficient (E(BP-RP)/A_V = 0.449),
+  the same for a hot and a cool star. **Under the Gaia law the parameter named `Av` is A_0, the
+  extinction at 550 nm**, not A_V of CCM89; prior bounds are unchanged (`Av_range`, default
+  U(0, 3)). Other bands, or `Rv != 3.1`, resolve to `"ccm89"`; asking for `"gaia_edr3"` with them
+  raises. **Results move:** on NGC 6383 (N = 254) the free-fit log L rises by 4.35 with the same six
+  parameters (-578.865 to -574.510) and the free `Av` from 0.649 to 0.770. **To reproduce P01 or any
+  earlier run pass `extinction_law="ccm89"`.** The validation scripts that simulate with CCM89
+  constants (`isochrone_unbinned_recovery.py`, `isochrone_c1_chunked.py`) pin it. See
+  `docs/design-notes/decisions.md` (2026-10-20).
 - **`Clustering.search(n_jobs=...)` now defaults to `1` (was `-1`)**, because only a serial study
   reproduces with a fixed seed: `seed=0`, 30 trials on a 2-D space, six repeats gave one trial set
   with `n_jobs=1` and six different ones with `n_jobs=2`. Each HDBSCAN fit already uses every core
