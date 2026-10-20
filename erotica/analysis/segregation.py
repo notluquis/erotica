@@ -227,8 +227,35 @@ def mst_edges(distances: np.ndarray) -> np.ndarray:
         raise ValueError(f"distances must be a square matrix, got {distances.shape}")
     if distances.shape[0] <= 1:
         return np.empty(0)
-    tree = minimum_spanning_tree(distances).tocoo()
-    return np.asarray(tree.data, dtype=float)
+    # scipy's dense graph routines read any |d| below ~1e-8 (an absolute tolerance, np.isclose's
+    # atol) as "no edge", so a pair of coincident points (a resolved binary at 0", a duplicated
+    # row) loses its zero-length edge and is joined through a longer one.  A positive placeholder
+    # does not help below that tolerance.  So: collapse exactly coincident points to one
+    # representative (the tree of the collapsed set plus one zero-length edge per removed point IS
+    # the tree of the full set), and rescale if the remaining separations are themselves under the
+    # tolerance.  Hub review R31 (2026-10-05); probes in agent-findings/scripts/review_core_q5_*.py.
+    k = distances.shape[0]
+    zero_pairs = distances == 0.0
+    np.fill_diagonal(zero_pairs, False)
+    n_zero_edges = 0
+    if zero_pairs.any():
+        rep = np.argmax(zero_pairs | np.eye(k, dtype=bool), axis=1)  # lowest coincident index
+        keep = np.unique(rep)
+        n_zero_edges = k - keep.size
+        distances = distances[np.ix_(keep, keep)]
+    scale = 1.0
+    if distances.shape[0] > 1:
+        positive = distances[distances > 0.0]
+        if positive.size and positive.min() < 1e-6:
+            scale = float(positive.min())
+        edges = (
+            np.asarray(minimum_spanning_tree(distances / scale).tocoo().data, dtype=float) * scale
+        )
+    else:
+        edges = np.empty(0)
+    if n_zero_edges:
+        edges = np.concatenate([edges, np.zeros(n_zero_edges)])
+    return edges
 
 
 def _tree_statistic(edges: np.ndarray, statistic: Statistic) -> float:
@@ -489,6 +516,17 @@ def lambda_msr(
     total mass ``m1 + m2`` conditioned on a binary probability, when the claim is
     that binaries are centrally concentrated) makes the ranking and the hypothesis
     non-independent.  Rank by primary mass as a cross-check when that applies.
+
+    **The permutation null assumes mass is independent of position in the OBSERVED sample**
+    (R31-06). A completeness that depends on position and mass (crowding in the core, a
+    membership selection that thins the outskirts) breaks that assumption and manufactures
+    segregation that this p-value does not see. In a King synthetic with NGC 6383's structure
+    and no segregation (300 replicas per cell, rejection at p < 0.05), a 30 % core loss left
+    the rate at 0.057-0.070, while a 48 % loss raised it to 0.10-0.18 and a 71 % loss to
+    0.17-0.24 (hub ``review_core_q6_completeness_null``). Permuting masses within radial bins
+    restores the size but loses the power (0.16-0.37 against 0.89-0.99), so it is a control
+    that the inflation is radial, not a replacement. Measure the completeness gradient of
+    the sample before reading the p-value.
     """
     pts, unit = _as_positions(positions)
     n_total = len(pts)

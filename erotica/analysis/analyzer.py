@@ -20,6 +20,7 @@ from ._plots import plot_persistence_vs_members, plot_pms_panels, plot_probabili
 from ._sagitta import pms_characterization as _pms_characterization
 from .figures import plot_cumulative as _plot_cumulative
 from .figures import plot_distance_pathway_overlap as _plot_distance_pathway_overlap
+from .inference import DEFAULT_NUTS_SAMPLER
 from .kinematics import pm_amplitude as _pm_amplitude
 from .structure import calculate_half_light_radius as _calculate_half_light_radius
 from .structure import center_determination as _center_determination
@@ -481,7 +482,7 @@ class ClusterAnalyzer:
         chains: int | None = None,
         cores: int | None = None,
         target_accept: float = 0.8,
-        nuts_sampler: str = "pymc",
+        nuts_sampler: str = DEFAULT_NUTS_SAMPLER,
         random_seed: int | None = None,
         init: str = "auto",
         initvals: dict | None = None,

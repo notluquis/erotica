@@ -1380,3 +1380,23 @@ def test_selection_radius_smaller_than_the_sample_extent_is_refused():
     y = np.zeros(4)
     with pytest.raises(ValueError, match="outside the selection disc"):
         inference.proper_motion_2d_gaussian(x, y, selection_radius=0.3, selection_center=(0.0, 0.0))
+def test_sampling_config_defaults_to_nutpie_and_pymc_warns():
+    """The package never defaults to PyMC's own NUTS (hub finding nuts-performance-2026-10-19).
+    Runs a tiny model through ``_sample`` with the default and with ``"pymc"`` (the non-default)."""
+    pytest.importorskip("pymc")
+    import pymc as pm
+
+    from erotica.analysis.inference import _sample
+
+    assert SamplingConfig().nuts_sampler == "nutpie"
+    with pm.Model() as m:
+        mu = pm.Normal("mu", 0.0, 5.0)
+        pm.Normal("y", mu, 1.0, observed=np.array([0.9, 1.1, 1.3, 0.7, 1.0]))
+    idata = _sample(pm, m, SamplingConfig(draws=30, tune=30, chains=2, random_seed=1))
+    assert idata.posterior.attrs["inference_library"] == "nutpie"
+    with pytest.warns(UserWarning, match="PyMC's own NUTS"):
+        idata = _sample(
+            pm, m, SamplingConfig(draws=20, tune=20, chains=1, random_seed=1, nuts_sampler="pymc",
+                                  extra_kwargs={"cores": 1}),
+        )  # fmt: skip
+    assert idata.posterior.attrs["inference_library"] == "pymc"
