@@ -13,17 +13,43 @@ from .._membership import select_by_probability
 from .kinematics import projected_velocity_values, radial_velocity_values
 from .units import quantity_values
 
+#: The NUTS engine used when the caller does not choose one. Explicit, so that a missing nutpie fails
+#: loudly: ``pm.sample(nuts_sampler=None)`` would fall back to ``"pymc"`` in silence.
+DEFAULT_NUTS_SAMPLER = "nutpie"
+#: nutpie's default backend is numba, which measured as slow as PyTensor's C backend here
+#: (722 vs 787 ms per gradient in one run, JAX 250 ms under the same load); so JAX is asked for.
+NUTPIE_COMPILE_KWARGS = {"mode": "JAX", "gradient_backend": "jax"}
+
+
+def warn_if_pymc_engine(nuts_sampler: str | None) -> None:
+    """Asking for PyMC's own NUTS is allowed, and warns."""
+    if nuts_sampler == "pymc":
+        warnings.warn(
+            "nuts_sampler='pymc' is PyMC's own NUTS: ~3x slower per gradient than nutpie/JAX on the "
+            "isochrone fit (787 vs 250 ms, one loaded run), with the same trees. The default is 'nutpie'.",
+            UserWarning,
+            stacklevel=3,
+        )
+
 
 @dataclass(frozen=True)
 class SamplingConfig:
-    """Sampling knobs shared by PyMC models."""
+    """Sampling knobs shared by PyMC models.
+
+    ``nuts_sampler`` is ``"nutpie"`` by default, compiled with the JAX backend
+    (:data:`NUTPIE_COMPILE_KWARGS`): PyMC's own NUTS is never the default. ``"pymc"`` still works
+    and emits a warning. Measured on the NGC 6383 isochrone fit (hub finding
+    ``agent-findings/nuts-performance-2026-10-19.md``): in one run on a loaded machine a gradient
+    took 787 ms through PyTensor's C backend, 722 ms through numba and 250 ms through JAX; the
+    trees are the same size (mean 16.9 leapfrog steps per draw), so the backend is the factor.
+    """
 
     draws: int = 2_000
     tune: int = 1_000
     target_accept: float = 0.9
     chains: int | None = None
     random_seed: int | None = None
-    nuts_sampler: str = "pymc"
+    nuts_sampler: str = DEFAULT_NUTS_SAMPLER
     progressbar: bool = False
     extra_kwargs: dict[str, Any] = field(default_factory=dict)
 
@@ -312,6 +338,7 @@ def _require_pymc():
 
 
 def _sample(pm, model, config: SamplingConfig):
+    warn_if_pymc_engine(config.nuts_sampler)
     kwargs = dict(
         draws=config.draws,
         tune=config.tune,
@@ -319,8 +346,10 @@ def _sample(pm, model, config: SamplingConfig):
         progressbar=config.progressbar,
         random_seed=config.random_seed,
         nuts_sampler=config.nuts_sampler,
-        **config.extra_kwargs,
     )
+    if config.nuts_sampler == "nutpie":
+        kwargs["compile_kwargs"] = dict(NUTPIE_COMPILE_KWARGS)
+    kwargs.update(config.extra_kwargs)
     if config.chains is not None:
         kwargs["chains"] = config.chains
     with model:

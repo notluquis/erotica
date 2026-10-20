@@ -1,6 +1,6 @@
 # EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis
 
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Development Status](https://img.shields.io/badge/status-alpha-red.svg)](https://github.com/notluquis/erotica)
 [![CI](https://github.com/notluquis/erotica/actions/workflows/ci.yml/badge.svg)](https://github.com/notluquis/erotica/actions/workflows/ci.yml)
@@ -30,7 +30,7 @@ pip install -e ".[dev,docs]"
 
 ### Requirements
 
-- Python 3.13 or higher (this is `requires-python`, not a recommendation — older versions cannot
+- Python 3.14 or higher (this is `requires-python`, not a recommendation — older versions cannot
   install the package)
 - See `pyproject.toml` for the complete dependency list and the optional extras
   (`bayes`, `selection`, `examples`, `docs`, `dev`)
@@ -158,7 +158,7 @@ Written once because three reviewers ask for it: pyOpenSci's review template ask
 similar packages, JOSS requires a **State of the field** section, and Astropy's affiliated criteria
 ask that a package avoid duplicating existing functionality.
 
-**Supported Python: 3.13+** (CI runs 3.13 and 3.14).
+**Supported Python: 3.14+** (CI runs 3.14).
 
 | package | what it does that EROTICA does not | overlap |
 |---|---|---|
@@ -263,7 +263,7 @@ a day; keep the three in step on every release.
 **Development status**: v0.2.0 is the version the JOSS submission describes. The API is not yet
 frozen; see the roadmap below.
 
-**Tests**: the full suite runs in CI on Python 3.13 and 3.14, plus a job that installs the `bayes`
+**Tests**: the full suite runs in CI on Python 3.14, plus a job that installs the `bayes`
 extra so the sampler paths actually execute, and a docs job that builds the site. Audited by
 mutation rather than by coverage. (No test count is quoted here on purpose — a count in prose is
 stale by the next commit. Run `pytest --collect-only -q` for the current figure; `paper/paper.md`

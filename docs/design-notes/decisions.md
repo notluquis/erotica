@@ -1935,3 +1935,34 @@ La parte de `inference.py` (R30-01, R30-07) va en un PR aparte, apilado sobre es
 - **R30-12.** `radius_kind` declarado; King (Abel numerico) r3D/R2D = 1.322 (5), 1.334 (20), 1.337 (27.6); Plummer
   1.30477 (forma cerrada, pasa por la misma deproyeccion). Factor en t_rh: el cociente a la 3/2. El 1.52-1.55 es de
   t_rh, no del radio.
+---
+
+## 2026-10-19 — the NUTS engine is nutpie on JAX; PyMC's own NUTS is never the default
+
+**Symptom.** `test_nuts_on_ngc6383_reproduces_the_committed_log_t` (4 chains x 1000 + 1000) ran past
+4 h 16 min on a machine at load 55-225 without finishing; the toy recovery fixture took 3 h 25 min
+(documented in the fixture) and 68 min under numpyro.
+
+**Cause (measured, hub finding `agent-findings/nuts-performance-2026-10-19.md`).** Not the geometry
+and not the sampler: the trees are the same size under every engine (mean 16.9 leapfrog steps per
+draw under PyMC, 15.6 under numpyro, 10.9 under nutpie; depth 3-4). The cost is one gradient: the
+(N stars x S segments) density has 629 130 cells (N = 201), and `logp + grad` is 13x the forward pass
+in PyTensor (282 ms against 22 ms). Per gradient, in one run on the same loaded machine: PyTensor C
+787 ms, numba 722 ms (nutpie's default backend), JAX 250 ms.
+
+**Fix.** `nuts_sampler="nutpie"` is the default of `SamplingConfig`, `IsochroneFitter.fit` (so
+`IsochroneFitterKW`) and `ClusterAnalyzer.fit_isochrone`, compiled with the JAX backend
+(`NUTPIE_COMPILE_KWARGS`); the default is explicit so that a missing nutpie fails loudly, because
+`pm.sample(nuts_sampler=None)` falls back to `"pymc"` in silence. `"pymc"` still works and warns.
+`pymc[nutpie]`, `pytensor` and `jax` are core dependencies.
+
+**What it costs.** nutpie takes ONE start, not one per chain, so `fit(start="search")` starts every
+chain at the best mode of `find_start` (PyMC jitters it) instead of the four over-dispersed starts,
+and the seeded diagonal mass matrix is not used (nutpie adapts it). The mode search is still
+`find_start`; no engine does one.
+
+**Oracle.** Posterior of log t on the committed K x W run (median 5.965288, [5.933019, 5.999678]):
+nutpie started at the `find_start` mode 5.9677 [5.9320, 6.0021] (R-hat <= 1.0055, ESS 1534, 0 divergences), started from PyMC's initial point 5.9631 [5.9298, 5.9996] (nutpie#350: `init_mean` is not applied to PyMC models), numpyro 5.9642 [5.9290, 5.9997]; all inside the test's tolerances (0.005 / 0.007 / 0.009). Guards:
+`test_default_fit_is_nutpie_on_jax_from_one_common_start`, `test_sampling_config_defaults_to_nutpie_and_pymc_warns`,
+each seen red under four mutations (default back to `"pymc"`, a per-chain list for nutpie, no
+`compile_kwargs`, no warning).

@@ -19,6 +19,11 @@ import numpy as np
 from astropy.table import QTable
 
 from .._membership import COLUMNA_ISOCRONA, select_by_probability
+from .inference import (
+    DEFAULT_NUTS_SAMPLER,
+    NUTPIE_COMPILE_KWARGS,
+    warn_if_pymc_engine,
+)
 
 
 def _require_pymc():
@@ -1485,7 +1490,7 @@ class IsochroneFitter:
         chains: int | None = None,
         cores: int | None = None,
         target_accept: float = 0.8,
-        nuts_sampler: str = "pymc",
+        nuts_sampler: str = DEFAULT_NUTS_SAMPLER,
         random_seed: int | None = None,
         progressbar: bool = True,
         # Initialisation
@@ -1517,8 +1522,13 @@ class IsochroneFitter:
             Dual-averaging target acceptance rate.  PyMC default is 0.8.
             Raise to 0.9–0.99 if you see divergences.
         nuts_sampler : str
-            ``"blackjax"`` (JAX/GPU-friendly) or ``"pymc"``
-            (default PyMC implementation).
+            ``"nutpie"`` (default; compiled with the JAX backend, see
+            :data:`~erotica.analysis.inference.NUTPIE_COMPILE_KWARGS`), ``"numpyro"`` or
+            ``"blackjax"`` (JAX), or ``"pymc"`` (PyMC's own NUTS: allowed, emits a warning, ~5x
+            slower per gradient on this likelihood). **nutpie takes ONE common start**, so with
+            ``start="search"`` the chains start at the best mode of :meth:`find_start` (not at the
+            per-chain over-dispersed starts) and the diagonal mass matrix is not seeded; nutpie adapts
+            it. The mode search itself is :meth:`find_start`; the engine does none.
         init : str
             Initialisation strategy passed to ``pm.sample``.  Options:
             ``"auto"`` (default), ``"advi"``, ``"advi+adapt_diag"``,
@@ -1555,10 +1565,21 @@ class IsochroneFitter:
             exists**; :meth:`find_start` returns the runner-up modes so that can be checked.
         """
         pm = _require_pymc()
+        warn_if_pymc_engine(nuts_sampler)
 
         model = self.build_model()
         step = None
-        if start == "search":
+        extra_compile: dict = {}
+        if nuts_sampler == "nutpie":
+            extra_compile = {"compile_kwargs": dict(NUTPIE_COMPILE_KWARGS)}
+            if start == "search":
+                if start_info is None:
+                    start_info = self.find_start(
+                        chains if chains is not None else 4, np.random.default_rng(random_seed)
+                    )
+                if initvals is None:
+                    initvals = dict(start_info["mode"])  # ONE common start: nutpie takes no list
+        if start == "search" and nuts_sampler != "nutpie":
             n_chains = chains if chains is not None else 4
             jax_sampler = nuts_sampler in ("numpyro", "blackjax")
             if start_info is None:
@@ -1620,6 +1641,7 @@ class IsochroneFitter:
                 progressbar=progressbar,
                 initvals=initvals,
                 idata_kwargs={"log_likelihood": log_likelihood},
+                **extra_compile,
                 **extra,
             )
         return idata
