@@ -2040,3 +2040,54 @@ nutpie started at the `find_start` mode 5.9677 [5.9320, 6.0021] (R-hat <= 1.0055
 `test_default_fit_is_nutpie_on_jax_from_one_common_start`, `test_sampling_config_defaults_to_nutpie_and_pymc_warns`,
 each seen red under four mutations (default back to `"pymc"`, a per-chain list for nutpie, no
 `compile_kwargs`, no warning).
+
+---
+
+## 2026-10-20 — the isochrone fitter reddens with the Gaia EDR3 colour-dependent law, not a constant CCM89 coefficient
+
+**Symptom.** NGC 6383's isochrone fit puts A_V at 0.65, below every independent estimate (UBV of the
+OB stars 0.93-1.09; Gaia-era catalogues 1.2-1.3). The per-star log L of hub finding
+`agent-findings/ngc6383-av-prior-2026-10-20.md` section 6 showed that the law is part of it: with the
+Gaia law in place of the constant coefficients the free fit has a higher log L with the same six
+parameters.
+
+**Cause.** `_deposit` shifted G by `kG * Av` and the colour by `(kBP - kRP) * Av` with three numbers
+evaluated once from CCM89 at the bands' effective wavelengths (0.844, and E(BP-RP)/A_V = 0.449). A
+broad-band extinction coefficient depends on the source's SED and on the extinction itself (Jordi+2010,
+Danielski+2018); DPAC publishes the dependence as a polynomial in the intrinsic (BP-RP)_0 and A_0
+(Riello+2020, fitted on Kurucz spectra reddened with the Fitzpatrick+2019 curve, Teff 3500-10000 K,
+0.01 < A_0 < 20 mag). For a 1 Myr population that spans B stars to M dwarfs, one coefficient is wrong
+in a colour-dependent way.
+
+**Fix.** `extinction_law` argument. `"gaia_edr3"` (default for the Gaia EDR3 bands with R_V = 3.1)
+applies the main-sequence "BPRP" polynomials of the ESA table to each model point at its own
+intrinsic colour (colour clipped to [-0.06, 2.5], A_0 floored at 0.01 inside the coefficient only), for
+the single-star track and for every point of the binary sheet. `"ccm89"` keeps the old arithmetic
+bit for bit. The 30 coefficients are constants in `_isochrone.py`, pure arithmetic on `xp`, so the
+same expression traces in PyTensor and JAX; no dependency was added. **`Av` keeps its name** (posterior
+variables, saved fits, `Av_range`) **but under this law it is A_0**; stated in the docstring.
+Not adopted: `dustapprox` 0.2.0 (Fouesneau et al.), which ships the very same CSV (diff empty against
+the file the finding used) but evaluates it in NumPy/pandas, so it cannot enter a JAX graph, and drags
+in snakemake, scikit-learn and pyphot. Not adopted: Zhang & Yuan 2023, valid 4000-10000 K and
+E(B-V) 0-0.5 only; the coolest PMS members of NGC 6383 (16th percentile Teff_GSP 3556 K) are outside.
+
+**Default or option.** Default, because it is the official Gaia EDR3 law and the data are Gaia
+photometry. P01 and the CCM-era validation runs are reproduced with `extinction_law="ccm89"`.
+
+**Oracle.** The finding's per-point implementation lives outside the package (a subclass reading the
+CSV). `test_ngc6383_log_likelihood_reproduces_the_hub_finding` evaluates the package at the finding's
+optima, N = 254: Gaia -574.5103364045469, CCM -578.864870861596, both to 1e-6 (agreement in all printed
+digits). `test_coefficients_equal_the_official_csv` checks the transcription against a copy of the CSV
+read independently; the toy injection (stars reddened by the CSV law, A_0 = 0.8) is recovered by the
+Gaia fitter and not by the CCM one (likelihood only, no sampler).
+
+**Number that moved.** Free-fit log L +4.35 (-578.865 to -574.510), free A_V 0.649 to 0.770 (as A_0).
+Closes ~20 % of the distance to A_V = 1.24 and ~30 % of the log L gap (15.2 to 10.6). It does not
+resolve the tension: the 28 intermediate-mass stars and a single age still decide it (finding section 6).
+
+**Not done / limits.** (1) The binary sheet's sub-primary steps `vq`, `vc` keep their A_0 = 0 values
+(a colour-dependent law changes them by dk * A_0 across one EEP step); the oracle includes this
+approximation because the finding made it, so it is not validated against an exact treatment.
+(2) The colour clip [-0.06, 2.5] is the finding's; the ESA table is defined by Teff, and the colour
+bounds were not re-derived. (3) The law is solar metallicity only (Riello+2020). (4) The default prior
+U(0, 3) on A_0 is unchanged; no measured reason to move it. (5) `IsochroneFitterKW` lives on `feat/kw-isochrone`, not in dev; it subclasses `IsochroneFitter` and does not override `_deposit` (read on that branch), so it inherits the law when it merges.
