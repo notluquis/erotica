@@ -1,6 +1,7 @@
 """Cluster analysis helpers."""
 
 from ._isochrone import IsochroneFitter
+from ._isochrone_kw import IsochroneFitterKW
 from .analyzer import ClusterAnalyzer
 from .debugging import (
     DistancePosteriorComparison,
@@ -159,6 +160,7 @@ __all__ = [
     "EFFPriors",
     "FitProperMotion2DGaussian",
     "IsochroneFitter",
+    "IsochroneFitterKW",
     "KingPriors",
     "KingProfileResult",
     "ParallaxFitResult",

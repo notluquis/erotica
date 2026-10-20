@@ -1953,6 +1953,39 @@ calibrated solar model's initial Z (with diffusion), not the grid's label-0 comp
 Hub finding: `agent-findings/isochrone-grids-implementation.md`. Rule for future backends:
 `erotica/analysis/grids/AGENTS.md`.
 
+### 2026-10-19 — The K x W isochrone model enters the package as `IsochroneFitterKW`
+
+**Decision.** `erotica/analysis/_isochrone_kw.py`: `IsochroneFitter` with an error scale
+`k ~ U(1, 6)` (width² = (k e)² + floor² + σ_int²) and `mag_window`; the mode search and chain starts that
+were measured in the research code (`tools/validation/isochrone_modelfix/aniso.py`, branch
+`isochrone-model-fix`). The parent got two keyword arguments with default 1.0 (`error_scale` in
+`_star_loglike` and `_draw_stars`; the product by 1.0 is exact, the parent's regression tests are
+unchanged). Stacked on `pr/grids-2-fitter` (#13) because it needs `grid=` and `mag_window`.
+
+**What was wrong, or would have been.**
+- `posterior_cmd` inherited from the parent draws with the catalogue errors unscaled: 2.4 times too sharp
+  for this model. Overridden; a closed-form test fails if `k` is dropped.
+- The detected fraction F(θ) takes the error at the segment midpoint from the polynomial fitted to the
+  catalogue's *unscaled* errors, not from k·e. It is how the research code was measured, so it is kept and
+  documented; its effect is not measured. The first version of the equivalence test failed by 0.004 per
+  star because of exactly this.
+- Cell A's coverage (6/8, 7/8 for log t) is **not** re-run by any test (8 NUTS fits). The statement that
+  carries it is the likelihood equivalence to 1e-8 against values computed by the research implementation
+  on two data sets. A test that "reproduces the coverage" with committed draws would be a recount.
+- The mode search is a faithful copy, including its known failure (replicate A_0: log t 6.191 against a
+  truth of 5.966, log L 8 units below the truth's). A search that fixed it silently would change the
+  measured procedure; `search_global` of the research code (12 polished points, nuisance parameters at the
+  data's mode) is the estimator used for the binary offsets (hub §2.17.1) and is **not** in the package.
+
+**Oracles.** log L on NGC 6383 (201 stars) = -278.58511134967847 and on A_0 at the truth and at the control
+mode, from the research implementation (own segment density with a G-colour covariance, own field term);
+the parent fed errors pre-multiplied by k; scipy/`pm` checks of the model's slot for k; a stationarity check
+of the search; and a slow NUTS test against the committed run (4 x 1000, median 5.965288 ± 0.005).
+Mutations that turned the suite red: colour error not scaled, k/f_bg swapped in the compiled function and in
+the model, K_RANGE lower bound 0, dm prior dropped from the search objective, START_DLOGA reversed,
+posterior_cmd and _draw_stars dropping k, the window's bright edge dropped from F. A first version of the
+START_DLOGA test read the constant from the class under test and stayed green under the mutation.
+
 ## 2026-10-05 -- R30: arreglos de `dynamics.py`
 
 Sintoma / causa / arreglo / oraculo / numero que se movio, por hallazgo (hub: `state/findings.yaml` R30-*).
