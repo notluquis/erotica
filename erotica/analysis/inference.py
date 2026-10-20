@@ -19,13 +19,6 @@ DEFAULT_NUTS_SAMPLER = "nutpie"
 #: nutpie's default backend is numba, which measured as slow as PyTensor's C backend here
 #: (722 vs 787 ms per gradient in one run, JAX 250 ms under the same load); so JAX is asked for.
 NUTPIE_COMPILE_KWARGS = {"mode": "JAX", "gradient_backend": "jax"}
-#: The mass-matrix adaptation of nutpie for ``IsochroneFitter.fit``. nutpie's own default, ``"diag"``
-#: (draws AND gradient variance), took step 0.19 x 34 leapfrog steps on the toy fit and ESS/draw 0.09-0.14
-#: on ``dm`` (the posterior has met-log t-dm correlations of 0.7-0.9); ``"draw_diag"`` (draw variance
-#: only, as Stan/PyMC/numpyro do) took step 0.045 x 67 steps and ESS/draw 0.26 on the same posterior,
-#: which is what numpyro gave. Measured in ``agent-findings/nuts-performance-2026-10-19.md`` (hub), section 12.
-#: ``"low_rank"`` (experimental in nutpie) did not recover it.
-NUTPIE_ADAPTATION = "draw_diag"
 
 
 def warn_if_pymc_engine(nuts_sampler: str | None) -> None:
