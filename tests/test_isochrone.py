@@ -1687,5 +1687,32 @@ def test_nutpie_start_on_a_prior_bound_still_samples(tmp_path):
     mode = dict(met=0.015, loga=6.5, dm=10.0, Av=0.2, sigma_int=0.05, f_bg=0.05)  # Av ON the lower bound
     idata = f.fit(draws=20, tune=20, chains=2, random_seed=3, progressbar=False, start_info={"mode": mode})
     assert idata.posterior.attrs["inference_library"] == "nutpie"
-    assert idata.posterior["Av"].values.min() >= 0.2
-    assert np.isfinite(idata.posterior["Av"].values).all()
+    av = idata.posterior["Av"].values
+    assert np.isfinite(av).all()
+    # R75-06: the chains LEAVE the bound (a start left at z = -20 would sit within ~1e-8 of 0.2 for these
+    # 20 + 20 iterations); the interval is 0.8 wide, so 0.01 is 1 % of it
+    assert np.median(av) > 0.2 + 0.01, np.median(av)
+
+
+def test_strictly_inside_support_warns_when_it_moves_and_refuses_values_outside():
+    """R75-05: a start on the bound is moved with a UserWarning that names it; a value outside the support is an
+    error (it used to be carried to the centre of the interval: Av 0.1 -> 1.1); an interior start is untouched."""
+    import warnings
+
+    import pymc as pm
+
+    from erotica.analysis._isochrone import _strictly_inside_support
+
+    with pm.Model() as m:
+        pm.Uniform("Av", 0.2, 2.0)
+        pm.HalfNormal("s", 1.0)
+    with pytest.warns(UserWarning, match="'Av'.*edge of its support"):
+        moved = _strictly_inside_support(m, {"Av": 0.2, "s": 0.5})
+    assert 0.2 < moved["Av"] < 0.2 + 1e-6 and moved["s"] == 0.5
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        same = _strictly_inside_support(m, {"Av": 1.1, "s": 0.5})
+    assert same["Av"] == pytest.approx(1.1) and same["s"] == pytest.approx(0.5)
+    for bad in ({"Av": 0.1}, {"Av": 2.5}, {"s": -1.0}):
+        with pytest.raises(ValueError, match="outside its support"):
+            _strictly_inside_support(m, bad)

@@ -557,17 +557,23 @@ def _erf_np(x: Any) -> Any:
 
 
 def _strictly_inside_support(model, point: dict, z_max: float = 20.0) -> dict:
-    """``point`` (constrained values) with every coordinate moved strictly inside its support.
+    """``point`` (constrained values) with every coordinate on the edge of its support moved strictly inside.
 
     ``find_start`` optimises inside closed bounds and can return a mode exactly ON one (A_V = 0.5 with
     ``Av_range=(0.5, 2.0)`` on NGC 6383). PyMC's interval transform sends a value on the bound to
     +-inf, nutpie's single common start is then ``-inf`` and it stops with ``All initialization points
     failed ... BadLogp(NaN)``. The transformed space is where the support is all of R, so: forward with
-    the model's own transform, clip the non-finite or extreme coordinates to ``+-z_max`` (the bound
-    plus ~2e-9 of the range for an interval), and back. Values already inside are returned unchanged
-    up to round-off; a transform that cannot be evaluated on its own (bounds that depend on another
-    variable) leaves its value as it was.
+    the model's own transform, clip the infinite or extreme coordinates (|z| > ``z_max``) to ``+-z_max``
+    (the bound plus ~2e-9 of the range for an interval), and back.
+
+    A coordinate that is moved is **warned about** (``UserWarning`` naming it): a mode of ``find_start``
+    on a prior bound means the bound binds at the likelihood optimum, which the reader should know. A
+    value OUTSIDE the support (the transform returns NaN) is an error, not something to carry to the
+    centre. Values inside are returned unchanged up to round-off; a transform that cannot be evaluated on
+    its own (bounds that depend on another variable) leaves its value as it was.
     """
+    import warnings
+
     out = dict(point)
     with model:
         for rv in model.free_RVs:
@@ -576,12 +582,23 @@ def _strictly_inside_support(model, point: dict, z_max: float = 20.0) -> dict:
                 continue
             try:
                 z = np.asarray(tr.forward(point[name], *rv.owner.inputs).eval(), float)
-                if np.all(np.isfinite(z)) and np.all(np.abs(z) <= z_max):
-                    continue
-                zc = np.clip(np.nan_to_num(z, nan=0.0, posinf=z_max, neginf=-z_max), -z_max, z_max)
-                out[name] = np.asarray(tr.backward(zc, *rv.owner.inputs).eval(), float).reshape(np.shape(point[name]))
             except Exception:  # noqa: BLE001 - leave this coordinate as it was; nutpie reports a bad start itself
                 continue
+            if np.isnan(z).any():
+                raise ValueError(
+                    f"initial value {point[name]!r} for {name!r} is outside its support (the model's transform "
+                    "gives NaN); it is not moved to the interior because that would hide a wrong start"
+                )
+            if np.all(np.abs(z) <= z_max):
+                continue
+            zc = np.clip(z, -z_max, z_max)
+            out[name] = np.asarray(tr.backward(zc, *rv.owner.inputs).eval(), float).reshape(np.shape(point[name]))
+            warnings.warn(
+                f"start for {name!r} = {point[name]!r} sits on the edge of its support; moved to {out[name]!r} so that "
+                "the sampler can start. A start on a prior bound means the bound binds at the likelihood optimum.",
+                UserWarning,
+                stacklevel=3,
+            )
     return out
 
 
