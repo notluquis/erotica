@@ -55,6 +55,12 @@ def _coord_column(table: QTable, column: str, unit: u.UnitBase) -> u.Quantity:
     return values * unit
 
 
+#: Default seed of the bootstrap errors: fixed so that two identical calls give the same error
+#: (published numbers must not change from run to run). Pass another int to vary it, or ``None``
+#: for a fresh generator each call.
+DEFAULT_BOOTSTRAP_SEED = 20261020
+
+
 def _centre_draws(center_coord, center_error, n, rng):
     """Draw ``n`` centres around ``center_coord`` with the errors ``center_determination`` gives.
 
@@ -79,6 +85,11 @@ def _bootstrap_cumulative_radius(
     mass-only propagation left out or kept alone: which stars were sampled, where the centre is, and
     the weight of each star.
     """
+    if int(n_bootstrap) < 2:
+        raise ValueError(
+            f"n_bootstrap must be at least 2 to have a spread, got {n_bootstrap}. "
+            "(error_method='mass'/'flux' give the legacy error without resampling.)"
+        )
     n = len(weights)
     radii = np.empty(n_bootstrap)
     for i in range(n_bootstrap):
@@ -113,7 +124,7 @@ def half_mass_radius(
     error_method: str = "bootstrap",
     n_bootstrap: int = 500,
     center_error=None,
-    seed: int | None = None,
+    seed: int | None = DEFAULT_BOOTSTRAP_SEED,
 ):
     """Calculate angular and optionally linear half-mass radius.
 
@@ -134,8 +145,9 @@ def half_mass_radius(
         :func:`center_determination` returns them in ``center_coords_error_bootstrap`` (the sampling error of the
         peak; ``center_coords_error`` is the larger smoothing-scale bound). ``None`` holds the
         centre fixed, which is then an error **conditional on the centre**.
-    seed : int, optional
-        Seed of the bootstrap generator.
+    seed : int or None, default ``DEFAULT_BOOTSTRAP_SEED``
+        Seed of the bootstrap generator; the default is fixed, so repeated calls agree. ``None``
+        draws a fresh generator.
     """
     if error_method not in ("bootstrap", "mass"):
         raise ValueError("error_method must be 'bootstrap' or 'mass'.")
@@ -215,7 +227,7 @@ def calculate_half_light_radius(
     error_method: str = "bootstrap",
     n_bootstrap: int = 500,
     center_error=None,
-    seed: int | None = None,
+    seed: int | None = DEFAULT_BOOTSTRAP_SEED,
 ):
     """Calculate the half-light radius from cumulative flux.
 
@@ -238,8 +250,9 @@ def calculate_half_light_radius(
         candidates, finding R29-04).
     center_error : (ra_error, dec_error), optional
         As in :func:`half_mass_radius`.
-    seed : int, optional
-        Seed of the bootstrap generator.
+    seed : int or None, default ``DEFAULT_BOOTSTRAP_SEED``
+        Seed of the bootstrap generator; the default is fixed, so repeated calls agree. ``None``
+        draws a fresh generator.
     """
     if error_method not in ("bootstrap", "flux"):
         raise ValueError("error_method must be 'bootstrap' or 'flux'.")
@@ -381,7 +394,7 @@ def center_determination(
     return_grids: bool = False,
     return_bestparams: bool = False,
     n_bootstrap: int = 200,
-    seed: int | None = None,
+    seed: int | None = DEFAULT_BOOTSTRAP_SEED,
 ):
     """Estimate a cluster center with 2D KDE over sky coordinates.
 
@@ -393,8 +406,8 @@ def center_determination(
     ----------
     n_bootstrap : int, default 200
         Resamples of the stars for the bootstrap error of the peak; ``0`` skips it.
-    seed : int, optional
-        Seed of the bootstrap generator; the same seed gives the same error.
+    seed : int or None, default ``DEFAULT_BOOTSTRAP_SEED``
+        Seed of the bootstrap generator; the same seed gives the same error. ``None`` is fresh.
 
     Notes
     -----
@@ -500,6 +513,8 @@ def center_determination(
             np.sqrt(ra_error**2 + result.bandwidth**2) * u.deg,
             np.sqrt(dec_error**2 + result.bandwidth**2) * u.deg,
         )
+        if int(n_bootstrap) == 1:
+            raise ValueError("n_bootstrap must be 0 (skip) or at least 2 to have a spread.")
         if int(n_bootstrap) > 0:
             rng = np.random.default_rng(seed)
             kernel = grid.best_params_["kernel"]

@@ -1531,7 +1531,6 @@ def test_half_light_radius_returns_a_sampling_error_on_request():
     radius, err = calculate_half_light_radius(t, (0.0, 0.0), return_error=True, seed=1)
     truth = 10.0 / (2 * np.sqrt(2 * 400))
     assert 0.6 * truth < err.to_value(u.arcmin) < 1.6 * truth
-    assert calculate_half_light_radius(t, (0.0, 0.0)) is not None  # default shape unchanged
 
 
 @requires_bayes_extra
@@ -1555,3 +1554,100 @@ def test_tidal_prior_is_a_prior_on_R_t_not_on_the_increment(builder):
         idata = pm.sample_prior_predictive(draws=2000, random_seed=0)
     r_t = np.asarray(idata.prior["R_t"].values).ravel()
     assert abs(np.median(r_t) - mu) < 0.5 * sigma
+
+
+# --- review of PR #10: reproducible default, return shapes, n_bootstrap guard, deprecated paths ---
+
+
+def _legacy_half_light_args(n=200, seed=0):
+    rng = np.random.default_rng(seed)
+    return (
+        rng.uniform(12, 18, n) * u.mag,
+        np.full(n, 0.01) * u.mag,
+        rng.uniform(0, 20, n) * u.arcmin,
+    )
+
+
+def test_bootstrap_errors_are_reproducible_without_a_seed():
+    """Two identical calls with no ``seed`` must agree (the default seed is fixed), in the three
+    routes whose default error became a bootstrap; another seed must change the value."""
+    from erotica.analysis.structure import (
+        calculate_half_light_radius,
+        center_determination,
+        half_mass_radius,
+    )
+
+    t = _disc(300, 10.0)
+    t["Gmag"] = np.full(len(t), 15.0) * u.mag
+    assert half_mass_radius(t, (0.0, 0.0))[1] == half_mass_radius(t, (0.0, 0.0))[1]
+    assert half_mass_radius(t, (0.0, 0.0), seed=7)[1] != half_mass_radius(t, (0.0, 0.0))[1]
+    a = calculate_half_light_radius(t, (0.0, 0.0), return_error=True)[1]
+    assert a == calculate_half_light_radius(t, (0.0, 0.0), return_error=True)[1]
+    g, ge, d = _legacy_half_light_args()
+    la = calculate_half_light_radius(g, ge, d)["R_h_error"]
+    assert la == calculate_half_light_radius(g, ge, d)["R_h_error"]
+    kw = dict(bandwidths=[0.15], return_bestparams=True, n_bootstrap=20)
+    c = _gaussian_cluster(150, seed=5)
+    e1 = center_determination(c, **kw)["center_coords_error_bootstrap"][0]
+    assert e1 == center_determination(c, **kw)["center_coords_error_bootstrap"][0]
+
+
+def test_half_light_radius_return_shapes():
+    from erotica.analysis.structure import calculate_half_light_radius
+
+    t = _disc(100, 10.0)
+    t["Gmag"] = np.full(len(t), 15.0) * u.mag
+    plain = calculate_half_light_radius(t, (0.0, 0.0))
+    assert isinstance(plain, u.Quantity) and plain.unit == u.arcmin  # a bare radius, no tuple
+    r, lin = calculate_half_light_radius(t, (0.0, 0.0), distance=1.0 * u.kpc)
+    assert r.unit == u.arcmin and lin.unit.is_equivalent(u.pc)
+    r, err = calculate_half_light_radius(t, (0.0, 0.0), return_error=True)
+    assert r == plain and err.unit == u.arcmin
+    out = calculate_half_light_radius(t, (0.0, 0.0), return_error=True, distance=1.0 * u.kpc)
+    assert len(out) == 4 and out[2].unit == u.arcmin and out[3].unit.is_equivalent(u.pc)
+    g, ge, d = _legacy_half_light_args()
+    legacy = calculate_half_light_radius(g, ge, d, 1.1 * u.kpc)
+    assert {"R_h", "R_h_error", "R_h_linear", "R_h_linear_error", "R_h_linear_bounds"} <= set(legacy)
+
+
+def test_bootstrap_needs_at_least_two_resamples():
+    from erotica.analysis.structure import calculate_half_light_radius, half_mass_radius
+
+    t = _disc(100, 10.0)
+    t["Gmag"] = np.full(len(t), 15.0) * u.mag
+    for n in (0, 1):
+        with pytest.raises(ValueError, match="n_bootstrap"):
+            half_mass_radius(t, (0.0, 0.0), n_bootstrap=n)
+        with pytest.raises(ValueError, match="n_bootstrap"):
+            calculate_half_light_radius(t, (0.0, 0.0), return_error=True, n_bootstrap=n)
+    g, ge, d = _legacy_half_light_args()
+    with pytest.raises(ValueError, match="n_bootstrap"):
+        calculate_half_light_radius(g, ge, d, n_bootstrap=0)
+
+
+def test_deprecated_error_methods_warn_and_keep_the_legacy_value():
+    """``mass`` / ``flux`` are the pre-R29-04 errors: FutureWarning, and the old formula (a small
+    error that ignores star sampling), well below the bootstrap error on the same data."""
+    from erotica.analysis.structure import calculate_half_light_radius, half_mass_radius
+
+    t = _disc(300, 10.0)
+    _, boot = half_mass_radius(t, (0.0, 0.0))
+    with pytest.warns(FutureWarning, match="R29-04"):
+        radius, old = half_mass_radius(t, (0.0, 0.0), error_method="mass")
+    assert 0 < old.to_value(u.arcmin) < 0.2 * boot.to_value(u.arcmin)
+    from astropy.table import QTable
+
+    bare = QTable({"ra": t["ra"], "dec": t["dec"], "mass": t["mass"]})  # no mass_std column
+    with pytest.warns(FutureWarning):
+        assert np.isnan(half_mass_radius(bare, (0.0, 0.0), error_method="mass")[1].value)
+    g, ge, d = _legacy_half_light_args()
+    with pytest.warns(FutureWarning, match="R29-04"):
+        old_l = calculate_half_light_radius(g, ge, d, error_method="flux")["R_h_error"]
+    assert old_l.to_value(u.arcmin) < 0.2 * calculate_half_light_radius(g, ge, d)["R_h_error"].to_value(
+        u.arcmin
+    )
+    t["Gmag"] = np.full(len(t), 15.0) * u.mag
+    with pytest.warns(FutureWarning), pytest.raises(ValueError, match="legacy"):
+        calculate_half_light_radius(t, (0.0, 0.0), return_error=True, error_method="flux")
+    with pytest.raises(ValueError, match="error_method"):
+        half_mass_radius(t, (0.0, 0.0), error_method="nope")
