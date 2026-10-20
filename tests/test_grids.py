@@ -17,14 +17,17 @@ Data-dependent tests SKIP, saying which file is missing; CI has none of the grid
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import textwrap
+import types
 from pathlib import Path
 
 import numpy as np
 import pytest
 from astropy.table import QTable
 
-from erotica.analysis._isochrone import MISTIsochrones
+from erotica.analysis._isochrone import IsochroneFitter, MISTIsochrones
 from erotica.analysis.grids import MISTGrid, common_eep_table
 
 REPO = Path(__file__).resolve().parent.parent
@@ -190,3 +193,168 @@ def test_common_table_clamps_like_the_fitter(tmp_path):
     n = g.node(g.feh_nodes[0], g.loga_nodes[-1])
     outside = (axis < n.eep.min()) | (axis > n.eep.max())
     assert outside.any() and np.all(np.diff(last)[outside[1:] & outside[:-1]] == 0)
+
+
+# ---------------------------------------------------------------------------------------------
+# The fitter on the grid path
+# ---------------------------------------------------------------------------------------------
+
+
+@requires_bayes
+def test_grid_path_reproduces_the_legacy_fit_off_node(tmp_path):
+    """Oracle: the legacy fitter (Z files, interpolation in log Z). The grid path interpolates in
+    [Fe/H]; with the node map the weights are identical, so the node table must be equal and
+    log L at an off-node point (Z between nodes) equal to rounding. Mutation: interpolating the
+    grid path in log10 of [Fe/H] instead of [Fe/H] breaks it."""
+    d = _write_family(tmp_path / "fam")
+    data = _stars()
+    fl = IsochroneFitter(d, **_TOY_PRIORS)
+    fl.setup(data, prob_threshold=0.0)
+    g = MISTGrid(d)
+    fg = IsochroneFitter(grid=g, **_TOY_PRIORS)
+    fg.setup(data, prob_threshold=0.0)
+    np.testing.assert_array_equal(fl._nodes, fg._nodes)
+    z = 0.0142857 * 10**-0.13  # between the -0.25 and 0.0 nodes
+    feh = float(np.interp(np.log10(z), fl._node_logz, fg._node_logz))
+    for loga in (6.45, 6.52):
+        a = fl.loglike(z, loga, 10.02, 0.1, 0.02, 0.01)
+        b = fg.loglike(feh, loga, 10.02, 0.1, 0.02, 0.01)
+        assert abs(a - b) < 1e-9 * abs(a), (a, b)
+
+
+@requires_bayes
+def test_grid_path_samples_feh_and_legacy_samples_met(tmp_path):
+    d = _write_family(tmp_path / "fam")
+    fl = IsochroneFitter(d, **_TOY_PRIORS)
+    fl.setup(_stars(), prob_threshold=0.0)
+    fg = IsochroneFitter(grid=MISTGrid(d), **_TOY_PRIORS)
+    fg.setup(_stars(), prob_threshold=0.0)
+    ml, mg = fl.build_model(), fg.build_model()
+    assert "met" in ml.named_vars and "feh" not in ml.named_vars
+    assert "feh" in mg.named_vars and "met" not in mg.named_vars
+    lo, hi = fg._met_bounds()
+    assert (lo, hi) == (-0.5, 0.25)
+    one = IsochroneFitter(grid=MISTGrid(d).select(feh=0.0), **_TOY_PRIORS)
+    one.setup(_stars(), prob_threshold=0.0)
+    assert "feh" in one.build_model().named_vars  # fixed, as a Deterministic
+    assert one.find_start(2, np.random.default_rng(0))["mode"]["feh"] == 0.0
+
+
+@requires_bayes
+def test_node_table_cache_refuses_the_other_metallicity_coordinate(tmp_path):
+    d = _write_family(tmp_path / "fam")
+    fl = IsochroneFitter(d, **_TOY_PRIORS)
+    fl.setup(_stars(), prob_threshold=0.0)
+    fl.save_grid(tmp_path / "n.npz")
+    fg = IsochroneFitter(grid=MISTGrid(d), **_TOY_PRIORS)
+    fg.setup(_stars(), prob_threshold=0.0, precompute_grid=False)
+    with pytest.raises(ValueError, match="metallicity coordinate"):
+        fg.load_grid(tmp_path / "n.npz")
+
+
+def test_exactly_one_of_files_or_grid():
+    with pytest.raises(ValueError, match="exactly one"):
+        IsochroneFitter(**_TOY_PRIORS)
+
+
+@requires_bayes
+def test_two_sided_window_is_the_exact_segment_average(tmp_path):
+    """Oracle: ``scipy.integrate.quad`` of Phi((faint - G)/s) - Phi((bright - G)/s) along a
+    segment, uniform and linear-weighted. Mutation: dropping the bright-edge subtraction."""
+    from scipy.integrate import quad
+    from scipy.stats import norm
+
+    d = _write_family(tmp_path / "fam")
+    f = IsochroneFitter(grid=MISTGrid(d), **_TOY_PRIORS)
+    f.setup(_stars(), prob_threshold=0.0, mag_window=(12.0, 17.0))
+    assert f._mag_bright == 12.0 and f._mag_lim == 17.0
+    assert f._obs_mag.min() >= 12.0 and f._obs_mag.max() <= 17.0
+    A = np.array([11.0, 11.5, 16.0, 16.9, 13.0])
+    B = np.array([12.4, 11.6, 17.5, 16.9 + 1e-8, 14.0])
+    s2 = 0.03**2
+    P, T = f._p_observed(A, B, s2, np, first_moment=True)
+    c = f._e_mag_coef
+    for k in range(len(A)):
+        mid = np.clip(0.5 * (A[k] + B[k]), f._obs_mag.min(), f._obs_mag.max())
+        s = np.sqrt((10 ** (c[0] + c[1] * mid + c[2] * mid**2)) ** 2 + s2)
+
+        def win(t, k=k, s=s):
+            G = A[k] + t * (B[k] - A[k])
+            return norm.cdf((17.0 - G) / s) - norm.cdf((12.0 - G) / s)
+
+        p = quad(win, 0, 1, epsabs=1e-12)[0]
+        tt = quad(lambda t, w=win: t * w(t), 0, 1, epsabs=1e-12)[0]
+        assert abs(P[k] - p) < 1e-7, (k, P[k], p)
+        assert abs(T[k] - tt) < 1e-6, (k, T[k], tt)
+
+
+# ---------------------------------------------------------------------------------------------
+# Real data: the C1 regression and the [Fe/H] conventions (skip when the files are absent)
+# ---------------------------------------------------------------------------------------------
+
+
+def _module_at(commit: str):
+    src = subprocess.run(
+        ["git", "-C", str(REPO), "show", f"{commit}:erotica/analysis/_isochrone.py"],
+        capture_output=True,
+        text=True,
+    )
+    if src.returncode != 0:
+        pytest.skip(f"commit {commit} not in this clone's history")
+    mod = types.ModuleType("erotica.analysis._isochrone_at_" + commit)
+    mod.__package__ = "erotica.analysis"
+    exec(compile(src.stdout, f"_isochrone@{commit}", "exec"), mod.__dict__)
+    return mod
+
+
+@requires_bayes
+def test_c1_regression_mist_v12_backend_against_the_code_that_ran_c1():
+    """THE regression of the grid layer. Oracle: ``_isochrone.py`` at ``5d8faee`` (origin/dev
+    when the layer was started, the code C1 ran on), executed from git. On the NGC 6383 C1
+    sample and priors:
+
+    * the legacy path (``isochs_path=``) gives the same node table and the same log L at the
+      C1 search mode, bit for bit;
+    * the MIST v1.2 grid backend (``grid=``) gives the same node table bit for bit, and the same
+      log L at the mode once Z is mapped to [Fe/H] with the legacy fitter's own node
+      coordinates. (With the header Z instead, log L moves by -2.8e-7: the legacy reader rounds
+      Z to 6 decimals, which moves the -0.50 node from 4.51753e-3 to 4.518e-3 -- and the
+      [Fe/H] < -3 nodes by up to 30 %. Measured 2026-10-04; the grid path keeps the header Z.)
+    * and the mode's stored log L (computed through JAX in the C1 search) to 1e-6.
+    """
+    from astropy.table import Table
+
+    _skip_unless(MIST12, C1_SAMPLE, C1_SEARCH)
+    mode = json.loads(C1_SEARCH.read_text())
+    data = QTable(Table.read(C1_SAMPLE))
+    old = _module_at("5d8faee")
+    fo = old.IsochroneFitter(isochs_path=MIST12, **C1_PRIORS)
+    fo.setup(data, prob_threshold=0.0)
+    fl = IsochroneFitter(isochs_path=MIST12, **C1_PRIORS)
+    fl.setup(data, prob_threshold=0.0)
+    fg = IsochroneFitter(grid=MISTGrid(MIST12, loga_range=(5.95, 7.05)), **C1_PRIORS)
+    fg.setup(data, prob_threshold=0.0)
+    np.testing.assert_array_equal(fo._nodes, fl._nodes)
+    np.testing.assert_array_equal(fo._nodes, fg._nodes)
+    m = mode["mode"]
+    args = [m[k] for k in ("met", "loga", "dm", "Av", "sigma_int", "f_bg")]
+    ref = fo.loglike(*args)
+    assert fl.loglike(*args) == ref
+    feh = float(np.interp(np.log10(m["met"]), fl._node_logz, fg._node_logz))
+    assert abs(fg.loglike(feh, *args[1:]) - ref) < 1e-9
+    assert abs(ref - mode["loglike"]) < 1e-6
+
+
+@pytest.mark.parametrize(
+    "path,fits,fails",
+    [(MIST12, "log10(Z/Zsun)", "log10(Z/X)-sun"), (MIST25, "log10(Z/X)-sun", "log10(Z/Zsun)")],
+    ids=["v1.2", "v2.5"],
+)
+def test_mist_feh_label_conventions_from_the_headers(path, fits, fails):
+    """Oracle: MIST's own header triples (Yinit, Zinit, [Fe/H]). v1.2 labels are log10(Z/Zsun);
+    v2.5 labels are log(Z/X) - log(Z/X)_sun. Each convention fails on the other version by
+    > 0.04 dex at +0.5 -- that is why the fit coordinate is the label, not Z."""
+    _skip_unless(path)
+    g = MISTGrid(path, loga_range=(6.5, 6.5))
+    r = g.feh_convention_residuals()
+    assert r[fits] < 1e-4 and r[fails] > 0.04, r
