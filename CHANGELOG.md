@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   start-up trials, i.e. after ten real HDBSCAN fits.
 
 ### Fixed
+- **structure: bootstrap errors of `half_mass_radius`, `calculate_half_light_radius` and `center_determination` are reproducible by default** (`DEFAULT_BOOTSTRAP_SEED`); pass `seed=None` for the old behaviour.
 - **`IsochroneFitter._seeded_inverse_mass`: a parameter whose search mode lies within 3 local sd
   of an interval bound gets the unseeded entry 1** instead of the logit-Jacobian map, which
   diverges at the bound. On NGC 6383 the mode had A_V on its lower bound and the entry was
