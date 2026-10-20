@@ -358,3 +358,349 @@ def test_mist_feh_label_conventions_from_the_headers(path, fits, fails):
     g = MISTGrid(path, loga_range=(6.5, 6.5))
     r = g.feh_convention_residuals()
     assert r[fits] < 1e-4 and r[fails] > 0.04, r
+
+
+# ---------------------------------------------------------------------------------------------
+# Hold-out validation
+# ---------------------------------------------------------------------------------------------
+
+from erotica.analysis.grids import (  # noqa: E402
+    BHAC15Grid,
+    PARSECGrid,
+    SPOTSGrid,
+    holdout_grid,
+    regrid,
+    safe_window,
+)
+from erotica.analysis.grids.base import GridNode, IsochroneGrid  # noqa: E402
+from erotica.analysis.grids.holdout import interpolate  # noqa: E402
+from erotica.analysis.grids.pseudo_eep import effective_phase, resample  # noqa: E402
+
+
+class _QuadGrid(IsochroneGrid):
+    """Closed-form grid: at fixed mass index, G = 5 - 2 log m + K (log t - 6.5)**2, colour fixed.
+    Linear interpolation between log t +- h has error exactly K h**2 at the midpoint."""
+
+    eep_kind = "mass"
+    default_bands = ("G", "B", "R")
+
+    def __init__(self, K=1.0, step=0.1):
+        super().__init__()
+        self.bands = ("G", "B", "R")
+        m = np.geomspace(0.2, 2.0, 40)
+        for a in np.round(np.arange(6.0, 7.0 + 1e-9, step), 4):
+            G = 5 - 2 * np.log10(m) + K * (a - 6.5) ** 2
+            self._add(
+                0.0,
+                float(a),
+                GridNode(np.arange(m.size, dtype=float), m.copy(), {"G": G, "B": G + 0.8, "R": G}),
+                None,
+            )
+        self.name = "quad"
+
+
+def test_holdout_error_is_the_closed_form_second_difference():
+    """Oracle: linear interpolation of K (x-6.5)^2 between x-h and x+h errs by exactly K h^2.
+    Mutations: not removing the node (error 0, which the guard refuses) or interpolating from
+    the wrong neighbours (error 4 K h^2)."""
+    K, h = 0.8, 0.1
+    r = holdout_grid(
+        _QuadGrid(K, h), ("G", "B", "R"), feh=0.0, loga_range=(6.1, 6.9), mass_window=(0.2, 2.0)
+    )
+    for n in r["nodes"]:
+        assert n["neighbours"] == pytest.approx([n["loga"] - h, n["loga"] + h])
+        assert n["dG"]["p50"] == pytest.approx(K * h**2, rel=1e-9)
+        assert n["dcol"]["p95"] == pytest.approx(0.0, abs=1e-12)
+
+
+@requires_bayes
+def test_holdout_interpolation_is_the_fitters(tmp_path):
+    """The hold-out must measure the interpolation the fitter does, not a reimplementation of
+    it that could drift: rows (mass, G, colour) of ``_interp_isochrone`` at an off-node point."""
+    d = _write_family(tmp_path / "fam", trim=2)
+    g = MISTGrid(d)
+    f = IsochroneFitter(grid=g, **_TOY_PRIORS)
+    f.setup(_stars(), prob_threshold=0.0)
+    bands = ("Gaia_G_EDR3", "Gaia_BP_EDR3", "Gaia_RP_EDR3")
+    X = f._interp_isochrone(-0.13, 6.47, np)
+    m, G, c = interpolate(g, -0.13, 6.47, bands)
+    # the fitter's EEP axis spans every node of its table; the hold-out's spans the four
+    # bracketing nodes. Compare on the hold-out's axis (same EEP numbers, same clamping).
+    fit_axis = np.arange(int(min(g.node(*k).eep.min() for k in g.nodes())), X.shape[1] + 1)
+    four = [g.node(fe, a) for fe in (-0.25, 0.0) for a in (6.4, 6.5)]
+    ho_axis = np.arange(
+        int(min(n.eep.min() for n in four)), int(max(n.eep.max() for n in four)) + 1
+    )
+    idx = np.searchsorted(fit_axis, ho_axis)
+    assert len(ho_axis) == len(m) and len(ho_axis) < X.shape[1]  # the axes really differ
+    np.testing.assert_allclose(X[0][idx], m, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(X[1][idx], G, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(X[2][idx], c, rtol=0, atol=1e-12)
+
+
+# ---------------------------------------------------------------------------------------------
+# Pseudo-EEP
+# ---------------------------------------------------------------------------------------------
+
+
+def test_effective_phase_is_the_running_maximum():
+    """PARSEC v1.2S flickers 0/1 at the PMS/MS boundary and labels the >= 20 Msun branch 0
+    after the MS (measured on the CMD 3.7 file); every row belongs to the latest phase reached."""
+    lab = np.array([0, 0, 1, 0, 1, 1, 0, 0, 1, 2, 3])
+    assert effective_phase(lab).tolist() == [0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 3]
+
+
+def test_arclength_points_are_equally_spaced_in_the_metric():
+    """Oracle: a straight HRD segment sampled unevenly must come out evenly spaced in D."""
+    t = np.r_[0.0, 0.01, 0.02, 0.5, 0.9, 1.0]
+    cols = {"mass": 0.1 + t, "logte": 3.5 + 0.2 * t, "logl": -1 + 2 * t, "x": t}
+    eep, r = resample(
+        cols, scheme="arclength", phase=np.zeros(6), phase_blocks={0: (10, 11)}, weights=(1.0, 1.0)
+    )
+    assert eep.tolist() == list(range(10, 21))
+    np.testing.assert_allclose(np.diff(r["x"]), 0.1, atol=1e-12)
+
+
+def test_massquantile_scheme_is_asteca_interp_isochrones():
+    """Oracle: ASteCA 0.7.0's own ``interp_isochrones`` (MIT), on the same isochrone. The
+    reimplementation is what the hold-out scored; this pins it to the code it claims to be."""
+    ip = pytest.importorskip("asteca.modules.isochrones_priv", reason="asteca extra not installed")
+    m = np.geomspace(0.1, 40.0, 300)
+    G = 10 - 3 * np.log10(m)
+    arr = np.zeros(m.size, dtype=[("Mini", float), ("Gmag", float)])
+    arr["Mini"], arr["Gmag"] = m, G
+    ref = ip.interp_isochrones(2000, "Mini", None, [["0.0152", "6.5"]], [arr])["0.0152"]["6.5"][0]
+    _, ours = resample({"mass": m, "G": G}, scheme="massquantile", n_total=2000)
+    np.testing.assert_allclose(ours["mass"], ref["Mini"], rtol=0, atol=1e-12)
+    np.testing.assert_allclose(ours["G"], ref["Gmag"], rtol=0, atol=1e-12)
+
+
+def _write_cmd(d: Path) -> Path:
+    """A CMD-format table with a flicker at the PMS/MS boundary and a 99.999 padding row."""
+    d.mkdir(parents=True, exist_ok=True)
+    head = (
+        "# isochrones based on PARSEC release v1.2S\n"
+        "# Zini     MH   logAge Mini        int_IMF         Mass   logL    logTe  logg  label "
+        "mbolmag  Gmag    G_BPmag  G_RPmag\n"
+    )
+    rows = []
+    for z, mh in ((0.01, -0.17553), (0.02, 0.14251)):
+        for a in (6.4, 6.5, 6.6):
+            m = np.geomspace(0.1, 5.0, 60)
+            lab = np.where(m < 2.0, 0, 1)
+            lab[30] = 1  # flicker
+            for i, mm in enumerate(m):
+                G = 6 - 2.5 * np.log10(mm) - 2 * (6.6 - a) + mh
+                pad = 99.999 if i == 59 and a == 6.5 else G
+                rows.append(
+                    f"{z} {mh} {a:.5f} {mm:.6f} 1.0 {mm:.3f} {np.log10(mm) * 2:.3f} "
+                    f"{3.6 + 0.2 * np.log10(mm):.4f} 4.0 {lab[i]} 0 {pad:.3f} "
+                    f"{G + 0.7:.3f} {G - 0.5:.3f}"
+                )
+    (d / "cmd.dat").write_text(head + "\n".join(rows) + "\n")
+    return d
+
+
+def test_parsec_reader_uses_mh_drops_padding_and_monotone_phases(tmp_path):
+    g = PARSECGrid(_write_cmd(tmp_path / "p"))
+    assert g.feh_nodes.tolist() == [-0.17553, 0.14251]
+    assert float(g.z_to_feh(0.01)) == pytest.approx(-0.17553)
+    n = g.node(-0.17553, 6.5)
+    assert n.mass.max() < 5.0  # the padded 99.999 row is gone
+    assert np.all(np.diff(n.mass) >= 0) and np.all(np.diff(n.eep) > 0)
+    assert g.eep_kind == "pseudo" and g.version == "v1.2S"
+
+
+def test_regrid_needs_and_uses_the_native_phase(tmp_path):
+    d = _write_family(tmp_path / "fam")
+    with pytest.raises(KeyError):  # the toy family has no log_Teff/log_L/phase columns
+        regrid(MISTGrid(d), "arclength")
+
+
+# ---------------------------------------------------------------------------------------------
+# PMS-only grids and the window
+# ---------------------------------------------------------------------------------------------
+
+BHAC = Path.home() / ".cache/erotica-grids/bhac15"
+SPOTS = Path.home() / ".cache/erotica-grids/spots"
+
+
+def test_spots_gaia_magnitudes_exist_only_above_half_a_solar_mass_when_spotted():
+    """Oracle: the Zenodo files (-99 outside the colour tables' calibrated range). This is the
+    limit a SPOTS f=0.34 control in Gaia inherits; 2MASS J reaches 0.10 Msun."""
+    _skip_unless(SPOTS / "f034.isoc", SPOTS / "f000.isoc")
+    s34 = SPOTSGrid(SPOTS, 0.34, loga_range=(6.0, 7.0))
+    s00 = SPOTSGrid(SPOTS, 0.0, loga_range=(6.0, 7.0))
+    assert s34.fspot == pytest.approx(0.339, abs=1e-3)
+    assert s34.node(0.0, 6.5).mass.min() == pytest.approx(0.55)
+    assert s00.node(0.0, 6.5).mass.min() == pytest.approx(0.15)
+    j = SPOTSGrid(SPOTS, 0.34, bands=("J_mag", "J_mag", "K_mag"), loga_range=(6.0, 7.0))
+    assert j.node(0.0, 6.5).mass.min() == pytest.approx(0.10)
+    assert s34.provenance.license.startswith("CC BY 4.0")
+
+
+def test_bhac15_reads_every_age_block():
+    _skip_unless(BHAC / "BHAC15_iso.GAIA")
+    b = BHAC15Grid(BHAC)
+    assert len(b.loga_nodes) == 30 and b.loga_nodes[0] == pytest.approx(np.log10(5e5), abs=1e-4)
+    n = b.node(0.0, b.loga_nodes[0])
+    assert n.mass.min() == pytest.approx(0.01) and n.eep[0] == 0.0
+    assert b.feh_nodes.tolist() == [0.0]
+
+
+def test_safe_window_is_the_intersection_over_grids_and_priors():
+    """Oracle: the closed-form grid. Brightest model G at the oldest bracketing node (largest
+    K term) plus dm_max + k Av_max; faintest at the node with the smallest, plus dm_min."""
+    g = _QuadGrid(K=1.0, step=0.1)
+    lo, hi = safe_window(
+        [g], "G", loga_range=(6.2, 6.6), dm_range=(9.0, 10.0), Av_range=(0.0, 1.0), k_mag=0.8
+    )
+    Gb = 5 - 2 * np.log10(2.0) + 1.0 * (6.2 - 6.5) ** 2  # brightest point, at the youngest node
+    Gf = 5 - 2 * np.log10(0.2) + 0.0  # faintest point, at log t 6.5
+    assert lo == pytest.approx(Gb + 10.0 + 0.8)
+    assert hi == pytest.approx(Gf + 9.0)
+    assert (
+        safe_window(
+            [g],
+            "G",
+            loga_range=(6.2, 6.6),
+            dm_range=(9.0, 10.0),
+            Av_range=(0.0, 1.0),
+            k_mag=0.8,
+            data_faint=15.35,
+        )[1]
+        == 15.35
+    )
+
+
+# ---------------------------------------------------------------------------------------------
+# Fetching: the network tests SKIP without network and say so
+# ---------------------------------------------------------------------------------------------
+
+from erotica.analysis.grids import fetch as gfetch  # noqa: E402
+
+
+def _network(host: str) -> None:
+    import socket
+
+    try:
+        socket.create_connection((host, 443), timeout=5).close()
+    except OSError as exc:
+        pytest.skip(f"no network to {host} ({exc}); the download test did not run")
+
+
+def test_a_changed_file_is_refused_not_used(tmp_path):
+    """A grid file whose hash differs from the pinned one is a different grid version."""
+    f = tmp_path / "x.dat"
+    f.write_bytes(b"models")
+    good = hashlib_sha256(b"models")
+    assert gfetch._checked(f, good, "u")["sha256"] == good
+    with pytest.raises(gfetch.ChangedUpstream):
+        gfetch._checked(f, "0" * 64, "u")
+
+
+def hashlib_sha256(b: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(b).hexdigest()
+
+
+@pytest.mark.network
+def test_fetch_spots_checks_the_zenodo_md5(tmp_path, monkeypatch):
+    _network("zenodo.org")
+    monkeypatch.setenv("EROTICA_GRIDS_CACHE", str(tmp_path))
+    d = gfetch.fetch_spots((0.34,))
+    man = json.loads((d / "manifest.json").read_text())
+    assert man[0]["file"] == "f034.isoc" and man[0]["checked_against"] == "zenodo md5"
+    assert SPOTSGrid(d, 0.34, loga_range=(6.5, 6.5)).node(0.0, 6.5).mass.min() == pytest.approx(
+        0.55
+    )
+
+
+@pytest.mark.network
+def test_fetch_bhac15_matches_the_pinned_hash(tmp_path, monkeypatch):
+    _network("perso.ens-lyon.fr")
+    monkeypatch.setenv("EROTICA_GRIDS_CACHE", str(tmp_path))
+    d = gfetch.fetch_bhac15(("BHAC15_iso.GAIA",))
+    assert len(BHAC15Grid(d).loga_nodes) == 30
+
+
+def test_cached_mist25_tarball_is_the_validated_one():
+    tar = Path.home() / ".cache/erotica-grids/mist_v2.5/raw/UBVRIplus.txz"
+    _skip_unless(tar)
+    assert gfetch._hash(tar) == gfetch.MIST25_SHA256["UBVRIplus"]
+
+
+# ---------------------------------------------------------------------------------------------
+# The lambda Ori verdict is computed, not typed
+# ---------------------------------------------------------------------------------------------
+
+ORACLE_DIR = REPO / "tools/validation/isochrone_grids"
+
+
+def _oracle():
+    import sys
+
+    sys.path.insert(0, str(ORACLE_DIR))
+    import lambda_ori_oracle
+
+    return lambda_ori_oracle
+
+
+def test_lambda_ori_verdict_applies_the_preregistered_rule():
+    """Oracle: the rule written in the hub pre-registration, evaluated by hand on round numbers.
+    Fits that reproduce Cao's Table 2 exactly pass every test; moving SPOTS 0.34 younger by
+    0.2 dex with 0.03-dex widths fails P1 only. Mutations: sign of Delta, dropping sigma_fit."""
+    lo = _oracle()
+    exact = {
+        n: {"loga": np.log10(t * 1e6), "loga_laplace_sd": 0.03}
+        for n, (t, _) in lo.PUBLISHED_MYR.items()
+    }
+    v = lo.verdict(exact)
+    assert v["oracle_pass"] and all(
+        v[k]["delta_fit"] == pytest.approx(v[k]["delta_pub"]) for k in ("P1", "N1", "N2")
+    )
+    s_pub_p1 = np.hypot(0.2 / (3.9 * np.log(10)), 0.1 / (2.4 * np.log(10)))
+    assert v["P1"]["tolerance"] == pytest.approx(2 * np.hypot(s_pub_p1, np.hypot(0.03, 0.03)))
+    shifted = {
+        **exact,
+        "SPOTS f=0.34": {"loga": exact["SPOTS f=0.34"]["loga"] - 0.2, "loga_laplace_sd": 0.03},
+    }
+    w = lo.verdict(shifted)
+    assert not w["P1"]["pass"] and w["N1"]["pass"] and w["N2"]["pass"] and not w["oracle_pass"]
+    wide = {k: {**x, "loga_laplace_sd": 0.2} for k, x in shifted.items()}
+    assert lo.verdict(wide)["P1"]["pass"]  # sigma_fit enters the tolerance
+
+
+def _assert_same_verdict(got, want, path):
+    """Same keys, strings and pass/fail flags; numbers to rel 1e-12. Exact equality failed on
+    Linux CI by one ulp (P1 tolerance 0.11974519106034887 against ...885 written on macOS)."""
+    if isinstance(want, dict):
+        assert isinstance(got, dict) and got.keys() == want.keys(), path
+        for k in want:
+            _assert_same_verdict(got[k], want[k], f"{path}.{k}")
+    elif isinstance(want, list):
+        assert isinstance(got, list) and len(got) == len(want), path
+        for i, (g, w) in enumerate(zip(got, want, strict=True)):
+            _assert_same_verdict(g, w, f"{path}[{i}]")
+    elif isinstance(want, bool) or not isinstance(want, (int, float)):
+        assert type(got) is type(want) and got == want, path
+    else:
+        assert not isinstance(got, bool) and got == pytest.approx(want, rel=1e-12, abs=1e-15), path
+
+
+def test_lambda_ori_committed_verdict_matches_the_committed_fits():
+    """The numbers the hub finding quotes come from this JSON; it must be what the rule gives on
+    the committed fits (re-measure, do not retype)."""
+    lo = _oracle()
+    vj = ORACLE_DIR / "lambda_ori_oracle_verdict.json"
+    _skip_unless(vj)
+    committed = json.loads(vj.read_text())
+    for key, fn in (
+        ("cmd_J_JKs", "lambda_ori_oracle.json"),
+        ("hrd_post_unblinding", "lambda_ori_oracle_D2_hrd.json"),
+    ):
+        again = lo.verdict(json.loads((ORACLE_DIR / fn).read_text())["fits"])
+        _assert_same_verdict(again, committed[key], key)
+    assert committed["cmd_J_JKs"]["oracle_pass"] is False
+    assert committed["hrd_post_unblinding"]["oracle_pass"] is True

@@ -1,10 +1,23 @@
 {
+ "schema_version": 2,
+ "grid": {
+  "name": "MIST v1.2",
+  "family": "MIST",
+  "version": "1.2",
+  "eep_kind": "native",
+  "path": "legacy isochs_path (MISTIsochrones)",
+  "metallicity_parameter": "met = linear Z (Zinit), uniform in Z",
+  "bands": [
+   "Gaia_G_EDR3",
+   "Gaia_BP_EDR3",
+   "Gaia_RP_EDR3"
+  ]
+ },
  "id": "c1-ngc6383-unbinned-eep-v1-96ce4c0",
  "date": "2026-09-30",
  "erotica_commit": "6c05576",
  "result_commit": "96ce4c0",
  "method": "NUTS (numpyro kernel via isochrone_c1_chunked.py), unbinned per-star likelihood, EEP-interpolated isochrones (IsochroneFitter.LIKELIHOOD_VERSION unbinned-eep-v1)",
- "schema_version": 1,
  "cluster": "NGC 6383",
  "model": {
   "grid": "MIST",

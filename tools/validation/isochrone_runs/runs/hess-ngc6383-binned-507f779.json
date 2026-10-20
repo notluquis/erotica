@@ -1,9 +1,22 @@
 {
+ "schema_version": 2,
+ "grid": {
+  "name": "MIST v1.2",
+  "family": "MIST",
+  "version": "1.2",
+  "eep_kind": "native",
+  "path": "legacy isochs_path (MISTIsochrones)",
+  "metallicity_parameter": "met = linear Z (Zinit), uniform in Z",
+  "bands": [
+   "Gaia_G_EDR3",
+   "Gaia_BP_EDR3",
+   "Gaia_RP_EDR3"
+  ]
+ },
  "id": "hess-ngc6383-binned-507f779",
  "date": "2026-09-22",
  "erotica_commit": "507f779",
  "method": "NUTS (numpyro), precomputed binned Hess-diagram Poisson likelihood (new frame, node interpolation); replaced the same day by the unbinned likelihood",
- "schema_version": 1,
  "cluster": "NGC 6383",
  "model": {
   "grid": "MIST",
