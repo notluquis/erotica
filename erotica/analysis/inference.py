@@ -52,6 +52,11 @@ class SamplingConfig:
     nuts_sampler: str = DEFAULT_NUTS_SAMPLER
     progressbar: bool = False
     extra_kwargs: dict[str, Any] = field(default_factory=dict)
+    #: Mode search after sampling (hub ``methodology.md`` §A.1.8): a :class:`ModeSearchConfig`, or ``None``
+    #: to turn it off.  **On by default**: R-hat and ESS cannot see a mode no chain visited.  It never
+    #: blocks: a FAIL warns and stays in the result (``metadata["mode_search"]`` / ``results["mode_search"]``
+    #: / ``trace.attrs["mode_search"]``); a search that itself errors is recorded as ``ok=None`` + ``error``.
+    mode_search: Any = field(default_factory=lambda: _default_mode_search())
 
 
 @dataclass(frozen=True)
@@ -327,6 +332,20 @@ class VelocityFitResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+def _default_mode_search():
+    from .modesearch import ModeSearchConfig
+
+    return ModeSearchConfig()
+
+
+def mode_search_summary(trace) -> dict | None:
+    """The mode-search report that :func:`_sample` attached to ``trace`` (``None`` if it was off)."""
+    import json
+
+    raw = getattr(trace, "attrs", {}).get("mode_search") if trace is not None else None
+    return None if raw is None else json.loads(raw)
+
+
 def _require_pymc():
     try:
         import pymc as pm
@@ -353,7 +372,28 @@ def _sample(pm, model, config: SamplingConfig):
     if config.chains is not None:
         kwargs["chains"] = config.chains
     with model:
-        return pm.sample(**kwargs)
+        trace = pm.sample(**kwargs)
+    if config.mode_search is not None:
+        attach_mode_search(model, trace, config.mode_search)
+    return trace
+
+
+def attach_mode_search(model, trace, config, *, caveat: str = "", stacklevel: int = 4) -> dict:
+    """Run the mode search on a finished fit, store it in ``trace.attrs["mode_search"]``, warn on FAIL.
+
+    A FAIL (or a search that errors) only warns: the fit is kept. ``caveat`` is appended to the warning
+    so a fitting path can say what was measured about the verdict on its kind of posterior.
+    """
+    import json
+
+    from .modesearch import search_pymc
+
+    rep = search_pymc(model, trace, config)
+    trace.attrs["mode_search"] = json.dumps(rep, default=float)
+    if rep["ok"] is False or rep["error"]:
+        extra = f"\n{caveat}" if caveat else ""
+        warnings.warn(f"mode search did not pass (the fit is kept): {rep['text']}{extra}", UserWarning, stacklevel=stacklevel)
+    return rep
 
 
 def _moda_predictiva(mu: np.ndarray, sigma: np.ndarray, *, gamma: bool) -> float:
@@ -529,6 +569,7 @@ def distance_model(
             # observaciones cuando no hay errores, Normal marginalizada cuando los hay.
             "population": "gamma" if errors is None else "normal-marginalised",
             "prior": "scale-free",
+            "mode_search": mode_search_summary(trace),
         },
     )
 
@@ -669,6 +710,7 @@ def fit_parallax_model(
             "error_aware": errors is not None,
             "zero_point_nuisance": bool(zero_point),
             "prior": "informative" if prior_distance is not None else "scale-free",
+            "mode_search": mode_search_summary(trace),
         },
     )
 
@@ -859,6 +901,7 @@ def proper_motion_2d_gaussian(
         "correlation_used": pm_ra_dec_corr is not None,
         "selection_radius": None if selection_radius is None else float(selection_radius),
         "prior": "scale-free",
+        "mode_search": mode_search_summary(trace),
     }
     results = {
         "mu_RA_mean": float(trace.posterior["mu_RA"].mean()),
@@ -987,6 +1030,7 @@ def velocity_model(
             "variables": ["mu_v", "std_v"],
             "error_aware": per_star is not None,
             "prior": "scale-free",
+            "mode_search": mode_search_summary(trace),
             "values_are_amplitudes": values_are_amplitudes,
             "distance_treated_as_exact": distance is not None,
         },

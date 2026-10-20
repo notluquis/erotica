@@ -41,6 +41,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (R31-06).
 
 ### Added
+- **Mode search after every PyMC fit (`SamplingConfig.mode_search`, on by default).**
+  `erotica.analysis.modesearch` (multi-start optimisation from the prior, ridge starts, Laplace per
+  mode, which modes the chains visited) now runs behind `inference._sample`, so the eight fitting
+  paths in `inference.py` and `structure.py` report it: `metadata["mode_search"]` /
+  `results["mode_search"]` / `trace.attrs["mode_search"]`. It never blocks: a FAIL warns and stays in
+  the result; a search that itself errors is recorded (`ok=None`, `error`). `mode_search=None` turns it
+  off. `PyMCTarget` / `search_pymc` adapt any continuous `pm.Model` (density in the unconstrained `z`,
+  `jacobian=` declared). Hub `methodology.md` §A.1.8; thresholds are uncalibrated first guesses, see
+  hub finding `multimodality-automatic-check-2026-10-14.md` §3.8.
+  `mode_search(dup_tol=0.05)` joins optima of a mode with no Laplace covariance (at a bound) when their
+  heights agree to 0.05 and no dip lies between them; without it one flat-topped mode was listed up to
+  four times (post hoc, hub finding §3.9).
+- **`IsochroneFitter.fit(mode_search=...)`, on by default (author's decision 2026-10-19).** Same search as the
+  other fitting paths, stored in `idata.attrs["mode_search"]`; a FAIL only warns, and the warning carries what
+  was measured on age--[Fe/H] ridges: false alarms (6 of 8 agreeing fits PASS, below the pre-registered 7 of 8) and a
+  power that came from flat tops at a bound, not from the Laplace-mass rule (hub finding §3.9/§3.10).
+  `mode_search=None` turns it off. `inference.attach_mode_search` is the shared helper.
+  With the nutpie default every chain starts from the same mode, so this search is the only check for a mode
+  the chains never visit. The search runs on a JAX-compiled density+gradient (`ModeSearchConfig(backend="JAX")`,
+  `PyMCTarget(backend=...)`; the default backend of the other paths is unchanged).
+- **Mode-search verdict, post hoc (2026-10-20, author's choice after seeing NGC 6383, A and C; hub finding §3.11,
+  R75-04).** The weight rule now asks `occupancy > 10 x share + grain` (`grain = 1 / (polished draws per chain x
+  chains)`, kept in the result), and the fitting paths polish `min_polished = 100` draws in total
+  (`ModeSearchConfig(min_polished=...)`, `mode_search(min_polished=...)`; the function's own default stays
+  `per_chain`). A mode of Laplace share 0.55 % could not PASS with 2 chains before. A is 7/8 PASS with it,
+  exactly the pre-registered threshold (not "A passes"), and the gate is not re-measured with nutpie's common start.
 - **`[gp]` extra (`torch>=2.9`)** for `sampler="GPSampler"`. Without torch, `_build_sampler` now
   raises `ImportError` naming the extra before any fit; optuna itself failed only after the ten
   start-up trials, i.e. after ten real HDBSCAN fits.

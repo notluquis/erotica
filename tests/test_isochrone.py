@@ -1694,6 +1694,39 @@ def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatc
     assert idata.posterior.sizes["chain"] == 2
 
 
+@requires_bayes_extra
+def test_fit_runs_the_mode_search_by_default_and_none_turns_it_off(tmp_path):
+    """Lesson 29: the DEFAULT of ``mode_search`` is what the author decided (ON); the test passes no
+    argument. Mutation: default ``None`` -> red. A FAIL only warns and carries the measured caveat."""
+    import warnings
+
+    from erotica.analysis.inference import mode_search_summary
+
+    f = _toy_fitter(tmp_path)
+    f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
+    kw = dict(draws=20, tune=20, chains=2, cores=1, random_seed=3, progressbar=False)
+    rep = mode_search_summary(f.fit(**kw))
+    assert rep is not None and rep["error"] is None and rep["n_modes"] >= 1
+    assert "backend='JAX'" in rep["config"]  # the isochrone compiles the search with JAX
+    assert mode_search_summary(f.fit(mode_search=None, **kw)) is None
+
+    from erotica.analysis import modesearch
+
+    orig = modesearch.search_pymc
+    modesearch.search_pymc = lambda *a, **k: dict(ok=False, text="FAKE FAIL", error=None, n_modes=2)
+    try:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            idata = f.fit(**kw)
+    finally:
+        modesearch.search_pymc = orig
+    msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning) and "FAKE FAIL" in str(x.message)]
+    assert msgs and mode_search_summary(idata)["ok"] is False
+    # R75-01/03: the warning carries the NGC 6383 result, the occupancy grain and the untested reading
+    for needle in ("NGC 6383", "FAIL both times", "grain of 1/(5 x chains)", "post hoc, 2026-10-20", "does not mean A passes", "not been re-measured", "(not tested)"):
+        assert needle in msgs[0], needle
+    assert "ripples of the ridge, not a missed region" not in msgs[0]
+
 # ---------------------------------------------------------------------------
 # Gaia EDR3 colour-dependent extinction law  (default since 2026-10-20)
 # ---------------------------------------------------------------------------

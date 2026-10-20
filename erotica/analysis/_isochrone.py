@@ -649,6 +649,21 @@ def _erf_np(x: Any) -> Any:
 # ---------------------------------------------------------------------------
 
 
+_ISOCHRONE_MODE_SEARCH_CAVEAT = (
+    "Measured (hub multimodality-automatic-check-2026-10-14.md sections 3.9-3.11). Real NGC 6383, nutpie, 2 chains, "
+    "300 + 300, 2 repetitions: this verdict gave FAIL both times for the same interior mode (Laplace share ~0.55 %) "
+    "under the rule as first written, whose occupancy had a grain of 1/(5 x chains) that it ignored. The rule was "
+    "then changed (post hoc, 2026-10-20, chosen by the author after seeing these cases): the weight rule adds that "
+    "grain and >= 100 draws are polished in total; one of the two repetitions then PASSes by weight and the other "
+    "still FAILs by a mode no chain visited. Synthetic age--[Fe/H] ridges, numpyro, 4 chains from spread starts "
+    "(nutpie's single common start does not reproduce them): with the new rule 7 of 8 fits whose chains agree PASS, "
+    "exactly the pre-registered threshold, which does not mean A passes; the FAILs read as ripples of the ridge "
+    "(not tested). The gate has not been re-measured with nutpie's common start. With nutpie all chains start from "
+    "one mode, so this is the only check for a mode they never visit: treat a FAIL as a list of modes to look at; "
+    "mode_search=None turns it off."
+)
+
+
 def _strictly_inside_support(model, point: dict, z_max: float = 20.0) -> dict:
     """``point`` (constrained values) with every coordinate on the edge of its support moved strictly inside.
 
@@ -1798,6 +1813,7 @@ class IsochroneFitter:
         nuts_sampler_kwargs: dict | None = None,
         start: str = "search",
         start_info: dict | None = None,
+        mode_search: Any = "default",
     ) -> Any:
         """Run NUTS sampling and return ArviZ InferenceData.
 
@@ -1859,6 +1875,32 @@ class IsochroneFitter:
             fraction of 0.12, 242 log-units below the truth. **So with ``"search"`` R-hat
             certifies mixing within the mode the search found, not that no other mode
             exists**; :meth:`find_start` returns the runner-up modes so that can be checked.
+        mode_search : ModeSearchConfig or None
+            After sampling, a mode search from the prior (hub ``methodology.md`` §A.1.8) is run on the
+            model and its draws and stored in ``idata.attrs["mode_search"]`` (``mode_search_summary``).
+            On by default (``"default"`` = ``ModeSearchConfig()``); ``None`` turns it off. A FAIL only
+            warns, the fit is kept. **What was measured about the verdict on this posterior** (hub
+            ``multimodality-automatic-check-2026-10-14.md`` §3.9-§3.10):
+
+            * real NGC 6383 (254 stars), nutpie, 2 chains, 300 + 300, two repetitions: **FAIL both times**
+              for the same interior mode (Laplace share ~0.55 %) under the first rule, whose occupancy grain
+              ``1 / (polished draws per chain x chains)`` it ignored (with 2 chains such a mode could not PASS);
+            * **the rule was then changed, post hoc (2026-10-20), by the author's choice after seeing those
+              cases**: the weight rule asks ``occupancy > 10 x share + grain`` and ``min_polished = 100`` draws
+              are polished in total. NGC 6383 r1 and A_7 then PASS; NGC 6383 r0 (a mode no chain visited) and
+              A_6 still FAIL;
+            * synthetic age--[Fe/H] ridges, numpyro, 4 chains from spread starts (a nutpie common start does
+              not reproduce them): with the new rule 7 of 8 fits whose chains agree PASS, **exactly the
+              pre-registered threshold: that is not "A passes"**; the FAILs are read as ripples of the ridge
+              (not tested);
+            * the 6 of 6 power on the multi-plateau cell was measured on flat tops at a bound with no Laplace
+              mass, **not on the mass rule**;
+            * **the gate has not been re-measured with nutpie's common start** (plan in the hub finding §3.11).
+
+            **With nutpie every chain starts from the same mode** (no per-chain starts), so this search is the
+            only check for a mode the chains never visit. Read a FAIL as "look at the modes it lists". It
+            costs 1900-3400 density+gradient evaluations (compiled with JAX here; 0.26-0.37 of the wall
+            clock of a 300 + 300 fit, two repetitions on a loaded machine).
         """
         pm = _require_pymc()
         warn_if_pymc_engine(nuts_sampler)
@@ -1893,7 +1935,7 @@ class IsochroneFitter:
                 seed = np.diag(inv_mass) if user.get("dense_mass") else inv_mass
                 kw = {"inverse_mass_matrix": seed, **user}
                 with model:
-                    return sample_jax_nuts(
+                    idata = sample_jax_nuts(
                         draws=draws,
                         tune=tune,
                         chains=n_chains,
@@ -1906,6 +1948,7 @@ class IsochroneFitter:
                         nuts_kwargs=kw,
                         idata_kwargs={"log_likelihood": log_likelihood},
                     )
+                return self._attach_mode_search(model, idata, mode_search)
             # PyMC's own NUTS, seeded the same way (and still adapting); no jitter on the starts
             from pymc.step_methods.hmc.quadpotential import QuadPotentialDiagAdapt
 
@@ -1942,6 +1985,22 @@ class IsochroneFitter:
                 **extra_compile,
                 **extra,
             )
+        return self._attach_mode_search(model, idata, mode_search)
+
+    @staticmethod
+    def _attach_mode_search(model, idata, mode_search):
+        """The post-fit mode search of :meth:`fit` (never raises, never blocks; ``None`` = off)."""
+        if mode_search is None:
+            return idata
+        from .inference import attach_mode_search
+
+        if isinstance(mode_search, str) and mode_search == "default":
+            from .modesearch import ModeSearchConfig
+
+            cfg = ModeSearchConfig(backend="JAX")  # the density+gradient of this likelihood is ~3-5x cheaper in JAX
+        else:
+            cfg = mode_search
+        attach_mode_search(model, idata, cfg, caveat=_ISOCHRONE_MODE_SEARCH_CAVEAT, stacklevel=4)
         return idata
 
     # ------------------------------------------------------------------
