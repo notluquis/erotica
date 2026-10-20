@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### R30 dynamics (inference and dynamics review, hub `agent-findings/review-inference-dynamics-2026-10-05.md`)
+- **Added (opt-in, defaults unchanged):** `virial_scale_radius` (R30-10); `distance_err` on
+  `grav_bound_radius` (R30-11); `half_mass_radius_ratio`, `deproject_half_mass_radius` and
+  `radius_kind=` on `half_mass_relaxation_time` (R30-12).
+- **Changed:** `calculate_hill_radius` no longer overwrites the caller's `cluster_mass_err` (R30-03)
+  and warns when it is not given (R30-04); `half_mass_relaxation_time` warns when `radius_kind` is
+  not declared (numbers unchanged); `grav_bound_radius(dispersion=...)` is deprecated (`FutureWarning`).
 ### R31 (core and segregation review, hub `agent-findings/review-core-synthetic-segregation-2026-10-05.md`)
 - **Changed:** `gaia_covariance` raises `ValueError` when an error is NaN/inf on a finite value
   (R31-02); it used to become zero variance, leaving the most uncertain source unperturbed.
