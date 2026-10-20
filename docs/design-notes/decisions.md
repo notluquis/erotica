@@ -1922,6 +1922,93 @@ starts), `taskpolicy -b` (0.33 s per gradient), and the persistent compilation c
 lever (~1 s per process). The chunked driver matches `numpyro.infer.MCMC` draw for draw (max
 difference 0.0, same leapfrog counts, chains 0 and 3); a seed moved by one fails that check.
 
+### 2026-10-04 — Isochrone grids behind one contract, fitted in each grid's own [Fe/H] label
+
+**Decision.** `erotica/analysis/grids/` (MIST v1.2/v2.5, PARSEC v1.2S with pseudo-EEPs, BHAC15,
+SPOTS) and `IsochroneFitter(grid=...)`, which samples `feh`, the grid's [Fe/H] label. The legacy
+`isochs_path=` path (`met` = linear Z) is untouched and held to the code that ran C1 (`5d8faee`):
+node table bit-identical, log L at C1's mode equal to 0.0.
+
+**Why not Z.** Measured on the headers (`tools/validation/isochrone_grids/feh_conventions.json`):
+MIST v1.2 labels are `log10(Z/0.0142857)`, MIST v2.5 labels `log(Z/X) − log(Z/X)⊙` with
+Z = 0.0163577 at label 0, PARSEC `log(Z/X) − log 0.0207`. MIST II's Table 1 Z_init = 0.0185 is the
+calibrated solar model's initial Z (with diffusion), not the grid's label-0 composition (Z/X = 0.0229).
+
+**Numbers that were wrong or would have been.**
+- The legacy reader rounds Z to 6 decimals: the −0.50 node 4.51753e-3 → 4.518e-3, nodes below
+  [Fe/H] = −3 off by up to 30 %. log L at C1 moves 2.8e-7. Left as is in the legacy path (the
+  regression is against it); the grid path keeps header Z.
+- pandas' default float parser differs from `float()` in the last ulp: the grid table was not
+  bit-identical to the legacy one until `float_precision="round_trip"`.
+- ASteCA's PARSEC path averages neighbouring isochrones at the same mass-quantile index
+  (`zaWAverage`, read): on PARSEC v1.2S at its default N = 2000 and 2× the 0.01-dex step, 0.018 mag
+  orthogonal p68 and 0.0055 dex in inferred age, against 0.0045 / 0.0009 with arc-length pseudo-EEPs
+  (0.36 mag on MIST at 0.1 dex and N = 400, a configuration ASteCA does not use): not used.
+- MIST v2.5 [Fe/H] = +0.5 has no model below ~0.50 M☉ at log t 6–7: holding out the +0.25 node
+  gives 0.55 mag. PARSEC v1.2S labels are non-monotone in mass in 1168 of 1800 isochrones.
+- λ Ori (Cao+22), pre-registered in the hub: the CMD (J, J−Ks) fit FAILS the differential test
+  (SPOTS 0.34 − 0: +0.053 against +0.211 dex); in Cao's HR space the same likelihood gives +0.210.
+  Colour–T_eff relations differ between grids by ~0.1 mag in J−Ks at fixed T_eff.
+
+Hub finding: `agent-findings/isochrone-grids-implementation.md`. Rule for future backends:
+`erotica/analysis/grids/AGENTS.md`.
+
+### 2026-10-19 — The K x W isochrone model enters the package as `IsochroneFitterKW`
+
+**Decision.** `erotica/analysis/_isochrone_kw.py`: `IsochroneFitter` with an error scale
+`k ~ U(1, 6)` (width² = (k e)² + floor² + σ_int²) and `mag_window`; the mode search and chain starts that
+were measured in the research code (`tools/validation/isochrone_modelfix/aniso.py`, branch
+`isochrone-model-fix`). The parent got two keyword arguments with default 1.0 (`error_scale` in
+`_star_loglike` and `_draw_stars`; the product by 1.0 is exact, the parent's regression tests are
+unchanged). Stacked on `pr/grids-2-fitter` (#13) because it needs `grid=` and `mag_window`.
+
+**What was wrong, or would have been.**
+- `posterior_cmd` inherited from the parent draws with the catalogue errors unscaled: 2.4 times too sharp
+  for this model. Overridden; a closed-form test fails if `k` is dropped.
+- The detected fraction F(θ) takes the error at the segment midpoint from the polynomial fitted to the
+  catalogue's *unscaled* errors, not from k·e. It is how the research code was measured, so it is kept and
+  documented; its effect is not measured. The first version of the equivalence test failed by 0.004 per
+  star because of exactly this.
+- Cell A's coverage (6/8, 7/8 for log t) is **not** re-run by any test (8 NUTS fits). The statement that
+  carries it is the likelihood equivalence to 1e-8 against values computed by the research implementation
+  on two data sets. A test that "reproduces the coverage" with committed draws would be a recount.
+- The mode search is a faithful copy, including its known failure (replicate A_0: log t 6.191 against a
+  truth of 5.966, log L 8 units below the truth's). A search that fixed it silently would change the
+  measured procedure; `search_global` of the research code (12 polished points, nuisance parameters at the
+  data's mode) is the estimator used for the binary offsets (hub §2.17.1) and is **not** in the package.
+
+**Oracles.** log L on NGC 6383 (201 stars) = -278.58511134967847 and on A_0 at the truth and at the control
+mode, from the research implementation (own segment density with a G-colour covariance, own field term);
+the parent fed errors pre-multiplied by k; scipy/`pm` checks of the model's slot for k; a stationarity check
+of the search; and a slow NUTS test against the committed run (4 x 1000, median 5.965288 ± 0.005).
+Mutations that turned the suite red: colour error not scaled, k/f_bg swapped in the compiled function and in
+the model, K_RANGE lower bound 0, dm prior dropped from the search objective, START_DLOGA reversed,
+posterior_cmd and _draw_stars dropping k, the window's bright edge dropped from F. A first version of the
+START_DLOGA test read the constant from the class under test and stayed green under the mutation.
+
+## 2026-10-05 -- R30: arreglos de `dynamics.py`
+
+Sintoma / causa / arreglo / oraculo / numero que se movio, por hallazgo (hub: `state/findings.yaml` R30-*).
+La parte de `inference.py` (R30-01, R30-07) va en un PR aparte, apilado sobre este.
+
+- **R30-03.** `calculate_hill_radius` pisaba el `cluster_mass_err` del llamador; ya no.
+- **R30-04.** Sin `cluster_mass_err` el error de Hill omite el termino de masa; ahora avisa (no inventa un error).
+- **R30-09.** Tests de valor para `grav_bound_radius` y `mass_segregation_timescale`.
+- **R30-10.** G M/sigma^2 con nombre propio (`virial_scale_radius`); la rama `dispersion` queda deprecada.
+- **R30-11.** `grav_bound_radius(distance_err=)`: P01 +-1.57 -> +-2.79 arcmin.
+- **R30-12.** `radius_kind` declarado; King (Abel numerico) r3D/R2D = 1.322 (5), 1.334 (20), 1.337 (27.6); Plummer
+  1.30477 (forma cerrada, pasa por la misma deproyeccion). Factor en t_rh: el cociente a la 3/2. El 1.52-1.55 es de
+  t_rh, no del radio.
+
+## 2026-10-05 -- R30: arreglos de `inference.py`
+
+- **R30-01.** Las rutas por umbral llamaban a los modelos sin errores por estrella: sigma era la dispersion observada
+  (P01: 0.1536 contra 0.1232 con errores). No se cambia el defecto (cambia cifras publicadas): camino opt-in
+  `*_column`, aviso si las columnas estan en la tabla. Oraculo: espias de los kwargs y recuperacion con NUTS
+  (sigma_int 0.05, error 0.10: defecto >0.09, con errores <0.075).
+- **R30-07.** Una muestra elegida en el PM ajustado atenua sigma (0.83 de la verdad a sigma 0.15, disco 0.35).
+  `selection_radius` divide cada densidad por la masa del disco bajo N(mu, S_i). Oraculo: masa del disco centrado
+  1 - exp(-R^2/2s^2); recuperacion con disco de 0.30. El disco duro es una idealizacion [I].
 ---
 
 ## 2026-10-19 — the NUTS engine is nutpie on JAX; PyMC's own NUTS is never the default
