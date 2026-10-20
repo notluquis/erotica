@@ -91,8 +91,10 @@ def gaia_covariance(
     -------
     numpy.ndarray
         Covariance tensor of shape ``(n_sources, d, d)`` with ``d = len(columns)``.
-        Missing (NaN) errors are treated as zero variance (that source is left
-        unperturbed on that axis).
+        A NaN error on a finite value raises ``ValueError`` (R31-02): treating it as
+        zero variance left the most uncertain source unperturbed, and it earned a
+        high recovery frequency. Drop or impute those rows first. A NaN error on a
+        NaN value is left at zero variance; that row is unusable for HDBSCAN anyway.
     """
     cols = list(columns)
     d = len(cols)
@@ -103,7 +105,17 @@ def gaia_covariance(
         raise ValueError("error_columns must match columns in length.")
 
     sig = np.stack([np.asarray(table[e], dtype=float) for e in error_columns], axis=1)
-    sig = np.nan_to_num(sig, nan=0.0)  # missing error -> unperturbed on that axis
+    values = np.stack([np.asarray(table[c], dtype=float) for c in cols], axis=1)
+    missing = ~np.isfinite(sig) & np.isfinite(values)
+    if missing.any():
+        rows = int(missing.any(axis=1).sum())
+        axes = [cols[k] for k in np.flatnonzero(missing.any(axis=0))]
+        raise ValueError(
+            f"{rows} source(s) have a measured value but a NaN/inf error on {axes}. A missing "
+            "error is not a zero error: those sources would stay unperturbed and get a high "
+            "recovery frequency (R31-02). Drop or impute them before the Monte Carlo."
+        )
+    sig = np.nan_to_num(sig, nan=0.0)  # only where the value itself is missing
 
     cov = np.zeros((n, d, d), dtype=float)
     for i in range(d):

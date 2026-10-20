@@ -5,7 +5,7 @@ EROTICA's public API — a **curated** selection, not an exhaustive one, and the
 stated here rather than left for a reader to discover.
 
 This page lists **32** names: the 12 in ``erotica.__all__`` plus 20 more drawn from
-``erotica.analysis.__all__``, which itself exports **118**. So roughly 90 public names in the
+``erotica.analysis.__all__``, which itself exports **119**. So roughly 90 public names in the
 analysis layer are *importable and supported but not listed on this page* — among them
 ``distance_model``, ``fit_parallax_model``, ``lambda_msr``, ``half_mass_relaxation_time``,
 ``coulomb_argument_from_mass_function`` and ``identifiability_report``.
@@ -55,6 +55,7 @@ Analysis
    ClusterStructureAnalyzer
    ClusterFigureBuilder
    IsochroneFitter
+   IsochroneFitterKW
    PhotometricMassEstimator
 
 Reproducibility

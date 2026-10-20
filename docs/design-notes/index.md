@@ -7,6 +7,7 @@ provisional than the user guide.
 ```{toctree}
 :maxdepth: 1
 isochrone_models
+isochrone_kw_model
 isochrone_sampler_fix
 hierarchical_isochrone_design
 maximize_hdbscan_membership
