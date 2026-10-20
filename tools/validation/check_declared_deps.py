@@ -65,6 +65,10 @@ EXENTOS = {
     # paquete `sagitta` homonimo en PyPI, de los mismos autores, pero su API interna no esta verificada
     # contra lo que `_sagitta.py` llama -- ver el comentario de `pyproject.toml`. Se instala a mano.
     "sagitta": "requiere una URL git directa, que PyPI rechaza en cualquier extra; instalar a mano",
+    # Cliente del formulario CMD de PARSEC (Fouesneau, MIT). No esta en PyPI (pypi.org/pypi/ezpadova/json
+    # -> 404, medido 2026-10-04), y una URL git en un extra bloquea subir erotica (caso sagitta). Solo lo
+    # importa `grids.fetch.fetch_parsec`, dentro de la funcion, con un ImportError que lo nombra.
+    "ezpadova": "no esta en PyPI; URL git directa rechazada por PyPI; instalar a mano para fetch_parsec",
 }
 
 
