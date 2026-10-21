@@ -2117,6 +2117,9 @@ the toy truth gives `0x1.64aa9ad250cb2p+6` on a fresh compile and `0x1.64aa9ad25
 later load of the cache (3 processes). With `numba__fastmath=False`, all 3 give `...ca5p+6`. JAX gives
 `...cb7p+6` in all 6. L-BFGS-B carried the last-bit difference to a mode that moved in the 11th
 digit (log t 6.529862421733608 vs 6.529862421752953), and NUTS carried that to other draws.
+Three hashes in the audit rather than two fit the same mechanism [I, not re-run]. Its run 1 used
+`~/.pytensor`, a cache that other models had partly filled, and which callees a run compiles and
+which it loads depends on what the cache holds (pymc-devs/pytensor#2457).
 **nutpie on JAX is not the source.** From the same start it gave identical warmup, step size, mass
 matrix and draws in 4 of 4 processes, cold and warm.
 
@@ -2130,6 +2133,10 @@ OrcJIT). PyTensor 3.3.4 (#2458) makes `numba__fastmath=False` effective in vecto
 1. On the nutpie path, `fit` calls `find_start(..., mode="JAX")`, the same backend as the engine,
    as the numpyro/blackjax path already did. After the fix, 6 processes (3 cold, one of them with `cores=1`; 3 sharing one compiledir, the first of which fills it), with the
    numba fixed-point hash still differing in the two warm cache hits: same mode, same warmup, same draws (`6e70f1`).
+   `IsochroneFitterKW` inherits `fit`, and its own `find_start` passes `mode` to its compiled
+   objective. On the KW toy (400 stars), a fresh and a cached process give the same JAX mode bit for bit.
+   With numba they differ at a relative ~1e-7 in `met`
+   (`0x1.d81236b982db3p-7` vs `0x1.d812338428ad5p-7`).
 2. `random_seed=None` draws a seed (`inference.resolve_random_seed`), uses it and records it.
 3. `ModeSearchConfig(seed=None)` is the new default. The seed is derived from the fit's seed
    (`modesearch.derive_seed`, a `SeedSequence` over the seed and the tag `"mode_search"`). Until now

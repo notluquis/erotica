@@ -1839,8 +1839,10 @@ class IsochroneFitter:
             from entropy. Either way the seed used is written to
             ``idata.attrs["erotica_provenance"]`` (:func:`~erotica.analysis.inference.fit_provenance_summary`),
             with the start point, the extinction law, the engine and the package versions.
-            **The same seed fixes the draws only within one build of the compiled model**: measured
-            2026-10-21, see ``docs/design-notes/decisions.md``.
+            With nutpie, the same seed, package versions and machine give the same draws whatever
+            the state of PyTensor's compile cache (6 of 6 processes, 2026-10-21); across machines or
+            versions there is no bit equality, so frozen numbers carry Monte Carlo tolerances (see
+            ``docs/design-notes/decisions.md``).
         nuts_sampler : str
             ``"nutpie"`` (default; compiled with the JAX backend, see
             :data:`~erotica.analysis.inference.NUTPIE_COMPILE_KWARGS`), ``"numpyro"`` or
