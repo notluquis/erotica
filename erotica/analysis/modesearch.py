@@ -533,15 +533,49 @@ class PyMCTarget:
         return out
 
 
-class ModeSearchConfig:
-    """What the fitting paths run after sampling (``SamplingConfig.mode_search``).  ``None`` there = off."""
+def derive_seed(random_seed, stream):
+    """A seed for one auxiliary stream (``stream``: a short ASCII tag) derived from the fit's ``random_seed``.
 
-    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=0, per_chain=5, max_draws=500, backend=None,
-                 min_polished=MIN_POLISHED):
+    ``numpy.random.SeedSequence([random_seed, *tag])``: a different fit seed gives a different search seed,
+    and the auxiliary stream never reuses the sampler's own integer.  ``random_seed=None`` returns ``None``.
+    """
+    if random_seed is None:
+        return None
+    tag = [int(b) for b in str(stream).encode("ascii")]
+    return int(np.random.SeedSequence([int(random_seed), *tag]).generate_state(1)[0])
+
+
+def fresh_seed():
+    """A seed drawn from OS entropy, for a caller that passed none -- drawn so that it can be recorded."""
+    return int(np.random.SeedSequence().generate_state(1)[0])
+
+
+class ModeSearchConfig:
+    """What the fitting paths run after sampling (``SamplingConfig.mode_search``).  ``None`` there = off.
+
+    ``seed`` draws the prior starts.  ``None`` (default) means *derived from the fit's* ``random_seed``
+    (:func:`derive_seed`), so repeating a fit with another seed also repeats the search with another set
+    of starts; a search run with no fit seed at all draws one from entropy.  The seed actually used is
+    stored in the report (``"seed"``).  Until 2026-10-21 the default was a fixed ``seed=0``: every PASS/FAIL
+    came from one set of 16 starts whatever the fit's seed (hub audit
+    ``ngc6383-erotica-reproducibility-audit-2026-10-21.md`` row 10).
+    """
+
+    def __init__(self, n_starts=16, jacobian=True, likelihood=False, seed=None, per_chain=5, max_draws=500,
+                 backend=None, min_polished=MIN_POLISHED):
         self.n_starts, self.jacobian, self.likelihood = int(n_starts), bool(jacobian), bool(likelihood)
         self.backend = backend
         self.min_polished = int(min_polished)
-        self.seed, self.per_chain, self.max_draws = int(seed), int(per_chain), int(max_draws)
+        self.seed = None if seed is None else int(seed)
+        self.per_chain, self.max_draws = int(per_chain), int(max_draws)
+
+    def with_seed(self, seed):
+        """A copy with ``seed`` set (the config passed by the caller is never mutated)."""
+        import copy
+
+        new = copy.copy(self)
+        new.seed = None if seed is None else int(seed)
+        return new
 
     def __repr__(self):
         return ("ModeSearchConfig(" + ", ".join(f"{k}={v!r}" for k, v in vars(self).items()) + ")")
@@ -556,8 +590,10 @@ def search_pymc(model, idata=None, config=None):
     anything: the caller warns and keeps the result.
     """
     cfg = config or ModeSearchConfig()
+    if cfg.seed is None:
+        cfg = cfg.with_seed(fresh_seed())
     out = dict(ok=None, text="", n_modes=0, jacobian=cfg.jacobian, prior_decides=None, nfev=None, error=None,
-               config=repr(cfg))
+               config=repr(cfg), seed=cfg.seed)
     try:
         tg = PyMCTarget(model, jacobian=cfg.jacobian, backend=getattr(cfg, "backend", None))
         starts = tg.prior_starts(cfg.n_starts, cfg.seed)

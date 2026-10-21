@@ -2091,3 +2091,76 @@ approximation because the finding made it, so it is not validated against an exa
 (2) The colour clip [-0.06, 2.5] is the finding's; the ESA table is defined by Teff, and the colour
 bounds were not re-derived. (3) The law is solar metallicity only (Riello+2020). (4) The default prior
 U(0, 3) on A_0 is unchanged; no measured reason to move it. (5) `IsochroneFitterKW` lives on `feat/kw-isochrone`, not in dev; it subclasses `IsochroneFitter` and does not override `_deposit` (read on that branch), so it inherits the law when it merges.
+
+---
+
+## 2026-10-21 — same seed, same fit: `find_start` compiles with JAX; seeds and provenance are recorded
+
+**Symptom.** Hub audit `agent-findings/ngc6383-erotica-reproducibility-audit-2026-10-21.md` §2.3: on
+origin/dev (`503687e`), `IsochroneFitter.fit` with nutpie and `random_seed=11` gave **3 different draw
+hashes in 5 identical processes** (toy fixture, 200 stars, 2 x 300 + 300); log t mean 6.5374 to 6.5457.
+`PYTHONHASHSEED` and the thread count changed nothing.
+
+**Where it diverged (measured).** Each stage hashed per process (2 x 200 + 100, warmup saved), on a
+pristine origin/dev checkout. "cold" = empty PyTensor `base_compiledir`; "warm" = a compiledir filled
+by an earlier run. `jax_compilation_cache_dir` is `None`, so JAX always compiles fresh.
+
+| run | numba log L at a FIXED point | JAX log L at that point | `find_start` mode | warmup iter 0 | draws |
+|---|---|---|---|---|---|
+| cold (3 processes) and the first run in a new dir | `3c6c14` | `8f8812` | `1c4d80` | `8b05f2` | `0fa982` |
+| warm (cache hit) | **`bdb5eb`** | `8f8812` | **`f4cafa`** | `cb6d01` | **`9fab94`** |
+
+The first stage that differs is the **compiled function itself**, before any optimizer or sampler.
+`find_start` on the nutpie path compiled its log L with PyTensor's default backend, which in
+PyTensor 3.3 is **numba with `fastmath` and `cache` on**. A probe that only evaluates that function at
+the toy truth gives `0x1.64aa9ad250cb2p+6` on a fresh compile and `0x1.64aa9ad250ca8p+6` on every
+later load of the cache (3 processes). With `numba__fastmath=False`, all 3 give `...ca5p+6`. JAX gives
+`...cb7p+6` in all 6. L-BFGS-B carried the last-bit difference to a mode that moved in the 11th
+digit (log t 6.529862421733608 vs 6.529862421752953), and NUTS carried that to other draws.
+**nutpie on JAX is not the source.** From the same start it gave identical warmup, step size, mass
+matrix and draws in 4 of 4 processes, cold and warm.
+
+Upstream mechanism, read and not re-derived here: pymc-devs/pytensor#2457 (closed 2026-10-07). numba links a copy
+of each callee into a cached caller as a weak symbol, and which copy runs depends on load order. Under
+`reassoc`/`contract` the two copies compute different bits. numba declined a change (numba/numba#10899,
+closed 2026-10-13: "legal because of the use of `fastmath`", MCJIT-specific, expected to change with
+OrcJIT). PyTensor 3.3.4 (#2458) makes `numba__fastmath=False` effective in vectorized loops too.
+
+**Fix.**
+1. On the nutpie path, `fit` calls `find_start(..., mode="JAX")`, the same backend as the engine,
+   as the numpyro/blackjax path already did. After the fix, 6 processes (3 cold, one of them with `cores=1`; 3 sharing one compiledir, the first of which fills it), with the
+   numba fixed-point hash still differing in the two warm cache hits: same mode, same warmup, same draws (`6e70f1`).
+2. `random_seed=None` draws a seed (`inference.resolve_random_seed`), uses it and records it.
+3. `ModeSearchConfig(seed=None)` is the new default. The seed is derived from the fit's seed
+   (`modesearch.derive_seed`, a `SeedSequence` over the seed and the tag `"mode_search"`). Until now
+   it was `seed=0` whatever the fit seed, so every PASS/FAIL came from one set of 16 starts. An
+   explicit seed is kept. The seed used is in the report (`"seed"`). Applies to `inference._sample`
+   (structure, parallax, distance, velocity paths) and to `IsochroneFitter.fit`.
+4. `trace.attrs["erotica_provenance"]` (JSON string; read with `inference.fit_provenance_summary`):
+   `build_metadata` (erotica version, git commit + dirty flag of the imported tree, Python, platform,
+   tracked dependency versions, now including `nutpie` and `jaxlib`), the fit and mode-search seeds,
+   the engine and its backend. For the isochrone fit it also holds the fitter class, the extinction
+   law, the start point and its sha256.
+
+**Oracle.** `tests/test_fit_determinism.py::test_same_seed_gives_the_same_draws_from_a_fresh_and_a_cached_compile`
+(slow) runs the fit in three subprocesses that share one empty compiledir: fresh, cached, and a
+different seed as the negative control. The fresh and cached draws must be equal; the control's must
+differ. The fast guard `test_the_nutpie_start_search_is_compiled_with_jax` spies the backend and the
+RNG that `find_start` receives. Seeds and provenance: `tests/test_fit_seed_provenance.py`, including a
+`to_netcdf` round trip and the draws regenerated from a recorded entropy seed.
+
+**What "same seed" promises now, and what it does not.**
+- Same seed, same package versions, same machine: the same isochrone fit with nutpie, whatever the
+  state of the PyTensor cache. Measured on this Mac (arm64).
+- **Not across machines or versions.** XLA and LLVM may compile the same graph to other instructions,
+  so frozen numbers keep tolerances derived from Monte Carlo error. Bit equality is never expected
+  across environments.
+- **Still exposed to the numba cache:** anything compiled with PyTensor's default backend.
+  - `nuts_sampler="pymc"`.
+  - The post-fit mode search of `inference._sample`, whose `ModeSearchConfig.backend` default is
+    `None`. The isochrone fit passes `"JAX"`.
+  - Any user code.
+  
+  A user who needs that path reproducible across cache states sets `PYTENSOR_FLAGS=numba__fastmath=False`
+  (effective in vectorized loops from PyTensor 3.3.4). This is not imposed here, because it changes
+  the speed of the user's other models.

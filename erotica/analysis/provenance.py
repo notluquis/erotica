@@ -44,7 +44,9 @@ _TRACKED_DISTRIBUTIONS: tuple[str, ...] = (
     "pytensor",
     "arviz",
     "numpyro",
+    "nutpie",
     "jax",
+    "jaxlib",
     "blackjax",
     "optuna",
 )
