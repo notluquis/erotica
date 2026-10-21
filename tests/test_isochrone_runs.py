@@ -95,7 +95,7 @@ def test_c1_median_curve_matches_the_package():
 
     run = json.loads(C1_RUN.read_text())
     pri = {k: v for k, v in PRIORS.items() if k not in ("M_met", "M_loga")}
-    f = IsochroneFitter(isochs_path=MIST, **pri)
+    f = IsochroneFitter(isochs_path=MIST, extinction_law="ccm89", **pri)  # the C1 run predates the Gaia EDR3 law
     f.setup(QTable(Table.read(SAMPLE)), prob_threshold=0.0)
     med = {p: run["posterior"][p]["q50"] for p in ("met", "loga", "dm", "Av")}
     # a one-draw posterior: its median is the point itself
