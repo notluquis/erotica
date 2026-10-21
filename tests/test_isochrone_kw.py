@@ -455,6 +455,9 @@ def _kw_fitter(table_path):
         grid=_mist_grid(),
         magnitude="Gaia_G_EDR3",
         color=("Gaia_BP_EDR3", "Gaia_RP_EDR3"),
+        # the frozen research values were computed with the constant-shift CCM89 law, not the
+        # Gaia EDR3 colour-dependent default that #37 introduced
+        extinction_law="ccm89",
         **PRIORS_NGC6383,
     )
     f.setup(QTable(Table.read(table_path)), prob_threshold=0.0, mag_window=(14.0, 19.0))
