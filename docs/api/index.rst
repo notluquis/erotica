@@ -66,6 +66,21 @@ produced it. :func:`~erotica.analysis.build_metadata` records all three; saving 
 :func:`~erotica.analysis.store_trace_results` writes it as a JSON sidecar automatically. See
 :doc:`/design-notes/decisions` for what each field is for and why.
 
+Every NUTS fit stores the same record in ``trace.attrs["erotica_provenance"]`` (read it with
+``erotica.analysis.inference.fit_provenance_summary``): the seed it used (drawn and recorded when
+``random_seed=None``), the mode-search seed derived from it, the engine and its backend, and the
+versions of nutpie, PyMC, PyTensor and JAX. The isochrone fit also records the extinction law and
+the start point.
+
+**What a seed reproduces.** With the same seed, the same package versions and the same machine,
+an isochrone fit with nutpie gives the same draws whatever the state of PyTensor's compile cache.
+It does not reproduce them across machines or versions, so compare numbers within their Monte
+Carlo error, never bit for bit. Code compiled with PyTensor's default numba backend (for
+example ``nuts_sampler="pymc"``) can change in the last bits between a fresh compile and a
+cached one, and MCMC amplifies that into other draws. Set ``PYTENSOR_FLAGS=numba__fastmath=False``
+if that path must be reproducible across cache states. The measurement is in
+:doc:`/design-notes/decisions` (2026-10-21).
+
 .. currentmodule:: erotica.analysis
 
 .. autosummary::

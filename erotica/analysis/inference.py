@@ -356,14 +356,77 @@ def _require_pymc():
     return pm
 
 
+def resolve_random_seed(random_seed: int | None) -> int:
+    """The seed a fit will use: the caller's, or one drawn from entropy when it passed ``None``.
+
+    Drawn here rather than left to PyMC so that it can be written into the result: a fit with no
+    recorded seed cannot be regenerated (hub audit ``ngc6383-erotica-reproducibility-audit-2026-10-21.md``
+    row 17).
+    """
+    from .modesearch import fresh_seed
+
+    return fresh_seed() if random_seed is None else int(random_seed)
+
+
+def fit_provenance(
+    *,
+    random_seed: int,
+    nuts_sampler: str,
+    mode_search_seed: int | None = None,
+    **extra: Any,
+) -> dict:
+    """The small reproducibility record a fit stores in ``trace.attrs["erotica_provenance"]``.
+
+    :func:`~erotica.analysis.provenance.build_metadata` (erotica version, git commit + dirty flag of the
+    imported tree, Python, platform, versions of nutpie / pymc / pytensor / jax / numpyro ...) plus the
+    seeds and the engine.  ``extra`` carries what the fitting path knows (extinction law, start point).
+    It does **not** promise identical draws on another machine: see the determinism note in
+    ``docs/design-notes/decisions.md`` (2026-10-21).
+    """
+    from .provenance import build_metadata
+
+    return build_metadata(
+        seeds={"random_seed": int(random_seed), "mode_search": mode_search_seed},
+        nuts_sampler=nuts_sampler,
+        nuts_backend=dict(NUTPIE_COMPILE_KWARGS) if nuts_sampler == "nutpie" else None,
+        **extra,
+    )
+
+
+def attach_fit_provenance(trace, record: dict) -> None:
+    """Store ``record`` as a JSON string (``to_netcdf`` rejects nested dicts in ``attrs``)."""
+    import json
+
+    trace.attrs["erotica_provenance"] = json.dumps(record, default=str)
+
+
+def fit_provenance_summary(trace) -> dict | None:
+    """The record :func:`attach_fit_provenance` stored, or ``None``."""
+    import json
+
+    raw = getattr(trace, "attrs", {}).get("erotica_provenance") if trace is not None else None
+    return None if raw is None else json.loads(raw)
+
+
+def _mode_search_with_seed(config, random_seed: int):
+    """``config`` with its seed resolved: an explicit seed is kept; ``None`` derives from ``random_seed``."""
+    from .modesearch import derive_seed
+
+    if config is None or getattr(config, "seed", None) is not None:
+        return config
+    return config.with_seed(derive_seed(random_seed, "mode_search"))
+
+
 def _sample(pm, model, config: SamplingConfig):
     warn_if_pymc_engine(config.nuts_sampler)
+    random_seed = resolve_random_seed(config.random_seed)
+    mode_search = _mode_search_with_seed(config.mode_search, random_seed)
     kwargs = dict(
         draws=config.draws,
         tune=config.tune,
         target_accept=config.target_accept,
         progressbar=config.progressbar,
-        random_seed=config.random_seed,
+        random_seed=random_seed,
         nuts_sampler=config.nuts_sampler,
     )
     if config.nuts_sampler == "nutpie":
@@ -373,8 +436,16 @@ def _sample(pm, model, config: SamplingConfig):
         kwargs["chains"] = config.chains
     with model:
         trace = pm.sample(**kwargs)
-    if config.mode_search is not None:
-        attach_mode_search(model, trace, config.mode_search)
+    attach_fit_provenance(
+        trace,
+        fit_provenance(
+            random_seed=random_seed,
+            nuts_sampler=config.nuts_sampler,
+            mode_search_seed=None if mode_search is None else mode_search.seed,
+        ),
+    )
+    if mode_search is not None:
+        attach_mode_search(model, trace, mode_search)
     return trace
 
 

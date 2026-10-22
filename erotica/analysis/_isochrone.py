@@ -1833,6 +1833,16 @@ class IsochroneFitter:
         target_accept : float
             Dual-averaging target acceptance rate.  PyMC default is 0.8.
             Raise to 0.9–0.99 if you see divergences.
+        random_seed : int or None
+            Seeds the engine, the chain starts of :meth:`find_start` and (derived, see
+            :func:`~erotica.analysis.modesearch.derive_seed`) the post-fit mode search. ``None`` draws one
+            from entropy. Either way the seed used is written to
+            ``idata.attrs["erotica_provenance"]`` (:func:`~erotica.analysis.inference.fit_provenance_summary`),
+            with the start point, the extinction law, the engine and the package versions.
+            With nutpie, the same seed, package versions and machine give the same draws whatever
+            the state of PyTensor's compile cache (6 of 6 processes, 2026-10-21); across machines or
+            versions there is no bit equality, so frozen numbers carry Monte Carlo tolerances (see
+            ``docs/design-notes/decisions.md``).
         nuts_sampler : str
             ``"nutpie"`` (default; compiled with the JAX backend, see
             :data:`~erotica.analysis.inference.NUTPIE_COMPILE_KWARGS`), ``"numpyro"`` or
@@ -1904,7 +1914,9 @@ class IsochroneFitter:
         """
         pm = _require_pymc()
         warn_if_pymc_engine(nuts_sampler)
+        from .inference import resolve_random_seed
 
+        random_seed = resolve_random_seed(random_seed)
         model = self.build_model()
         step = None
         extra_compile: dict = {}
@@ -1912,8 +1924,16 @@ class IsochroneFitter:
             extra_compile = {"compile_kwargs": dict(NUTPIE_COMPILE_KWARGS)}
             if start == "search":
                 if start_info is None:
+                    # JAX, as the engine: PyTensor's default backend is numba with fastmath, whose
+                    # log L at a FIXED point differs in the last bits between a fresh compile and
+                    # the on-disk cache (0x1.64aa9ad250cb2p+6 vs ...ca8p+6; equal with fastmath
+                    # off; JAX equal in 6 of 6 processes). L-BFGS-B carried that to a mode moved
+                    # in the 11th digit and nutpie to other draws: same seed, another fit
+                    # (decisions.md, 2026-10-21).
                     start_info = self.find_start(
-                        chains if chains is not None else 4, np.random.default_rng(random_seed)
+                        chains if chains is not None else 4,
+                        np.random.default_rng(random_seed),
+                        mode="JAX",
                     )
                 if initvals is None:
                     initvals = dict(start_info["mode"])  # ONE common start: nutpie takes no list
@@ -1948,7 +1968,7 @@ class IsochroneFitter:
                         nuts_kwargs=kw,
                         idata_kwargs={"log_likelihood": log_likelihood},
                     )
-                return self._attach_mode_search(model, idata, mode_search)
+                return self._finish_fit(model, idata, mode_search, random_seed, nuts_sampler, initvals)
             # PyMC's own NUTS, seeded the same way (and still adapting); no jitter on the starts
             from pymc.step_methods.hmc.quadpotential import QuadPotentialDiagAdapt
 
@@ -1985,22 +2005,42 @@ class IsochroneFitter:
                 **extra_compile,
                 **extra,
             )
-        return self._attach_mode_search(model, idata, mode_search)
+        return self._finish_fit(model, idata, mode_search, random_seed, nuts_sampler, initvals)
 
-    @staticmethod
-    def _attach_mode_search(model, idata, mode_search):
-        """The post-fit mode search of :meth:`fit` (never raises, never blocks; ``None`` = off)."""
-        if mode_search is None:
-            return idata
-        from .inference import attach_mode_search
+    def _finish_fit(self, model, idata, mode_search, random_seed, nuts_sampler, initvals):
+        """Provenance in ``idata.attrs`` and the post-fit mode search of :meth:`fit`."""
+        import hashlib
+        import json
+
+        from .inference import (
+            _mode_search_with_seed,
+            attach_fit_provenance,
+            attach_mode_search,
+            fit_provenance,
+        )
 
         if isinstance(mode_search, str) and mode_search == "default":
             from .modesearch import ModeSearchConfig
 
-            cfg = ModeSearchConfig(backend="JAX")  # the density+gradient of this likelihood is ~3-5x cheaper in JAX
-        else:
-            cfg = mode_search
-        attach_mode_search(model, idata, cfg, caveat=_ISOCHRONE_MODE_SEARCH_CAVEAT, stacklevel=4)
+            mode_search = ModeSearchConfig(backend="JAX")  # density+gradient ~3-5x cheaper in JAX here
+        cfg = _mode_search_with_seed(mode_search, random_seed)
+        start = None if initvals is None else json.loads(json.dumps(initvals, default=float))
+        attach_fit_provenance(
+            idata,
+            fit_provenance(
+                random_seed=random_seed,
+                nuts_sampler=nuts_sampler,
+                mode_search_seed=None if cfg is None else cfg.seed,
+                extinction_law=getattr(self, "extinction_law", None),
+                fitter=type(self).__name__,
+                start=start,
+                start_sha256=None
+                if start is None
+                else hashlib.sha256(json.dumps(start, sort_keys=True).encode()).hexdigest(),
+            ),
+        )
+        if cfg is not None:  # never raises, never blocks
+            attach_mode_search(model, idata, cfg, caveat=_ISOCHRONE_MODE_SEARCH_CAVEAT, stacklevel=4)
         return idata
 
     # ------------------------------------------------------------------
