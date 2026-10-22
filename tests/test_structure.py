@@ -1283,6 +1283,7 @@ def _king_table(seed, *, field=FIELD, **params):
     )
 
 
+@pytest.mark.slow
 @requires_bayes_extra
 def test_the_default_king_fit_is_a_point_process_with_no_nuisance_scatter():
     """Structural oracle: a point process has no shared ``sigma``. A binned
@@ -1318,6 +1319,7 @@ def test_the_default_king_fit_is_a_point_process_with_no_nuisance_scatter():
     assert "sigma" in set(binned["king_trace"].posterior.data_vars)
 
 
+@pytest.mark.slow
 @requires_bayes_extra
 def test_the_default_king_fit_recovers_the_injected_core_radius():
     """Oracle: the ``R_c`` this test injected into the point process.
