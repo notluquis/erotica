@@ -109,3 +109,19 @@ def test_text_on_a_dense_cloud_is_not_an_overlap_but_on_a_point_is():
     assert any(p.startswith("OVERLAP: text 'cloud label'") for p in problems), problems
     assert viz.check_layout(fig, allow=("cloud label",)) == []
     plt.close(fig)
+
+
+def test_save_figure_writes_the_artefact_and_a_300_dpi_preview(tmp_path):
+    from PIL import Image
+
+    fig, ax = plt.subplots(figsize=viz.figsize("column", 0.5))
+    ax.plot([0, 1], [0, 1])
+    pdf, png = viz.save_figure(fig, tmp_path / "fig_x.pdf")
+    plt.close(fig)
+    assert pdf == tmp_path / "fig_x.pdf" and pdf.read_bytes().startswith(b"%PDF")
+    assert png == tmp_path / "fig_x_preview.png"
+    with Image.open(png) as im:
+        w, h = im.size
+    # 90 mm at 300 dpi = 1063 px; savefig may round by a pixel
+    assert abs(w - viz.AANDA_COLUMN_IN * 300) <= 1, w
+    assert abs(h - viz.AANDA_COLUMN_IN * 0.5 * 300) <= 1, h

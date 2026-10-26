@@ -12,6 +12,8 @@ is the part every paper figure shares:
 * :func:`figsize` with :data:`AANDA_COLUMN_IN` and :data:`AANDA_TEXT_IN`, taken from ``aa.cls``;
 * :data:`OKABE_ITO` — a categorical palette that stays distinguishable under colour-vision
   deficiency;
+* :func:`save_figure` — writes the PDF for the journal and a 300 dpi ``<stem>_preview.png`` next to
+  it, because a one-column figure opens at its true 9 cm in a PDF viewer and is too small to inspect;
 * :func:`check_layout` — flags text cut off at the canvas edge, legends or labels drawn on top of
   data markers, and text below a minimum size. A figure can reproduce every number it is meant to
   show and still hide a data point under its legend; no numerical test sees that.
@@ -31,6 +33,7 @@ Example
 
 from ._aanda import AANDA_COLUMN_IN, AANDA_RC, AANDA_TEXT_IN, OKABE_ITO, aanda_style, figsize
 from ._layout import check_layout
+from ._save import save_figure
 
 __all__ = [
     "AANDA_COLUMN_IN",
@@ -40,4 +43,5 @@ __all__ = [
     "aanda_style",
     "check_layout",
     "figsize",
+    "save_figure",
 ]

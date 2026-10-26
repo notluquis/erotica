@@ -2190,7 +2190,9 @@ SciencePlots 2.2.2 ships IEEE and Nature styles and no A&A style (its PyPI descr
 `rc_context`, so `apply_default_style()` for interactive plots is untouched), `figsize()` with the
 widths from `aa.cls` (184 mm text, 4 mm column gap → 90 mm column), the four Okabe–Ito colours that
 pass a colour-vision-deficiency validator (the full eight fail it: yellow too light, black without
-chroma), and `check_layout()`, generalised from the HD 159176 figure guard. The style is a Python
+chroma), and `check_layout()`, generalised from the HD 159176 figure guard. Added the same day at the author's request: `save_figure()` writes the PDF and a 300 dpi
+`<stem>_preview.png` beside it, because a one-column PDF opens at its true ~9 cm in Preview and is
+too small to inspect; the PDF stays the publication artefact. The style is a Python
 dict, not a `.mplstyle` file: nothing in `pyproject.toml` declares package data, so a style file
 would not reach the wheel.
 
@@ -2201,4 +2203,5 @@ papers, not this package's API, and nothing in the package would read it. It liv
 **Oracle.** `tests/test_viz.py`: the widths against `aa.cls` and, independently, against the
 `\textwidth=523.5307pt` LaTeX reports; one figure per layout rule built to break it, next to a clean
 figure that must pass. Mutations, each seen red and restored: OVERLAP never reported (2 tests fail),
-CLIPPED tolerance infinite (1), FONTSIZE disabled (1), dense clouds counted (1), `allow` ignored (1).
+CLIPPED tolerance infinite (1), FONTSIZE disabled (1), dense clouds counted (1), `allow` ignored (1),
+preview at 200 dpi (1), preview not written (1).
