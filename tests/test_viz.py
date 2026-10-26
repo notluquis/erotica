@@ -59,7 +59,9 @@ def _base(legend_loc="upper right", legend_size=7.5, left=None):
     ax.scatter([0.04, 0.5, 0.9], [0.03, 0.5, 0.9], label="data")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.set_ylabel("marginal fraction beyond the limit (%)")
+    # Short on purpose: in CI's DejaVu Sans at the default 10 pt, a long vertical label is taller
+    # than a 3-in figure and is (correctly) reported as CLIPPED, which broke the clean case.
+    ax.set_ylabel("fraction (%)")
     ax.legend(loc=legend_loc, fontsize=legend_size, borderaxespad=0.0)
     if left is None:
         fig.tight_layout()
