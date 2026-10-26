@@ -2171,3 +2171,34 @@ RNG that `find_start` receives. Seeds and provenance: `tests/test_fit_seed_prove
   A user who needs that path reproducible across cache states sets `PYTENSOR_FLAGS=numba__fastmath=False`
   (effective in vectorized loops from PyTensor 3.3.4). This is not imposed here, because it changes
   the speed of the user's other models.
+
+## 2026-10-26 — `erotica.viz`: an A&A style and a layout check, and no figure registry
+
+**Symptom.** Every paper figure script carried its own copy of the same rcParams block and the same
+column width, and the HD 159176 manuscript figures reproduced their numbers while a legend covered a
+data point and a y-axis label was cut in half. `core._style.DEFAULT_RC_PARAMS` is 8×6 in at 12 pt:
+right for a notebook, a factor two too large for an A&A column.
+
+**What already exists, so it is not rebuilt here.** Corner plots: `corner` (2.3.0). Traces,
+posterior-predictive checks and PIT/ECDF calibration: `arviz-plots` (1.3.2: `plot_trace`,
+`plot_ppc_dist`, `plot_ecdf_pit`), already in the `bayes` extra. CMD with isochrones, King profile,
+proper-motion plane, cumulative segregation, condensed tree and reliability diagram: already in
+`erotica.analysis.figures`, `erotica.core._plots` and `erotica.calibration`. Journal styles:
+SciencePlots 2.2.2 ships IEEE and Nature styles and no A&A style (its PyPI description, read 2026-10-26).
+
+**Fix.** `erotica.viz` adds only the shared part: `AANDA_RC` and `aanda_style()` (scoped with
+`rc_context`, so `apply_default_style()` for interactive plots is untouched), `figsize()` with the
+widths from `aa.cls` (184 mm text, 4 mm column gap → 90 mm column), the four Okabe–Ito colours that
+pass a colour-vision-deficiency validator (the full eight fail it: yellow too light, black without
+chroma), and `check_layout()`, generalised from the HD 159176 figure guard. The style is a Python
+dict, not a `.mplstyle` file: nothing in `pyproject.toml` declares package data, so a style file
+would not reach the wheel.
+
+**Not added: a machine-readable registry of figure types.** It would describe the programme's
+papers, not this package's API, and nothing in the package would read it. It lives in the hub
+(`state/figure-types.yaml`).
+
+**Oracle.** `tests/test_viz.py`: the widths against `aa.cls` and, independently, against the
+`\textwidth=523.5307pt` LaTeX reports; one figure per layout rule built to break it, next to a clean
+figure that must pass. Mutations, each seen red and restored: OVERLAP never reported (2 tests fail),
+CLIPPED tolerance infinite (1), FONTSIZE disabled (1), dense clouds counted (1), `allow` ignored (1).

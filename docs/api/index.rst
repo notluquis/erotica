@@ -4,8 +4,8 @@ API reference
 EROTICA's public API — a **curated** selection, not an exhaustive one, and the difference is
 stated here rather than left for a reader to discover.
 
-This page lists **32** names: the 12 in ``erotica.__all__`` plus 20 more drawn from
-``erotica.analysis.__all__``, which itself exports **119**. So roughly 90 public names in the
+This page lists **35** names: the 12 in ``erotica.__all__``, 20 more drawn from
+``erotica.analysis.__all__`` (which itself exports **119**), and 3 from ``erotica.viz``. So roughly 90 public names in the
 analysis layer are *importable and supported but not listed on this page* — among them
 ``distance_model``, ``fit_parallax_model``, ``lambda_msr``, ``half_mass_relaxation_time``,
 ``coulomb_argument_from_mass_function`` and ``identifiability_report``.
@@ -137,3 +137,22 @@ Whitworth (2004) box-fractal construction instead.
 
    fractal_cluster
    radial_profile_of
+
+Figures
+-------
+
+Paper-figure helpers: an *Astronomy & Astrophysics* style with the column and page widths from
+``aa.cls``, a four-colour palette checked for colour-vision deficiency (``erotica.viz.OKABE_ITO``),
+and a layout check that flags clipped text, legends or labels drawn over data markers, and text
+under 7 pt. The figure types themselves stay with the analyses (:class:`~erotica.analysis.ClusterFigureBuilder`);
+corner plots and posterior diagnostics come from ``corner`` and ``arviz-plots``.
+
+.. currentmodule:: erotica.viz
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+
+   aanda_style
+   figsize
+   check_layout
