@@ -2193,8 +2193,8 @@ pass a colour-vision-deficiency validator (the full eight fail it: yellow too li
 chroma), and `check_layout()`, generalised from the HD 159176 figure guard. Added the same day at the author's request: `save_figure()` writes the PDF and a 300 dpi
 `<stem>_preview.png` beside it, because a one-column PDF opens at its true ~9 cm in Preview and is
 too small to inspect; the PDF stays the publication artefact. The style is a Python
-dict, not a `.mplstyle` file: nothing in `pyproject.toml` declares package data, so a style file
-would not reach the wheel.
+dict, not a `.mplstyle` file: neither `pyproject.toml` nor `MANIFEST.in` declares package data under
+`erotica/` (no setuptools-scm either), so a style file would not reach the wheel.
 
 **Not added: a machine-readable registry of figure types.** It would describe the programme's
 papers, not this package's API, and nothing in the package would read it. It lives in the hub
