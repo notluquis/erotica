@@ -384,6 +384,24 @@ point process** (smooth control: 93% at 2σ), so the failure is caused by substr
 code — clumping is over-dispersion the point-process likelihood does not model.
 ```
 
+```{note}
+**2026-10-27, scripted re-run (hub thread G5; the table above is unchanged).** The table had no declared
+number of realizations (its percentages are all multiples of 1/15, so n = 15 is the likely reading, an
+inference). `agent-findings/scripts/g5_gamma_coverage.py` in the hub regenerates it with nutpie, n = 56-57
+realizations per regime, and Jeffreys 95% intervals; write-up in
+`agent-findings/g5-gamma-coverage-script-2026-10-27.md`.
+
+* **All six coverage cells are compatible with n = 15** (two-tailed binomial p = 0.42-1.00). Measured
+  (mean ± k·sd): smooth 30/57 = 0.53 [0.40, 0.65] at 1σ and 54/57 = 0.95 [0.87, 0.98] at 2σ; 15 clumps
+  12/57 = 0.21 [0.12, 0.33] and 26/57 = 0.46 [0.33, 0.58]; 8 clumps 7/57 = 0.12 [0.06, 0.23] and
+  17/57 = 0.30 [0.19, 0.42]. The understatement factor is 2.98 and 3.40 for the two Gaussian regimes.
+* **The smooth control under-covers at 1σ** (0.53, interval excludes 0.68), and with a quantile credible
+  interval it is 0.86 [0.75, 0.93] at 2σ, not 0.95. The finite-sample bias (+0.08 in γ) is the probable
+  cause (inference). "Well calibrated" above holds for mean ± 2·sd only.
+* The realization-scatter column does not reproduce well (smooth 0.048 vs 0.073 measured, lower-tail
+  p = 0.035); the original seeds and sampler are not recoverable.
+```
+
 **The bias direction is favourable, and that matters.** It is **upward** in both `γ` and `a`.
 Substructure cannot manufacture a spurious `γ → 2`. So if the fitted `γ = 2.32 ± 0.21` is biased at
 all, the **true slope is even closer to the King/EFF degeneracy** — this is a control the argument
