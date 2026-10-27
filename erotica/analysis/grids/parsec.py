@@ -35,7 +35,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .base import GridNode, GridProvenance, IsochroneGrid
+from .base import GridNode, GridProvenance, IsochroneGrid, exact_float_kwargs
 from .pseudo_eep import effective_phase, resample
 
 #: EEP blocks per effective phase: PMS and MS get the resolution, later phases less
@@ -111,7 +111,7 @@ class PARSECGrid(IsochroneGrid):
                     comment="#",
                     header=None,
                     names=names,
-                    float_precision="round_trip",
+                    **exact_float_kwargs(),
                 )
             )
             hashes.append(f"{fp.name}:{hashlib.sha256(fp.read_bytes()).hexdigest()}")

@@ -1966,8 +1966,9 @@ class IsochroneFitter:
                         progressbar=progressbar,
                         nuts_sampler=nuts_sampler,
                         nuts_kwargs=kw,
-                        idata_kwargs={"log_likelihood": log_likelihood},
                     )
+                    if log_likelihood:  # `idata_kwargs={"log_likelihood": ...}` is deprecated (pymc >= 6.2)
+                        idata = pm.compute_log_likelihood(idata, model=model)
                 return self._finish_fit(model, idata, mode_search, random_seed, nuts_sampler, initvals)
             # PyMC's own NUTS, seeded the same way (and still adapting); no jitter on the starts
             from pymc.step_methods.hmc.quadpotential import QuadPotentialDiagAdapt
@@ -1990,7 +1991,9 @@ class IsochroneFitter:
             # with our own step, target_accept already lives in it (pm.sample rejects it twice)
             extra = {} if step is not None else {"target_accept": target_accept, "init": init}
             if step is None and nuts_sampler_kwargs:
-                extra["nuts_sampler_kwargs"] = nuts_sampler_kwargs
+                # `nuts=` replaces the deprecated `nuts_sampler_kwargs=` (pymc >= 6.2); a copy, because
+                # pm.sample writes `target_accept` into the dict it is given
+                extra["nuts"] = dict(nuts_sampler_kwargs)
             idata = pm.sample(
                 draws=draws,
                 tune=tune,
@@ -2001,10 +2004,11 @@ class IsochroneFitter:
                 random_seed=random_seed,
                 progressbar=progressbar,
                 initvals=initvals,
-                idata_kwargs={"log_likelihood": log_likelihood},
                 **extra_compile,
                 **extra,
             )
+            if log_likelihood:  # `idata_kwargs={"log_likelihood": ...}` is deprecated (pymc >= 6.2)
+                idata = pm.compute_log_likelihood(idata, model=model)
         return self._finish_fit(model, idata, mode_search, random_seed, nuts_sampler, initvals)
 
     def _finish_fit(self, model, idata, mode_search, random_seed, nuts_sampler, initvals):

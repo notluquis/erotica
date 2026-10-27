@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deprecations of PyMC and pandas that erotica itself triggered
+- **Changed (numbers unchanged):** `IsochroneFitter.fit` no longer passes `idata_kwargs={"log_likelihood": ...}`
+  (FutureWarning since pymc 6.2); with `log_likelihood=True` it calls `pm.compute_log_likelihood` after sampling.
+  `nuts_sampler_kwargs` reaches `pm.sample` as `nuts=` (same warning). The public argument keeps its name.
+- **Changed:** the MIST and PARSEC readers pass `float_precision="round_trip"` only on pandas < 3.1, where
+  3.1 deprecates it (`Pandas4Warning`) and parses bit-identically to `float()` by default.
+
 ## [0.3.0] - not yet tagged
 
 Version metadata bumped on 2026-10-26 (`pyproject.toml`, `CITATION.cff`, `erotica/__init__.py`,
