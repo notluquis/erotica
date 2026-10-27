@@ -263,8 +263,9 @@ a day; keep the three in step on every release.
 **Development status**: v0.3.0 is the version the JOSS submission will describe. The API is not yet
 frozen; see the roadmap below.
 
-**Tests**: the full suite runs in CI on Python 3.14, plus a job that installs the `bayes`
-extra so the sampler paths actually execute, and a docs job that builds the site. Audited by
+**Tests**: the full suite runs in CI on Python 3.14, plus a job that adds the `bayes` and `gp`
+extras (the alternative NUTS backends and the CPU torch wheel for the Gaussian-process sampler
+tests, which skip in the base job) and reports coverage, and a docs job that builds the site. Audited by
 mutation rather than by coverage. (No test count is quoted here on purpose — a count in prose is
 stale by the next commit. Run `pytest --collect-only -q` for the current figure; `paper/paper.md`
 quotes one pinned to a release, which is fixed and citable.)

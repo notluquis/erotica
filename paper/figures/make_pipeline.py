@@ -75,12 +75,14 @@ def box(
         color=INK,
     )
     if body:
+        # Centred in the space under the title, so a short body does not leave a blank bottom.
+        top = y + h - 0.33 + title_dy
         ax.text(
             x + w / 2,
-            y + h - 0.33 + title_dy,
+            (top + y) / 2 + 0.03,
             body,
             ha="center",
-            va="top",
+            va="center",
             fontsize=FONT_PT,
             color=INK,
             linespacing=1.25,
@@ -186,15 +188,18 @@ def build() -> tuple[plt.Figure, plt.Axes]:
         (col_x[1] + 0.35 * col_w, row2_y + row2_h),
         color=ORANGE,
     )
+    # One bus into Outputs: the three stages that feed it drop onto a shared horizontal line,
+    # and a single arrow leaves the bus for the box (no diagonal, nothing cuts between boxes).
+    y_bus = (row1_y + row2_y + row2_h) / 2
+    x_mem = col_x[1] + 0.85 * col_w
+    x_iso = col_x[3] + col_w / 2
+    x_out = out_x + out_w / 2
+    kw = {"color": GREEN, "linewidth": 1.2, "solid_capstyle": "projecting"}
+    ax.plot([x_mem, x_mem], [row1_y, y_bus], **kw)
+    ax.plot([x_mem, x_iso], [y_bus, y_bus], **kw)
     for c in (col_x[2], col_x[3]):
-        arrow(ax, (c + col_w / 2, row1_y), (c + col_w / 2, row2_y + row2_h), color=GREEN)
-    arrow(
-        ax,
-        (col_x[1] + 0.85 * col_w, row1_y),
-        (out_x, row2_y + 0.6 * row2_h),
-        color=GREEN,
-        rad=0.0,
-    )
+        ax.plot([c + col_w / 2] * 2, [row1_y, y_bus], **kw)
+    arrow(ax, (x_out, y_bus), (x_out, row2_y + row2_h), color=GREEN)
 
     # Row 3: the validation layer, as a dashed band that exercises everything above it.
     band_h, band_y = 1.05, m
