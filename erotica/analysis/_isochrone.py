@@ -664,6 +664,11 @@ _ISOCHRONE_MODE_SEARCH_CAVEAT = (
 )
 
 
+def _jsonable(o: Any) -> Any:
+    """``json`` fallback for numpy scalars and arrays (``default=float`` fails on a vector start)."""
+    return o.tolist() if hasattr(o, "tolist") else float(o)
+
+
 def _strictly_inside_support(model, point: dict, z_max: float = 20.0) -> dict:
     """``point`` (constrained values) with every coordinate on the edge of its support moved strictly inside.
 
@@ -700,7 +705,8 @@ def _strictly_inside_support(model, point: dict, z_max: float = 20.0) -> dict:
             if np.all(np.abs(z) <= z_max):
                 continue
             zc = np.clip(z, -z_max, z_max)
-            out[name] = np.asarray(tr.backward(zc, *rv.owner.inputs).eval(), float).reshape(np.shape(point[name]))
+            val = np.asarray(tr.backward(zc, *rv.owner.inputs).eval(), float).reshape(np.shape(point[name]))
+            out[name] = float(val) if val.ndim == 0 else val  # a scalar start stays a Python float
             warnings.warn(
                 f"start for {name!r} = {point[name]!r} sits on the edge of its support; moved to {out[name]!r} so that "
                 "the sampler can start. A start on a prior bound means the bound binds at the likelihood optimum.",
@@ -1119,10 +1125,17 @@ class IsochroneFitter:
     def _extinguish(self, G: Any, col: Any, Av: Any, xp: Any = np) -> tuple[Any, Any]:
         """Apply the extinction ``Av`` to intrinsic G (already with the distance modulus) and colour."""
         if self.extinction_law == "ccm89":
+            self._ensure_ext_coefs()
             return G + self._kG * Av, col + self._k_col1 * Av
         kg = _gaia_edr3_k("G", col, Av, xp)
         kc = _gaia_edr3_k("BP", col, Av, xp) - _gaia_edr3_k("RP", col, Av, xp)
         return G + kg * Av, col + kc * Av
+
+    def _ensure_ext_coefs(self) -> None:
+        """CCM89 coefficients when ``setup()`` has not run (a fitter that only ``load_grid``-ed)."""
+        if self._kG is None:
+            self._kG, self._kBP, self._kRP = self._compute_ext_coefs()
+            self._k_col1 = self._kBP - self._kRP
 
     def _compute_ext_coefs(self) -> tuple[float, float, float]:
         kG = _ccm89(self.magnitude_effl, self.Rv)
@@ -1243,6 +1256,7 @@ class IsochroneFitter:
         X = self._interp_isochrone(met, loga, xp)
         mass = xp.maximum(X[0], 1e-9)
         if self.extinction_law == "ccm89":  # constant shifts, applied here
+            self._ensure_ext_coefs()
             dmag, dcol = dm + self._kG * Av, self._k_col1 * Av
         else:  # colour-dependent: applied per model point below, once the sheet is subsampled
             dmag, dcol = dm, 0.0
@@ -2028,7 +2042,7 @@ class IsochroneFitter:
 
             mode_search = ModeSearchConfig(backend="JAX")  # density+gradient ~3-5x cheaper in JAX here
         cfg = _mode_search_with_seed(mode_search, random_seed)
-        start = None if initvals is None else json.loads(json.dumps(initvals, default=float))
+        start = None if initvals is None else json.loads(json.dumps(initvals, default=_jsonable))
         attach_fit_provenance(
             idata,
             fit_provenance(

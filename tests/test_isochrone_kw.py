@@ -308,6 +308,39 @@ class TestToyRecovery:
             st["loglike"] - 0.5 * ((x[2] - f.dm_mu) / f.dm_sigma) ** 2, rel=1e-12
         )
 
+    def test_find_start_with_one_metallicity_node(self, tmp_path):
+        """Bot review (PR 32): a one-metallicity grid has no curvature in the metallicity direction, so ``-H``
+        is singular and ``np.linalg.inv`` raised ``LinAlgError`` (it fell back to ``pinv`` now: zero variance
+        there). Red with ``inv`` alone."""
+        _write_toy_family(tmp_path, (0.015,), (6.3, 6.4, 6.5, 6.6, 6.7, 6.8))
+        data = _toy_with_errors(200, np.random.default_rng(7), 2.0)
+        f = IsochroneFitterKW(
+            tmp_path, loga_range=(6.3, 6.8), Av_range=(0.2, 1.0), dm_mu=10.0, dm_sigma=0.3, dm_range=(9.6, 10.4),
+            alpha=0.0, beta=0.0,
+        )
+        f.setup(data, prob_threshold=0.0)
+        st = f.find_start(2, np.random.default_rng(0))
+        assert np.isfinite(st["mode"]["loga"]) and np.isfinite(st["laplace_sd"]["loga"])
+        assert "met" not in st["chain_starts"][0]
+
+    @pytest.mark.parametrize("Zs", [(0.015,), (0.010, 0.015, 0.020)], ids=["one node", "narrow range"])
+    def test_find_start_with_a_feh_grid_the_lattice_misses(self, tmp_path, Zs):
+        """Bot review (PR 32): on a [Fe/H] grid whose range holds no ``SEARCH_FEH_LATTICE`` point (one node,
+        or a narrow range) ``zs`` was empty -> ``IndexError`` on ``polished[0]``; with one node ``lo > hi`` by
+        the 1e-9 ``eps`` -> a ``ValueError`` from L-BFGS-B. The [Fe/H] kind is imitated by relabelling the
+        legacy toy's log Z coordinate (the MIST grid is not in CI). Red without the node fallback and the
+        ``zlo < zhi`` condition on ``eps``."""
+        _write_toy_family(tmp_path, Zs, (6.3, 6.4, 6.5, 6.6, 6.7, 6.8))
+        data = _toy_with_errors(200, np.random.default_rng(7), 2.0)
+        f = IsochroneFitterKW(
+            tmp_path, loga_range=(6.3, 6.8), Av_range=(0.2, 1.0), dm_mu=10.0, dm_sigma=0.3, dm_range=(9.6, 10.4),
+            alpha=0.0, beta=0.0,
+        )
+        f.setup(data, prob_threshold=0.0)
+        f._met_kind = "feh"
+        st = f.find_start(2, np.random.default_rng(0))
+        assert np.isfinite(st["logpost"])
+
     @requires_bayes
     def test_find_start_recovers_the_error_scale_and_the_chain_starts_lie_along_the_ridge(
         self, tmp_path
