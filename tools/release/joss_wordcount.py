@@ -42,11 +42,11 @@ def stripped_count(text: str) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0] if __doc__ else "")
     ap.add_argument("paper", nargs="?", default="paper/paper.md", type=Path)
     ap.add_argument("--check", action="store_true", help="exit 1 above 1800, 2 above 1999")
     args = ap.parse_args(argv)
-    text = args.paper.read_text(encoding="utf-8")
+    text = args.paper.read_text(encoding="utf-8-sig")
     bot, body = bot_count(text), stripped_count(text)
     print(f"{bot}\tbot method: whole file, `wc -w` (warns > {WARN}, alerts > {ALERT})")
     print(f"{body}\tstripped: body only, no header or comments (NOT what the bot counts)")

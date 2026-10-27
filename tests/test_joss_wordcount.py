@@ -32,3 +32,23 @@ def test_check_exit_codes_follow_the_bot_thresholds(tmp_path):
     assert jw.main([str(f), "--check"]) == 1
     f.write_text("w " * (jw.ALERT + 1), encoding="utf-8")
     assert jw.main([str(f), "--check"]) == 2
+
+
+def test_the_cli_runs_under_python_oo_where_the_docstring_is_gone():
+    # ``python -OO`` strips docstrings, so ``__doc__`` is None and ``__doc__.split`` raised.
+    import subprocess
+    import sys
+
+    r = subprocess.run(
+        [sys.executable, "-OO", str(ROOT / "tools" / "release" / "joss_wordcount.py"), "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stderr
+
+
+def test_a_utf8_bom_does_not_hide_the_yaml_header_from_the_stripped_count(tmp_path, capsys):
+    f = tmp_path / "p.md"
+    f.write_bytes(b"\xef\xbb\xbf" + PAPER.encode("utf-8"))
+    assert jw.main([str(f)]) == 0
+    assert capsys.readouterr().out.splitlines()[1].startswith("5\t")
