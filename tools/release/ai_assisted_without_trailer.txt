@@ -1,0 +1,30 @@
+# Commits that carry no `Co-Authored-By` trailer but were AI-assisted, by the author's statement.
+#
+# Read by tools/release/ai_disclosure_counts.py, from the counted ref itself (`git show
+# <ref>:tools/release/ai_assisted_without_trailer.txt`), so a count at a tag uses the list as it
+# was at that tag. A ref where this file does not exist has an empty list.
+#
+# Statement, 2026-10-26 (Lucas Pulgar-Escobar, recorded in the hub finding
+# agent-findings/joss-p02-readiness-2026-10-26.md, "Decisiones del autor"): all thirteen
+# non-merge commits of 2026-10-19/20 that carry no trailer were AI-assisted (Anthropic's Claude via
+# Claude Code). Which model assisted each one was not recorded, so they are counted as assisted
+# without a model attribution. Twelve were committed under the unconfigured identity
+# `Lucas Matías Pulgar <notluquis@MacBook-Pro-de-Lucas-3.local>` (see .mailmap); a577c06 is the
+# squash merge of PR #27.
+#
+# One full 40-character sha per line; text after the sha is a comment. The script fails if a
+# listed sha does not exist, is a merge, or already carries a trailer: the list states an
+# exception, and an entry that is not one is a stale entry.
+130719ad33a1b86154771d855f0b356bb6101821  2026-10-19 modesearch: dup_tol
+8a02c77f5bdf1d1e4f2a2dcdf98b00f34464c302  2026-10-19 CHANGELOG: dup_tol
+acabc8ebf9996898601cc911ae07ca7925abafb3  2026-10-19 modesearch: dup_tol height test
+1742cc3c416d7f89ff99ddaecb797ce3f324786c  2026-10-19 IsochroneFitter.fit(mode_search=...) on by default
+e02c7c1d26816cb7355367267330908cdf1666c5  2026-10-19 IsochroneFitter: mode_search on nutpie
+7616701fcb55166cf72f373ddd3ae6aa23d5b5ed  2026-10-20 Revert "nutpie: draw_diag adaptation"
+4c0144a9aeb1ba0e59e3ec3f273863b6c9011a3a  2026-10-20 IsochroneFitter.fit (nutpie): common start inside the support
+a5dae14a89438800e7e1646220adc016ddbeaf57  2026-10-20 nutpie start in bounds (R75-05, R75-06)
+11369e5843b5851fa4619abf8fc13bc7f68dbb70  2026-10-20 IsochroneFitter: warning and docstring (R75-01, R75-03)
+0e18e4b5ca40304b1ba9860862a9d142a4102508  2026-10-20 modesearch V1 + V3 (R75-04)
+cc37a1fce7fd83c5ae87674a392d1c52548e7363  2026-10-20 CHANGELOG: reproducible bootstrap by default
+a577c065be021df8fcaf1fe66fce670a30e0bd43  2026-10-20 dynamics: R30 review fixes (#27, squash merge)
+5cc98cab2ce2bf0606616b2130d028829bbcce3f  2026-10-20 tests: pin extinction_law="ccm89" in frozen oracles
