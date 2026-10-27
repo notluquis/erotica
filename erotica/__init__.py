@@ -10,7 +10,7 @@ from importlib.metadata import version as _version
 try:
     __version__ = _version("erotica")
 except PackageNotFoundError:  # running from a source tree with no install metadata
-    __version__ = "0.2.0"
+    __version__ = "0.3.0"
 
 _ANALYSIS_EXPORTS = {
     "ClusterAnalyzer",

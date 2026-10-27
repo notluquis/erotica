@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - not yet tagged
+
+Version metadata bumped on 2026-10-26 (`pyproject.toml`, `CITATION.cff`, `erotica/__init__.py`,
+`docs/conf.py`, README); the tag, the GitHub release, PyPI and Zenodo are left to the author.
+Everything below, down to [0.2.0], is what this release adds.
+
+### JOSS paper and release metadata (2026-10-26)
+- **Changed:** `paper/paper.md` describes the isochrone code on `dev`: the unbinned per-star
+  likelihood over EEP-interpolated MIST isochrones, `IsochroneFitterKW` (error scale k, magnitude
+  window) and the `nutpie` engine. It said the module sampled a binned Poisson Hess-diagram
+  likelihood, which stopped being true on 2026-09-22. The calibration paragraph states what
+  `EROTICA` computes instead of a negative about the literature, and names the target audience.
+  The validation count is the measured one (49 scripts, 27 committing a JSON result, at `6387d5a`);
+  the paper said 40 and 26, and that each carried a falsification criterion and a negative
+  control, which nothing measured. The Software design paragraph no longer says the core install
+  has no probabilistic-programming stack: `pymc[nutpie]`, `pytensor` and `jax` are core.
+- **Changed:** `tools/release/ai_disclosure_counts.py` counts commits declared AI-assisted
+  without a trailer (`tools/release/ai_assisted_without_trailer.txt`, the author's statement of
+  2026-10-26 for 13 commits of 2026-10-19/20) and merge commits apart from "without trailer".
+- **Added:** `.mailmap`, folding the author's three identities into one; CONTRIBUTING documents
+  the commit identity and that `git config` in a worktree writes the shared config.
+- **Changed:** `pyproject.toml` lists Pierluigi Cerulo as second author, as `CITATION.cff` and the
+  paper already did. The `CITATION.cff` abstract no longer says "NUTS Poisson-Hess".
+
 ### R30 inference (same review)
 - **Added (opt-in, defaults unchanged):** `*_column` arguments on the `*_by_probability` routes and
   `errors=` on `radial_velocity_model` (per-star errors, R30-01); `selection_radius` /
