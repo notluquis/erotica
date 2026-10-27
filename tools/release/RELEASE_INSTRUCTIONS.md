@@ -41,8 +41,33 @@ versions») se fija al **padre** del commit que lo escribe, con la plantilla «A
 
 Si aparece un commit sin trailer después de 2026-07-26 que no es un merge, `--check` falla: o lo
 declara el autor en `tools/release/ai_assisted_without_trailer.txt` (con la fecha de su
-declaración), o el texto cambia. Recuenta las palabras del paper (≤ 1750, techo de JOSS) y los
-validadores de `tools/validation/` (comentario `TODO(v0.3.0)` en el paper) en el mismo commit.
+declaración), o el texto cambia. Recuenta las palabras con `python tools/release/joss_wordcount.py --check` (cuenta como el bot de JOSS:
+`wc -w` del fichero entero, avisa sobre 1800 y alerta sobre 1999; el segundo número, sin cabecera ni
+comentarios, **no** es el del bot) y los validadores de `tools/validation/` (ver abajo) en el mismo commit.
+
+## Pendientes de v0.3.0 que vivían como comentarios en `paper/paper.md` (movidos 2026-10-27)
+
+Los comentarios HTML y YAML se borraron del paper porque el bot de JOSS cuenta sus palabras; su contenido
+se conserva aquí.
+
+1. **Cifra 49 / 27** (párrafo «The repository carries a validation program of 49 scripts…»):
+   `tools/release/validation_json_count.py` a `6387d5a` y a la rama `joss-v0.3.0-text` (2026-10-26). Cuenta los
+   scripts de nivel superior cuyo código nombra un `.json` versionado bajo `tools/validation/`; no
+   comprueba que haya un criterio de falsación ni un control negativo, así que el texto no lo afirma (decía
+   «40 ... 26 ...», una cifra que nada reprodujo). `TODO(v0.3.0)`: recontar en el commit del release.
+2. **Conteos de la divulgación de IA** (párrafo «As of commit `9e61814`…»): están fijados a `9e61814`, un commit
+   de la rama de ese PR, no al release, que aún no existe. Antes de etiquetar, regenerarlos en el padre del
+   commit que los escribe (sección «AI-usage disclosure» de arriba) y sustituir los conteos del párrafo;
+   `--check` debe pasar en ese sha.
+3. **Autores** (cabecera YAML): L.P.-E. es el único implementador; su ORCID se verificó contra la API pública
+   de ORCID el 2026-08-03. P.C. se añadió el 2026-09-22 por dirección del proyecto: JOSS
+   (`submitting.html`) cuenta la «active project direction» como autoría, distinta de las contribuciones
+   puramente financieras u organizativas que excluye. Su afiliación se confirmó contra `\institute` del
+   manuscrito de A&A (`aa52082-24.tex`) y su ORCID contra el registro público.
+4. **Figura del pipeline** (`paper/figures/make_pipeline.py`): las cajas nombran rutas de código a mano. Si
+   se renombra `Clustering`, `IsochroneFitterKW`, `erotica.calibration` o `DataLoader`, hay que editar el
+   script y regenerar `pipeline.png` y `pipeline.pdf` (`python paper/figures/make_pipeline.py`).
+
 
 Instrucciones para completar el lanzamiento:
 

@@ -8,11 +8,6 @@ tags:
   - Bayesian inference
   - stellar populations
 authors:
-  # L.P.-E.: sole implementer; ORCID verified against the ORCID public API 2026-08-03.
-  # P.C.: added 2026-09-22 for project direction -- JOSS (submitting.html) counts "active
-  # project direction" as authorship, distinct from the purely financial/organizational
-  # contributions it excludes. Affiliation confirmed against \institute in the co-authored
-  # A&A manuscript (aa52082-24.tex); ORCID verified against the public ORCID registry.
   - name: Lucas Pulgar-Escobar
     orcid: 0009-0008-4359-2444
     affiliation: 1
@@ -33,9 +28,9 @@ bibliography: paper.bib
 `EROTICA` (Estimation, Recovery & Optimization, together with Inference, for Cluster
 Analysis) is a Python package for identifying and characterizing open clusters in *Gaia*
 data. It combines density-based membership (an HDBSCAN pseudo-probability sweep with
-Bayesian proper-motion and parallax refinement), Bayesian structural fitting of King, EFF
-and corona profiles, gradient-based isochrone fitting, and dynamical diagnostics behind a
-single API that returns an ArviZ `InferenceData` posterior for every fit. It also ships
+Bayesian proper-motion and parallax refinement), Bayesian King, EFF and corona structural
+fits, gradient-based isochrone fitting, and dynamical diagnostics behind one API that returns
+an ArviZ `InferenceData` posterior for every fit. It also ships
 diagnostics for asking whether its own membership probabilities are calibrated. It was
 developed for, and used in, the NGC 6383 studies [@pulgar2024a; @pulgar2024b], the second
 now accepted at Astronomy & Astrophysics.
@@ -70,7 +65,7 @@ callable — on `numpy`/`scipy`/`scikit-learn` alone, so they apply to any pipel
 # State of the field
 
 The closest integrated tool is `ASteCA` [@perren2015], whose synthetic-CMD forward-modeling
-design directly inspired this work; since v0.5.0 it is sampler-agnostic, exposing a Poisson
+design inspired this work; since v0.5.0 it is sampler-agnostic, exposing a Poisson
 likelihood-ratio object for a user-supplied sampler. On the structural axis `EROTICA` fits
 King, EFF and corona profiles as an unbinned Bayesian point process. The antecedents are by the
 `ASteCA` group: an elliptical rotated King profile fitted to spatial data by Bayesian inference
@@ -95,70 +90,61 @@ latent parameters, and @garling2025 sample a binned Poisson Hess-diagram likelih
 [@dolphin2002] with Hamiltonian Monte Carlo. The isochrone module is a capability
 within an integrated pipeline, not a standalone advance.
 
-`ASteCA`, `pyUPMASK` and the survey-scale nested-sampling fits of @plevne2026 are the
-reference implementations in this field, and they are the baselines `EROTICA` has to be
-measured against. That comparison ships as software: an `ASteCA` adapter
-(`erotica.analysis.external.asteca`) wrapping its isochrone and synthetic-cluster machinery,
-and a harness scoring `EROTICA`, `ASteCA` and `pyUPMASK` on membership agreement, parameter
-recovery, runtime and calibration. Benchmark results belong to a
-companion methods paper. What `EROTICA` adds is a capability, not a
-measured win: one path that keeps every intermediate posterior, with calibration reported per
-star; the harness computes calibration for the baselines too.
+`ASteCA`, `pyUPMASK` and the nested-sampling fits of @plevne2026 are the baselines
+`EROTICA` has to be measured against. It ships as software: an `ASteCA` adapter
+(`erotica.analysis.external.asteca`) and a harness scoring all three on membership agreement,
+parameter recovery, runtime and calibration; its results belong to a companion methods paper.
+What `EROTICA` adds is a capability, not a measured win: one path that keeps every
+intermediate posterior, with calibration reported per star.
 
 # Software design
 
-`EROTICA` is a library. Its default sampler, `nutpie` with `pymc` models compiled through
+`EROTICA` is a library; \autoref{fig:pipeline} gives its layout. Its default sampler, `nutpie` with `pymc` models compiled through
 `jax`, is a core dependency; the alternatives (`numpyro`, `blackjax`) sit behind a `bayes` extra.
 Submodules resolve lazily through a module-level `__getattr__` (PEP 562), so `import erotica`
-loads none of the sampling stack; the cost is that the dependency graph is no longer readable
-from the import statements.
+loads none of the sampling stack, at the cost of an import graph that hides the dependencies.
+
+![The `EROTICA` pipeline. A *Gaia* catalog passes through membership, structure and isochrone stages that return `InferenceData` with provenance sidecars; calibration checks the membership probabilities, and a validation layer exercises every stage.](figures/pipeline.png){#fig:pipeline width=100%}
 
 Both fitting modules use unbinned likelihoods, because binning was tested and failed in each. The
 structural fit treats sky positions as an inhomogeneous Poisson point process with intensity
 $\lambda(r) = 2\pi r\,\Sigma(r)$, giving $\log L = \sum_i \log \lambda(r_i) - \Lambda$ — the
 continuous form of the Cash statistic [@cash1979] — with $\Lambda$ integrated over the actual
-footprint. Under the *approximately* equal-count annuli the earlier implementation used, the count per bin is nearly fixed by
-construction, and the Poisson dispersion index measures 0.045 against the 1.0 a Poisson
-likelihood asserts — a roughly 25-fold mis-specification. The isochrone module's earlier binned
+footprint. The earlier *approximately* equal-count annuli fix the count per bin nearly by construction:
+the Poisson dispersion index measures 0.045 against the 1.0 a Poisson likelihood asserts, a
+roughly 25-fold mis-specification. The isochrone module's earlier binned
 Hess-diagram likelihood locked posteriors onto its precomputed grid's reference point, and a
 binned model rebuilt at every evaluation biased the distance modulus by 0.2–0.3 mag on synthetic
 clusters (`docs/design-notes/decisions.md`).
 
-Quantities carry `astropy` units on output, and each fit returns `InferenceData` rather than a
-summary row, so convergence diagnostics stay attached to the numbers they describe. When a
-trace is saved, a sidecar record captures the git commit and dirty flag, the random seeds, the
-tracked dependency versions, and a blake2b checksum of every input file. The dependency list
-is curated rather than locked, because the package is imported, not deployed.
+Quantities carry `astropy` units, and each fit returns `InferenceData` rather than a summary
+row, so convergence diagnostics stay attached to the numbers they describe. A saved trace
+gets a sidecar record: git commit and dirty flag, random seeds, tracked dependency versions,
+and a blake2b checksum of every input file.
 
 # Research impact statement
 
 `EROTICA` is new software: it has no downstream dependents, and its use to date is
-Pulgar-Escobar's own — the NGC 6383 studies [@pulgar2024a; @pulgar2024b], the second of
-which, co-authored with Cerulo, is now accepted at Astronomy & Astrophysics. The evidence
+Pulgar-Escobar's own — the NGC 6383 studies [@pulgar2024a; @pulgar2024b]. The evidence
 offered here is of the other admissible kind: reproducible materials demonstrating
 capability.
 
-<!-- 49 / 27: tools/release/validation_json_count.py at 6387d5a and at this branch (2026-10-26).
-It counts top-level scripts whose source names a .json tracked under tools/validation/; it does not
-check for a falsification criterion or a negative control, so the text does not claim them (it read
-"40 ... 26 ...", a figure nothing reproduced). TODO(v0.3.0): re-count at the release commit. -->
 The repository carries a validation program of 49 scripts under `tools/validation/`, 27 of
 which commit their result as a JSON file. The yield is largely negative results, which is the
 point:
 
 - The EFF slope estimator is biased high at the sample sizes typical of the *Gaia* cluster
-  census, and the bias shrinks as $N$ grows. A survey-scale comparison of slopes would read a
-  selection-independent artifact as physics, with sparse clusters appearing systematically
-  steeper than rich ones.
+  census, and the bias shrinks as $N$ grows. A survey-scale comparison of slopes would read this
+  artifact as physics, with sparse clusters appearing steeper than rich ones.
 - A free background term fabricates a background where the injected truth is exactly zero, and
-  biases the slope upward by 5.8$\sigma$; pinning the term removes both effects. The size of
-  the artifact depends on the shape being measured, so no single offset corrects it.
+  biases the slope upward by 5.8$\sigma$; pinning the term removes both effects. No single
+  offset corrects it, because its size depends on the shape being measured.
 - Fitting a circular profile to an elliptical cluster biases the slope *downward*, toward the
   value at which EFF and an untruncated King profile coincide — so an apparent pile-up there
   can be an artifact of the assumed geometry.
 
-In continuous integration on Python 3.14, with a separate job for the `bayes`
-extra: **562 tests at the v0.2.0 release**, 558 without the extra.
+Continuous integration on Python 3.14 runs **562 tests at the v0.2.0 release**, 558 without
+the `bayes` extra.
 
 The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied
 to the shipping source one at a time, and 18 survived, falsifying this project's own repeated
@@ -170,10 +156,6 @@ claim that every test carried an independent oracle.
 
 **Tools and versions.** Anthropic's Claude, via the Claude Code command-line agent, applied
 to code, tests, documentation and this paper's text.
-<!-- TODO(v0.3.0): the counts below are pinned to commit 9e61814 on this PR's branch, not to the
-release: the v0.3.0 release commit does not exist yet. Before tagging, regenerate at the parent of
-the commit that writes them (tools/release/RELEASE_INSTRUCTIONS.md, "AI-usage disclosure") and
-replace this paragraph's counts; --check must pass at that sha. -->
 As of commit `9e61814`, 486 of the 544 commits carry a `Co-Authored-By` trailer naming the model:
 Claude Opus 5 (301), Claude Opus 5.5 (104), Claude Opus 4.8 (38), Claude Sonnet 5 (20), Claude
 Sonnet 5.5 (14) and Claude Sonnet 4.6 (9). A further 13, from 19–20 October 2026, carry none but
