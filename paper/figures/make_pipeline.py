@@ -38,7 +38,19 @@ def tint(hex_color: str, amount: float = 0.82) -> str:
     return "#{:02x}{:02x}{:02x}".format(*(round(c + (255 - c) * amount) for c in (r, g, b)))
 
 
-def box(ax, x, y, w, h, title, body, color, *, dashed=False, title_dy=0.0):
+def box(
+    ax: plt.Axes,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
+    title: str,
+    body: str,
+    color: str,
+    *,
+    dashed: bool = False,
+    title_dy: float = 0.0,
+) -> tuple[float, float, float, float]:
     """A rounded box with a bold title line on top and a body below it; returns its geometry."""
     ax.add_patch(
         FancyBboxPatch(
@@ -76,7 +88,15 @@ def box(ax, x, y, w, h, title, body, color, *, dashed=False, title_dy=0.0):
     return x, y, w, h
 
 
-def arrow(ax, start, end, *, style="-|>", color=INK, rad=0.0):
+def arrow(
+    ax: plt.Axes,
+    start: tuple[float, float],
+    end: tuple[float, float],
+    *,
+    style: str = "-|>",
+    color: str = INK,
+    rad: float = 0.0,
+) -> None:
     ax.add_patch(
         FancyArrowPatch(
             start,
@@ -92,7 +112,7 @@ def arrow(ax, start, end, *, style="-|>", color=INK, rad=0.0):
     )
 
 
-def build():
+def build() -> tuple[plt.Figure, plt.Axes]:
     fig, ax = plt.subplots(figsize=(WIDTH_IN, HEIGHT_IN))
     ax.set_xlim(0, WIDTH_IN)
     ax.set_ylim(0, HEIGHT_IN)
@@ -226,6 +246,7 @@ def main() -> None:
         fig, ax = build()
         n_problems = len(viz.check_layout(fig))
         pdf, preview = viz.save_figure(fig, HERE / "pipeline.pdf")
+        plt.close(fig)
     os.replace(preview, HERE / "pipeline.png")
     print(f"wrote {pdf.name} and pipeline.png; check_layout problems: {n_problems}")
 
