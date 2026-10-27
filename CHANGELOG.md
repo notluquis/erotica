@@ -26,6 +26,10 @@ Everything below, down to [0.2.0], is what this release adds.
 - **Changed:** `tools/release/ai_disclosure_counts.py` counts commits declared AI-assisted
   without a trailer (`tools/release/ai_assisted_without_trailer.txt`, the author's statement of
   2026-10-26 for 13 commits of 2026-10-19/20) and merge commits apart from "without trailer".
+- **Added:** `tools/release/validation_json_count.py`, the script behind the paper's validation count
+  (it lived only in the author's research notes). `ai_disclosure_counts.py --check FILE` with no
+  `--tag` checks against the commit the paper pins ("As of commit `<sha>`") and prints how far HEAD
+  is past it; with the default tag it failed on every run between releases.
 - **Added:** `.mailmap`, folding the author's three identities into one; CONTRIBUTING documents
   the commit identity and that `git config` in a worktree writes the shared config.
 - **Changed:** `pyproject.toml` lists Pierluigi Cerulo as second author, as `CITATION.cff` and the

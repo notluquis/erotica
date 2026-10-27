@@ -85,14 +85,14 @@ and unresolved binaries marginalized along the track, and samples it with the No
 of `nutpie`. `IsochroneFitterKW` adds a free scale $k$ on the catalog errors, so each star's
 width is $\sqrt{(k e_i)^2 + \sigma_{\mathrm{int}}^2 + \sigma_{\mathrm{floor}}^2}$, and fits inside a
 magnitude window, which isolates the pre-main sequence when one isochrone cannot describe both
-sequences. On the 201 NGC 6383 members in G 14–19 a slow test reruns that fit and asserts $\hat R \le 1.01$ and
+sequences. On the 201 NGC 6383 members in G 14–19 a slow test reruns that fit under CCM89 extinction and asserts $\hat R \le 1.01$ and
 bulk ESS $> 400$ on log age, no divergences, and the committed age quantiles. The age is that of
 the window, and the distance prior selects it along an age–distance ridge; in one injection cell
 the chains did not converge from the default starts. `BASE-9` established Bayesian single-cluster
 CMD fitting with non-gradient MCMC [@vonhippel2006]. Gradient-based fitting is recent: @chi2026
 apply a No-U-Turn Sampler to differentiable PARSEC isochrones with per-star masses sampled as
 latent parameters, and @garling2025 sample a binned Poisson Hess-diagram likelihood
-[@dolphin2002] with Hamiltonian Monte Carlo. The isochrone module is therefore a capability
+[@dolphin2002] with Hamiltonian Monte Carlo. The isochrone module is a capability
 within an integrated pipeline, not a standalone advance.
 
 `ASteCA`, `pyUPMASK` and the survey-scale nested-sampling fits of @plevne2026 are the
@@ -138,11 +138,10 @@ which, co-authored with Cerulo, is now accepted at Astronomy & Astrophysics. The
 offered here is of the other admissible kind: reproducible materials demonstrating
 capability.
 
-<!-- 49 / 27: counted at origin/dev 6387d5a (2026-10-26) with the hub's
-agent-findings/scripts/joss_validation_json_sidecars.py, which counts top-level scripts whose source
-names a .json file that is tracked under tools/validation/. It does not check for a falsification
-criterion or a negative control, so the text no longer says so (it read "40 ... 26 ...", a figure
-nothing reproduced). TODO(v0.3.0): re-count at the release commit. -->
+<!-- 49 / 27: tools/release/validation_json_count.py at 6387d5a and at this branch (2026-10-26).
+It counts top-level scripts whose source names a .json tracked under tools/validation/; it does not
+check for a falsification criterion or a negative control, so the text does not claim them (it read
+"40 ... 26 ...", a figure nothing reproduced). TODO(v0.3.0): re-count at the release commit. -->
 The repository carries a validation program of 49 scripts under `tools/validation/`, 27 of
 which commit their result as a JSON file. The yield is largely negative results, which is the
 point:

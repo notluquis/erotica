@@ -107,3 +107,12 @@ def test_check_fails_on_an_unexplained_late_commit(tmp_path):
 )
 def test_date_range(dates, expected):
     assert adc._date_range(dates) == expected
+
+
+def test_pinned_sha_reads_the_commit_the_paper_pins_across_line_wraps():
+    text = "Tools. As of\ncommit `9e61814`, 486 of the 544 commits carry"
+    assert adc.pinned_sha(text) == "9e61814"
+
+
+def test_pinned_sha_is_none_when_the_paper_pins_a_tag():
+    assert adc.pinned_sha("Of the 366 commits in the v0.2.0 release, 359 carry") is None

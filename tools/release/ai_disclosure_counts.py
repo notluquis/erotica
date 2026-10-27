@@ -322,15 +322,43 @@ def check(stats: dict, path: Path) -> int:
     return 0
 
 
+_PINNED = re.compile(r"As of commit `([0-9a-f]{7,40})`")
+
+
+def pinned_sha(text: str) -> str | None:
+    """The sha a paper pins its counts to ("As of commit `<sha>`"), or None if it pins a tag."""
+    m = _PINNED.search(" ".join(text.split()))
+    return m.group(1) if m else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--tag", default=DEFAULT_TAG, help=f"git tag (default {DEFAULT_TAG})")
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help=f"git tag or commit sha (default {DEFAULT_TAG}; with --check, the sha the paper pins)",
+    )
     parser.add_argument("--paragraph", action="store_true", help="print the prose sentence")
     parser.add_argument("--check", metavar="FILE", help="verify FILE states these numbers")
     args = parser.parse_args()
 
+    tag = args.tag
+    if tag is None and args.check and Path(args.check).exists():
+        # release.sh calls `--check paper/paper.md` with no --tag. Between releases the paper pins
+        # a sha, not the next tag, so checking it against DEFAULT_TAG would always fail -- and a
+        # guard that always fires gets ignored. Check against the pinned sha, and say how far HEAD
+        # has moved past it.
+        tag = pinned_sha(Path(args.check).read_text(encoding="utf-8"))
+        if tag is not None:
+            try:
+                ahead = _git("rev-list", "--count", f"{tag}..HEAD").strip()
+                print(f"paper pins commit {tag}; HEAD is {ahead} commits past it")
+            except subprocess.CalledProcessError:
+                pass
+    tag = tag or DEFAULT_TAG
+
     try:
-        stats = collect(args.tag)
+        stats = collect(tag)
     except subprocess.CalledProcessError as exc:
         print(f"git failed: {exc.stderr.strip()}", file=sys.stderr)
         return 1
