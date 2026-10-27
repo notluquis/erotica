@@ -259,7 +259,7 @@ class IsochroneFitterKW(IsochroneFitter):
             raise RuntimeError("Call setup() or build_grid() first.")
         zlo, zhi = self._met_bounds()
         names = (self._met_name, "loga", "dm", "Av", "sigma_int", "k", "f_bg")
-        eps = 1e-9 if self._met_kind == "feh" else 0.0
+        eps = 1e-9 if self._met_kind == "feh" and zhi - zlo > 2e-9 else 0.0  # one metallicity: lo == hi
         lo = np.array(
             [
                 zlo + eps,
@@ -293,6 +293,8 @@ class IsochroneFitterKW(IsochroneFitter):
         if self.SEARCH_FEH_LATTICE is not None and self._met_kind == "feh":
             zs = [x for x in self.SEARCH_FEH_LATTICE if zlo <= x <= zhi]
         else:
+            zs = []
+        if not zs:  # no lattice, or none of it inside a narrow grid: every node
             zs = [float(z) for z in np.clip(zs_all, lo[0], hi[0])]
         wide = [0.05, 1.0, 0.02]  # sigma_int, k, f_bg of the lattice stage
         cands = []
@@ -340,7 +342,10 @@ class IsochroneFitterKW(IsochroneFitter):
             e = np.zeros(n)
             e[i] = h[i]
             H[i] = (objective(x + e)[1] - objective(x - e)[1]) / (2 * h[i])
-        S = np.linalg.inv(-0.5 * (H + H.T))
+        try:
+            S = np.linalg.inv(-0.5 * (H + H.T))
+        except np.linalg.LinAlgError:  # a flat direction (a one-metallicity grid): zero variance there
+            S = np.linalg.pinv(-0.5 * (H + H.T))
         v = S[:4, 1] / S[1, 1]
         margin = 1e-3 * (hi[:4] - lo[:4])
         starts = []

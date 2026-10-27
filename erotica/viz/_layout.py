@@ -27,7 +27,8 @@ def _data_markers(ax, max_points: int) -> np.ndarray:
     pts = []
     for c in ax.collections:
         if isinstance(c, PathCollection) and c.get_visible():
-            off = c.get_offsets()
+            off = np.ma.filled(c.get_offsets(), np.nan)  # masked points are not drawn
+            off = off[np.all(np.isfinite(off), axis=1)]
             if 0 < len(off) <= max_points:
                 pts.append(c.get_offset_transform().transform(off))
     for ln in ax.lines:

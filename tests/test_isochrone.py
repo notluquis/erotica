@@ -2023,3 +2023,41 @@ def test_strictly_inside_support_warns_when_it_moves_and_refuses_values_outside(
     for bad in ({"Av": 0.1}, {"Av": 2.5}, {"s": -1.0}):
         with pytest.raises(ValueError, match="outside its support"):
             _strictly_inside_support(m, bad)
+
+
+def test_strictly_inside_support_keeps_a_scalar_start_a_python_float():
+    """Bot review (PR 36): the moved value was a 0-d ndarray (``array(0.2000000004)`` in the warning and in the
+    provenance record) where the start was a float. Red without the ``float(...)`` of a 0-d result."""
+    import pymc as pm
+
+    from erotica.analysis._isochrone import _strictly_inside_support
+
+    with pm.Model() as m:
+        pm.Uniform("Av", 0.2, 2.0)
+    with pytest.warns(UserWarning):
+        moved = _strictly_inside_support(m, {"Av": 0.2})
+    assert type(moved["Av"]) is float
+
+
+def test_ccm89_extinction_needs_no_setup(tmp_path):
+    """Bot review (PR 37): a fitter that only ``load_grid``-ed (plots of saved results) crashed in ``_extinguish``
+    with ``TypeError`` (``None * Av``) under ``extinction_law='ccm89'``: the coefficients were set in ``setup``.
+    Red without ``_ensure_ext_coefs``."""
+    f = _toy_fitter(tmp_path)
+    assert f._kG is None  # setup() has not run
+    G, col = f._extinguish(np.array([10.0]), np.array([1.0]), 0.5)
+    assert G[0] > 10.0 and col[0] > 1.0
+
+
+def test_finish_fit_serialises_a_vector_start(tmp_path):
+    """Bot review (PR 40): ``json.dumps(initvals, default=float)`` raised ``TypeError`` on a multi-element array
+    start, at the END of a long run. Red with ``default=float``."""
+    import json
+    from types import SimpleNamespace
+
+    f = _toy_fitter(tmp_path)
+    idata = SimpleNamespace(attrs={})
+    start = {"a": np.float64(1.5), "v": np.array([1.0, 2.0]), "z": np.array(3.0)}
+    f._finish_fit(None, idata, None, 1, "nutpie", start)
+    got = json.loads(idata.attrs["erotica_provenance"])["start"]
+    assert got == {"a": 1.5, "v": [1.0, 2.0], "z": 3.0}

@@ -127,3 +127,19 @@ def test_save_figure_writes_the_artefact_and_a_300_dpi_preview(tmp_path):
     # 90 mm at 300 dpi = 1063 px; savefig may round by a pixel
     assert abs(w - viz.AANDA_COLUMN_IN * 300) <= 1, w
     assert abs(h - viz.AANDA_COLUMN_IN * 0.5 * 300) <= 1, h
+
+
+def test_masked_scatter_points_are_not_markers():
+    """Bot review (PR 41): ``get_offsets()`` of a masked scatter is a MaskedArray; ``transform`` turned the
+    masked point into a real marker, so a text over a point that is NOT drawn read as OVERLAP.
+    Red without the fill + isfinite filter in ``_data_markers``."""
+    x = np.ma.masked_array([1.0, 2.0, 3.0, 4.0], mask=[0, 0, 1, 0])
+    fig, ax = plt.subplots()
+    ax.scatter(x, x)
+    ax.set_xlim(0, 5)
+    ax.set_ylim(0, 5)
+    ax.text(3.0, 3.0, "over the masked point", fontsize=9, ha="center", va="center")
+    assert not [p for p in viz.check_layout(fig) if p.startswith("OVERLAP")]
+    ax.text(2.0, 2.0, "over a drawn point", fontsize=9, ha="center", va="center")
+    assert [p for p in viz.check_layout(fig) if p.startswith("OVERLAP")]
+    plt.close(fig)

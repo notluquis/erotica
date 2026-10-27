@@ -223,3 +223,27 @@ def test_polished_draws_scale_with_the_chains(n_chains, want):
     from erotica.analysis.modesearch import MIN_POLISHED, ModeSearchConfig
 
     assert MIN_POLISHED == 100 and ModeSearchConfig().min_polished == 100
+
+
+def test_connected_wraps_the_intermediate_points_of_a_periodic_axis():
+    """Bot review (PR 31): ``xa + t * dx`` left the period when the segment crossed the seam, and a density
+    defined on one period returned -inf there, so two points 0.28 apart read as disconnected.
+    Red without the ``_wrap`` of the intermediate point."""
+    from erotica.analysis.modesearch import _connected
+
+    def f(x):  # flat on [-pi, pi), -inf outside: the density lives on one period
+        return 0.0 if -np.pi <= x[0] < np.pi else -np.inf
+
+    periods = {0: 2 * np.pi}
+    assert _connected(f, np.array([3.0]), np.array([-3.0]), floor=0.0, tol=1e-9, periods=periods)
+
+
+def test_semi_infinite_bound_does_not_flag_an_interior_mode_at_bound():
+    """Bot review (PR 31): with bounds ``[0, inf]`` the tolerance ``bound_tol * (inf - 0)`` was inf and every
+    finite mode read AT BOUND. Red without ``_width``."""
+    lp = lambda x: float(-0.5 * np.sum((x - 3.0) ** 2))  # noqa: E731
+    res = mode_search(lp, np.array([[1.0], [5.0]]), bounds=(np.array([0.0]), np.array([np.inf])), ridge_fracs=())
+    assert abs(res["modes"][0]["x"][0] - 3.0) < 1e-3
+    assert res["modes"][0]["at_bound"] == []
+    res0 = mode_search(lp, np.array([[1.0]]), bounds=(np.array([3.5]), np.array([np.inf])), ridge_fracs=())
+    assert res0["modes"][0]["at_bound"] == [0]  # a mode on the finite side is still caught

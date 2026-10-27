@@ -58,6 +58,12 @@ def _wrap(d, periods):
     return d
 
 
+def _width(bounds, i):
+    """``upper - lower`` of coordinate ``i``; 0 when a side is infinite (no relative tolerance exists)."""
+    w = bounds[1][i] - bounds[0][i]
+    return float(w) if np.isfinite(w) else 0.0
+
+
 def _hessian(f, x, h):
     """Central-difference Hessian of a scalar function."""
     n = len(x)
@@ -97,7 +103,7 @@ def _laplace(logp, x, scale, bounds, grad=None):
 def _connected(f, xa, xb, floor, tol, periods, ts=(0.25, 0.5, 0.75)):
     """True if ``f`` along the segment xa -> xb (periodic axes wrapped) stays above ``floor - tol``."""
     dx = _wrap((xb - xa)[None], periods)[0]
-    return all(np.isfinite(val := f(xa + t * dx)) and val >= floor - tol for t in ts)
+    return all(np.isfinite(val := f(_wrap((xa + t * dx)[None], periods)[0])) and val >= floor - tol for t in ts)
 
 
 def _optimise(neglogp, x0, grad, bounds, maxiter):
@@ -241,7 +247,7 @@ def mode_search(
                 at = [] if bounds is None else [
                     i for i in range(d)
                     if min(x[i] - bounds[0][i], bounds[1][i] - x[i])
-                    < max(1e-6 * scale[i], bound_tol * (bounds[1][i] - bounds[0][i]))]
+                    < max(1e-6 * scale[i], bound_tol * _width(bounds, i))]
                 if at:  # R69-07: a Gaussian cut by a bound has no full Laplace mass; rank it by height
                     cov, logdet, ok = cov, np.nan, False
                 prec_y, logdet_y = (np.linalg.inv(cov), logdet) if ok else (None, np.nan)
