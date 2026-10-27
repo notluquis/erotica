@@ -1733,6 +1733,83 @@ def _king_corona_model(pm, r, field_radius, priors, tidal_prior, completeness):
     return model
 
 
+@dataclass(frozen=True)
+class WilsonPriors:
+    """Priors for the Wilson (1975) profile, in the same footing as :class:`KingPriors`.
+
+    Attributes
+    ----------
+    r_0_scale : float
+        Half-Cauchy scale (arcmin) for the Wilson scale radius ``r_0`` (the LIMEPY convention,
+        **not** King's ``R_c``: the truncation radius is ``r_0 * rhat_t(W0)``, with ``rhat_t`` from
+        9 to 2100 over ``W0`` in 3..10). Default 5.0, the same constant as ``KingPriors.r_c_scale``
+        so the two evidences are on the same footing in scale; **not** derived from a catalogue.
+    k_scale, b_scale : float
+        Half-Cauchy scales for the central density and the background, as in :class:`KingPriors`
+        (order-unity because surface densities are order unity; not derived).
+    w0_low, w0_high : float
+        Bounds of a **uniform** prior on the dimensionless central potential ``W0``. They are the
+        bounds of the interpolation table in :mod:`erotica.analysis.wilson`, not a physical
+        argument; the likelihood, not this prior, should set where the posterior sits, and a
+        posterior pressed against either edge means the table, not the cluster, is speaking.
+    """
+
+    r_0_scale: float = 5.0
+    k_scale: float = 1.0
+    b_scale: float = 1.0
+    w0_low: float = 1.0
+    w0_high: float = 10.0
+
+
+def _wilson_loglike_op(radii, field_radius):
+    """Module-level class built lazily (pytensor is an optional extra); picklable for SMC workers."""
+    import pytensor.tensor as pt
+    from pytensor.graph.basic import Apply
+    from pytensor.graph.op import Op
+
+    class WilsonLogLike(Op):
+        """Gradient-free point-process log-likelihood of the Wilson profile."""
+
+        def __init__(self, radii, field_radius):
+            self.radii = np.asarray(radii, dtype=float)
+            self.field_radius = float(field_radius)
+
+        def make_node(self, r_0, W0, k, b):
+            inputs = [pt.as_tensor_variable(v) for v in (r_0, W0, k, b)]
+            return Apply(self, inputs, [pt.dscalar()])
+
+        def perform(self, node, inputs, outputs):
+            from .wilson import wilson_log_likelihood
+
+            r_0, W0, k, b = (float(v) for v in inputs)
+            ll = wilson_log_likelihood(
+                self.radii, k=k, r_0=r_0, W0=W0, b=b, field_radius=self.field_radius
+            )
+            outputs[0][0] = np.array(ll if np.isfinite(ll) else -1e300, dtype="float64")
+
+    return WilsonLogLike(radii, field_radius)
+
+
+def _wilson_model(pm, r, field_radius, priors, completeness):
+    """Wilson point-process model. The profile has no closed form (it is a tabulated Poisson
+    solution), so the log-likelihood is a gradient-free pytensor ``Op``: valid for sequential Monte
+    Carlo (what :func:`compare_radial_profiles` uses), not for NUTS."""
+    if completeness is not None:
+        raise NotImplementedError(
+            "completeness weighting is not implemented for the Wilson model; the weighted "
+            "normalisation would need its own quadrature over the tabulated profile."
+        )
+    op = _wilson_loglike_op(r, field_radius)
+    _assert_pytensor_cauchy_fixed()
+    with pm.Model() as model:
+        r_0 = pm.HalfCauchy("r_0", beta=priors.r_0_scale)
+        W0 = pm.Uniform("W0", lower=priors.w0_low, upper=priors.w0_high)
+        k = pm.HalfCauchy("k", beta=priors.k_scale)
+        b = pm.HalfCauchy("b", beta=priors.b_scale)
+        pm.Potential("point_process", op(r_0, W0, k, b))
+    return model
+
+
 def compare_radial_profiles(
     radii,
     *,
@@ -1740,12 +1817,14 @@ def compare_radial_profiles(
     models=("king", "eff", "plummer"),
     king_priors: KingPriors | None = None,
     eff_priors: EFFPriors | None = None,
+    wilson_priors: WilsonPriors | None = None,
     corona_priors: CoronaPriors | None = None,
     tidal_prior: tuple[float, float] | None = None,
     completeness=None,
     draws: int = 2000,
     chains: int = 4,
     random_seed: int | None = None,
+    cores: int | None = None,
 ):
     r"""Compare radial-profile families by Bayes factor.
 
@@ -1765,9 +1844,14 @@ def compare_radial_profiles(
     ----------
     models : sequence of str
         Any of ``"king"``, ``"eff"``, ``"plummer"`` (EFF with :math:`\gamma` fixed
-        to 4).
+        to 4), ``"king_corona"`` and ``"wilson"`` (Wilson 1975, the :math:`g=2` lowered isothermal
+        model, see :mod:`erotica.analysis.wilson`; its profile is tabulated for
+        :math:`W_0 \in [1, 10]` and the likelihood is gradient-free, which SMC does not need).
     draws, chains, random_seed
         SMC settings. SMC needs more draws than NUTS for a stable evidence.
+    cores : int, optional
+        Worker processes for SMC (default: PyMC's choice). ``cores=1`` runs the chains in series
+        in the calling process.
 
     Returns
     -------
@@ -1804,6 +1888,9 @@ def compare_radial_profiles(
         "king": lambda: _king_model(pm, r, field_radius, king_priors, tidal_prior, completeness),
         "eff": lambda: _eff_model(pm, r, field_radius, eff_priors, None, completeness),
         "plummer": lambda: _eff_model(pm, r, field_radius, eff_priors, 4.0, completeness),
+        "wilson": lambda: _wilson_model(
+            pm, r, field_radius, wilson_priors or WilsonPriors(), completeness
+        ),
         "king_corona": lambda: _king_corona_model(
             pm, r, field_radius, corona_priors or CoronaPriors(), tidal_prior, completeness
         ),
@@ -1817,7 +1904,7 @@ def compare_radial_profiles(
     for name in models:
         with builders[name]():
             idata = pm.sample_smc(
-                draws=draws, chains=chains, random_seed=random_seed, progressbar=False
+                draws=draws, chains=chains, cores=cores, random_seed=random_seed, progressbar=False
             )
         # sample_stats["log_marginal_likelihood"] is (chain, stage), NaN-padded at
         # the front because chains need different numbers of stages. The estimate

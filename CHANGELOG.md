@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Wilson (1975) model in `compare_radial_profiles` (hub thread G7)
+- **Added:** `models=(..., "wilson")`, `WilsonPriors`, and `erotica.analysis.wilson` (Poisson solve + Abel projection of the
+  `g = 2` lowered isothermal model, tabulated for `W0` in [1, 10]; no new dependency). `compare_radial_profiles` also takes `cores`.
+  The Wilson likelihood is gradient-free: SMC (what the comparison uses) works, NUTS does not.
+
 ### Deprecations of PyMC and pandas that erotica itself triggered
 - **Changed (numbers unchanged):** `IsochroneFitter.fit` no longer passes `idata_kwargs={"log_likelihood": ...}`
   (FutureWarning since pymc 6.2); with `log_likelihood=True` it calls `pm.compute_log_likelihood` after sampling.

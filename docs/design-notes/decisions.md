@@ -2205,3 +2205,24 @@ papers, not this package's API, and nothing in the package would read it. It liv
 figure that must pass. Mutations, each seen red and restored: OVERLAP never reported (2 tests fail),
 CLIPPED tolerance infinite (1), FONTSIZE disabled (1), dense clouds counted (1), `allow` ignored (1),
 preview at 200 dpi (1), preview not written (1).
+
+## 2026-10-27 — Wilson (1975) in `compare_radial_profiles`: own solver, LIMEPY as oracle, and King can imitate it at high W0
+
+**Hilo G7.** `models=("wilson",)` / `WilsonPriors` / `erotica.analysis.wilson`. The Wilson projected profile is the
+`g = 2` lowered isothermal model: Poisson solve + Abel projection, **no closed form** (the hub thread said "closed-form integral";
+that is false). Tabulated for `W0` in [1, 10] (0.25 steps, interpolated at fixed `R/r_0`; the first attempt interpolated at fixed
+`R/r_t` and was 8 % off in the count at W0 = 7.37).
+
+**Why not a LIMEPY dependency.** `astro-limepy` 1.2 (MIT, last release 2023-06) fails on current SciPy: `nsteps=1e6` must be an
+`int`, and `dopri5._solout` rejects its callback on SciPy 1.18; it runs after the first patch on SciPy 1.14. (PyPI `limepy` is an
+unrelated LimeSurvey client.) It is the external oracle instead: frozen values in `tests/test_wilson.py`, a live cross-check
+when installed. Against `scipy.integrate.quad` this code agrees to ~1e-5 where LIMEPY's projection is off by up to 1.3e-3.
+
+**Measured.** r_t/r_0 agrees with LIMEPY to 1e-5 (W0 = 3, 6, 9; g = 1 and 2). Uniform line-of-sight quadrature was 6 % off at
+W0 = 9 (r_t/r_0 = 2132), fixed with sinh-spaced nodes. King (g = 1) vs the King 1962 formula: max |dS| 0.0026 at W0 = 7, 0.0176 at
+W0 = 3. Model comparison on synthetic data (SMC): Wilson truth at W0 = 3 / 5 beats King by ln B = 24 / 39 (N = 3021 / 5793); at W0 = 8
+King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 6383 members (N = 628, ML): see
+`tools/validation/wilson_ngc6383_smoke.json`.
+
+**Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
+(1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
