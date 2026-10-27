@@ -1,0 +1,8 @@
+# One canonical identity for the author (git-check-mailmap(1), gitmailmap(5)).
+# `git shortlog -se`, `git log --format=%aN` and tools/release/ai_disclosure_counts.py read this
+# file; the history itself is not rewritten. The second identity is what git falls back to on a
+# machine with no user.name/user.email configured (hostname as the domain): 64 commits on dev as
+# of 2026-10-26, among them the twelve 2026-10-19/20 commits listed in
+# tools/release/ai_assisted_without_trailer.txt. How to configure the identity: CONTRIBUTING.md.
+Lucas Pulgar-Escobar <51384279+notluquis@users.noreply.github.com> Lucas Matías Pulgar <notluquis@MacBook-Pro-de-Lucas-3.local>
+Lucas Pulgar-Escobar <51384279+notluquis@users.noreply.github.com> Lucas Pulgar-Escobar <luucasmatiaspulgar@outlook.cl>
