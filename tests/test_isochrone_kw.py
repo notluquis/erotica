@@ -467,11 +467,13 @@ def _kw_fitter(table_path):
 @requires_mist
 class TestFrozenResearchOracle:
     @pytest.fixture(scope="class")
-    def real(self):
+    @classmethod
+    def real(cls):
         return _kw_fitter(HERE / "data" / "ngc6383_members254.ecsv")
 
     @pytest.fixture(scope="class")
-    def a0(self):
+    @classmethod
+    def a0(cls):
         return _kw_fitter(HERE / "data" / "kw_cell_A0.ecsv")
 
     def test_window_keeps_the_201_stars(self, real):

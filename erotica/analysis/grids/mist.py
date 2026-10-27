@@ -48,7 +48,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .base import GridNode, GridProvenance, IsochroneGrid
+from .base import GridNode, GridProvenance, IsochroneGrid, exact_float_kwargs
 
 MIST_BIBCODES = {
     "1.2": ("2016ApJS..222....8D", "2016ApJ...823..102C"),
@@ -155,7 +155,7 @@ class MISTGrid(IsochroneGrid):
                 usecols=use + extra,
                 # pandas' default fast parser differs from Python's float() in the last ulp;
                 # round_trip makes the arrays bit-identical to MISTIsochrones (regression test)
-                float_precision="round_trip",
+                **exact_float_kwargs(),
             )
             if "[Fe/H]_init" in df and not np.allclose(df["[Fe/H]_init"], feh, atol=1e-6):
                 raise ValueError(f"{fp.name}: header [Fe/H] {feh} != data column [Fe/H]_init")

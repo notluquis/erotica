@@ -1664,6 +1664,29 @@ def test_default_pymc_sampler_path_runs(tmp_path):
 
 
 @requires_bayes_extra
+@pytest.mark.parametrize("engine", ["nutpie", "pymc"])
+def test_fit_with_log_likelihood_and_nuts_kwargs_uses_no_deprecated_pymc_api(tmp_path, engine):
+    """Lesson 29: the NON-default arguments. ``log_likelihood=True`` and ``nuts_sampler_kwargs`` were
+    forwarded through ``idata_kwargs=`` and ``nuts_sampler_kwargs=``, both deprecated in pymc >= 6.2
+    (FutureWarning). ``pytest.ini`` ignores FutureWarning, so this test turns it back on for itself.
+
+    Mutation: restore ``idata_kwargs={"log_likelihood": log_likelihood}`` in ``fit`` -> the
+    FutureWarning is raised and this fails; drop the ``compute_log_likelihood`` call -> no group."""
+    import warnings
+
+    f = _toy_fitter(tmp_path)
+    f.setup(_toy_stars(200, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(3)), prob_threshold=0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        warnings.filterwarnings("ignore", message=".*PyMC's own NUTS.*")
+        idata = f.fit(
+            draws=20, tune=20, chains=1, cores=1, random_seed=3, progressbar=False,
+            nuts_sampler=engine, log_likelihood=True, nuts_sampler_kwargs={"max_treedepth": 5},
+        )  # fmt: skip
+    assert "log_likelihood" in [g.strip("/") for g in idata.groups]
+
+
+@requires_bayes_extra
 def test_default_fit_is_nutpie_on_jax_from_one_common_start(tmp_path, monkeypatch):
     """``fit()`` with no engine chosen: nutpie, compiled with the JAX backend, started from ONE
     common point (the best mode of ``find_start``) because nutpie takes no per-chain start list

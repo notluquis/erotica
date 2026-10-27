@@ -704,3 +704,26 @@ def test_lambda_ori_committed_verdict_matches_the_committed_fits():
         _assert_same_verdict(again, committed[key], key)
     assert committed["cmd_J_JKs"]["oracle_pass"] is False
     assert committed["hrd_post_unblinding"]["oracle_pass"] is True
+
+
+def test_grid_csv_floats_are_bit_identical_to_python_float_without_a_pandas_deprecation():
+    """The grid readers parse with ``exact_float_kwargs()``: ``float_precision="round_trip"`` on
+    pandas 3.0 (whose default differs from ``float()`` in the last ulp), nothing on 3.1+ (where the
+    argument raises ``Pandas4Warning`` and every mode already agrees with ``float()``).
+
+    Mutation: ``return {"float_precision": "round_trip"}`` always -> red on pandas >= 3.1 (the
+    warning is an error here); ``return {}`` always -> red on pandas 3.0 (last-ulp differences)."""
+    import io
+    import warnings
+
+    import pandas as pd
+
+    from erotica.analysis.grids.base import exact_float_kwargs
+
+    rng = np.random.default_rng(0)
+    values = rng.uniform(-5, 5, (20000, 4)) * 10.0 ** rng.integers(-8, 9, (20000, 4))
+    text = "\n".join(" ".join(repr(float(v)) for v in row) for row in values)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        got = pd.read_csv(io.StringIO(text), sep=r"\s+", header=None, **exact_float_kwargs()).to_numpy()
+    assert np.array_equal(got, values)
