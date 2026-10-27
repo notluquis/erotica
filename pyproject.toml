@@ -9,13 +9,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "erotica"
-version = "0.2.0"
+version = "0.3.0"
 description = "EROTICA: Estimation, Recovery & Optimization, together with Inference, for Cluster Analysis"
 readme = "README.md"
 requires-python = ">=3.14"
 license = "AGPL-3.0-or-later"
+# Same list and order as CITATION.cff and paper/paper.md (author's decision 2026-10-26: the software and
+# its JOSS paper are Pulgar-Escobar + Cerulo). Cerulo carries no email here because none is recorded in
+# the repository; ORCID 0000-0003-0703-3123, as in CITATION.cff.
 authors = [
   {name = "Lucas Pulgar-Escobar", email = "lescobar2019@udec.cl"},
+  {name = "Pierluigi Cerulo"},
 ]
 keywords = ["astronomy", "clustering", "gaia", "star-clusters", "machine-learning"]
 classifiers = [

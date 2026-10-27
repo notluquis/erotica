@@ -25,6 +25,25 @@
 > **Prefiere `tools/release/release.sh`**, que deriva la versión desde `pyproject.toml` en vez
 > de tenerla escrita a mano, y comprueba que `CITATION.cff` coincida.
 
+## AI-usage disclosure: fijar los conteos al commit del release (añadido 2026-10-26)
+
+Un commit no puede declarar conteos que lo incluyan a él mismo, y el merge que lo lleva a `dev`
+vuelve a mover el total. Por eso el párrafo de `paper/paper.md` («AI usage disclosure», «Tools and
+versions») se fija al **padre** del commit que lo escribe, con la plantilla «As of commit `<sha>`»:
+
+1. Con todo lo demás del release ya en la rama (versión, CHANGELOG, CITATION), anota el sha del
+   último commit: `PADRE=$(git rev-parse HEAD)`.
+2. `python tools/release/ai_disclosure_counts.py --tag $PADRE --paragraph` y pega el resultado en
+   el párrafo, reemplazando el anterior y borrando el comentario `TODO(v0.3.0)` de encima.
+3. `python tools/release/ai_disclosure_counts.py --tag $PADRE --check paper/paper.md` debe dar `OK`.
+4. Commitea sólo ese cambio y pon el tag en ese commit o en un descendiente: el párrafo describe la
+   historia hasta `$PADRE`, que el tag contiene.
+
+Si aparece un commit sin trailer después de 2026-07-26 que no es un merge, `--check` falla: o lo
+declara el autor en `tools/release/ai_assisted_without_trailer.txt` (con la fecha de su
+declaración), o el texto cambia. Recuenta las palabras del paper (≤ 1750, techo de JOSS) y los
+validadores de `tools/validation/` (comentario `TODO(v0.3.0)` en el paper) en el mismo commit.
+
 Instrucciones para completar el lanzamiento:
 
 ## ✅ Lo que ya está listo:

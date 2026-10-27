@@ -31,6 +31,35 @@ pip install -e ".[dev]"
 pytest -q
 ```
 
+### Commit identity (and git worktrees)
+
+Set `user.name` and `user.email` before the first commit. Without them git falls back to the
+login name and `<user>@<hostname>.local`, and the commit is recorded under an identity nobody
+chose: 64 commits on `dev` as of 2026-10-26 carry `Lucas Matías Pulgar
+<notluquis@MacBook-Pro-de-Lucas-3.local>` that way. `.mailmap` folds that identity into the
+canonical one for `git shortlog` and `git log --format=%aN`; it does not change the history.
+
+```bash
+git config --global user.name  "Your Name"
+git config --global user.email "you@example.org"   # or your GitHub noreply address
+```
+
+**In a `git worktree`, a plain `git config user.name …` is not local to the worktree**: it writes
+the shared `.git/config` of the main checkout, so every worktree and the main checkout change
+together. Measured 2026-10-26. To give one worktree its own identity, either pass it per command
+(`git -c user.name="…" -c user.email="…" commit …`) or enable per-worktree configuration, which
+itself edits the shared config once:
+
+```bash
+git config extensions.worktreeConfig true          # shared config, once per repository
+git config --worktree user.name  "Your Name"        # this worktree only
+git config --worktree user.email "you@example.org"
+```
+
+AI-assisted commits carry a `Co-Authored-By:` trailer naming the model. A commit that was
+assisted but lacks the trailer is declared in `tools/release/ai_assisted_without_trailer.txt`,
+which `tools/release/ai_disclosure_counts.py` reads for the paper's AI-usage disclosure.
+
 ## Submitting changes
 
 1. Branch off `dev` (`git checkout -b fix/short-description`).

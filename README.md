@@ -253,21 +253,21 @@ pre-commit install
 
 ## 📊 Status
 
-**Current version**: **v0.2.0** (2026-09-22) — see `CHANGELOG.md` for the full list of changes
-since v0.1.0 (released 2026-08-03, [PyPI](https://pypi.org/project/erotica/), Zenodo concept DOI
+**Current version**: **v0.3.0**, prepared on `dev` and not yet tagged; the latest release is
+**v0.2.0** (2026-09-22) — see `CHANGELOG.md` for the full list of changes since v0.1.0 (released 2026-08-03, [PyPI](https://pypi.org/project/erotica/), Zenodo concept DOI
 [`10.5281/zenodo.21769959`](https://doi.org/10.5281/zenodo.21769959), which always resolves to the
 latest archived version). This block claimed "v0.0.1 (Alpha) — active development for v0.1.0"
 until 2026-08-04, when `pyproject.toml`, `CITATION.cff` and `CHANGELOG.md` had all said 0.1.0 for
 a day; keep the three in step on every release.
 
-**Development status**: v0.2.0 is the version the JOSS submission describes. The API is not yet
+**Development status**: v0.3.0 is the version the JOSS submission will describe. The API is not yet
 frozen; see the roadmap below.
 
 **Tests**: the full suite runs in CI on Python 3.14, plus a job that installs the `bayes`
 extra so the sampler paths actually execute, and a docs job that builds the site. Audited by
 mutation rather than by coverage. (No test count is quoted here on purpose — a count in prose is
 stale by the next commit. Run `pytest --collect-only -q` for the current figure; `paper/paper.md`
-quotes one pinned to the v0.2.0 release, which is fixed and citable.)
+quotes one pinned to a release, which is fixed and citable.)
 
 **Documentation**: [erotica.readthedocs.io](https://erotica.readthedocs.io/en/latest/) — API
 reference, user guides and design notes.
@@ -296,7 +296,7 @@ If EROTICA contributes to work you publish, please cite it. Machine-readable met
   author  = {Pulgar-Escobar, Lucas and Cerulo, Pierluigi},
   title   = {{EROTICA}: Estimation, Recovery \& Optimization, together with Inference,
              for Cluster Analysis},
-  version = {0.2.0},
+  version = {0.3.0},
   year    = {2026},
   doi     = {10.5281/zenodo.21769959},
   url     = {https://github.com/notluquis/erotica},

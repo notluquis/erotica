@@ -24,7 +24,7 @@ affiliations:
     index: 1
   - name: Departamento de Ingeniería Informática y Ciencias de la Computación, Universidad de Concepción, Chile
     index: 2
-date: 22 September 2026
+date: 26 October 2026
 bibliography: paper.bib
 ---
 
@@ -47,23 +47,22 @@ tooling is fragmented. Membership finders (`UPMASK` [@kronemartins2014], `pyUPMA
 [@pera2021], HDBSCAN pipelines [@hunt2021]) and parameter fitters (`ASteCA` [@perren2015],
 `BASE-9` [@vonhippel2006]) are separate tools with separate data models, so an end-to-end
 analysis means glue code that discards each stage's uncertainty before the next consumes it.
-`EROTICA` addresses two gaps.
+`EROTICA` is written for astronomers who derive membership, structure and ages of Galactic open
+clusters from *Gaia* astrometry and photometry, and addresses two gaps for them.
 
 The first is integration: one path from a *Gaia* catalogue to a characterized cluster, with
 every intermediate posterior retained rather than collapsed to a point estimate.
 
 The second is calibration, stated precisely because most of the adjacent ground is already
 occupied. Scoring membership output is not new here — `pyUPMASK` grades
-itself with six metrics for the accuracy of probabilistic classification across 600 synthetic
-clusters [@pera2021] — and @olivares2018 propagate
-observational uncertainties into per-star membership probabilities. What we could not find
-reported for stellar clusters is the reliability check itself: whether a stated probability
-of 0.7 corresponds to a ~70%
-true-member frequency. A 2026 review of membership methods [@ramezani2026] does not raise it,
-and the closest validation work [@jackson2022] measures discrimination rather than
-calibration. The check is routine for photometric-redshift distributions [@disanto2018;
-@myles2021] and, for *galaxy* clusters, at the percent level [@rozo2015] — so the claim is
-scoped to stellar clusters, and concerns what is reported rather than what is possible.
+itself with six probabilistic-classification metrics on 600 synthetic clusters [@pera2021] — and @olivares2018 propagate
+observational uncertainties into per-star membership probabilities. The check `EROTICA` adds is
+reliability: whether a stated probability of 0.7 corresponds to a ~70%
+true-member frequency. The open-cluster validations we read on 26 October 2026 report
+discrimination [ROC AUC, @jackson2022] or the completeness and contamination of recovered member
+lists [@shen2026], and a 2026 review recommends that calibration curves accompany member lists
+[@ramezani2026b]. The check is routine for photometric-redshift distributions [@disanto2018;
+@myles2021] and, for *galaxy* clusters, at the percent level [@rozo2015].
 `EROTICA` ships reliability diagrams, the Hosmer–Lemeshow statistic, Brier score and
 expected/maximum calibration error, with isotonic and Platt recalibration returning a fitted
 callable — on `numpy`/`scipy`/`scikit-learn` alone, so they apply to any pipeline's output.
@@ -72,22 +71,29 @@ callable — on `numpy`/`scipy`/`scikit-learn` alone, so they apply to any pipel
 
 The closest integrated tool is `ASteCA` [@perren2015], whose synthetic-CMD forward-modeling
 design directly inspired this work; since v0.5.0 it is sampler-agnostic, exposing a Poisson
-likelihood-ratio object for a user-supplied sampler. It does contain a King-radius routine,
-private and unwired: a two-parameter least-squares fit to a binned radial profile. On the
-structural axis `EROTICA` fits King, EFF and corona profiles as an unbinned Bayesian point
-process; the closest prior art is @pera2021king, who fit an elliptical rotated King profile
-to spatial data by Bayesian inference. Neither is an extension point: a bring-your-own-sampler
-interface and an unwired King routine are architectural constraints, not omissions, and
-`pyUPMASK` has no structural or isochrone stage at all — so this pipeline was built rather
-than added to either.
+likelihood-ratio object for a user-supplied sampler. On the structural axis `EROTICA` fits
+King, EFF and corona profiles as an unbinned Bayesian point process. The antecedents are by the
+`ASteCA` group: an elliptical rotated King profile fitted to spatial data by Bayesian inference
+[@pera2021king], and a generalized King profile fitted through `ASteCA` to over 1000 clusters
+[@pera2024]. In the released `ASteCA` (v0.7.0) the King routine is private and unwired, a
+two-parameter least-squares fit to a binned radial profile, and `pyUPMASK` has no structural or
+isochrone stage, so this pipeline was built rather than added to either.
 
-For isochrones, `EROTICA` samples the binned Poisson Hess-diagram likelihood [@dolphin2002]
-with a No-U-Turn Sampler. `BASE-9` established Bayesian single-cluster CMD fitting with
-non-gradient MCMC [@vonhippel2006]; the gradient-based combination is recent and cited
-head-on: @chi2026 apply a No-U-Turn Sampler to differentiable PARSEC isochrones for an open
-cluster, and @garling2025 sample a Poisson Hess-diagram likelihood with Hamiltonian Monte
-Carlo — both on different likelihoods from the one used here. The isochrone module is
-therefore a capability within an integrated pipeline, not a standalone advance.
+For isochrones, `EROTICA` evaluates an unbinned per-star likelihood against MIST isochrones
+interpolated at fixed equivalent evolutionary phase [@dotter2016; @choi2016], with stellar mass
+and unresolved binaries marginalized along the track, and samples it with the No-U-Turn Sampler
+of `nutpie`. `IsochroneFitterKW` adds a free scale $k$ on the catalog errors, so each star's
+width is $\sqrt{(k e_i)^2 + \sigma_{\mathrm{int}}^2 + \sigma_{\mathrm{floor}}^2}$, and fits inside a
+magnitude window, which isolates the pre-main sequence when one isochrone cannot describe both
+sequences. On the 201 NGC 6383 members in G 14–19 a slow test reruns that fit under CCM89 extinction and asserts $\hat R \le 1.01$ and
+bulk ESS $> 400$ on log age, no divergences, and the committed age quantiles. The age is that of
+the window, and the distance prior selects it along an age–distance ridge; in one injection cell
+the chains did not converge from the default starts. `BASE-9` established Bayesian single-cluster
+CMD fitting with non-gradient MCMC [@vonhippel2006]. Gradient-based fitting is recent: @chi2026
+apply a No-U-Turn Sampler to differentiable PARSEC isochrones with per-star masses sampled as
+latent parameters, and @garling2025 sample a binned Poisson Hess-diagram likelihood
+[@dolphin2002] with Hamiltonian Monte Carlo. The isochrone module is a capability
+within an integrated pipeline, not a standalone advance.
 
 `ASteCA`, `pyUPMASK` and the survey-scale nested-sampling fits of @plevne2026 are the
 reference implementations in this field, and they are the baselines `EROTICA` has to be
@@ -95,42 +101,34 @@ measured against. That comparison ships as software: an `ASteCA` adapter
 (`erotica.analysis.external.asteca`) wrapping its isochrone and synthetic-cluster machinery,
 and a harness scoring `EROTICA`, `ASteCA` and `pyUPMASK` on membership agreement, parameter
 recovery, runtime and calibration. Benchmark results belong to a
-companion methods paper and are not reported here.
-
-Where `EROTICA` goes beyond the baselines is a claim about capability, not a measured win: an
-end-to-end path that retains every intermediate posterior, and per-star calibration as a
-first-class, reported output. Calibration is computable for any method that emits membership
-probabilities, and the harness computes it for the baselines too — they are not incapable of
-reporting it.
+companion methods paper. What `EROTICA` adds is a capability, not a
+measured win: one path that keeps every intermediate posterior, with calibration reported per
+star; the harness computes calibration for the baselines too.
 
 # Software design
 
-`EROTICA` is a library, and its governing constraint is that the expensive parts stay
-optional. The core install carries no probabilistic-programming stack; everything requiring
-one sits behind a `bayes` extra, and `import erotica` succeeds with `pymc`, `pytensor`,
-`arviz`, `numpyro`, `jax` and `blackjax` all absent. This is enforced rather than asserted:
-submodules resolve lazily through a module-level `__getattr__` (PEP 562), each sampler entry
-point is guarded by a check that names the missing extra, and continuous integration runs the
-suite in a job that installs the package *without* it. The cost is that the dependency graph
-is no longer readable from the import statements.
+`EROTICA` is a library. Its default sampler, `nutpie` with `pymc` models compiled through
+`jax`, is a core dependency; the alternatives (`numpyro`, `blackjax`) sit behind a `bayes` extra.
+Submodules resolve lazily through a module-level `__getattr__` (PEP 562), so `import erotica`
+loads none of the sampling stack; the cost is that the dependency graph is no longer readable
+from the import statements.
 
-The two fitting modules make different likelihood choices, for a measured reason. The
+Both fitting modules use unbinned likelihoods, because binning was tested and failed in each. The
 structural fit treats sky positions as an inhomogeneous Poisson point process with intensity
 $\lambda(r) = 2\pi r\,\Sigma(r)$, giving $\log L = \sum_i \log \lambda(r_i) - \Lambda$ — the
 continuous form of the Cash statistic [@cash1979] — with $\Lambda$ integrated over the actual
-footprint. It is unbinned because binning was tested and failed: under the *approximately*
-equal-count annuli the earlier implementation used, the count per bin is nearly fixed by
+footprint. Under the *approximately* equal-count annuli the earlier implementation used, the count per bin is nearly fixed by
 construction, and the Poisson dispersion index measures 0.045 against the 1.0 a Poisson
-likelihood asserts — a roughly 25-fold mis-specification. The isochrone module samples a *binned* Hess-diagram likelihood
-[@dolphin2002]; the asymmetry is deliberate, since the color–magnitude and sky planes pose
-different problems, but it is an asymmetry rather than a unified formulation.
+likelihood asserts — a roughly 25-fold mis-specification. The isochrone module's earlier binned
+Hess-diagram likelihood locked posteriors onto its precomputed grid's reference point, and a
+binned model rebuilt at every evaluation biased the distance modulus by 0.2–0.3 mag on synthetic
+clusters (`docs/design-notes/decisions.md`).
 
 Quantities carry `astropy` units on output, and each fit returns `InferenceData` rather than a
 summary row, so convergence diagnostics stay attached to the numbers they describe. When a
 trace is saved, a sidecar record captures the git commit and dirty flag, the random seeds, the
 tracked dependency versions, and a blake2b checksum of every input file. The dependency list
-is curated rather than locked, deliberately: the package is imported rather than deployed, and
-bit-identical cross-machine results are unattainable anyway.
+is curated rather than locked, because the package is imported, not deployed.
 
 # Research impact statement
 
@@ -140,10 +138,13 @@ which, co-authored with Cerulo, is now accepted at Astronomy & Astrophysics. The
 offered here is of the other admissible kind: reproducible materials demonstrating
 capability.
 
-The repository carries a validation programme of 40 scripts under `tools/validation/`, 26 of
-which commit a JSON sidecar with the full result, a falsification criterion, and a negative
-control run and reported rather than assumed. The yield is largely negative results, which is
-the point:
+<!-- 49 / 27: tools/release/validation_json_count.py at 6387d5a and at this branch (2026-10-26).
+It counts top-level scripts whose source names a .json tracked under tools/validation/; it does not
+check for a falsification criterion or a negative control, so the text does not claim them (it read
+"40 ... 26 ...", a figure nothing reproduced). TODO(v0.3.0): re-count at the release commit. -->
+The repository carries a validation program of 49 scripts under `tools/validation/`, 27 of
+which commit their result as a JSON file. The yield is largely negative results, which is the
+point:
 
 - The EFF slope estimator is biased high at the sample sizes typical of the *Gaia* cluster
   census, and the bias shrinks as $N$ grows. A survey-scale comparison of slopes would read a
@@ -151,8 +152,7 @@ the point:
   steeper than rich ones.
 - A free background term fabricates a background where the injected truth is exactly zero, and
   biases the slope upward by 5.8$\sigma$; pinning the term removes both effects. The size of
-  the artifact depends on the shape being measured, so no single offset corrects it. It
-  surfaced in the null cell of an experiment where that control was present as a formality.
+  the artifact depends on the shape being measured, so no single offset corrects it.
 - Fitting a circular profile to an elliptical cluster biases the slope *downward*, toward the
   value at which EFF and an untruncated King profile coincide — so an apparent pile-up there
   can be an artifact of the assumed geometry.
@@ -162,19 +162,25 @@ extra: **562 tests at the v0.2.0 release**, 558 without the extra.
 
 The suite is audited by mutation rather than by coverage: 39 deliberate bugs were re-applied
 to the shipping source one at a time, and 18 survived, falsifying this project's own repeated
-claim that every test carried an independent oracle. Each repair is verified by re-applying
-the mutation it was written to catch.
+claim that every test carried an independent oracle.
 
 # AI usage disclosure
 
 `EROTICA` was developed with generative-AI assistance throughout.
 
 **Tools and versions.** Anthropic's Claude, via the Claude Code command-line agent, applied
-to code, tests, documentation and this paper's text. Of the 366 commits in the v0.2.0 release,
-359 carry a `Co-Authored-By` trailer naming the model: Claude Opus 5 (301), Claude Opus 4.8 (38),
-Claude Sonnet 5 (11) and Claude Sonnet 4.6 (9) — the git history is the authoritative record.
-The seven commits without one are early notebook-removal and housekeeping work, not
-reconstructed as assisted.
+to code, tests, documentation and this paper's text.
+<!-- TODO(v0.3.0): the counts below are pinned to commit 9e61814 on this PR's branch, not to the
+release: the v0.3.0 release commit does not exist yet. Before tagging, regenerate at the parent of
+the commit that writes them (tools/release/RELEASE_INSTRUCTIONS.md, "AI-usage disclosure") and
+replace this paragraph's counts; --check must pass at that sha. -->
+As of commit `9e61814`, 486 of the 544 commits carry a `Co-Authored-By` trailer naming the model:
+Claude Opus 5 (301), Claude Opus 5.5 (104), Claude Opus 4.8 (38), Claude Sonnet 5 (20), Claude
+Sonnet 5.5 (14) and Claude Sonnet 4.6 (9). A further 13, from 19–20 October 2026, carry none but
+were AI-assisted, with the model unrecorded; they are listed in
+`tools/release/ai_assisted_without_trailer.txt`. Of the rest, 38 are merge commits (31 of pull
+requests) and 7 are early notebook-removal and housekeeping work, not reconstructed as assisted.
+The git history and that list are the authoritative record.
 
 **Scope.** The assistance was substantive — implementation, test and experiment scaffolding,
 literature search, and drafting of design notes, documentation and this paper's prose — but
@@ -187,8 +193,7 @@ results that were plausible and wrong, and the project adopted a verification di
 response: every generator is checked against an external, parameter-free oracle — a closed
 form, an analytic limit, or an independent implementation — and every test is verified by
 re-applying the bug it is meant to catch. That discipline caught, among others, a
-synthetic-cluster generator that filled a cube rather than a sphere; an experiment degenerate
-with its own control; a unit error that made a profile wrong by a factor of 480 with no
+synthetic-cluster generator that filled a cube rather than a sphere; a unit error that made a profile wrong by a factor of 480 with no
 exception raised; and several novelty claims — including an earlier, broader version of this
 paper's own calibration claim — that were falsified on checking and then narrowed or
 withdrawn.
@@ -202,7 +207,7 @@ committed to the repository, not a model's assertion.
 
 We gratefully acknowledge support from the ANID BASAL project FB210003 and the SOCHIAS GEMINI
 project 32230014. L.P.-E. acknowledges financial support from the Dirección de Postgrado,
-Universidad de Concepción, through its MSc scholarship programme, under which this software
+Universidad de Concepción, through its MSc scholarship program, under which this software
 was developed. P.C. acknowledges support from the UdeC VRID Iniciación fund 2025001386INI.
 The funders had no role in the design of the software, the analyses, or the writing of this
 paper.

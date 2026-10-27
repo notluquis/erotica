@@ -22,8 +22,9 @@ title: "EROTICA: Estimation, Recovery & Optimization, together with Inference, f
 abstract: >-
   An integrated Bayesian Python pipeline for identifying and characterizing
   open clusters in Gaia data: HDBSCAN pseudo-probability membership with
-  Bayesian PM/parallax refinement, Bayesian King structural fitting, NUTS
-  Poisson-Hess isochrone fitting, membership-calibration diagnostics, and
+  Bayesian PM/parallax refinement, Bayesian King structural fitting,
+  unbinned per-star isochrone fitting sampled with NUTS (nutpie),
+  membership-calibration diagnostics, and
   dynamical diagnostics, with ArviZ InferenceData provenance for every fit.
 type: software
 authors:
@@ -41,8 +42,10 @@ authors:
     orcid: "https://orcid.org/0000-0003-0703-3123"
 repository-code: "https://github.com/notluquis/erotica"
 license: AGPL-3.0-or-later
-version: 0.2.0
-date-released: "2026-09-22"
+version: 0.3.0
+# TODO(v0.3.0): set to the tag date. The tag does not exist yet (2026-10-26); this placeholder is
+# the day the version was bumped, kept as a valid date so the file still validates.
+date-released: "2026-10-26"
 doi: 10.5281/zenodo.21769959   # concept DOI: always resolves to the latest version
 
 # Once the NGC 6383 A&A paper has a DOI, uncomment this block. GitHub's "Cite this
