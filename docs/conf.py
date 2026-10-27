@@ -4,8 +4,8 @@ from importlib.metadata import version as _pkg_version
 
 # -- Project information -----------------------------------------------------
 project = "EROTICA"
-author = "EROTICA developers"
-copyright = "2026, EROTICA developers"
+author = "Lucas Pulgar-Escobar, Pierluigi Cerulo"
+copyright = "2026, Lucas Pulgar-Escobar, Pierluigi Cerulo"
 try:
     release = _pkg_version("erotica")  # distribution name in pyproject
 except Exception:
