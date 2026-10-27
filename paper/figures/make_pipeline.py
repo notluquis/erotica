@@ -75,7 +75,7 @@ def box(
         color=INK,
     )
     if body:
-        # Centred in the space under the title, so a short body does not leave a blank bottom.
+        # Centered in the space under the title, so a short body does not leave a blank bottom.
         top = y + h - 0.33 + title_dy
         ax.text(
             x + w / 2,
