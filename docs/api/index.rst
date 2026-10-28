@@ -102,7 +102,8 @@ Radial structure
 
 Radial-profile fitting is an **unbinned inhomogeneous Poisson point process**: the likelihood is
 ``sum(log lambda(r_i)) - Lambda``, with no binning step to choose and no Gaussian approximation to
-break in the sparse outer bins that set ``R_t``. King and EFF share that machinery, so
+break in the sparse outer bins that set ``R_t``. King, EFF and Wilson (1975; the tabulated ``g = 2`` lowered isothermal model of
+:mod:`erotica.analysis.wilson`) share that machinery, so
 :func:`compare_radial_profiles` can put a Bayes factor between them. See
 :doc:`/design-notes/king_model_validity` for what the fits can and cannot identify.
 
@@ -120,6 +121,7 @@ break in the sparse outer bins that set ``R_t``. King and EFF share that machine
    king_expected_count
    king_expected_count_weighted
    eff_expected_count
+   WilsonPriors
    radial_density_profile
 
 Synthetic clusters
