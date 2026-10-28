@@ -1027,13 +1027,19 @@ class KingPriors:
 
         .. important::
            ``b`` is **not** field contamination on a membership-selected sample. On NGC 6383 it
-           accounts for **56% of the sample** against a target–decoy false-discovery proportion of
-           a **median of 2.8%** (mean 10.5%, p90 30.8% over 40 realizations — the distribution is
-           tail-dominated, so quote the median). What it absorbs is the corona, exactly as Seleznev (2016, MNRAS
-           456, 3757) states: *"the cluster corona … is perceived by the approximation algorithm as
-           part of the stellar background."* Report the fraction attributed to ``b`` alongside
-           ``k``, ``R_c`` and ``R_t``, or the profile of a minority of the data is being presented as
-           the profile of the cluster.
+           accounts for **56% of the sample**. The production-matched target–decoy
+           false-discovery proportion beyond ``r_J`` is **0.038** (``fdp_out_median`` in
+           ``tools/validation/b1_beyond_jacobi.json``; an outer figure, so no whole-sample ratio
+           is formed from it). The 2.8% median
+           that stood here came from a decoy run configured unlike production and was retired
+           on 2026-08-04. What ``b`` absorbs is real stars: 179 of the 271 members beyond
+           ``r_J`` lie inside the catalogued comoving clusters Antalova 2 and Theia 1645
+           (``tools/validation/b1_beyond_jacobi.py``), and a King model, having no corona,
+           reads any extended population as background (Seleznev 2016, MNRAS 456, 3757).
+           Which of the two dominates is open. ``king_unbinned`` reports the share as
+           ``b_fraction_median`` (:func:`king_background_fraction`); quote it alongside ``k``,
+           ``R_c`` and ``R_t``, or the profile of a minority of the data is being presented
+           as the profile of the cluster.
     """
 
     r_c_scale: float = 5.0
@@ -1151,6 +1157,79 @@ def king_expected_count_weighted(
     return xp.sum(w_nodes * 2.0 * np.pi * r_nodes * sigma * s_nodes)
 
 
+def king_background_fraction(k, b, R_c, R_t, field_radius, completeness=None, *, nodes: int = 256):
+    r"""Share of the expected (detected) count inside the field that the background term carries.
+
+    .. math::
+
+        f_b = \frac{\int_0^{R_f} 2\pi r\, b\, \bar{S}(r)\,\mathrm{d}r}
+                   {\int_0^{R_f} 2\pi r\, \Sigma_{\rm K}(r)\, \bar{S}(r)\,\mathrm{d}r}
+
+    with :math:`\bar{S} = 1` when `completeness` is ``None``, in which case the denominator is
+    :func:`king_expected_count` and the numerator is :math:`\pi b R_f^2`.
+
+    Why it exists: on a membership-selected sample the field has already been removed, so ``b``
+    is **not** contamination, and a fit can still hand it most of the sample. On NGC 6383 it
+    carries 56% of the 628 members (erotica#5). Reporting ``k``, ``R_c`` and ``R_t`` without this
+    number reports the profile of a minority of the data as the profile of the cluster.
+
+    Parameters
+    ----------
+    k, b, R_c, R_t : float or array-like
+        King parameters; arrays broadcast, so a whole posterior (one value per draw) can be passed
+        at once.
+    field_radius : float
+        Radius of the circular footprint, same units as `R_c`.
+    completeness : callable or array-like, optional
+        As in :func:`king_expected_count_weighted`.
+    nodes : int, default 256
+        Gauss-Legendre order, used only when `completeness` is given.
+
+    Returns
+    -------
+    float or ndarray
+        :math:`f_b` in [0, 1], with the broadcast shape of the parameters.
+    """
+    k, b, R_c, R_t = (np.asarray(v, dtype=float) for v in (k, b, R_c, R_t))
+    field_radius = float(field_radius)
+    if completeness is None:
+        total = king_expected_count(k, b, R_c, R_t, field_radius)
+        return np.pi * b * field_radius**2 / total
+    x, w = np.polynomial.legendre.leggauss(int(nodes))
+    r_nodes = 0.5 * field_radius * (x + 1.0)
+    w_nodes = 0.5 * field_radius * w
+    s_nodes = np.asarray(
+        completeness(r_nodes) if callable(completeness) else completeness, dtype=float
+    )
+    if s_nodes.shape != r_nodes.shape:
+        raise ValueError(
+            f"completeness has shape {s_nodes.shape}, expected {r_nodes.shape} (nodes={nodes})."
+        )
+    kernel = w_nodes * 2.0 * np.pi * r_nodes * s_nodes  # (nodes,)
+    k_, b_, R_c_, R_t_ = (v[..., None] for v in np.broadcast_arrays(k, b, R_c, R_t))
+    core = 1.0 / np.sqrt(1.0 + (r_nodes / R_c_) ** 2)
+    edge = 1.0 / np.sqrt(1.0 + (R_t_ / R_c_) ** 2)
+    cluster = np.where(r_nodes <= R_t_, k_ * (core - edge) ** 2, 0.0)
+    background = np.sum(b_ * kernel, axis=-1)
+    return background / (np.sum(cluster * kernel, axis=-1) + background)
+
+
+def _background_fraction_summary(posterior, field_radius, completeness=None) -> tuple[float, float]:
+    """Median and SD of :func:`king_background_fraction` **per draw**.
+
+    Per draw, not a ratio of medians: ``b`` and ``k`` are correlated in the posterior, so the
+    fraction at the median parameters is not the median fraction.
+    """
+    draws = {
+        name: np.asarray(posterior[name].values, dtype=float).ravel()
+        for name in ("k", "b", "R_c", "R_t")
+    }
+    frac = king_background_fraction(
+        draws["k"], draws["b"], draws["R_c"], draws["R_t"], field_radius, completeness
+    )
+    return float(np.nanmedian(frac)), float(np.nanstd(frac))
+
+
 def king_unbinned(
     radii,
     *,
@@ -1216,7 +1295,9 @@ def king_unbinned(
     -------
     dict
         Posterior medians and standard deviations for ``k``, ``b``, ``R_c`` and
-        ``R_t``, plus ``king_trace`` and the ``field_radius`` actually used.
+        ``R_t``; ``b_fraction_median``/``b_fraction_std``, the share of the expected
+        count inside the field carried by ``b`` (:func:`king_background_fraction`,
+        per draw); plus ``king_trace`` and the ``field_radius`` actually used.
 
     Notes
     -----
@@ -1266,6 +1347,11 @@ def king_unbinned(
         median, std = float(np.nanmedian(arr)), float(np.nanstd(arr))
         results[f"{name}_median"] = median * unit if unit else median
         results[f"{name}_std"] = std * unit if unit else std
+    # The share of the sample the flat term carries, reported beside the structural parameters
+    # (erotica#5): on a membership-selected sample it is not contamination.
+    results["b_fraction_median"], results["b_fraction_std"] = _background_fraction_summary(
+        trace.posterior, field_radius, completeness
+    )
     if (ms := mode_search_summary(trace)) is not None:
         results["mode_search"] = ms
     if return_trace:
@@ -1642,7 +1728,9 @@ def corona_surface_density(radius, *, delta_f, R_2):
 
     That is the mechanism this repository measured independently on NGC 6383,
     where the flat background term accounts for **56% of a membership-selected
-    sample** against a target–decoy false-discovery proportion whose median is 2.8%. See
+    sample**, while the production-matched target–decoy false-discovery proportion beyond
+    ``r_J`` has a median of 0.038. Part of that population is the comoving neighbours Antalova 2
+    and Theia 1645 rather than a corona of NGC 6383 itself (erotica#5). See
     ``docs/design-notes/king_model_validity.md``.
 
     .. important::

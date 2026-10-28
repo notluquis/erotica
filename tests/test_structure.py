@@ -116,6 +116,7 @@ import importlib.util  # noqa: E402
 
 from erotica.analysis.structure import (  # noqa: E402
     KingPriors,
+    king_background_fraction,
     king_expected_count,
     king_expected_count_weighted,
     king_unbinned,
@@ -185,6 +186,64 @@ def test_background_only_normalisation_is_the_disc_area():
     """With k = 0 the expected count is exactly b * pi * R_f^2."""
     got = king_expected_count(0.0, 0.3, 4.0, 30.0, 70.0)
     assert got == pytest.approx(0.3 * np.pi * 70.0**2)
+
+
+# --- the background share (erotica#5) ----------------------------------------
+
+
+def _quad_background_fraction(k, b, R_c, R_t, field, s=lambda r: 1.0):
+    quad = pytest.importorskip("scipy.integrate").quad
+    bg = quad(lambda r: 2.0 * np.pi * r * b * s(r), 0.0, field, limit=400)[0]
+    tot = quad(
+        lambda r: 2.0 * np.pi * r * _king_sigma(r, k=k, b=b, R_c=R_c, R_t=R_t) * s(r),
+        0.0,
+        field,
+        limit=400,
+        points=[min(R_t, field)],
+    )[0]
+    return bg / tot
+
+
+@pytest.mark.parametrize(
+    "k, b, R_c, R_t, field",
+    [(6.0, 0.05, 4.0, 30.0, 70.0), (2.0, 0.03, 3.0, 90.0, 70.0), (0.5, 0.2, 8.0, 20.0, 40.0)],
+)
+def test_background_fraction_matches_quadrature(k, b, R_c, R_t, field):
+    """Oracle: quad of b over quad of the whole profile, uniform and radial completeness."""
+    assert king_background_fraction(k, b, R_c, R_t, field) == pytest.approx(
+        _quad_background_fraction(k, b, R_c, R_t, field), rel=1e-8
+    )
+
+    def s(r):
+        return np.clip(1.0 - 0.6 * np.asarray(r) / field, 0.0, 1.0)
+
+    got = king_background_fraction(k, b, R_c, R_t, field, completeness=s)
+    assert got == pytest.approx(_quad_background_fraction(k, b, R_c, R_t, field, s), rel=1e-6)
+
+
+def test_background_fraction_is_summarised_per_draw():
+    """The median of the per-draw fraction, not the fraction at the median parameters.
+
+    Draws with anticorrelated (k, b) -- the shape the posterior has -- give a median per-draw
+    fraction of 0.586 where the fraction at the parameter medians is 0.821; a ratio-of-medians
+    shortcut would land on the latter.
+    """
+    import xarray as xr
+
+    from erotica.analysis.structure import _background_fraction_summary
+
+    k = np.array([[8.0, 1.0, 8.0, 1.0]])
+    b = np.array([[0.01, 0.20, 0.01, 0.20]])
+    R_c, R_t = np.full((1, 4), 4.0), np.full((1, 4), 30.0)
+    post = xr.Dataset(
+        {n: (("chain", "draw"), v) for n, v in {"k": k, "b": b, "R_c": R_c, "R_t": R_t}.items()}
+    )
+    per_draw = king_background_fraction(k.ravel(), b.ravel(), 4.0, 30.0, FIELD)
+    median, std = _background_fraction_summary(post, FIELD)
+    assert median == pytest.approx(np.median(per_draw))
+    assert std == pytest.approx(np.std(per_draw))
+    at_medians = king_background_fraction(np.median(k), np.median(b), 4.0, 30.0, FIELD)
+    assert abs(median - at_medians) > 0.05
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +453,10 @@ def test_unbinned_fit_recovers_injected_parameters():
         assert abs(median - TRUE_KING[name]) < 3 * std, (
             f"{name}: posterior {median:.3f} +/- {std:.3f} excludes injected {TRUE_KING[name]}"
         )
+
+    # erotica#5: the share b carries is reported, and recovers the injected one.
+    true_fraction = king_background_fraction(**TRUE_KING, field_radius=FIELD)
+    assert abs(res["b_fraction_median"] - true_fraction) < 3 * res["b_fraction_std"]
 
     summary = az.summary(res["king_trace"], var_names=["k", "b", "R_c", "R_t"])
     assert pd.to_numeric(summary["r_hat"], errors="coerce").max() < 1.01

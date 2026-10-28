@@ -540,6 +540,13 @@ The membership pipeline's own false-positive rate, measured independently by the
 construction in `tools/validation/decoy_fdp.py`, is an order of magnitude too small to account for
 the flat component. **Whatever `b` is absorbing, it is mostly real members.**
 
+> **2026-10-28 (erotica#5).** The FDP row and the 20× ratio above are **retired**: that decoy run
+> was configured unlike production and its donor pool leaked cluster-PM stars. Production-matched,
+> the FDP beyond `r_J` is **0.038** (`fdp_out_median` in `tools/validation/b1_beyond_jacobi.json`), an outer figure from which no
+> whole-sample ratio is formed. The conclusion stands — `b` absorbs real stars — and 179 of the 271
+> members beyond `r_J` lie inside Antalova 2 and Theia 1645 (`tools/validation/b1_beyond_jacobi.py`).
+> `king_unbinned` now returns the share as `b_fraction_median` / `b_fraction_std`.
+
 ### And the component really is flat
 
 Measured directly on the member sample, in arcmin⁻²:
