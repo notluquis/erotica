@@ -10,9 +10,12 @@ permissions:
   contents: read
 
 jobs:
-  # Core suite on every supported Python, WITHOUT the `bayes` extra. That omission is
-  # the point: it is the only thing enforcing that `import erotica` works with pymc,
-  # pytensor, arviz, numpyro, jax and blackjax all absent.
+  # Core suite with the base dependencies plus `[dev]`, WITHOUT the `bayes` and `gp` extras.
+  # pymc[nutpie], pytensor, jax, arviz, xarray and h5netcdf are base dependencies (they were
+  # moved out of `bayes` when nutpie became the default NUTS engine), so this job DOES sample
+  # PyMC models. What it leaves out is what only the extras bring: numpyro and blackjax (the
+  # alternative NUTS backends, in `bayes`) and torch (GPSampler, in `gp`). Tests that need
+  # those skip here by design and run in `test-bayes`.
   #
   # The matrix must match `requires-python` in pyproject.toml. It said 3.11/3.12/3.13
   # while requires-python had moved to >=3.13, so those two legs could not install the
@@ -49,8 +52,10 @@ jobs:
   # The Bayesian paths produce every published number, and until 2026-07-27 no
   # test had ever sampled a PyMC model -- the suite monkeypatched the sampler
   # away and CI installed only `.[dev]`, so a broken default backend went
-  # unnoticed. This job installs the extra so those tests actually execute
-  # rather than skipping, and reports coverage.
+  # unnoticed. Since then pymc is a base dependency, so `test` samples too. This job adds
+  # what the base install lacks -- the `bayes` extra (numpyro, blackjax, fast-histogram) and
+  # `gp` (torch) -- so the tests of the alternative backends and of GPSampler execute rather
+  # than skip, and it reports coverage.
   test-bayes:
     runs-on: ubuntu-latest
     steps:
