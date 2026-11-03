@@ -25,15 +25,17 @@ bibliography: paper.bib
 
 # Summary
 
-`EROTICA` (Estimation, Recovery & Optimization, together with Inference, for Cluster
-Analysis) is a Python package for identifying and characterizing open clusters in *Gaia*
-data. It combines density-based membership (an HDBSCAN pseudo-probability sweep with
+Open clusters are groups of stars born together; separating their members from unrelated
+field stars is the first step in measuring their ages and structure. `EROTICA` (Estimation,
+Recovery & Optimization, together with Inference, for Cluster Analysis) is a Python package
+for identifying and characterizing them in *Gaia* data [@gaia2016]. It combines density-based
+membership (an HDBSCAN pseudo-probability sweep with
 Bayesian proper-motion and parallax refinement), Bayesian King, EFF and corona structural
 fits, gradient-based isochrone fitting, and dynamical diagnostics behind one API that returns
-an ArviZ `InferenceData` posterior for every fit. It also ships
-diagnostics for asking whether its own membership probabilities are calibrated. It was
+an ArviZ [@martin2026] `InferenceData` posterior for every fit. It also ships calibration
+diagnostics for its membership probabilities. It was
 developed for, and used in, the NGC 6383 studies [@pulgar2024a; @pulgar2024b], the second
-now accepted at Astronomy & Astrophysics.
+in press at Astronomy & Astrophysics.
 
 # Statement of need
 
@@ -42,14 +44,13 @@ tooling is fragmented. Membership finders (`UPMASK` [@kronemartins2014], `pyUPMA
 [@pera2021], HDBSCAN pipelines [@hunt2021]) and parameter fitters (`ASteCA` [@perren2015],
 `BASE-9` [@vonhippel2006]) are separate tools with separate data models, so an end-to-end
 analysis means glue code that discards each stage's uncertainty before the next consumes it.
-`EROTICA` is written for astronomers who derive membership, structure and ages of Galactic open
-clusters from *Gaia* astrometry and photometry, and addresses two gaps for them.
+`EROTICA` is written for astronomers deriving membership, structure and ages of Galactic open
+clusters from *Gaia* astrometry and photometry, and addresses two gaps.
 
-The first is integration: one path from a *Gaia* catalogue to a characterized cluster, with
+The first is integration: one path from a *Gaia* catalog to a characterized cluster, with
 every intermediate posterior retained rather than collapsed to a point estimate.
 
-The second is calibration, stated precisely because most of the adjacent ground is already
-occupied. Scoring membership output is not new here — `pyUPMASK` grades
+The second is calibration, where most of the adjacent ground is occupied. Scoring membership output is not new here — `pyUPMASK` grades
 itself with six probabilistic-classification metrics on 600 synthetic clusters [@pera2021] — and @olivares2018 propagate
 observational uncertainties into per-star membership probabilities. The check `EROTICA` adds is
 reliability: whether a stated probability of 0.7 corresponds to a ~70%
@@ -95,11 +96,11 @@ within an integrated pipeline, not a standalone advance.
 (`erotica.analysis.external.asteca`) and a harness scoring all three on membership agreement,
 parameter recovery, runtime and calibration; its results belong to a companion methods paper.
 What `EROTICA` adds is a capability, not a measured win: one path that keeps every
-intermediate posterior, with calibration reported per star.
+intermediate posterior, with calibration checked against injection truth.
 
 # Software design
 
-`EROTICA` is a library; \autoref{fig:pipeline} gives its layout. Its default sampler, `nutpie` with `pymc` models compiled through
+`EROTICA` is a library built on `hdbscan` [@mcinnes2017] and `pymc` [@abrilpla2023]; \autoref{fig:pipeline} gives its layout. Its default sampler, `nutpie` with `pymc` models compiled through
 `jax`, is a core dependency; the alternatives (`numpyro`, `blackjax`) sit behind a `bayes` extra.
 Submodules resolve lazily through a module-level `__getattr__` (PEP 562), so `import erotica`
 loads none of the sampling stack, at the cost of an import graph that hides the dependencies.
@@ -117,17 +118,16 @@ Hess-diagram likelihood locked posteriors onto its precomputed grid's reference 
 binned model rebuilt at every evaluation biased the distance modulus by 0.2–0.3 mag on synthetic
 clusters (`docs/design-notes/decisions.md`).
 
-Quantities carry `astropy` units, and each fit returns `InferenceData` rather than a summary
+Quantities carry `astropy` [@astropy2022] units, and each fit returns `InferenceData` rather than a summary
 row, so convergence diagnostics stay attached to the numbers they describe. A saved trace
 gets a sidecar record: git commit and dirty flag, random seeds, tracked dependency versions,
 and a blake2b checksum of every input file.
 
 # Research impact statement
 
-`EROTICA` is new software: it has no downstream dependents, and its use to date is
-Pulgar-Escobar's own — the NGC 6383 studies [@pulgar2024a; @pulgar2024b]. The evidence
-offered here is of the other admissible kind: reproducible materials demonstrating
-capability.
+`EROTICA` is new software with no downstream dependents; its only use to date is in the
+NGC 6383 studies [@pulgar2024a; @pulgar2024b]. The evidence
+offered here is reproducible validation material.
 
 The repository carries a validation program of 49 scripts under `tools/validation/`, 27 of
 which commit their result as a JSON file. The yield is largely negative results, which is the

@@ -117,9 +117,10 @@ repeatedly reported numbers the data did not determine and found out late.
 
 ### Membership and calibration
 HDBSCAN with persistence thresholding and a hyperparameter sweep scored by recovery frequency ×
-strength. The resulting pseudo-probability is **calibrated against an external benchmark** rather than
-assumed to be a probability, and a target–decoy construction measures the false-discovery proportion
-independently of the fit.
+strength. The resulting pseudo-probability is **not assumed to be a probability**: `erotica.calibration`
+scores it against injection truth on synthetic field-plus-cluster mixtures (reliability diagram,
+Hosmer–Lemeshow, Brier score, ECE/MCE) and fits an isotonic or Platt recalibration, and a target–decoy
+construction (`tools/validation/decoy_fdp.py`) measures the false-discovery proportion independently of the fit.
 
 ### Selection functions
 Gaia DR3 completeness via `gaiaunlimited`, foldable directly into the point-process normalisation, so
