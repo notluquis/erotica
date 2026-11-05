@@ -398,7 +398,8 @@ class MixtureFit:
     theta: np.ndarray            # full parameter vector (unconstrained), length len(PARAM_NAMES)
     free: np.ndarray             # indices of the free parameters
     logpost: float
-    n_starts: int
+    n_starts: int                # every optimisation start, the detection start included
+    init_start: bool             # whether one of them came from ``init`` (mode_search labels it 'prior')
     modes: list[dict]
     verdict: str
     verdict_ok: bool
@@ -548,7 +549,8 @@ class MixtureModel:
         detection stage (natural units: ``mu_c``, ``sigma_c``, ``plx_c``, ``s_plx_c``, ``eta``; the rest at
         the box centre) -- the mixture only shares probability inside a cluster detection already found
         (§A.3 step 1), so the detected cluster is a legitimate start. It is one start among the prior ones,
-        never a replacement: the verdict still reports every mode. Measured 2026-11-05 on the test fixture
+        never a replacement: the verdict still reports every mode, and its "n prior starts" counts the
+        detection start among them (``MixtureFit.init_start`` says so). Measured 2026-11-05 on the test fixture
         (400 stars, 13 parameters): 6 uniform starts alone missed the global mode in 1 of 4 seeds.
 
         ``prior_field = (median, sdlog)``: log-normal prior on the number of field stars ``η Σw``
@@ -585,7 +587,8 @@ class MixtureModel:
         def hessian():
             return np.asarray(self._fns["hess"](jnp.asarray(th), d, prior_field))[np.ix_(free, free)]
 
-        self.fit_result = MixtureFit(theta=th, free=free, logpost=float(best["logp"]), n_starts=n_starts,
+        self.fit_result = MixtureFit(theta=th, free=free, logpost=float(best["logp"]), n_starts=len(starts),
+                                     init_start=init is not None,
                                      modes=res["modes"], verdict=text, verdict_ok=bool(ok),
                                      at_bound=[names[i] for i in best["at_bound"]], _hessian=hessian)
         return self.fit_result

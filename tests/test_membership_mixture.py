@@ -215,7 +215,8 @@ def test_recovery_on_the_truncated_fixture(fitted):
     model, y = fitted
     ok, r = recovers(model)
     assert ok, r
-    assert model.fit_result.n_starts == 3 and "VERDICT" in model.fit_result.verdict
+    assert model.fit_result.n_starts == 4 and model.fit_result.init_start  # 3 uniform + the detection start
+    assert "4 prior starts" in model.fit_result.verdict and "VERDICT" in model.fit_result.verdict
     p = model.p
     assert abs(p.sum() - y.sum()) < 0.06 * y.sum()
     assert auc(p, y) > 0.95
