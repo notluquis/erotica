@@ -333,6 +333,34 @@ def test_calibrate_by_injection_scores_p_against_the_injected_truth(fitted):
     assert out["rule_risk"]["false_member_rate"] < 0.05
 
 
+def test_calibrate_by_injection_takes_member_errors_from_member_donors(fitted, monkeypatch):
+    """Oracle: provenance of the injected rows. ``member_donors`` carries G ≥ 100 (no field row has it); every donor
+    table handed to ``sample_members`` must come from it, and without it every one must come from the field catalogue.
+
+    Found validating AD-I48 on the real cone (hub ``agent-findings/membership-rule-validation-2026-11-05.md``): the
+    injected members took their errors and G from the field catalogue, so they had the field's G distribution, faint
+    where the cluster is bright, and the injection failed its predictive check against the cluster."""
+    model, _ = fitted
+    rng = np.random.default_rng(11)
+    fld = sample_field(TRUTH, _donors(rng, 100), rng, SEL)
+    mdon = _donors(np.random.default_rng(12), 50)
+    mdon.aux["G"] = mdon.aux["G"] + 100.0
+    seen = []
+    real = M.sample_members
+
+    def spy(params, donors, rng_, selection=None):
+        seen.append(np.asarray(donors.aux["G"]).copy())
+        return real(params, donors, rng_, selection)
+
+    monkeypatch.setattr(M, "sample_members", spy)
+    kw = dict(n_starts=1, init=INIT, seed=2, ridge=False)
+    calibrate_by_injection(model, fld, 1, member_donors=mdon, **kw)
+    assert seen and all(g.size and (g >= 100).all() for g in seen)
+    seen.clear()
+    calibrate_by_injection(model, fld, 1, **kw)
+    assert seen and all((g < 100).all() for g in seen)
+
+
 # ---------------------------------------------------------------------------------------------- normalisation
 def test_each_component_is_a_normalised_density_on_the_selected_volume():
     """Closed form that needs no fit: conditioned on selection, each component's density times the

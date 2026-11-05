@@ -718,12 +718,18 @@ def calibrate_by_injection(model: MixtureModel, field_catalog: MembershipData, n
                            rule: TwoLineRule | None = None,
                            extra_lines: Callable[[MembershipData, np.ndarray, np.random.Generator], Mapping[str, np.ndarray]] | None = None,
                            n_starts: int = 3, init: Mapping[str, Any] | None = None, ridge: bool = True, seed: int = 0,
-                           prior_field: tuple[float, float] | None = None) -> dict:
+                           prior_field: tuple[float, float] | None = None,
+                           member_donors: MembershipData | None = None) -> dict:
     """N2 of hub ``methodology.md`` §A.3: synthetic members injected into a real field catalogue, refit, score.
 
     ``field_catalog`` must hold **no cluster members** (an empty control field or a sideband) and already
     satisfy the selection; every row is labelled ``y = 0``. Each replicate draws ``Poisson((1 − η̂) N)``
-    members from the fitted cluster of ``model`` with the errors and ``aux`` of random catalogue rows,
+    members from the fitted cluster of ``model`` with the errors and ``aux`` of random rows of
+    ``member_donors`` -- the detected members, so the injected stars have the cluster's magnitudes and errors --
+    or, if it is ``None``, of the field catalogue. The second choice gives the injected members the field's G
+    distribution (faint where a young cluster is bright), and an injection that does not look like the cluster
+    fails its predictive check (hub ``methodology.md`` §A.1.3; found validating AD-I48, hub
+    ``agent-findings/membership-rule-validation-2026-11-05.md``). Pass ``member_donors`` on real data. It
     refits with ``n_starts`` and scores ``p`` against the truth: CORP (pooled and per subgroup), AUC,
     ``Σp − N_true`` and, with ``rule``, its global and specific risks (§A.2 row e): the false-member rate
     among stars it calls "member" and the completeness among true members. ``extra_lines(data, y, rng)``
@@ -740,9 +746,10 @@ def calibrate_by_injection(model: MixtureModel, field_catalog: MembershipData, n
     n_fit = model.data.n
     n_mem = rng.poisson((1 - par["eta"]) * n_fit, n_rep) if model.has_field else np.full(n_rep, n_fit)
     n_pad = field_catalog.n + int(n_mem.max())
+    pool = field_catalog if member_donors is None else member_donors
     P, Y, W, groups, sums, cls = [], [], [], {k: [] for k in (subgroups or {})}, [], []
     for b in range(n_rep):
-        donors = field_catalog.take(rng.integers(field_catalog.n, size=n_mem[b]))
+        donors = pool.take(rng.integers(pool.n, size=n_mem[b]))
         mem = sample_members(par, donors, rng, model.selection)
         data = MembershipData.concat(field_catalog, mem)
         y = np.r_[np.zeros(field_catalog.n, bool), np.ones(mem.n, bool)]
