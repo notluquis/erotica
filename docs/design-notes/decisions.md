@@ -2226,3 +2226,28 @@ King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 
 
 **Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
 (1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
+
+## 2026-11-05 — `erotica.membership`: the mixture of the membership rule, and four numbers that were wrong on the way
+
+**Plan:** hub `agent-findings/membership-rule-literature-2026-11-03.md` §6, rule in hub `methodology.md` §A.3 (decision AD-I48).
+`erotica.calibration.corp` (CORP, ported from hub `agent-findings/scripts/c5_mixture.py::corp`) and `erotica/membership.py`
+(`MixtureModel`, `Truncation`, `TwoLineRule`, `calibrate_by_injection`, `propagate`), structure from `c5_mixture.py::Model`.
+
+**What was wrong first, each measured on the test fixture (details in the docstrings):**
+- **P_A as a plain mean of probabilities, clipped at 1e-300.** A component far outside the region got P_A = 0 → log clip →
+  +690 nats per star; the first smoke fit parked the cluster outside the circle at log posterior +272 820. Fixed by
+  log-sum-exp of `log_sigmoid` (`CircularRegion.logprob`) and a log-space parallax window without cancellation.
+- **The field's P_A sampled through its own Gaussian.** A broad, elongated field puts almost no QMC normals inside the
+  region; the optimiser found shapes whose P_A was underestimated by ~e^19 per star (log posterior +7 661 against −130 at the
+  real mode). The field integral now uses nodes over the region (`region.support`); the cluster keeps the C5 Gaussian QMC.
+- **Field scale allowed down to R/2.** One of the 3-start smoke fits landed in the swapped mode (σ_c → 0.002, field shaped
+  like the cluster). Field scales now start at R, cluster σ ends at R; the box is a convention (C), documented in `default_bounds`.
+- **6 uniform starts missed the global mode in 1 of 4 seeds** (400 stars, 13 parameters). `fit(init=...)` adds the detection
+  stage's cluster as one more start; the verdict counts it among the "prior" starts and `MixtureFit.init_start` says so.
+
+**Oracles / mutations seen red.** V1 against an independent truncated MLE (Rice radial integral + `truncnorm`): residual is
+QMC error, 3.9e-3 with 4096 normals and 4e-4 with 16384 at an edge of width 0.03. Components integrate to 1.0001 / 0.99997 on the
+selected volume. Red: PAV → identity (2 tests), cluster P_A (V1 + recovery + normalisation), field P_A (recovery +
+normalisation), cluster W (V1, **only after** moving V1's window to cut the cluster — with ϖ_c centred it survived), field W
+(normalisation **only**: recovery stayed green, the field's parallax shape absorbs the factor), veto, Bernoulli-as-cut, generator
+ignoring the selection. Weakest guard: `nopa` on the field fails η by 0.066 at the test seed and by 0.053 against 0.05 at seed 2.
