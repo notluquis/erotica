@@ -6,6 +6,7 @@ match the method to your cluster.
 ```{toctree}
 :maxdepth: 2
 membership
+structure
+isochrone
+calibration
 ```
-
-More guides (isochrone fitting, structural analysis) will land alongside their modules.
