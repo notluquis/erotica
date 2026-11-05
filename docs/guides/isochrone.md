@@ -156,8 +156,10 @@ at a bound: ['sigma_int', 'f_bg']
 ```
 
 `k` comes back near the injected 2. The mode's distance and extinction do not: inside the window the
-data prefer a nearer, less reddened cluster to the truth by 4.9 in log L, and the loose prior on
-`dm` does not stop them. That is the ridge the Scope box warns about, on data where the truth is
+likelihood alone runs further along the ridge (to `dm` 9.3 in this replicate), and the loose prior on
+`dm`, centered 0.25 mag below the truth, pulls the mode back only part of the way. The 4.9 gain in
+log L over the truth is what seven free parameters buy on noise (median 2.2 over 20 seeds), not a
+preference beyond it. That is the ridge the Scope box warns about, on data where the truth is
 known. `sigma_int` and `f_bg` sit on their lower bounds because the toy has neither.
 
 Then sample. This block took about 8 minutes on our machine (two chains of 500 + 500, JAX compilation
