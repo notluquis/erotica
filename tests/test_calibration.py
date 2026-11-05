@@ -305,3 +305,59 @@ class TestFromClustering:
             from erotica.calibration import calibration_report_from_clustering
 
             calibration_report_from_clustering(_Empty(), [0, 1])
+
+
+# ---------------------------------------------------------------------------
+# CORP (Dimitriadis, Gneiting & Jordan 2021)
+# ---------------------------------------------------------------------------
+from erotica.calibration import CORPResult, corp  # noqa: E402
+
+
+def test_corp_constant_forecast_at_base_rate_is_exactly_calibrated():
+    """Parameter-free closed form: if p ≡ ȳ, PAV returns ȳ everywhere, so MCB = DSC = 0 and BS = UNC."""
+    rng = np.random.default_rng(3)
+    y = (rng.random(5000) < 0.3).astype(float)
+    res = corp(np.full(y.size, y.mean()), y)
+    assert isinstance(res, CORPResult)
+    assert res.MCB == pytest.approx(0.0, abs=1e-15)
+    assert res.DSC == pytest.approx(0.0, abs=1e-15)
+    assert res.brier == pytest.approx(y.mean() * (1 - y.mean()), abs=1e-15)
+
+
+def test_corp_constant_forecast_off_base_rate_pays_exact_miscalibration():
+    """Closed form: a constant forecast c pays MCB = (c − ȳ)², and still DSC = 0."""
+    rng = np.random.default_rng(4)
+    y = (rng.random(5000) < 0.3).astype(float)
+    res = corp(np.full(y.size, 0.8), y)
+    assert res.MCB == pytest.approx((0.8 - y.mean()) ** 2, abs=1e-12)
+    assert res.DSC == pytest.approx(0.0, abs=1e-12)
+
+
+def test_corp_perfectly_calibrated_forecast_has_mcb_near_zero():
+    """y ~ Bernoulli(p) with p ~ U(0, 1): the forecast p is calibrated by construction, so MCB → 0
+    (in-sample PAV bias only), DSC → 1/4 − E[p(1 − p)] = 1/12 and UNC → 1/4.
+
+    Tolerance measured on 20 seeds at n = 20 000 (2026-11-05): MCB of the calibrated forecast
+    7.7e-4 on average, 9.1e-4 at most; the p² forecast below sits at 0.032–0.037."""
+    rng = np.random.default_rng(0)
+    p = rng.random(N)
+    y = (rng.random(N) < p).astype(float)
+    res = corp(p, y)
+    assert res.MCB < 0.002
+    assert res.DSC == pytest.approx(1 / 12, abs=0.006)
+    assert res.UNC == pytest.approx(y.mean() * (1 - y.mean()), abs=1e-15)
+    assert res.brier == pytest.approx(res.MCB - res.DSC + res.UNC, abs=1e-12)
+
+
+def test_corp_squared_forecast_recovers_the_analytic_miscalibration():
+    """Reporting q = p² when the event rate is p: the reliability curve is √q, so
+    MCB → E[(p² − p)²] = 1/5 − 1/2 + 1/3 = 1/30 and DSC → 1/12 (the recalibrated forecast is p again).
+    An identity map in place of PAV (MCB ≡ 0) fails this."""
+    rng = np.random.default_rng(0)
+    p = rng.random(N)
+    y = (rng.random(N) < p).astype(float)
+    res = corp(p**2, y)
+    assert res.MCB == pytest.approx(1 / 30, abs=0.006)
+    assert res.DSC == pytest.approx(1 / 12, abs=0.006)
+    assert res.brier == pytest.approx(res.MCB - res.DSC + res.UNC, abs=1e-12)
+    assert np.all(np.diff(res.reliability_y) >= 0)
