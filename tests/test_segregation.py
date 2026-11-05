@@ -13,7 +13,7 @@ Every oracle here exists independently of ``erotica.analysis.segregation``:
   the only test that catches a whole class of tail/sign errors at once;
 * **injected segregation with a known sign**, in both directions.
 
-Mutation audit run 2026-08-02: **11 deliberate bugs re-applied one at a time, 11 killed, 0
+Mutation audit run 2026-08-02 (last row replaced 2026-11-05): **11 deliberate bugs re-applied one at a time, 11 killed, 0
 survivors.**  Harness: ``pytest tests/test_segregation.py -x -m "not slow"`` after each
 substitution, module restored afterwards.
 

@@ -2257,7 +2257,7 @@ against half-widths of 0.3-1.4. The mean is used because it is the same quantity
 {1, 2, 3} and the two heaviest at distance 1, so Λ = 2 with the bar [1, 3] exactly and the null band [2/3, 2].
 `test_parker_goodwin_bar_brackets_a_strongly_segregated_lambda`: Λ > 3 in a Plummer sphere, `lo < Λ < hi`, the relative width
 equal to the pool's relative 1/6-5/6 spread, and the null band below the bar. Re-applying the old two lines turns both red
-(0.669 against 1; Λ = 10.3 outside [0.79; 1.51]). The old test was replaced, not loosened.
+(0.669 against 1; Λ = 10.3 outside the null band [0.73; 1.51], where the corrected bar is [6.82; 14.06]). The old test was replaced, not loosened.
 
 **Number that moved.** NGC 6383, 40′, N_MST = 10: Λ = 2.86, the returned bar went from [0.80; 1.34] to [2.14; 3.59]. No
 published number used these fields: P01's Fig. (`mass_segregation_mst.pdf`) plots `σ_norm/l_massive` from its own script, and
