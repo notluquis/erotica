@@ -2226,3 +2226,39 @@ King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 
 
 **Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
 (1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
+
+## 2026-11-05 — `"ccm89_o94"`: O'Donnell (1994) in the optical, and the label that said it was already there
+
+**Symptom.** The comment above `_ccm89`, the `IsochroneFitter` docstring and the hub's model catalogue all said
+"CCM89 + O'Donnell 94". The optical polynomial in the code was CCM89's (`0.17699 y - 0.50447 y^2 ...`), so
+`_ccm89` gave 0.8444 / 1.0724 / 0.6231 at the Gaia G / BP / RP effective wavelengths, equal to `CCM89` of
+`dust_extinction` 1.7 and not to its `O94` (0.8362 / 1.0834 / 0.6344). Found by the hub's survey of extinction laws
+(`~/phd/agent-findings/extinction-laws-gaia-2026-11-05.md`). The label was wrong; the numbers that reached P01 were
+CCM89's and are what P01 says it used, numerically.
+
+**Fix.** The author chose to implement O94 rather than only relabel (hub decision AD-I54). `_ccm89(lam, Rv,
+optical="ccm89" | "o94")`: with `"o94"`, the 1.1 <= x <= 3.3 um^-1 branch is O'Donnell (1994, ApJ 422, 158,
+`1994ApJ...422..158O`) p. 161, coefficients copied from the ADS scan; infrared and ultraviolet stay CCM89, as the paper
+prescribes. A new law name, `extinction_law="ccm89_o94"`. **`"ccm89"` keeps its arithmetic bit for bit** (the frozen
+oracles, `test_fit_determinism`, the C1 certificate and P01 pin it), and its docstring now says pure CCM89.
+
+**Default.** Unchanged for the Gaia EDR3 bands at R_V = 3.1 (`"gaia_edr3"`). The fallback for any other band or R_V
+moves from `"ccm89"` to `"ccm89_o94"`, because that fallback was documented as CCM89 + O'Donnell 94; this is the law the
+package said it used. The 2MASS J, H, Ks wavelengths sit at x < 1.1, where the two laws are identical, so only an
+optical non-Gaia band or a Gaia fit at R_V != 3.1 can see the change. Open as a question to the author.
+
+**Measured.** At the Gaia wavelengths and R_V = 3.1: k_G -0.97 %, k_BP +1.02 %, k_RP +1.82 %, k_BP - k_RP -0.08 % (O94 relative to CCM89).
+With a constant law the likelihood sees only (dm + k_G A_V, k_col A_V), so a CCM optimum maps exactly onto an O94 one:
+A_V' = A_V k_col / k_col', dm' = dm + k_G A_V - k_G' A_V'. On the NGC 6383 frame of the hub's metallicity tornado
+(stored CCM optimum, A_V 0.7586, dm 10.2125) that map gives A_V 0.7592 and dm 10.2182 with the same log L to the last
+printed digit; the dm prior is the only term that breaks the identity. The re-optimised O94 fit is in the hub finding
+`extinction-o94-2026-11-05.md`.
+
+**Not adopted.** A dependency on `dust_extinction`: it is the oracle (frozen values in `tests/test_isochrone.py`), not
+a runtime need, and its models are NumPy/astropy, not traceable in PyTensor or JAX. Fitzpatrick 1999/2004, Gordon 2023 and
+the other curves of the hub's survey: not asked for, and the Gaia EDR3 law already covers the default case.
+
+**Oracle / mutations seen red.** `TestODonnell94`: both branches against `dust_extinction` 1.7 at 21 (R_V, lambda) points
+to 1e-12; the coefficient tuples against p. 161; IR/UV identical to CCM89; the published step at x = 1.1 (< 4e-4) and
+x = 3.3 (0.009-0.011, the same in `dust_extinction`). Mutations: one coefficient 0.104 -> 0.105 (24 tests red); the
+`"ccm89_o94"` law routed to the CCM89 branch (2 red); the fallback back to `"ccm89"` (1 red).
