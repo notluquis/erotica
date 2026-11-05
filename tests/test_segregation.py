@@ -13,7 +13,7 @@ Every oracle here exists independently of ``erotica.analysis.segregation``:
   the only test that catches a whole class of tail/sign errors at once;
 * **injected segregation with a known sign**, in both directions.
 
-Mutation audit run 2026-08-02: **11 deliberate bugs re-applied one at a time, 11 killed, 0
+Mutation audit run 2026-08-02 (last row replaced 2026-11-05): **11 deliberate bugs re-applied one at a time, 11 killed, 0
 survivors.**  Harness: ``pytest tests/test_segregation.py -x -m "not slow"`` after each
 substitution, module restored afterwards.
 
@@ -36,8 +36,10 @@ nested) permutations per grid point                    ``_and_above_one_for_a_re
 ``global_p`` returns ``best_local_p``                  same test (pins the trials factor at 1.0)
 geometric variant attributed to Maschberger &          ``test_each_variant_reports_its_own_citation``
 Clarke
-Parker & Goodwin bounds not inverted through the        ``test_percentile_error_bars_invert_through``
-ratio (``lo`` and ``hi`` swapped)                      ``_the_ratio``
+``lo_1sigma``/``hi_1sigma`` = ``mean(pool)/q(pool)``   ``test_parker_goodwin_bar_matches_a_hand_``
+(the null band, pre-2026-11-05) instead of             ``computed_three_star_case`` and ``test_``
+``q(pool)/T_massive`` (Parker & Goodwin 2015, Eq. 2)   ``parker_goodwin_bar_brackets_a_strongly_``
+                                                       ``segregated_lambda``
 ====================================================  ==========================================
 
 Two of these were **added because a first pass left them alive**, and the reason is recorded in
@@ -507,22 +509,51 @@ def test_trials_factor_is_one_for_a_repeated_look_and_above_one_for_a_real_scan(
     assert scan.trials_factor > repeated.trials_factor
 
 
-def test_percentile_error_bars_invert_through_the_ratio():
-    """Oracle: the 1/6 and 5/6 points of the pool, recomputed here, and the ordering.
+def test_parker_goodwin_bar_matches_a_hand_computed_three_star_case():
+    """Oracle: three collinear stars, written down on paper.
 
-    Parker & Goodwin (2015) quote the uncertainty as the MST length at 1/6 and 5/6
-    of the ordered random lengths.  Lambda = mean(pool)/T inverts the order, so the
-    *lower* bound on Lambda comes from the *upper* point of the pool.  Passing them
-    through un-inverted produces ``lo > hi``, which no ratio-only assertion would
-    notice.
+    A = (0, 0) and B = (1, 0) are the two most massive, C = (-2, 0).  With
+    N_MST = 2 the MST of a pair is its distance, so the reference pool is a uniform
+    draw from {AB, AC, BC} = {1, 2, 3}: T_massive = 1, <T> -> 2, and with thousands
+    of draws the 1/6 point of the ordered pool sits inside the block of 1s and the
+    5/6 point inside the block of 3s.  Parker & Goodwin (2015, Eq. 2) then give
+    Lambda = 2 with the bar [T_{1/6}, T_{5/6}]/T_massive = [1, 3], exactly.  The null
+    band <T>/T_{5/6}, <T>/T_{1/6} is [2/3, 2].
+
+    Until 2026-11-05 ``lo_1sigma``/``hi_1sigma`` returned the null band; this test
+    fails on that form at the first assertion (0.67 against 1).
+    """
+    pts = np.array([[0.0, 0.0], [1.0, 0.0], [-2.0, 0.0]])
+    mass = np.array([3.0, 2.0, 1.0])
+    res = quiet(lambda_msr, pts, mass, 2, n_sets=6000, rng=5)
+
+    assert res.lo_1sigma == 1.0
+    assert res.hi_1sigma == 3.0
+    assert abs(res.lam - 2.0) < 0.05, res.lam
+    assert abs(res.null_p17 - 2.0 / 3.0) < 0.02, res.null_p17
+    assert abs(res.null_p83 - 2.0) < 0.05, res.null_p83
+
+
+def test_parker_goodwin_bar_brackets_a_strongly_segregated_lambda():
+    """Oracle: properties of a bar ON Lambda, checked where the null band cannot pass.
+
+    The ten stars nearest the centre of a Plummer sphere are made the most massive,
+    so Lambda >> 1.  A bar on Lambda must bracket it, and because both bounds are
+    reference lengths over the same T_massive, its relative width equals the
+    relative spread of the pool's 1/6-5/6 points.  The null band (``null_p17``,
+    ``null_p83``) stays around the null median and below Lambda, which is what the
+    old fields returned and why they could not be an error bar.
     """
     rng = np.random.default_rng(83)
     pts = plummer_2d(rng, 200)
     res = quiet(lambda_msr, pts, -np.hypot(*pts.T), 10, n_sets=4000, rng=8)
     pool = res.reference_statistics
-    assert res.lo_1sigma < res.hi_1sigma
-    assert np.isclose(res.lo_1sigma, pool.mean() / np.quantile(pool, 5.0 / 6.0), rtol=1e-12)
-    assert np.isclose(res.hi_1sigma, pool.mean() / np.quantile(pool, 1.0 / 6.0), rtol=1e-12)
+    q16, q56 = np.quantile(pool, 1.0 / 6.0), np.quantile(pool, 5.0 / 6.0)
+
+    assert res.lam > 3.0, res.lam
+    assert res.lo_1sigma < res.lam < res.hi_1sigma
+    assert np.isclose((res.hi_1sigma - res.lo_1sigma) / res.lam, (q56 - q16) / pool.mean())
+    assert res.null_p17 < res.null_median < res.null_p83 < res.lo_1sigma
 
 
 @pytest.mark.slow
