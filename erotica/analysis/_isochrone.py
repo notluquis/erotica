@@ -82,7 +82,8 @@ def _ccm89(lam_aa: float, Rv: float = 3.1, optical: str = "ccm89") -> float:
         :math:`R_V = A_V/E(B-V)`.
     optical : {"ccm89", "o94"}, default "ccm89"
         Which polynomial pair to use for :math:`1.1 \le x \le 3.3`. The default keeps the
-        name of the function honest: ``_ccm89(lam)`` is CCM89, which is what P01 used.
+        name of the function honest: ``_ccm89(lam)`` is CCM89. ``"o94"`` is bit-identical to
+        ASteCA 0.7.0's ``ccmo_model``, the law P01's isochrone fit ran.
     """
     if optical not in ("ccm89", "o94"):
         raise ValueError(f"optical must be 'ccm89' or 'o94', got {optical!r}")
@@ -924,15 +925,18 @@ class IsochroneFitter:
               :math:`A_0` floored at 0.01 inside the coefficient, **not** in the shift.
             - ``"ccm89"``: constant coefficients from Cardelli, Clayton & Mathis (1989) at the
               effective wavelengths ``magnitude_effl`` / ``color_effl`` and ``Rv``. This is
-              what P01 used (and what the fitter did until 2026-10-20); choose it to reproduce
-              published numbers. ``Av`` is then :math:`A_V` in the CCM89 frame. Until
-              2026-11-05 this docstring called it "CCM89 + O'Donnell94"; the arithmetic was
-              always CCM89's, so the label was wrong and the numbers were not.
+              what the fitter did until 2026-10-20 and what its CCM-era runs and frozen
+              oracles (the C1 certificate among them) used; choose it to reproduce those.
+              ``Av`` is then :math:`A_V` in the CCM89 frame. Until 2026-11-05 this docstring
+              called it "CCM89 + O'Donnell94" and "what P01 used"; the arithmetic was always
+              CCM89's, and P01's own fit ran ASteCA, whose law is ``"ccm89_o94"``.
             - ``"ccm89_o94"``: the same, with O'Donnell's (1994) optical polynomials for
               :math:`1.1 \le x \le 3.3\,\mu m^{-1}` (CCM89 outside). At the Gaia EDR3
               wavelengths and :math:`R_V = 3.1`, :math:`k_G` is 0.97 % lower and
               :math:`k_{BP} - k_{RP}` 0.08 % lower than under ``"ccm89"``; the 2MASS J, H, Ks
-              wavelengths fall below :math:`x = 1.1`, where the two laws are identical.
+              wavelengths fall below :math:`x = 1.1`, where the two laws are identical. This
+              is the law of ASteCA (bit-identical to its ``ccmo_model``), so it is the one to
+              choose to match P01's isochrone fit.
             - ``None`` (default): ``"gaia_edr3"`` when the bands are the Gaia EDR3 defaults
               and ``Rv == 3.1``, else ``"ccm89_o94"`` (``"ccm89"`` until 2026-11-05: the
               fallback is the law the docstring said it was).

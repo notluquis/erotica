@@ -2262,3 +2262,12 @@ the other curves of the hub's survey: not asked for, and the Gaia EDR3 law alrea
 to 1e-12; the coefficient tuples against p. 161; IR/UV identical to CCM89; the published step at x = 1.1 (< 4e-4) and
 x = 3.3 (0.009-0.011, the same in `dust_extinction`). Mutations: one coefficient 0.104 -> 0.105 (24 tests red); the
 `"ccm89_o94"` law routed to the CCM89 branch (2 red); the fallback back to `"ccm89"` (1 red).
+
+**Correction, same day (2026-11-05), after the entry above was committed.** The entry above, and the docstrings it
+describes, kept saying that `"ccm89"` is "what P01 used". That is false. P01's isochrone fit ran ASteCA ("the CCM89
+extinction law with the optical coefficients of O'Donnell 1994, as implemented in ASteCA", aa52082-24.tex), and
+ASteCA's `ccmo_model` (0.7.0, and the legacy copy under `data/test/NGC6383/ASteCA/packages/synth_clust/extin_coefs.py`)
+does use the O94 polynomials. At erotica's Gaia wavelengths it gives 0.8361983917837449 / 1.0833639679451164 /
+0.6343873059899496, **bit-identical to `"ccm89_o94"`** (now a test). So P01's text is right, and this fitter's
+`"ccm89"` was never P01's law: the 2026-10-20 entry ("P01 and the CCM-era validation runs are reproduced with
+`extinction_law="ccm89"`") holds for the validation runs, not for P01. The docstrings and the CHANGELOG now say so.

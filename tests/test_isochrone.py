@@ -137,6 +137,18 @@ class TestODonnell94:
         assert _ccm89(lam, Rv, optical="o94") == pytest.approx(k_o94, rel=0, abs=1e-12)
         assert _ccm89(lam, Rv) == pytest.approx(k_ccm, rel=0, abs=1e-12)
 
+    def test_gaia_coefficients_equal_asteca(self):
+        """Second implementation: ASteCA 0.7.0 ``synth_cluster_priv.ccmo_model`` (a + b/3.1), the code
+        P01's isochrone fit ran ("CCM89 with the optical coefficients of O'Donnell 1994, as implemented
+        in ASteCA"), evaluated 2026-11-05 at erotica's Gaia effective wavelengths. Bit-identical."""
+        asteca = {
+            6390.7: 0.8361983917837449,
+            5182.6: 1.0833639679451164,
+            7825.1: 0.6343873059899496,
+        }
+        for lam, k in asteca.items():
+            assert _ccm89(lam, 3.1, optical="o94") == pytest.approx(k, rel=0, abs=1e-15)
+
     def test_coefficients_are_odonnell_1994_p161(self):
         """The tuples as printed in O'Donnell (1994) p. 161, read from the ADS scan."""
         from erotica.analysis._isochrone import _O94_A, _O94_B

@@ -418,8 +418,9 @@ class ClusterAnalyzer:
         extinction_law : {"gaia_edr3", "ccm89", "ccm89_o94"} or None, default None
             Passed to :class:`IsochroneFitter` (see there). ``None`` picks the Gaia EDR3
             colour-dependent law for Gaia EDR3 bands, where ``Av`` is then :math:`A_0`;
-            ``"ccm89"`` keeps the constant CCM89 coefficients of the P01 analysis, and
-            ``"ccm89_o94"`` uses O'Donnell's (1994) optical polynomials instead.
+            ``"ccm89"`` keeps the constant CCM89 coefficients of the fitter's CCM-era runs, and
+            ``"ccm89_o94"`` uses O'Donnell's (1994) optical polynomials instead (the law of
+            ASteCA, which P01's isochrone fit ran).
 
         Returns
         -------
