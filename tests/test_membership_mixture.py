@@ -620,3 +620,25 @@ def test_concat_refuses_to_drop_a_modelled_quantity():
         MembershipData.concat(_with(data, lines={"B": np.zeros(20)}), data)
     with pytest.raises(ValueError, match="group"):
         MembershipData.concat(_with(data, group=np.zeros(20, int)), data)
+
+
+def test_cone_mixture_is_the_validated_configuration():
+    """The preset passes the non-default values (empirical field, CMD line in p, three G fractions) and refuses data
+    without what it needs. Red with GaussianField, lines=() or n_groups=1 in the preset (hub membership-cmd-axis §4.7)."""
+    data, _ = make(SEED, n=60)
+    G = data.aux["G"]
+    lB = np.random.default_rng(3).normal(0, 1, data.n)
+    fpl = np.random.default_rng(2).normal(-0.3, 0.2, data.n)
+    d = _with(data, lines={"B": lB}, field_plx_logpdf=fpl, group=M.cone_groups(G))
+    m = M.cone_mixture(d, SEL)
+    assert isinstance(m.field, M.EmpiricalField)
+    assert m.lines == ("B",) and m.n_groups == 3
+    assert m.param_names[-3:] == ("logit_eta_0", "logit_eta_1", "logit_eta_2")
+    assert M.CONE_P_HI == 0.8 and M.CONE_G_EDGES == (16.0, 18.5)
+    assert M.cone_groups([15.9, 16.0, 18.49, 18.5]).tolist() == [0, 1, 1, 2]
+    with pytest.raises(ValueError, match="CMD line"):
+        M.cone_mixture(_with(data, field_plx_logpdf=fpl, group=M.cone_groups(G)), SEL)
+    with pytest.raises(ValueError, match="field_plx_logpdf"):
+        M.cone_mixture(_with(data, lines={"B": lB}, group=M.cone_groups(G)), SEL)
+    with pytest.raises(ValueError, match="group"):
+        M.cone_mixture(_with(data, lines={"B": lB}, field_plx_logpdf=fpl), SEL)

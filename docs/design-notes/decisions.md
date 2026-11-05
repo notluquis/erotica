@@ -2302,3 +2302,25 @@ of the flat PM). Measured with the Gaussian fits frozen.
 
 **Open:** the comparison with pyUPMASK on these replicates (not run: external code needs the author's approval); the
 faint bin's prior on the field count is ~32 % high, so faint mid-range p is under-confident.
+
+## 2026-11-05 — the cone configuration: all three pieces, confirmed on new replicates; and pyUPMASK
+
+**Choosing between the two arms that passed** (CMD line + per-G fraction, and all three pieces) was a post hoc question
+after the first 300 replicates: the preregistered rule took the one with fewer pieces, the other had the better Brier in
+all six subgroups. Settled by a confirmation preregistered in hub 62ec43c before any fit: 300 new replicates of the same
+generator (seeds 4101-4103, fit seeds 1300-1599), V0 on ten acceptances per field, and the decision rule written in
+`decide()` of hub `agent-findings/scripts/membership_cmd_axis_confirm.py`. All three pieces pass V2 in all six subgroups
+(MCB 0.0012 overall, 0.0174 at G >= 18.5) and V0, and beat the other arm in Brier overall (-0.0047 [-0.0054; -0.0041]),
+with no subgroup against. So `cone_mixture()` returns that configuration and `CONE_P_HI = 0.8` is its V4 threshold.
+
+**Its limits:** the new replicates reuse the three field catalogues, the member ridge that colours the injections and the
+faint-bin field prior (~32 % high, hub thread B16). The X-ray/YSO line on the real cone does not separate the two arms
+(Delta log score -0.42 [-1.98; +1.52]). One line of evidence, not two.
+
+**pyUPMASK on the same 300 replicates** (Pera+2021, commit 509e9090, the bench configuration): MCB 0.252, Brier 0.355,
+AUC 0.762, and p ~ 0 beyond 20' (AUC 0.515); p = 1 to every star of the three empty fields (n = 19-33). Both arms beat
+it in Brier overall and in all six subgroups. The bench figure (pyUPMASK Brier 0.012 on fractal synthetics) does not
+transfer to a cluster that fills the search window.
+
+**Defaults unchanged:** `MixtureModel(lines=())` stays the constructor default, because a p that weights an isochrone fit
+must not carry the CMD; the validated configuration is the named preset.

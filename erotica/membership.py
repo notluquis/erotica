@@ -70,7 +70,8 @@ they come from the same astrometric solution. A second line (photometry, RV, you
 a per-star log-likelihood ratio until its axis is implemented here; with Gaia astrometry alone no star
 can be "established". The defaults 0.9 / 0.1 / ln 20 are the conventions written in §3.5 before
 looking. For NGC 6383 the calibration of §11 adopted ``p_hi = 0.99`` (``p_lo = 0.01``) because the
-specific risk at 0.9 was 0.127 at G >= 18.5 -- pass those explicitly there.
+specific risk at 0.9 was 0.127 at G >= 18.5 with the astrometry-only model. With :func:`cone_mixture` the lowest
+``p_hi`` whose specific risk stays <= 5 % in all six subgroups is ``CONE_P_HI = 0.8`` (V4 on the new replicates).
 
 STATUS AND WHAT IS PENDING (hub finding §6, order of the plan)
 --------------------------------------------------------------
@@ -108,7 +109,17 @@ WITH THE THREE PIECES, 2026-11-05 (hub ``agent-findings/membership-cmd-axis-2026
   fields and C0, and the X-ray/YSO line's log score beats a constant p by ~5 nats. No arm without the CMD line passes.
 * Calibrated by the gate, not bin by bin: faint mid-range p is under-confident, because the per-bin prior on the faint
   field count (the hub's A1 prior) sits ~32 % above the true count in these replicates.
-* Not yet compared with pyUPMASK on these replicates (the programme's second gate): that comparison is pending.
+* Against pyUPMASK (Pera+2021, the bench configuration) on the same 300 replicates, Brier difference with a
+  replicate bootstrap: both arms beat it overall and in all six subgroups (all three pieces: -0.320 [-0.328; -0.311]
+  overall, -0.171 [-0.184; -0.158] at G >= 18.5). pyUPMASK gives p ~ 0 beyond 20' here (AUC 0.515) and p = 1 to
+  every star of the empty fields at n = 19-33 (hub finding §4.6).
+* **Confirmed on 300 new replicates** (preregistered in hub 62ec43c before running; generator seeds 4101-4103, fit
+  seeds 1300-1599, V0 on ten acceptances per field): all three pieces pass V2 in all six subgroups (MCB 0.0012
+  overall, 0.0174 at G >= 18.5; AUC 0.977) and V0, and beat CMD line + per-G fraction in Brier overall
+  (-0.0047 [-0.0054; -0.0041]) with no subgroup against. So the validated cone configuration is
+  :func:`cone_mixture` (empirical field + CMD line + three G bins) with ``p_hi = CONE_P_HI = 0.8``. One line of
+  evidence (the simulation, new draws of the same generator and the same three field catalogues); the X-ray/YSO
+  line on the real cone does not decide between the two (Delta log score -0.42 [-1.98; +1.52]).
 
 Pending:
 
@@ -153,6 +164,10 @@ __all__ = [
     "photometric_llr",
     "MixtureModel",
     "MixtureFit",
+    "cone_mixture",
+    "cone_groups",
+    "CONE_G_EDGES",
+    "CONE_P_HI",
     "TwoLineRule",
     "PropagationResult",
     "sample_members",
@@ -586,7 +601,8 @@ class TwoLineRule:
     * **undecided**: everything else. It enters downstream only through ``p``.
 
     A line with NaN for a star (no data) is not counted for that star. The defaults are the §3.5
-    conventions; NGC 6383's calibration (§11) adopted ``p_hi = 0.99``, ``p_lo = 0.01``.
+    conventions; NGC 6383's first calibration (§11, astrometry-only model) adopted ``p_hi = 0.99``, ``p_lo = 0.01``;
+    with :func:`cone_mixture` use ``p_hi = CONE_P_HI``.
     """
 
     p_hi: float = 0.9
@@ -920,6 +936,38 @@ class MixtureModel:
                 raise ValueError(f"line {k!r} is already modelled")
             llr[k] = np.asarray(v, float)
         return rule.apply(self.p, llr)
+
+
+#: G edges of the per-G mixing fractions validated on the NGC 6383 cone (hub membership-cmd-axis §1.2).
+CONE_G_EDGES: tuple[float, float] = (16.0, 18.5)
+#: Lowest p_hi whose specific risk is <= 5 % in all six subgroups for :func:`cone_mixture` (V4, hub finding §4.7).
+CONE_P_HI: float = 0.8
+
+
+def cone_groups(mag) -> np.ndarray:
+    """The per-star group index of :func:`cone_mixture`: 0 for G < 16, 1 for 16 <= G < 18.5, 2 for G >= 18.5."""
+    return np.digitize(np.asarray(mag, float), CONE_G_EDGES).astype(int)
+
+
+def cone_mixture(data: MembershipData, selection: Truncation) -> MixtureModel:
+    """The configuration validated on a real young-cluster cone (hub ``agent-findings/membership-cmd-axis-2026-11-05.md``).
+
+    Empirical field (flat PM over the region, ``data.field_plx_logpdf``), the CMD line ``"B"`` in p
+    (:func:`photometric_llr`) and one mixing fraction per G bin (``data.group`` from :func:`cone_groups`). It passed V2
+    in all six subgroups, V0, C0 and the X-ray/YSO line on the 300 replicates of the validation, beat pyUPMASK in all
+    six, and was confirmed against CMD line + per-G fraction on 300 new replicates by a rule fixed before running.
+    The constructor defaults of :class:`MixtureModel` stay off (``lines=()``): a p that will weight an isochrone fit must
+    not carry the CMD. Fit with one ``prior_field`` per group; classify with ``TwoLineRule(p_hi=CONE_P_HI,
+    p_lo=1 - CONE_P_HI)``. The faint bin's field prior inherited from the hub (A1) sits ~32 % high (hub thread B16).
+    """
+    if "B" not in data.lines:
+        raise ValueError("cone_mixture needs the CMD line: data.lines['B'] from photometric_llr")
+    if data.field_plx_logpdf is None:
+        raise ValueError("cone_mixture needs data.field_plx_logpdf (e.g. SidebandTemplate.log_plx)")
+    g = np.asarray(data.group) if data.group is not None else None
+    if g is None or g.min() < 0 or g.max() > len(CONE_G_EDGES):
+        raise ValueError("cone_mixture needs data.group in {0, 1, 2} (cone_groups of G)")
+    return MixtureModel(data, selection, EmpiricalField(), lines=("B",), n_groups=len(CONE_G_EDGES) + 1)
 
 
 def _sig(x):
