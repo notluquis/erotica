@@ -392,3 +392,231 @@ def test_each_component_is_a_normalised_density_on_the_selected_volume():
         s_mu = np.sum(acc * np.exp(ll[:n1])) * h * h
         s_w = np.sum(np.exp(ll[n1:n1 + n2])) * hp
         assert s_mu * s_w / np.exp(ll[-1]) == pytest.approx(1.0, abs=2e-3), name
+
+
+# ---------------------------------------------------------------------------------------------- CMD line, empirical field, groups
+# Hub agent-findings/membership-cmd-axis-2026-11-05.md: the three pieces the real-cone validation found missing.
+# Every new parameter is passed non-default here; each test was seen red with its branch broken (the finding §2).
+def _with(data, **kw):
+    return MembershipData(data.pm, data.pm_cov, data.plx, data.plx_err, dict(data.aux), **kw)
+
+
+def _theta_truth(n_groups=1, etas=None):
+    th = np.r_[TRUTH["mu_c"], np.log(TRUTH["sigma_c"]), TRUTH["plx_c"], np.log(TRUTH["s_plx_c"]), TRUTH["mu_f"],
+               np.log(TRUTH["sf_1"]), np.log(TRUTH["sf_2"]), np.arctanh(TRUTH["rho_f"]), TRUTH["plx_f"],
+               np.log(TRUTH["s_plx_f"])]
+    etas = [TRUTH["eta"]] * n_groups if etas is None else etas
+    return np.r_[th, special.logit(etas)]
+
+
+def test_line_enters_p_and_the_likelihood_as_exp_llr():
+    """Closed form at a frozen θ: with ``lines=("B",)`` the logit of p moves by exactly ℓ_B (NaN → 0), and the log
+    posterior is Σ log[(1 − η) e^{l_c + ℓ_B} + η e^{l_f}] from the components. Red with the line dropped from the
+    likelihood (``lc + d["lsum"]``) or from ``p``."""
+    data, _ = make(SEED, n=120)
+    rng = np.random.default_rng(3)
+    lB = rng.normal(0, 2, data.n)
+    lB[:7] = np.nan
+    d1 = _with(data, lines={"B": lB})
+    th = _theta_truth()
+    m0 = MixtureModel(d1, SEL)
+    m1 = MixtureModel(d1, SEL, lines=("B",))
+    for m in (m0, m1):
+        m.fit_result = M.MixtureFit(theta=th, free=m.free, logpost=0.0, n_starts=0, init_start=False, modes=[],
+                                    verdict="", verdict_ok=True, at_bound=[])
+    l0 = special.logit(np.clip(m0.p, 1e-15, 1 - 1e-15))
+    l1 = special.logit(np.clip(m1.p, 1e-15, 1 - 1e-15))
+    ok = (np.abs(l0) < 30) & (np.abs(l1) < 30)          # away from the 1e-15 clip
+    assert ok.sum() > 0.8 * data.n
+    assert np.allclose((l1 - l0)[ok], np.nan_to_num(lB)[ok], atol=1e-6)
+    _, lc, lf = m1._comp(th)
+    eta = TRUTH["eta"]
+    want = np.sum(np.logaddexp(np.log1p(-eta) + lc + np.nan_to_num(lB), np.log(eta) + lf))
+    assert m1.logpost(th) == pytest.approx(want, rel=1e-10)
+    assert m0.logpost(th) != pytest.approx(want, rel=1e-6)
+    assert set(m1.axis_llr) == {"A", "B"} and np.isnan(m1.axis_llr["B"][:7]).all()
+    with pytest.raises(ValueError, match="already modelled"):
+        m1.classify(extra_lines={"B": lB})
+
+
+def test_a_nan_line_on_a_zero_weight_row_does_not_poison_the_fit():
+    """Padding rows carry weight 0; 0 × NaN is NaN, so the NaN → 0 has to happen before the weight."""
+    data, _ = make(SEED, n=60)
+    lB = np.zeros(data.n)
+    lB[-1] = np.nan
+    m = MixtureModel(_with(data, lines={"B": lB}), SEL, lines=("B",))
+    m = m.with_data(m.data, weights=np.r_[np.ones(data.n - 1), 0.0])
+    assert np.isfinite(m.logpost(_theta_truth()))
+
+
+def test_informative_line_sharpens_p_where_astrometry_cannot():
+    """Recovery: a field that sits on the cluster in PM and parallax (astrometry nearly blind) plus a line B with
+    the exact log ratio of N(±0.75, 1). With the line in the model the AUC and the field fraction are recovered;
+    without it, not. Measured 2026-11-05, rng seeds 0-3: AUC 0.837-0.891 with the line and 0.511-0.614 without;
+    η̂ − η = −0.051…+0.004 with it and −0.367…−0.138 without."""
+    tr = dict(TRUTH, mu_f=(1.1, 0.05), sf_1=0.6, sf_2=0.6, rho_f=0.0, plx_f=1.0, s_plx_f=0.05)
+    rng = np.random.default_rng(1)
+    don = _donors(rng, 500)
+    y = rng.random(500) >= tr["eta"]
+    mem = sample_members(tr, don.take(np.where(y)[0]), rng, SEL)
+    fld = sample_field(tr, don.take(np.where(~y)[0]), rng, SEL)
+    data = MembershipData.concat(mem, fld)
+    yy = np.r_[np.ones(mem.n, bool), np.zeros(fld.n, bool)]
+    x = np.where(yy, 0.75, -0.75) + rng.normal(0, 1.0, yy.size)
+    lB = 2 * 0.75 * x                                    # the exact log ratio of N(+0.75, 1) to N(−0.75, 1)
+    d = _with(data, lines={"B": lB})
+    bounds = None
+    res = {}
+    for lines in ((), ("B",)):
+        m = MixtureModel(d, SEL, lines=lines)
+        lo, hi = m.default_bounds()
+        lo[7:9] = np.log(0.3)                        # let the field be as narrow as this fixture's
+        bounds = (lo, hi)
+        m.fit(n_starts=3, seed=0, ridge=False, init=INIT, bounds=bounds)
+        res[lines] = (auc(m.p, yy), m.params["eta"])
+    assert res[("B",)][0] > 0.8 and res[()][0] < 0.65
+    assert abs(res[("B",)][1] - (1 - yy.mean())) < 0.07
+    assert abs(res[()][1] - (1 - yy.mean())) > 0.1
+
+
+def test_empirical_field_is_flat_pm_over_the_region_times_the_given_parallax_density():
+    """Closed form: the field term is field_plx_logpdf − log ∫ prob(μ) dμ, the area by a fine grid (independent
+    of the support nodes). Red with the area term dropped or taken from the wrong node set."""
+    sel = Truncation(CircularRegion((0.0, 0.0), R, 0.1), plx_window=(0.4, 1.6), n_qmc=256, n_support=4096)
+    data, _ = make(SEED, n=50)
+    fpl = np.random.default_rng(2).normal(-0.3, 0.2, data.n)
+    m = MixtureModel(_with(data, field_plx_logpdf=fpl), sel, M.EmpiricalField())
+    h = 0.005
+    g = np.arange(-R - 1.5, R + 1.5, h)
+    gx, gy = np.meshgrid(g, g)
+    area = sel.region.prob(np.c_[gx.ravel(), gy.ravel()]).sum() * h * h
+    _, _, lf = m._comp(_theta_truth())
+    assert np.allclose(lf, fpl - np.log(area), atol=2e-3)
+    assert [m.param_names[k] for k in m.free] == list(PARAM_NAMES_CLUSTER) + ["logit_eta"]
+
+
+PARAM_NAMES_CLUSTER = M.PARAM_NAMES[:5]
+
+
+def test_empirical_field_recovers_the_fraction_on_a_flat_field():
+    """Recovery: field drawn flat over the region (PM) with a known parallax density; the cluster is TRUTH's. The
+    EmpiricalField fit recovers η and σ_c. Measured 2026-11-05, rng seeds 0-3: |η̂ − η| ≤ 0.018, |σ̂ − σ| ≤ 0.011."""
+    rng = np.random.default_rng(0)
+    n = 500
+    don = _donors(rng, n)
+    y = rng.random(n) >= TRUTH["eta"]
+    mem = sample_members(TRUTH, don.take(np.where(y)[0]), rng, SEL)
+    nf = int((~y).sum())
+    pts, k = [], 0
+    while k < nf:                                     # flat in PM, accepted with the region's probability
+        u = rng.uniform(-R - 0.3, R + 0.3, (4 * nf, 2))
+        u = u[rng.random(len(u)) < SEL.region.prob(u)]
+        pts.append(u)
+        k += len(u)
+    pmf = np.concatenate(pts)[:nf]
+    a, b = (0.4 - 0.7) / 0.4, (1.6 - 0.7) / 0.4
+    plxf = stats.truncnorm.rvs(a, b, loc=0.7, scale=0.4, size=nf, random_state=rng)
+    fdon = don.take(np.where(~y)[0])
+    fld = MembershipData(pmf, fdon.pm_cov, plxf, fdon.plx_err, dict(fdon.aux))
+    data = MembershipData.concat(mem, fld)
+    fpl = stats.truncnorm.logpdf(data.plx, a, b, loc=0.7, scale=0.4)
+    m = MixtureModel(_with(data, field_plx_logpdf=fpl), SEL, M.EmpiricalField())
+    m.fit(n_starts=3, seed=0, ridge=False, init=INIT)
+    P = m.params
+    assert abs(P["eta"] - fld.n / data.n) < 0.04
+    assert abs(P["sigma_c"] - TRUTH["sigma_c"]) < 0.04
+
+
+def test_empirical_field_needs_a_region_and_a_parallax_density():
+    data, _ = make(SEED, n=30)
+    with pytest.raises(ValueError, match="selection region"):
+        MixtureModel(_with(data, field_plx_logpdf=np.zeros(data.n)), None, M.EmpiricalField())
+    with pytest.raises(ValueError, match="field_plx_logpdf"):
+        MixtureModel(data, SEL, M.EmpiricalField())
+
+
+def test_groups_get_their_own_fraction_and_prior():
+    """Closed form at a frozen θ with two groups: η per star is its group's, and each group's prior adds exactly
+    its log-normal term on η_g Σ_{i∈g} w_i. Red with the per-star group index replaced by group 0."""
+    data, _ = make(SEED, n=80)
+    grp = (np.arange(data.n) % 3 == 0).astype(int)
+    m = MixtureModel(_with(data, group=grp), SEL, n_groups=2)
+    th = _theta_truth(2, [0.2, 0.7])
+    _, lc, lf = m._comp(th)
+    eta = np.where(grp == 1, 0.7, 0.2)
+    base = np.sum(np.logaddexp(np.log1p(-eta) + lc, np.log(eta) + lf))
+    assert m.logpost(th) == pytest.approx(base, rel=1e-10)
+    pf = ((10.0, 0.3), (20.0, 0.5))
+    nf = [0.2 * (grp == 0).sum(), 0.7 * (grp == 1).sum()]
+    want = base - sum(0.5 * ((np.log(n_) - np.log(md)) / sd) ** 2 for n_, (md, sd) in zip(nf, pf, strict=True))
+    assert m.logpost(th, pf) == pytest.approx(want, rel=1e-10)
+    assert m.param_names[-2:] == ("logit_eta_0", "logit_eta_1")
+
+
+def test_groups_recover_two_different_field_fractions():
+    """Recovery: field fraction 0.15 in group 0 and 0.70 in group 1 (the faint-bin pattern of NGC 6383). With
+    n_groups=2 both are recovered; with one fraction, neither. Measured 2026-11-05, rng seeds 0-3: |Δη| ≤ 0.035
+    per group with groups; the single fraction sits between them, 0.39-0.43."""
+    rng = np.random.default_rng(0)
+    parts, ys, gs = [], [], []
+    for g, eta in enumerate((0.15, 0.70)):
+        don = _donors(rng, 400)
+        y = rng.random(400) >= eta
+        mem = sample_members(TRUTH, don.take(np.where(y)[0]), rng, SEL)
+        fld = sample_field(TRUTH, don.take(np.where(~y)[0]), rng, SEL)
+        parts.append(MembershipData.concat(mem, fld))
+        ys.append(np.r_[np.ones(mem.n, bool), np.zeros(fld.n, bool)])
+        gs.append(np.full(mem.n + fld.n, g))
+    data = MembershipData.concat(parts[0], parts[1])
+    grp = np.concatenate(gs)
+    yy = np.concatenate(ys)
+    m = MixtureModel(_with(data, group=grp), SEL, n_groups=2)
+    m.fit(n_starts=3, seed=0, ridge=False, init=INIT)
+    eg = m.params["eta_groups"]
+    for g in (0, 1):
+        assert abs(eg[g] - np.mean(~yy[grp == g])) < 0.05
+    m1 = MixtureModel(_with(data, group=grp), SEL)
+    m1.fit(n_starts=3, seed=0, ridge=False, init=INIT)
+    assert 0.25 < m1.params["eta"] < 0.6
+
+
+def test_sideband_template_and_member_sequence_are_normalised_densities():
+    """log p_f(ϖ | G) integrates to 1 over the window, log p_f(c | G, ϖ) and log p_m(c | G) to 1 over colour; the
+    leave-one-out of a reference star equals the kernel sum without its own residual (computed here by hand)."""
+    rng = np.random.default_rng(4)
+    tm = M.SidebandTemplate(rng.uniform(12, 20, 300), rng.normal(1.5, 0.5, 300), rng.normal(0.8, 0.3, 300), (0.5, 1.2))
+    pg = np.linspace(0.5, 1.2, 4001)
+    assert np.trapezoid(np.exp(tm.log_plx(np.full(pg.size, 15.0), pg)), pg) == pytest.approx(1, abs=1e-3)
+    cg = np.linspace(-3, 6, 6001)
+    assert np.trapezoid(np.exp(tm.log_colour(np.full(cg.size, 15.0), cg, np.full(cg.size, 0.9))), cg) == pytest.approx(1, abs=1e-3)
+    assert np.trapezoid(np.exp(tm.log_colour(np.full(cg.size, 15.0), cg)), cg) == pytest.approx(1, abs=1e-3)
+    gm = rng.uniform(10, 19, 120)
+    cm = 0.2 * (gm - 10) + rng.normal(0, 0.1, 120)
+    ids = np.arange(120) + 1000
+    seq = M.MemberSequence(gm, cm, ids)
+    assert np.trapezoid(np.exp(seq.log_colour(np.full(cg.size, 14.0), cg)), cg) == pytest.approx(1, abs=1e-3)
+    k = 17
+    res = cm - seq.ridge(gm)
+    others = np.delete(res, k)
+    want = np.log(np.mean(stats.norm.pdf((res[k] - others) / seq.h) / seq.h))
+    assert seq.log_colour(gm[k:k + 1], cm[k:k + 1], ids[k:k + 1])[0] == pytest.approx(want, rel=1e-10)
+    assert seq.log_colour(gm[k:k + 1], cm[k:k + 1])[0] != pytest.approx(want, rel=1e-6)
+    llr = M.photometric_llr(seq, tm, np.r_[14.0, np.nan], np.r_[0.8, 1.0], np.r_[0.9, 0.9])
+    assert np.isfinite(llr[0]) and np.isnan(llr[1])
+
+
+def test_injection_refuses_a_model_whose_axes_it_cannot_draw(fitted):
+    model, _ = fitted
+    d = _with(model.data, lines={"B": np.zeros(model.data.n)})
+    mb = MixtureModel(d, SEL, lines=("B",))
+    mb.fit_result = model.fit_result
+    with pytest.raises(NotImplementedError, match="astrometry only"):
+        calibrate_by_injection(mb, model.data, 1)
+
+
+def test_concat_refuses_to_drop_a_modelled_quantity():
+    data, _ = make(SEED, n=20)
+    with pytest.raises(ValueError, match="lines differ"):
+        MembershipData.concat(_with(data, lines={"B": np.zeros(20)}), data)
+    with pytest.raises(ValueError, match="group"):
+        MembershipData.concat(_with(data, group=np.zeros(20, int)), data)

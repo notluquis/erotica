@@ -40,6 +40,16 @@ parallax ``ϖ_i`` (error ``e_i``), conditioned on its errors and on having been 
   A population where the selection depends on the errors differently for members and field would make
   the observed fraction depend on ``e_i``; that is not modelled.
 
+Three optional pieces (hub ``agent-findings/membership-cmd-axis-2026-11-05.md``), each off by default:
+
+* ``lines=("B",)``: further lines multiply the cluster term by ``exp(ℓ_k)``, with ``ℓ_k`` per star in
+  ``MembershipData.lines``. The CMD axis is :func:`photometric_llr`: colour conditioned on G under the cluster
+  (:class:`MemberSequence`, from a reference list) against the field (:class:`SidebandTemplate`). This is the form
+  of the hub's assignment model and C5 §15 -- an empirical density ratio, not an isochrone, so the age fit stays out
+  of the membership; keep ``lines=()`` when ``p`` will weight a CMD analysis;
+* ``field=EmpiricalField()``: flat PM over the acceptance region and the sideband's ``p_f(ϖ | G)``;
+* ``n_groups``: one field fraction per ``MembershipData.group`` (G bins), each with its own prior on its count.
+
 Ported in structure from the hub analysis script ``agent-findings/scripts/c5_mixture.py::Model``
 (JAX likelihood with exact gradient and Hessian, P_A by QMC on a smooth acceptance frontier), without
 its NGC 6383 specifics (the κ/shear design matrix, the HR24 flag, the CMD axis, Theia 1645).
@@ -127,6 +137,10 @@ __all__ = [
     "CircularRegion",
     "Truncation",
     "GaussianField",
+    "EmpiricalField",
+    "SidebandTemplate",
+    "MemberSequence",
+    "photometric_llr",
     "MixtureModel",
     "MixtureFit",
     "TwoLineRule",
@@ -155,6 +169,17 @@ class MembershipData:
     plx: np.ndarray
     plx_err: np.ndarray
     aux: dict[str, np.ndarray] = field(default_factory=dict)
+    #: per-star log-likelihood ratio ``ℓ_k = log L_c,k − log L_f,k`` of further lines (photometry ``"B"``, ...),
+    #: conditionally independent of the astrometry given the component. NaN = no data for that star (the line
+    #: then carries no information: 0 in ``p``, not counted by the rule). They enter ``p`` only for the lines a
+    #: :class:`MixtureModel` is built with (``lines=``); see :func:`photometric_llr` for line B.
+    lines: dict[str, np.ndarray] = field(default_factory=dict)
+    #: per-star log density of the parallax under the field, already normalised on the parallax window and
+    #: conditioned on whatever the caller conditions it on (G, with :class:`SidebandTemplate`). Used by
+    #: :class:`EmpiricalField`; ignored by :class:`GaussianField`.
+    field_plx_logpdf: np.ndarray | None = None
+    #: per-star integer group (e.g. a G bin) for a mixing fraction per group (``MixtureModel(n_groups=...)``).
+    group: np.ndarray | None = None
 
     def __post_init__(self):
         self.pm = np.asarray(self.pm, float).reshape(-1, 2)
@@ -163,6 +188,18 @@ class MembershipData:
         self.plx = np.asarray(self.plx, float).reshape(n)
         self.plx_err = np.asarray(self.plx_err, float).reshape(n)
         self.aux = {k: np.asarray(v).reshape(n, *np.shape(v)[1:]) for k, v in self.aux.items()}
+        self.lines = {k: np.asarray(v, float).reshape(n) for k, v in self.lines.items()}
+        for k, v in self.lines.items():
+            if np.any(np.isinf(v)):
+                raise ValueError(f"line {k!r} has infinite values (NaN marks a star without data)")
+        if self.field_plx_logpdf is not None:
+            self.field_plx_logpdf = np.asarray(self.field_plx_logpdf, float).reshape(n)
+            if not np.all(np.isfinite(self.field_plx_logpdf)):
+                raise ValueError("field_plx_logpdf has non-finite values")
+        if self.group is not None:
+            self.group = np.asarray(self.group).reshape(n)
+            if not np.issubdtype(self.group.dtype, np.integer) or np.any(self.group < 0):
+                raise ValueError("group must hold non-negative integers")
         for nm in ("pm", "pm_cov", "plx", "plx_err"):
             if not np.all(np.isfinite(getattr(self, nm))):
                 raise ValueError(f"{nm} has non-finite values")
@@ -179,13 +216,26 @@ class MembershipData:
     def take(self, idx) -> MembershipData:
         idx = np.asarray(idx)
         return MembershipData(self.pm[idx], self.pm_cov[idx], self.plx[idx], self.plx_err[idx],
-                              {k: v[idx] for k, v in self.aux.items()})
+                              {k: v[idx] for k, v in self.aux.items()}, {k: v[idx] for k, v in self.lines.items()},
+                              None if self.field_plx_logpdf is None else self.field_plx_logpdf[idx],
+                              None if self.group is None else self.group[idx])
 
     @staticmethod
     def concat(a: MembershipData, b: MembershipData) -> MembershipData:
+        """Rows of ``a`` then ``b``. ``aux`` keeps the keys both have; ``lines``, ``field_plx_logpdf`` and ``group``
+        must be present in both or in neither (a modelled quantity silently dropped would change ``p``)."""
         keys = set(a.aux) & set(b.aux)
+        if set(a.lines) != set(b.lines):
+            raise ValueError(f"lines differ: {sorted(a.lines)} vs {sorted(b.lines)}")
+        for nm in ("field_plx_logpdf", "group"):
+            if (getattr(a, nm) is None) != (getattr(b, nm) is None):
+                raise ValueError(f"{nm} present in only one of the two")
+
+        def cat(nm):
+            return None if getattr(a, nm) is None else np.r_[getattr(a, nm), getattr(b, nm)]
         return MembershipData(np.r_[a.pm, b.pm], np.r_[a.pm_cov, b.pm_cov], np.r_[a.plx, b.plx],
-                              np.r_[a.plx_err, b.plx_err], {k: np.r_[a.aux[k], b.aux[k]] for k in keys})
+                              np.r_[a.plx_err, b.plx_err], {k: np.r_[a.aux[k], b.aux[k]] for k in keys},
+                              {k: np.r_[a.lines[k], b.lines[k]] for k in a.lines}, cat("field_plx_logpdf"), cat("group"))
 
 
 # ====================================================================== selection
@@ -268,6 +318,142 @@ class GaussianField:
     convolved with each star's errors and truncated by the same selection as the cluster."""
 
 
+@dataclass(frozen=True)
+class EmpiricalField:
+    """Field taken from the data, not fitted: flat in proper motion over the acceptance region, and the
+    parallax density ``MembershipData.field_plx_logpdf`` (normalised on the parallax window, e.g. conditioned on
+    G by :class:`SidebandTemplate`).
+
+    The proper-motion density of the selected field is ``prob(μ) / A`` with ``A = ∫ prob(μ) dμ`` (the region's
+    support nodes); ``prob(μ_i)`` is common to both components and cancels, so each star gets ``−log A``. Flat
+    is the field the hub's assignment model uses (``membership_rule_v0_v2.py``, ``1/A_F``): inside an
+    acceptance of ~0.3 mas/yr the field's PM gradient is small next to the cluster's, and a Gaussian fitted to
+    the ~40 field stars there runs to the box edges (hub ``agent-findings/membership-rule-validation-2026-11-05.md``
+    §3.3, scales at the edge in ~30 % of replicates). Measured before adopting it, with the Gaussian fits frozen
+    (hub ``agent-findings/membership-cmd-axis-2026-11-05.md`` §1): AUC of line A at G < 16 goes 0.747 → 0.826 with
+    a flat PM field and → 0.870 with the parallax conditioned on G as well. Needs a selection region (a flat
+    density on the whole plane is improper); the field then has no free parameter but the fraction."""
+
+    pm: str = "flat"
+
+    def __post_init__(self):
+        if self.pm != "flat":
+            raise ValueError("EmpiricalField supports pm='flat' only")
+
+
+def _scott(x, d):
+    x = np.asarray(x, float)
+    return float(np.std(x) * len(x) ** (-1.0 / (d + 4)))
+
+
+class SidebandTemplate:
+    """Kernel density of the field in (G, colour, parallax) from a sideband: stars of the same cone outside the
+    cluster's proper-motion region (hub ``membership_rule_v0_v2.Template``; C5 ``lf_feat``).
+
+    Product Gaussian kernels with Scott bandwidths (``d = 3``; the G bandwidth capped at ``max_mag_bandwidth``),
+    the parallax kernel renormalised on ``plx_window`` so every conditional is a density on the selected volume.
+    Conditioning on G is what makes the template local in magnitude: the field's parallax and colour
+    distributions change with G far more than within a 0.33 mas/yr PM acceptance.
+    """
+
+    def __init__(self, mag, colour, plx, plx_window, max_mag_bandwidth: float = 0.3):
+        self.G, self.C, self.P = (np.asarray(v, float).ravel() for v in (mag, colour, plx))
+        if not (len(self.G) == len(self.C) == len(self.P)) or len(self.G) < 5:
+            raise ValueError("the sideband needs at least 5 stars with mag, colour and plx")
+        self.window = (float(plx_window[0]), float(plx_window[1]))
+        self.hg = min(_scott(self.G, 3), max_mag_bandwidth)
+        self.hc = _scott(self.C, 3)
+        self.hp = _scott(self.P, 3)
+        self.fwin = stats.norm.cdf((self.window[1] - self.P) / self.hp) - stats.norm.cdf((self.window[0] - self.P) / self.hp)
+        self.n = len(self.G)
+
+    def _lf(self, mag, colour, plx, use_colour, use_plx):
+        from scipy.special import logsumexp
+        g = np.atleast_1d(np.asarray(mag, float))
+        lg = stats.norm.logpdf((g[:, None] - self.G[None, :]) / self.hg)
+        num = lg.copy()
+        den = lg + np.log(self.fwin)[None, :] if use_plx else lg.copy()
+        if use_colour:
+            c = np.atleast_1d(np.asarray(colour, float))
+            num = num + stats.norm.logpdf((c[:, None] - self.C[None, :]) / self.hc) - np.log(self.hc)
+        if use_plx:
+            p = np.atleast_1d(np.asarray(plx, float))
+            num = num + stats.norm.logpdf((p[:, None] - self.P[None, :]) / self.hp) - np.log(self.hp)
+        return logsumexp(num, 1) - logsumexp(den, 1)
+
+    def log_plx(self, mag, plx):
+        """log p_f(ϖ | G), a density on the parallax window: the ``field_plx_logpdf`` of :class:`EmpiricalField`."""
+        return self._lf(mag, None, plx, False, True)
+
+    def log_colour(self, mag, colour, plx=None):
+        """log p_f(c | G), or log p_f(c | G, ϖ) = log p_f(c, ϖ | G) − log p_f(ϖ | G) when ``plx`` is given."""
+        if plx is None:
+            return self._lf(mag, colour, None, True, False)
+        return self._lf(mag, colour, plx, True, True) - self.log_plx(mag, plx)
+
+
+class MemberSequence:
+    """The cluster's sequence in the CMD from a reference list of members: a ridge (running median of colour in
+    G over ``window`` stars, then a running mean over ``smooth`` ridge points) plus a kernel density of the
+    colour residuals (Scott, ``d = 1``) -- hub ``membership_rule_v0_v2.Ridge``, C5 ``lm_col``.
+
+    It is empirical on purpose: a young cluster's pre-main sequence is broad (age spread, extinction, binaries,
+    accretion), and an isochrone would put the age fit inside the membership (hub
+    ``agent-findings/membership-cmd-axis-2026-11-05.md`` §1, decision D1). A star of the reference list is scored
+    leave-one-out when its id is passed, so it does not vote for itself.
+    """
+
+    def __init__(self, mag, colour, ids=None, window: int = 31, smooth: int = 9):
+        from scipy.ndimage import uniform_filter1d
+        mag, colour = np.asarray(mag, float).ravel(), np.asarray(colour, float).ravel()
+        if len(mag) < max(window, 5):
+            raise ValueError("the reference list is shorter than the ridge window")
+        o = np.argsort(mag)
+        gm, cm = mag[o], colour[o]
+        rid = np.array([np.median(cm[max(0, k - window // 2):k + window // 2 + 1]) for k in range(len(gm))])
+        self.gm, self.rid = gm, uniform_filter1d(rid, smooth, mode="nearest")
+        self.mres = colour - self.ridge(mag)
+        self.h = _scott(self.mres, 1)
+        self.ids = None if ids is None else np.asarray(ids).ravel()
+
+    def ridge(self, mag):
+        return np.interp(mag, self.gm, self.rid)
+
+    def log_colour(self, mag, colour, ids=None):
+        """log p_m(c | G); ``ids`` (same kind as the reference ids) switches on leave-one-out for listed stars."""
+        from scipy.special import logsumexp
+        mag, colour = np.atleast_1d(np.asarray(mag, float)), np.atleast_1d(np.asarray(colour, float))
+        lk = stats.norm.logpdf(((colour - self.ridge(mag))[:, None] - self.mres[None, :]) / self.h) - np.log(self.h)
+        n = np.full(len(mag), float(len(self.mres)))
+        if ids is not None and self.ids is not None:
+            pos = {s: k for k, s in enumerate(self.ids.tolist())}
+            for i, s in enumerate(np.asarray(ids).ravel().tolist()):
+                if s in pos:
+                    lk[i, pos[s]] = -np.inf
+                    n[i] -= 1
+        return logsumexp(lk, 1) - np.log(n)
+
+    def draw(self, mag, rng):
+        """Synthetic colours of members of magnitude ``mag`` (ridge + a resampled residual + kernel noise)."""
+        mag = np.asarray(mag, float)
+        return self.ridge(mag) + rng.choice(self.mres, mag.size) + rng.normal(0, self.h, mag.size)
+
+
+def photometric_llr(sequence: MemberSequence, template: SidebandTemplate, mag, colour, plx=None, ids=None):
+    """Line B, ``ℓ_B = log p_m(c | G) − log p_f(c | G[, ϖ])``: the CMD axis conditioned on G. Pass ``plx`` to
+    condition the field colour on parallax too (the hub's form, consistent with :class:`EmpiricalField`, whose
+    field parallax is conditioned on G from the same template). Stars with a non-finite colour get NaN (no
+    data). Put the result in ``MembershipData.lines["B"]`` and build the model with ``lines=("B",)``."""
+    mag, colour = np.asarray(mag, float), np.asarray(colour, float)
+    ok = np.isfinite(mag) & np.isfinite(colour)
+    out = np.full(mag.shape, np.nan)
+    if ok.any():
+        lm = sequence.log_colour(mag[ok], colour[ok], None if ids is None else np.asarray(ids)[ok])
+        lf = template.log_colour(mag[ok], colour[ok], None if plx is None else np.asarray(plx, float)[ok])
+        out[ok] = lm - lf
+    return out
+
+
 # ====================================================================== likelihood (JAX)
 PARAM_NAMES = ("mu_c_x", "mu_c_y", "log_sig_c", "plx_c", "log_splx_c",
                "mu_f_x", "mu_f_y", "log_sf_1", "log_sf_2", "atanh_rho_f", "plx_f", "log_splx_f", "logit_eta")
@@ -317,8 +503,11 @@ def _log_window(mu, sd, window):
     return jnp.where(a > 0, up, dn)
 
 
-def _components(th, d, *, selection, has_field, nodes):
-    """Per-star log densities (cluster, field) of the full astrometric line, each normalised by its P_A and W."""
+def _components(th, d, *, selection, has_field, nodes, empirical=False, n_groups=1):
+    """Per-star log densities (cluster, field) of the full astrometric line, each normalised by its P_A and W.
+
+    With ``empirical`` the field is :class:`EmpiricalField`: ``−log A`` (flat PM over the region) plus the
+    caller's ``field_plx_logpdf`` (already a density on the window, so no W here)."""
     pm, C, plx, e = d["pm"], d["pm_cov"], d["plx"], d["plx_err"]
     region = None if selection is None else selection.region
     window = None if selection is None else selection.plx_window
@@ -335,6 +524,8 @@ def _components(th, d, *, selection, has_field, nodes):
     lc = lc + lcp
     if not has_field:
         return lc, None
+    if empirical:
+        return lc, d["fplx"] - nodes["log_area"]
     a, b, rho = jnp.exp(th[7]), jnp.exp(th[8]), jnp.tanh(th[9])
     L = _chol2(C[:, 0, 0] + a * a, C[:, 0, 1] + rho * a * b, C[:, 1, 1] + b * b)
     lf = _logn2(pm[:, 0] - th[5], pm[:, 1] - th[6], *L)
@@ -347,20 +538,31 @@ def _components(th, d, *, selection, has_field, nodes):
     return lc, lf + lfp
 
 
+_ETA = 12   # first index of the mixing-fraction block (one logit per group)
+
+
 def _per_star_loglike(th, d, **kw):
+    """log L_i. The modelled lines multiply the cluster term by exp(ℓ_k): with the line's field density as the
+    common factor, L_c,k = L_f,k e^{ℓ_k}, and the common factor drops out of p and of the fit."""
     lc, lf = _components(th, d, **kw)
+    lc = lc + d["lsum"]
     if lf is None:
         return lc
-    eta = jax.nn.sigmoid(th[12])
+    eta = jax.nn.sigmoid(th[_ETA + d["group"]])
     return jnp.logaddexp(jnp.log1p(-eta) + lc, jnp.log(eta) + lf)
 
 
 def _logpost(th, d, prior_field, **kw):
+    """``prior_field``: ``(median, sdlog)`` on the number of field stars, or with ``n_groups > 1`` one such pair per
+    group, on that group's number ``η_g Σ_{i∈g} w_i``."""
     ll = jnp.sum(d["w"] * _per_star_loglike(th, d, **kw))
     if prior_field is not None and kw["has_field"]:
-        med, sdlog = prior_field
-        nf = jax.nn.sigmoid(th[12]) * jnp.sum(d["w"])
-        ll = ll - 0.5 * ((jnp.log(nf) - np.log(med)) / sdlog) ** 2
+        ng = kw["n_groups"]
+        pf = (prior_field,) if ng == 1 else tuple(prior_field)
+        wg = jnp.zeros(ng).at[d["group"]].add(d["w"])
+        for g, (med, sdlog) in enumerate(pf):
+            nf = jax.nn.sigmoid(th[_ETA + g]) * wg[g]
+            ll = ll - 0.5 * ((jnp.log(nf) - np.log(med)) / sdlog) ** 2
     return ll
 
 
@@ -414,11 +616,12 @@ class MixtureFit:
     verdict: str
     verdict_ok: bool
     at_bound: list[str]
+    param_names: tuple[str, ...] = PARAM_NAMES
     _hessian: Callable[[], np.ndarray] | None = field(default=None, repr=False)
     _cov: Any = field(default=False, repr=False)
 
     def params(self) -> dict[str, float]:
-        return _natural(self.theta)
+        return _natural(self.theta, len(self.param_names) - _ETA)
 
     @property
     def cov(self) -> np.ndarray | None:
@@ -438,11 +641,18 @@ class MixtureFit:
         return self._cov
 
 
-def _natural(th) -> dict[str, float]:
+def _natural(th, n_groups: int = 1) -> dict[str, float]:
+    """Natural parameters. ``eta`` is the first group's field fraction; ``eta_groups`` has all of them."""
     th = np.asarray(th, float)
+    eta = 1 / (1 + np.exp(-th[_ETA:_ETA + n_groups]))
     return dict(mu_c=(th[0], th[1]), sigma_c=float(np.exp(th[2])), plx_c=float(th[3]), s_plx_c=float(np.exp(th[4])),
                 mu_f=(th[5], th[6]), sf_1=float(np.exp(th[7])), sf_2=float(np.exp(th[8])), rho_f=float(np.tanh(th[9])),
-                plx_f=float(th[10]), s_plx_f=float(np.exp(th[11])), eta=float(1 / (1 + np.exp(-th[12]))))
+                plx_f=float(th[10]), s_plx_f=float(np.exp(th[11])), eta=float(eta[0]),
+                eta_groups=tuple(float(e) for e in eta))
+
+
+def _param_names(n_groups: int) -> tuple[str, ...]:
+    return PARAM_NAMES if n_groups == 1 else PARAM_NAMES[:_ETA] + tuple(f"logit_eta_{g}" for g in range(n_groups))
 
 
 class MixtureModel:
@@ -453,17 +663,56 @@ class MixtureModel:
     data : MembershipData
     selection : Truncation or None
         ``None`` means the sample was not cut in proper motion or parallax.
-    field : GaussianField or None
+    field : GaussianField, EmpiricalField or None
         ``None`` drops the field component (the construction control V1, and the ``nofield`` mutation).
+        :class:`EmpiricalField` takes the field from the data (flat PM over the region, ``field_plx_logpdf``) and
+        leaves the fraction as its only parameter.
+    lines : tuple of str
+        Names of ``data.lines`` that enter ``p`` (the CMD axis is ``"B"``, from :func:`photometric_llr`). Each is a
+        per-star log-likelihood ratio, conditionally independent of the astrometry given the component.
+        Default ``()``: astrometry only, which is the right choice when ``p`` will weight a CMD analysis (an
+        isochrone fit), so the CMD is not used twice.
+    n_groups : int
+        Number of mixing fractions, one per value of ``data.group`` (e.g. G bins: the field fraction of a young
+        cluster's cone grows steeply to faint G, hub ``agent-findings/membership-rule-faint-fix-2026-11-04.md``).
+        With ``n_groups > 1``, ``prior_field`` in :meth:`fit` is one ``(median, sdlog)`` per group.
     """
 
     def __init__(self, data: MembershipData, selection: Truncation | None = None,
-                 field: GaussianField | None = GaussianField(), *, _shared: dict | None = None):
+                 field: GaussianField | EmpiricalField | None = GaussianField(), *, lines: tuple[str, ...] = (),
+                 n_groups: int = 1, _shared: dict | None = None):
         self.data = data
         self.selection = selection
         self.field = field
+        self.lines = tuple(lines)
+        self.n_groups = int(n_groups)
         self.has_field = field is not None
-        self.free = np.arange(len(PARAM_NAMES)) if self.has_field else np.arange(_CLUSTER.stop)
+        self.empirical = isinstance(field, EmpiricalField)
+        self.param_names = _param_names(self.n_groups)
+        missing = [k for k in self.lines if k not in data.lines]
+        if missing:
+            raise ValueError(f"lines {missing} are not in data.lines ({sorted(data.lines)})")
+        if self.n_groups < 1:
+            raise ValueError("n_groups must be >= 1")
+        if self.n_groups > 1:
+            if data.group is None:
+                raise ValueError("n_groups > 1 needs data.group")
+            if np.any(data.group >= self.n_groups):
+                raise ValueError("data.group has values >= n_groups")
+            if not self.has_field:
+                raise ValueError("n_groups > 1 needs a field component")
+        if self.empirical:
+            if selection is None or selection.region is None:
+                raise ValueError("EmpiricalField needs a selection region: a flat PM density on the plane is improper")
+            if data.field_plx_logpdf is None:
+                raise ValueError("EmpiricalField needs data.field_plx_logpdf")
+        eta_idx = np.arange(_ETA, _ETA + self.n_groups)
+        if not self.has_field:
+            self.free = np.arange(_CLUSTER.stop)
+        elif self.empirical:
+            self.free = np.r_[np.arange(_CLUSTER.stop), eta_idx]
+        else:
+            self.free = np.r_[np.arange(_ETA), eta_idx]
         self.fit_result: MixtureFit | None = None
         if _shared is not None:
             self._fns = _shared
@@ -471,9 +720,11 @@ class MixtureModel:
             nodes = None
             if selection is not None and selection.region is not None:
                 sp, slw = selection.region.support(selection.n_support, selection.seed)
+                lpr = selection.region.logprob(jnp.asarray(sp))
                 nodes = dict(normals=jnp.asarray(selection.normals()), support=jnp.asarray(sp), support_logw=slw,
-                             support_logprob=selection.region.logprob(jnp.asarray(sp)))
-            kw = dict(selection=selection, has_field=self.has_field, nodes=nodes)
+                             support_logprob=lpr, log_area=float(_jlse(lpr)) + slw)
+            kw = dict(selection=selection, has_field=self.has_field, nodes=nodes, empirical=self.empirical,
+                      n_groups=self.n_groups)
 
             def lp(th, d, prior_field):
                 return _logpost(th, d, prior_field, **kw)
@@ -487,17 +738,24 @@ class MixtureModel:
         self._d = self._device_data(data)
 
     # -------------------------------------------------------------- plumbing
-    @staticmethod
-    def _device_data(data: MembershipData, w=None) -> dict:
+    def _device_data(self, data: MembershipData, w=None) -> dict:
+        """Arrays for the likelihood. The modelled lines are summed with NaN → 0 here, before any weight: a
+        padded row (weight 0) with a NaN line would otherwise make 0 × NaN = NaN and poison every fit."""
+        lsum = np.zeros(data.n)
+        for k in self.lines:
+            lsum = lsum + np.nan_to_num(data.lines[k], nan=0.0)
+        fplx = np.zeros(data.n) if data.field_plx_logpdf is None else data.field_plx_logpdf
+        group = np.zeros(data.n, int) if (data.group is None or self.n_groups == 1) else data.group
         return dict(pm=jnp.asarray(data.pm), pm_cov=jnp.asarray(data.pm_cov), plx=jnp.asarray(data.plx),
-                    plx_err=jnp.asarray(data.plx_err),
+                    plx_err=jnp.asarray(data.plx_err), lsum=jnp.asarray(lsum), fplx=jnp.asarray(fplx),
+                    group=jnp.asarray(group, dtype=jnp.int32),
                     w=jnp.asarray(np.ones(data.n) if w is None else w, dtype=float))
 
     def with_data(self, data: MembershipData, weights: np.ndarray | None = None) -> MixtureModel:
         """Same model and compiled functions, new data (no recompilation when the shape is unchanged)."""
-        m = MixtureModel(data, self.selection, self.field, _shared=self._fns)
+        m = MixtureModel(data, self.selection, self.field, lines=self.lines, n_groups=self.n_groups, _shared=self._fns)
         if weights is not None:
-            m._d = self._device_data(data, weights)
+            m._d = m._device_data(data, weights)
         return m
 
     def default_bounds(self) -> tuple[np.ndarray, np.ndarray]:
@@ -524,24 +782,28 @@ class MixtureModel:
                        c[0] - 2 * R, c[1] - 2 * R, np.log(R), np.log(R), -2.0, plo - pr, np.log(0.05 * pr), -9.0])
         hi = np.array([c[0] + 0.85 * R, c[1] + 0.85 * R, np.log(R), phi, np.log(0.5 * pr),
                        c[0] + 2 * R, c[1] + 2 * R, np.log(50 * R), np.log(50 * R), 2.0, phi + pr, np.log(10 * pr), 9.0])
+        lo = np.r_[lo[:_ETA], np.full(self.n_groups, lo[_ETA])]
+        hi = np.r_[hi[:_ETA], np.full(self.n_groups, hi[_ETA])]
         return lo[self.free], hi[self.free]
 
     def _start_from(self, init: Mapping[str, Any], lo: np.ndarray, hi: np.ndarray) -> np.ndarray:
         th = self._full(0.5 * (lo + hi))
         tr = dict(mu_c=lambda v: (0, np.asarray(v, float)), sigma_c=lambda v: (2, np.log(v)), plx_c=lambda v: (3, v),
-                  s_plx_c=lambda v: (4, np.log(v)), eta=lambda v: (12, np.log(v) - np.log1p(-v)))
+                  s_plx_c=lambda v: (4, np.log(v)), eta=lambda v: (_ETA, np.log(v) - np.log1p(-v)))
         for k, v in init.items():
             if k not in tr:
                 raise ValueError(f"init accepts {sorted(tr)}; got {k!r}")
             i, val = tr[k](v)
             if k == "mu_c":
                 th[0:2] = val
+            elif k == "eta":                       # the detection stage gives one fraction: every group starts there
+                th[_ETA:_ETA + self.n_groups] = val
             else:
                 th[i] = val
         return np.clip(th[self.free], lo, hi)
 
     def _full(self, x, base=None):
-        th = np.zeros(len(PARAM_NAMES)) if base is None else np.array(base, float)
+        th = np.zeros(len(self.param_names)) if base is None else np.array(base, float)
         th[self.free] = x
         return th
 
@@ -572,7 +834,7 @@ class MixtureModel:
         if init is not None:
             x0 = self._start_from(init, lo, hi)
             starts = np.vstack([x0[None], starts])
-        names = [PARAM_NAMES[k] for k in self.free]
+        names = [self.param_names[k] for k in self.free]
         cache = {}
 
         def vg(x):
@@ -598,7 +860,7 @@ class MixtureModel:
             return np.asarray(self._fns["hess"](jnp.asarray(th), d, prior_field))[np.ix_(free, free)]
 
         self.fit_result = MixtureFit(theta=th, free=free, logpost=float(best["logp"]), n_starts=len(starts),
-                                     init_start=init is not None,
+                                     init_start=init is not None, param_names=self.param_names,
                                      modes=res["modes"], verdict=text, verdict_ok=bool(ok),
                                      at_bound=[names[i] for i in best["at_bound"]], _hessian=hessian)
         return self.fit_result
@@ -624,16 +886,20 @@ class MixtureModel:
         th, lc, lf = self._comp()
         if lf is None:
             return np.ones_like(lc)
-        logit = (np.log1p(-_sig(th[12])) + lc) - (np.log(_sig(th[12])) + lf)
+        eta = _sig(th[_ETA + np.asarray(self._d["group"])])
+        logit = (np.log1p(-eta) + lc + np.asarray(self._d["lsum"])) - (np.log(eta) + lf)
         return _sig(logit)
 
     @property
     def axis_llr(self) -> dict[str, np.ndarray]:
-        """``ℓ_k`` per independent line. Proper motion and parallax are one line, ``"A"`` (hub §3.5)."""
+        """``ℓ_k`` per independent line. Proper motion and parallax are one line, ``"A"`` (hub §3.5); the
+        modelled ``lines`` follow with their own values (NaN where a star has no data)."""
         _, lc, lf = self._comp()
         if lf is None:
             raise RuntimeError("no field component: the log-likelihood ratio is undefined")
-        return {"A": lc - lf}
+        out = {"A": lc - lf}
+        out.update({k: np.asarray(self.data.lines[k], float) for k in self.lines})
+        return out
 
     def classify(self, rule: TwoLineRule = TwoLineRule(), extra_lines: Mapping[str, np.ndarray] | None = None) -> np.ndarray:
         """Apply the two-line rule. ``extra_lines``: per-star ``ℓ_k`` of lines not modelled here
@@ -750,6 +1016,11 @@ def calibrate_by_injection(model: MixtureModel, field_catalog: MembershipData, n
     same detection-stage ``init`` and ``ridge`` -- never the fitted values, which would seed every replicate at its own
     truth and hide the modes the real fit can fall into (hub ``state/findings.yaml`` R26-13).
     """
+    if model.lines or model.empirical or model.n_groups > 1:
+        raise NotImplementedError(
+            "calibrate_by_injection draws members in astrometry only: it cannot give them a CMD line, a sideband "
+            "parallax density or a group. Inject with a harness that draws those too (hub "
+            "agent-findings/scripts/membership_cmd_axis.py) instead of letting a modelled axis drop silently.")
     fit = model._need_fit()
     par = fit.params()
     rng = np.random.default_rng(seed)
@@ -844,7 +1115,7 @@ def propagate(statistic: Callable, model: MixtureModel, mode: str = "bernoulli",
         if fit.cov is None:
             raise RuntimeError("the fit has no Laplace covariance (Hessian not negative definite)")
         xs = rng.multivariate_normal(fit.theta[fit.free], fit.cov, n_draws)
-        vals = np.array([float(statistic(_natural(model._full(x, fit.theta)))) for x in xs])
+        vals = np.array([float(statistic(_natural(model._full(x, fit.theta), model.n_groups))) for x in xs])
     else:
         raise ValueError("mode must be 'bernoulli' or 'in_model'")
     return PropagationResult(values=vals, mode=mode, n_draws=n_draws)
