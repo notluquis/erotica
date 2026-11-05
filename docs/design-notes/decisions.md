@@ -2280,3 +2280,25 @@ catalogue. It now takes `member_donors`; the test passes the non-default and was
 **What this changes:** the module docstring now says p is not a calibrated membership probability on a real young-cluster cone
 until three pieces are in: the CMD axis, the field conditioned on G, and the per-G mixing fraction. Each is to be judged
 against these same replicates, V0 and V3.
+
+## 2026-11-05 — the three missing pieces: CMD line in p, empirical field, per-G fraction
+
+**Validation:** hub `agent-findings/membership-cmd-axis-2026-11-05.md` (preregistered in hub commit 8b236c3 before running;
+code in 892d721). Script: hub `agent-findings/scripts/membership_cmd_axis.py`. Same 300 replicates, V0 and V3 as the
+validation above; seven arms, the full factorial over the three pieces.
+
+**What went in, each off by default:** `MembershipData.lines` + `MixtureModel(lines=...)` (a per-star log-likelihood
+ratio multiplies the cluster term; the CMD line is `photometric_llr` from `MemberSequence` + `SidebandTemplate`, the
+hub's density-ratio form, not an isochrone); `EmpiricalField` (flat PM over the region, the sideband's p_f(plx | G));
+`n_groups` with one prior per group. `calibrate_by_injection` refuses a model whose axes it cannot draw.
+
+**The numbers (MCB overall / at G >= 18.5, AUC):** CMD line alone 0.0023 / 0.079, 0.943; + empirical field 0.0035 /
+0.078, 0.964; + per-G fraction 0.0016 / 0.0163, 0.944; all three 0.0010 / 0.0155, 0.978. The last two pass all six
+subgroups, V0 and C0, and beat a constant p on the X-ray/YSO line. Without the CMD line no arm passes.
+
+**A diagnosis that corrected the earlier one:** the gap in line A at G < 16 (0.747 against the hub's 0.881) was mostly the
+field's PM *shape* (a fitted Gaussian against flat: 0.747 → 0.826), not the parallax conditioned on G (→ 0.870 only on top
+of the flat PM). Measured with the Gaussian fits frozen.
+
+**Open:** the comparison with pyUPMASK on these replicates (not run: external code needs the author's approval); the
+faint bin's prior on the field count is ~32 % high, so faint mid-range p is under-confident.

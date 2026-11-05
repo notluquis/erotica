@@ -94,16 +94,26 @@ validation, on the real catalogues of three empty control fields, so every arm i
   conditioned on G) and 0.928 for the photometric line B. Adding ℓ_B to the logit (not done here) gives MCB
   0.0029 overall and still fails G >= 18.5 (0.082), like the hub's model.
 * Laplace coverage of the cluster parameters: 0.54-0.56 at 68 % and 0.85-0.90 at 95 % -- short.
-* **So p from this module is not a calibrated membership probability on a real young-cluster cone** until
-  it has the CMD axis and the field conditioned on G, plus the per-G mixing fraction for faint stars. V3 (the
+* **So p from the astrometric model alone is not a calibrated membership probability on a real young-cluster cone**;
+  it needs the CMD axis and the per-G mixing fraction (below). V3 (the
   X-ray/YSO line) does not contradict it, but its log score is no better than a constant p.
+
+WITH THE THREE PIECES, 2026-11-05 (hub ``agent-findings/membership-cmd-axis-2026-11-05.md``, preregistered in hub
+8b236c3 before running; the same 300 replicates, V0 and V3):
+
+* ``lines=("B",)`` alone: MCB 0.0023 overall, AUC 0.943, still 0.079 at G >= 18.5. The empirical field adds AUC
+  (0.964) but not the faint bins. ``n_groups=3`` (G < 16 / 16-18.5 / >= 18.5) is what closes them.
+* **CMD line + per-G fraction (Gaussian field) and CMD line + empirical field + per-G fraction pass V2 in all six
+  subgroups** (MCB 0.0016 / 0.0010 overall, 0.0163 / 0.0155 at G >= 18.5; AUC 0.944 / 0.978), V0 in the three empty
+  fields and C0, and the X-ray/YSO line's log score beats a constant p by ~5 nats. No arm without the CMD line passes.
+* Calibrated by the gate, not bin by bin: faint mid-range p is under-confident, because the per-bin prior on the faint
+  field count (the hub's A1 prior) sits ~32 % above the true count in these replicates.
+* Not yet compared with pyUPMASK on these replicates (the programme's second gate): that comparison is pending.
 
 Pending:
 
-* the empirical local field (``EmpiricalField.from_sideband``, conditioned on G), the CMD axis
-  conditioned on G, RV and youth axes, overlapping groups (Theia 1645, Antalova 2) as explicit
-  components, the HR24 flag as a modelled feature with its own rate, the per-G-bin mixing fraction
-  (hub ``agent-findings/membership-rule-faint-fix-2026-11-04.md``), the full systematic covariance;
+* RV and youth axes, overlapping groups (Theia 1645, Antalova 2) as explicit components, the HR24 flag as a modelled
+  feature with its own rate, a radial prior on the field fraction, the full systematic covariance;
 * the Hessian intervals are not recalibrated: C5 §15.2 measured them short by a factor 1.075-1.145, and the
   validation above measured 68 % intervals covering 0.54-0.56;
 * the QMC error of the cluster's P_A at a sharp edge: V1 measured 3.9e-3 in the PM block with 4096 normals
