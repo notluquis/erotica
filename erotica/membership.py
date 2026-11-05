@@ -72,20 +72,30 @@ Done in this module, with tests in ``tests/test_membership_mixture.py``:
 * :func:`calibrate_by_injection` and :func:`propagate` in their minimal form;
 * the mutations ``nopa``, ``nofield``, ``nosel`` as tests that must break recovery.
 
-Pending, not run here:
+VALIDATED ON NGC 6383, 2026-11-05 -- AND NOT YET FIT FOR USE ALONE (hub
+``agent-findings/membership-rule-validation-2026-11-05.md``; the 300 injection replicates of the hub's earlier
+validation, on the real catalogues of three empty control fields, so every arm is scored on the same stars):
 
-* **V0** -- the mixture on the three empty control fields of B12 (N_c compatible with 0);
-* **V2** -- injection into the real catalogue of the cone, >= 300 replicates per cell, CORP with
-  MCB <= 0.01 global and <= 0.02 per subgroup, 68/95 % coverage of the cluster parameters;
-* **V3** -- CORP against independent labels (own RVs, X-rays, IGAPS) per subgroup;
-* **V4** -- global and specific risks of the two-line rule per subgroup (the machinery is
-  :func:`calibrate_by_injection` with ``rule=``; the run is pending);
+* C0 passes (field responsibility 36.2 in [25; 45] on the 254) and **V0 passes** in the three empty fields,
+  one at the edge (Σp = 4.93 against 5 in C357.50+0.50; σ_c collapses onto one star in two fields).
+* **V2 fails.** CORP MCB 0.0145 > 0.01 overall and > 0.02 in four of six subgroups (0.29 at G >= 18.5); AUC
+  0.727. The fraction η is recovered (median 0.139 against 0.136 true): what is missing is discrimination. With
+  this field model the astrometric line alone has AUC 0.728, against 0.794 for the hub's line A (empirical field
+  conditioned on G) and 0.928 for the photometric line B. Adding ℓ_B to the logit (not done here) gives MCB
+  0.0029 overall and still fails G >= 18.5 (0.082), like the hub's model.
+* Laplace coverage of the cluster parameters: 0.54-0.56 at 68 % and 0.85-0.90 at 95 % -- short.
+* **So p from this module is not a calibrated membership probability on a real young-cluster cone** until
+  it has the CMD axis and the field conditioned on G, plus the per-G mixing fraction for faint stars. V3 (the
+  X-ray/YSO line) does not contradict it, but its log score is no better than a constant p.
+
+Pending:
+
 * the empirical local field (``EmpiricalField.from_sideband``, conditioned on G), the CMD axis
   conditioned on G, RV and youth axes, overlapping groups (Theia 1645, Antalova 2) as explicit
   components, the HR24 flag as a modelled feature with its own rate, the per-G-bin mixing fraction
   (hub ``agent-findings/membership-rule-faint-fix-2026-11-04.md``), the full systematic covariance;
-* the baseline on the same split (P01's p̃ and HR24's probability on the same replicates);
-* the Hessian intervals are not recalibrated: C5 §15.2 measured them short by a factor 1.075-1.145;
+* the Hessian intervals are not recalibrated: C5 §15.2 measured them short by a factor 1.075-1.145, and the
+  validation above measured 68 % intervals covering 0.54-0.56;
 * the QMC error of the cluster's P_A at a sharp edge: V1 measured 3.9e-3 in the PM block with 4096 normals
   and 4e-4 with 16384 for an edge of width 0.03 mas/yr; the default 512 is C5's and is not re-measured on
   a real frontier.

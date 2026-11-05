@@ -2251,3 +2251,32 @@ selected volume. Red: PAV → identity (2 tests), cluster P_A (V1 + recovery + n
 normalisation), cluster W (V1, **only after** moving V1's window to cut the cluster — with ϖ_c centred it survived), field W
 (normalisation **only**: recovery stayed green, the field's parallax shape absorbs the factor), veto, Bernoulli-as-cut, generator
 ignoring the selection. Weakest guard: `nopa` on the field fails η by 0.066 at the test seed and by 0.053 against 0.05 at seed 2.
+
+## 2026-11-05 — `erotica.membership` validated on the real cone: V2 fails, and what is missing is measured
+
+**Validation:** hub `agent-findings/membership-rule-validation-2026-11-05.md` (preregistered in hub commit 56b6eef before
+running). Script and JSON: hub `agent-findings/scripts/membership_rule_package_validation.py` / `.json`. The 300 injection
+replicates of the hub's §10 (three empty Gaia DR3 control fields of B12, members from the hub's C0 model), reproduced
+bit-for-bit (y, G, r, ℓ_B), so every arm is scored on the same 60 507 star-replicates.
+
+**The numbers:**
+- C0 passes: 36.2 field responsibility on NGC 6383's 254 (gate [25; 45]). V0 passes in three empty fields, one at the edge
+  (Σp 4.93 against 5).
+- **V2 fails.** CORP MCB 0.0145 > 0.01 overall, > 0.02 in four of six subgroups, 0.29 at G >= 18.5. AUC 0.727, against 0.976 for
+  the hub's model (A0) and 0.985 for its per-G-fraction variant (A1). η is recovered (0.139 against 0.136), so the defect is
+  discrimination, not the fraction.
+- Measured on the same arrays: the astrometric line has AUC 0.728 with this Gaussian field, against 0.794 with the hub's
+  empirical field conditioned on G (0.747 against 0.881 at G < 16). The photometric line alone is 0.928. Adding it to the logit
+  passes the overall gate (MCB 0.0029) and still fails G >= 18.5 (0.082).
+- Laplace coverage of the cluster parameters: 0.54-0.56 at 68 %, 0.85-0.90 at 95 %.
+- Against the state of the art on 60 of the replicates: P01's p̃ and HDBSCAN `probabilities_` fail the same gate (MCB 0.013 and
+  0.012). This module's Brier is better than p̃ in five subgroups (overall −0.0100 [−0.0137; −0.0062]) and worse at
+  G >= 18.5 (+0.077). P01's list carries 9.4 % field stars (65 % among the faint ones). The two-line rule at 0.99 stays ≤ 4.1 % in
+  every subgroup, with completeness 0.16.
+
+**Defect fixed on the way** (124e30e): `calibrate_by_injection` drew the injected members' errors and G from the field
+catalogue. It now takes `member_donors`; the test passes the non-default and was seen red with the parameter ignored.
+
+**What this changes:** the module docstring now says p is not a calibrated membership probability on a real young-cluster cone
+until three pieces are in: the CMD axis, the field conditioned on G, and the per-G mixing fraction. Each is to be judged
+against these same replicates, V0 and V3.
