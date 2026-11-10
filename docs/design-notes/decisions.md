@@ -2226,3 +2226,44 @@ King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 
 
 **Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
 (1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
+
+## 2026-11-09 — `erotica.metallicity.pms_bias`: ASPCAP's [Fe/H] deficit in young K stars, with the symptom as regressor
+
+**Symptom.** ASPCAP DR17 returns [Fe/H] too low for young (< 10 Myr) late-G/K stars. In the 104-star calibration sample
+(12 clusters), relative to the Pleiades + alpha Per G-dwarf anchor (+0.021), the median deficit is -0.17 dex without
+infrared excess (Ks - [4.5] < 0.4, 82 stars) and -0.45 dex with it (22). Using ASPCAP [Fe/H] of a young cluster as its
+metallicity, as the HD 159176 / NGC 6383 work needed, inherits that offset. The DR17 calibration applies no correction for it
+(hub finding, section 4.2).
+
+**Cause (as far as measured; inferred where marked).** Something in the spectrum that varies star to star lowers ASPCAP's
+log g and [Fe/H] together. Measured in the hub's young-K sample: the infrared excess correlates with ASPCAP's log g
+(rho = -0.78, N 122) and not with the physical log g from the Gaia luminosity (+0.02); inside a cluster at fixed T_eff,
+[Fe/H] follows ASPCAP's log g (+0.26 dex per dex in stars without excess) and not the physical one. Which mechanism
+(veiling, spots, Zeeman) is the hub's section 6, not this module's claim.
+
+**Fix.** An empirical model, delta = a + b (log g_ASPCAP - 4) + c (T_eff - 4800)/500 + d max(Ks - [4.5], 0), OLS on the
+104 stars, per-star scatter sigma_e = 0.061 and between-cluster tau = 0.028 from the residuals. Prediction error =
+parameters (+) tau (+) sigma_ref 0.05 (+) anchor 0.005, without sigma_e. Ported from the hub prototype
+`agent-findings/scripts/apogee_pms_bias_correction_2026_11_09.py`; the coefficients are its `.json` at full precision.
+Three guards follow from the regressor being the symptom: `logg_source` is required and only `"aspcap_dr17"` /
+`"aspcap_dr19"` pass (a log g from isochrones or another pipeline is a different variable); outside T_eff 4000-5500 K,
+log g 3.0-4.8 or Ks - [4.5] -0.2 to 2 a `PMSBiasDomainWarning`; and `extrapolated` for a star without excess
+(< 0.4, the split of the hub findings of 2026-11-06 and 2026-11-09) at log g < 3.45, because the slope b is learned
+mostly from disc stars at low log g. In this sample the lowest-log g star without excess sits at 3.507; the hub's
+"two stars below 3.45" refers to the 2026-11-06 sample, not to these 104.
+
+**Not done.** No physical model, and no claim that the terms are mechanisms. 12 clusters, all within 1 kpc and mostly northern.
+Not added to `docs/api/index.rst`, which is a curated list with a stated count.
+
+**Oracle.** The prototype's frozen outputs: N 104 in 12 clusters from the 229-row table, LOCO RMS 0.076 per star against
+0.137 for a constant (and 0.047 per cluster mean), delta = -0.238 +- 0.060 (4654 K, 3.78, 0.04) and -0.320 +- 0.063
+(5024 K, 3.20, 0.09) for the two NGC 6383 members, all reproduced. The embedded coefficients are refitted to 1e-10.
+Non-default arguments have exact consequences: `anchor=0` moves only `a`, by 0.021; `sigma_ref` and `anchor_err` add in
+quadrature.
+
+**Mutations seen red** (`tests/test_pms_bias.py`): no clip of the excess (2 tests), sign of the log g term (4), `|` for `&`
+in the extrapolation flag (2), anchor error dropped from sigma (2). The excess clip does not move the LOCO thresholds
+(8 calibration stars have Ks - [4.5] < 0, the most negative -0.06); only the refit and the negative-excess test catch it.
+
+**Number that moved.** None in the package: new module. Source: hub `agent-findings/apogee-pms-bias-deep-2026-11-09.md`
+sections 4.3 and 7; author decision D26-52 (2026-11-09).

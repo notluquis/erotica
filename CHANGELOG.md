@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### PMS [Fe/H] bias of ASPCAP: `erotica.metallicity.pms_bias` (hub decision D26-52)
+- **Added:** `erotica.metallicity` with `predict_bias`, `fit_bias_model`, `leave_one_cluster_out` and
+  `select_calibration_sample`. Empirical model of the [Fe/H] that ASPCAP DR17 under-reports in young K stars,
+  delta = a + b (log g - 4) + c (T_eff - 4800)/500 + d max(Ks - [4.5], 0), calibrated on 104 stars in 12 clusters
+  (vendored as `tests/data/apogee_dr17_young_k_pms_bias.ecsv`). Leaving one cluster out: RMS 0.076 dex per star
+  against 0.137 for a constant. `logg_source` is required and must be `"aspcap_dr17"` or `"aspcap_dr19"`: the
+  regressor is ASPCAP's own log g, which carries the bias. Stars outside the calibration domain warn
+  (`PMSBiasDomainWarning`); stars without excess below log g 3.45 are flagged `extrapolated`.
+
 ### Wilson (1975) model in `compare_radial_profiles` (hub thread G7)
 - **Added:** `models=(..., "wilson")`, `WilsonPriors`, and `erotica.analysis.wilson` (Poisson solve + Abel projection of the
   `g = 2` lowered isothermal model, tabulated for `W0` in [1, 10]; no new dependency). `compare_radial_profiles` also takes `cores`.
