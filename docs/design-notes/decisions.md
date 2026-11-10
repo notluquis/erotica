@@ -2340,3 +2340,25 @@ true per-field count gives -0.027: the margin is per field and does not transfer
 the faint mid-range bias only drops from +0.148 to +0.108, so most of it is the likelihood: the empirical field is flat in
 PM inside the region, the same flatness that fails in the sideband [inferred, not isolated]. **Next:** a non-flat field PM
 density for the faint bin, judged against the same oracle.
+
+## 2026-11-10 — the cluster's P_A off the region: Gaussian QMC fabricated a mode; the region nodes alone fail inside
+
+**Symptom (hub C7, `agent-findings/ngc6383-kappa-inmodel-e123-2026-11-09.md` §1.13):** in the hub's κ model of NGC 6383
+the member's per-star mean can sit outside the PM acceptance; with P_A drawn from the member's Gaussian (512 QMC normals,
+the scheme of this module's cluster branch) one star got log P_A = −31.14 against −8.37 by brute force, a 22.8-nat bonus
+(the component is divided by P_A), and the chain stuck in a mode that does not exist. **Measured on this module** against
+the radial Rice integral (hub `agent-findings/scripts/erotica_pa_quadrature.py`, `_measured.txt`; R ∈ {0.33, 1.5},
+edge 0.02/0.03, s ∈ {0.015, 0.03, 0.1, 0.4}): the Gaussian QMC errs by up to **1.26 nats at 3 s outside, 17.8 at 5 s,
+57.5 at 8 s** (underestimates: bonuses). **The obvious fix is wrong too:** integrating the cluster over the field's
+region nodes only (1024 nodes) errs by **10.3 nats** at the edge for s = 0.015, because the nodes are coarser than a
+bright member's Gaussian. **Fix:** the cluster combines both node sets by multiple importance sampling with the balance
+heuristic (Veach & Guibas 1995); `CircularRegion.support_logdensity` gives the density of the region nodes. Worst error:
+0.003 nats inside, 0.081 at 3 s, 0.064 at 5 s. Cost: 2.2 → 4.4 ms per gradient on the 400-star fixture.
+**Not fixed:** sd ≈ 5 edge widths with the mean ≥ 8 s out still errs by 0.72 nats (the integrand peaks in the logistic
+tail beyond R + 12 widths), and log P_A has one 0.02-nat step at 5.2 s out for s = 0.1 (smoother variants — nodes ∝ prob,
+a C² taper — traded it for 0.6-0.8 nats of error at 5 s). The default box reaches 0.2 R / s sd out at its corner.
+**Oracle:** `test_cluster_pa_*` (mean 3 and 5 s out against Rice, anisotropic 4 sd out against a dense grid, and a
+narrow member inside that kills the region-nodes-only variant); red before the fix (+0.68, −9.1 nats; anisotropic
+red), red again under each mutation. **Side effect, measured:** the fixture fits (256 normals) move toward the
+converged answer: against fits with 16384 normals (the old scheme converges with the mean inside), |Δμ_x| goes from
+0.036-0.046 to 0.000-0.034 and |Δσ_c| from 0.015-0.025 to 0.001-0.018 over seeds 0-3. The recovery tolerances hold.

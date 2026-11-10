@@ -394,6 +394,68 @@ def test_each_component_is_a_normalised_density_on_the_selected_volume():
         assert s_mu * s_w / np.exp(ll[-1]) == pytest.approx(1.0, abs=2e-3), name
 
 
+# ---------------------------------------------------------------------------------------------- the cluster's P_A off the region
+# Hub agent-findings/ngc6383-kappa-inmodel-e123-2026-11-09.md §1.13: with the member's mean outside the acceptance,
+# QMC normals drawn from the member's Gaussian almost never land in the region, and log P_A came out 22.8 nats low for
+# one star (a bonus, since the component is divided by P_A) and fabricated a mode. Measured on this module before the
+# fix (hub agent-findings/ngc6383-kappa-inmodel-e123-2026-11-09.md §6, R = 1.5, τ = 0.03, s = 0.4, 512 normals):
+# +0.68 nats at 3 s outside, −9.1 at 5 s. Integrating over the field's region nodes alone instead fails the other way:
+# −3.6 at 0.85 R and −10.3 at the edge for s = 0.015 (1024 nodes ~0.08 apart). Both kinds of row are needed.
+def _cluster_lc(nu, cov, sig_c, n_qmc=512, n_support=1024):
+    """−log P_A of the cluster as the model computes it, for one star at the cluster mean ``(nu, 0)``, through the
+    model's own code path (PM only: no parallax window; the Gaussian peak and the parallax term are removed)."""
+    sel = Truncation(CircularRegion((0.0, 0.0), R, TAU), n_qmc=n_qmc, n_support=n_support)
+    mean = np.array([nu, 0.0])
+    d = MembershipData(mean[None], np.asarray(cov, float)[None], np.array([1.0]), np.array([0.05]))
+    th = np.r_[mean, np.log(sig_c), 1.0, np.log(0.02), np.zeros(8)]
+    m = MixtureModel(d, sel, None)
+    lc, _ = m._fns["comp"](M.jnp.asarray(th), m._d)
+    lplx = stats.norm.logpdf(1.0, 1.0, np.hypot(0.05, 0.02))
+    S = np.asarray(cov, float) + sig_c**2 * np.eye(2)
+    lpeak = -np.log(2 * np.pi) - 0.5 * np.log(np.linalg.det(S))
+    return float(np.asarray(lc)[0]) - lplx - lpeak
+
+
+@pytest.mark.parametrize("k", [3.0, 5.0])
+def test_cluster_pa_with_the_mean_outside_the_region_matches_the_rice_integral(k):
+    """Mean k·s outside the circle, isotropic s = 0.4 (errors 0.3, σ_c 0.265): log P_A against the radial Rice
+    integral (independent algebra, the V1 oracle). Tolerance 0.05 nats."""
+    e, s = 0.3, 0.4
+    nu = R + k * s
+    got = -_cluster_lc(nu, np.eye(2) * e**2, np.sqrt(s**2 - e**2))
+    assert got == pytest.approx(_log_pa_rice(nu, np.array([s]))[0], abs=0.05)
+
+
+@pytest.mark.parametrize("where", [0.85, 1.0])
+def test_cluster_pa_of_a_narrow_member_inside_the_region_stays_exact(where):
+    """Guard against integrating over the region nodes alone: s = 0.015 (errors 0.01, σ_c 0.011), far narrower than
+    the node spacing. Tolerance 0.01 nats."""
+    e, s = 0.01, 0.015
+    nu = where * R
+    got = -_cluster_lc(nu, np.eye(2) * e**2, np.sqrt(s**2 - e**2))
+    assert got == pytest.approx(_log_pa_rice(nu, np.array([s]))[0], abs=0.01)
+
+
+def test_cluster_pa_with_an_anisotropic_covariance_outside_matches_a_dense_grid():
+    """The Rice oracle needs isotropy; the code's Cholesky path does not. Correlated errors (0.25, 0.4, ρ = 0.5) plus
+    σ_c = 0.15, mean 4 sd outside along x. Reference: ∫ prob·N by a 0.004 grid (< τ/7, < sd/70) over a box holding
+    the circle and ±6 sd around the mean. Tolerance 0.05 nats."""
+    cov = np.array([[0.25**2, 0.5 * 0.25 * 0.4], [0.5 * 0.25 * 0.4, 0.4**2]])
+    sig_c = 0.15
+    S = cov + sig_c**2 * np.eye(2)
+    nu = R + 4 * np.sqrt(S[0, 0])
+    got = -_cluster_lc(nu, cov, sig_c)
+    h = 0.004
+    gx = np.arange(-R - 0.5, nu + 6 * np.sqrt(S[0, 0]), h)
+    gy = np.arange(-R - 6 * np.sqrt(S[1, 1]), R + 6 * np.sqrt(S[1, 1]), h)
+    X, Y = np.meshgrid(gx, gy)
+    P = np.c_[X.ravel(), Y.ravel()]
+    lN = stats.multivariate_normal(np.array([nu, 0.0]), S).logpdf(P)
+    lpr = -np.logaddexp(0.0, -(R - np.hypot(P[:, 0], P[:, 1])) / TAU)
+    ref = special.logsumexp(lN + lpr) + 2 * np.log(h)
+    assert got == pytest.approx(ref, abs=0.05)
+
+
 # ---------------------------------------------------------------------------------------------- CMD line, empirical field, groups
 # Hub agent-findings/membership-cmd-axis-2026-11-05.md: the three pieces the real-cone validation found missing.
 # Every new parameter is passed non-default here; each test was seen red with its branch broken (the finding §2).

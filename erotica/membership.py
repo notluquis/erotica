@@ -30,8 +30,8 @@ parallax ``ϖ_i`` (error ``e_i``), conditioned on its errors and on having been 
   parallax. This is the minimal parametric field; the empirical local template of the rule
   (``EmpiricalField.from_sideband``) is pending, see below;
 * ``P_A`` is the probability that a star of that component, *with that star's errors*, lands inside the
-  proper-motion acceptance region (QMC: through the Gaussian for the cluster, over the region for the
-  field, see :class:`Truncation`), and ``W`` the
+  proper-motion acceptance region (over the region's nodes for the field; for the cluster, its own Gaussian
+  QMC points and the region's nodes combined by the balance heuristic, see :class:`Truncation`), and ``W`` the
   same for the parallax window (closed form). **Every component is divided by its own P_A and W**
   (hub ``methodology.md`` §A.1.4; C5 §15). Dividing only one component, or none, biases the fraction
   and the cluster dispersion -- the ``nopa`` mutation in the tests;
@@ -130,8 +130,12 @@ Pending:
 * the Hessian intervals are not recalibrated: C5 §15.2 measured them short by a factor 1.075-1.145, and the
   validation above measured 68 % intervals covering 0.54-0.56;
 * the QMC error of the cluster's P_A at a sharp edge: V1 measured 3.9e-3 in the PM block with 4096 normals
-  and 4e-4 with 16384 for an edge of width 0.03 mas/yr; the default 512 is C5's and is not re-measured on
-  a real frontier.
+  and 4e-4 with 16384 for an edge of width 0.03 mas/yr (Gaussian QMC only, before 2026-11-10); the default 512 is
+  C5's and is not re-measured on a real frontier;
+* the cluster's P_A with its mean far outside the region and its sd ~5 edge widths: up to 0.7 nats at 8 sd out,
+  where the integrand peaks in the logistic tail beyond the region nodes (``Truncation``). The default box's corner
+  sits 0.2 R / s sd outside, so 8 sd at s = 5 edge widths needs R > 200 widths (NGC 6383: 16); reachable with
+  ``bounds=`` of your own or a per-star mean (a κ term).
 """
 
 from __future__ import annotations
@@ -307,6 +311,14 @@ class CircularRegion:
         pts = np.asarray(self.center, float) + np.c_[r * np.cos(ph), r * np.sin(ph)]
         return pts, float(np.log(np.pi * rmax * rmax / n))
 
+    def support_logdensity(self, pm):
+        """log of the density the :meth:`support` nodes are drawn from (uniform on the disc of radius R + 12
+        softness, zero outside), in JAX. The cluster's P_A weighs these nodes against its Gaussian points by it
+        (:func:`_log_pa_pm`), so it must be the density of exactly those nodes."""
+        rmax = self.radius + 12.0 * self.softness
+        r2 = jnp.sum((pm - jnp.asarray(self.center)) ** 2, axis=-1)
+        return jnp.where(r2 <= rmax * rmax, -jnp.log(jnp.pi * rmax * rmax), -jnp.inf)
+
 
 @dataclass(frozen=True)
 class Truncation:
@@ -316,12 +328,24 @@ class Truncation:
     ``prob(pm, xp=np)`` for the simulators and ``logprob(pm)`` in JAX for the likelihood); ``plx_window = (lo, hi)`` a hard parallax window
     or ``None``.
 
-    P_A is one integral, ∫ prob(μ) N(μ; m, S) dμ, estimated two ways because no single node set serves
-    both components. The cluster's Gaussian is narrow next to the region, so it is sampled through the
-    Gaussian (``n_qmc`` scrambled-Sobol normals, 512 in C5 §13/§15). The field's is broad, often
-    elongated, and puts few of its own points inside the region; sampling it that way let the optimiser
-    find field shapes whose P_A the QMC underestimated by ~e^19 per star (first smoke fit, 2026-11-05).
-    So the field integral uses ``n_support`` nodes spread over the region itself (``region.support``).
+    P_A is one integral, ∫ prob(μ) N(μ; m, S) dμ. The field's Gaussian is broad, often elongated, and puts
+    few of its own points inside the region; sampling it through the Gaussian let the optimiser find field
+    shapes whose P_A the QMC underestimated by ~e^19 per star (first smoke fit, 2026-11-05). So the field
+    integral uses ``n_support`` nodes spread over the region itself (``region.support``).
+
+    The cluster's Gaussian is usually narrow next to the region, and the region nodes alone cannot resolve it
+    (1024 nodes ~0.03-0.08 mas/yr apart: −10 nats at the edge for s = 0.015). But sampling it only through the
+    Gaussian (``n_qmc`` scrambled-Sobol normals, 512 in C5 §13/§15) fails when its mean sits outside the
+    region: hardly a point lands inside, and log P_A came out 22.8 nats low for one star in the hub's NGC 6383
+    κ model, which fabricated a mode (hub ``agent-findings/ngc6383-kappa-inmodel-e123-2026-11-09.md`` §1.13).
+    So the cluster combines both node sets by multiple importance sampling with the balance heuristic (Veach &
+    Guibas 1995): each point x of either set enters as prob(x) N(x) / (n_qmc N(x) + n_support q(x)), with q
+    the density of the region nodes (``region.support_logdensity``). Inside it reduces to the Gaussian QMC;
+    far outside, to the region quadrature. Measured against the Rice integral (hub
+    ``agent-findings/ngc6383-kappa-inmodel-e123-2026-11-09.md`` §6): ≤ 0.003 nats with the mean inside,
+    ≤ 0.08 at 3 sd outside and ≤ 0.07 at 5 sd, where the Gaussian QMC alone erred by up to 1.3 and 18 nats.
+    Left: an integrand that peaks in the logistic tail beyond the region nodes (sd ≈ 5 softness, mean ≥ 8 sd
+    outside) still errs by up to 0.7 nats; the default box keeps the mean within 0.85 R per axis.
     """
 
     region: Any = None
@@ -505,23 +529,28 @@ def _logn2(r0, r1, L00, L10, L11):
 
 def _log_pa_pm(mean, L00, L10, L11, region, nodes, component):
     """log P_A: probability that a star of ``component`` with this per-star covariance (Cholesky L) is
-    accepted by ``region``. 'cluster' samples the Gaussian, 'field' integrates over the region's support
-    nodes (see :class:`Truncation`). ``component`` is also the hook the mutation tests patch."""
+    accepted by ``region``. 'field' integrates over the region's support nodes; 'cluster' combines its own
+    Gaussian QMC points with those nodes by the balance heuristic (see :class:`Truncation`). ``component`` is
+    also the hook the mutation tests patch."""
+    pts, logw, lpr = nodes["support"], nodes["support_logw"], nodes["support_logprob"]
+    ln = _logn2(pts[None, :, 0] - mean[:, 0:1], pts[None, :, 1] - mean[:, 1:2],
+                L00[:, None], L10[:, None], L11[:, None])
     if component == "field":
-        pts, logw, lpr = nodes["support"], nodes["support_logw"], nodes["support_logprob"]
-        ln = _logn2(pts[None, :, 0] - mean[:, 0:1], pts[None, :, 1] - mean[:, 1:2],
-                    L00[:, None], L10[:, None], L11[:, None])
         return _jlse(ln + lpr[None, :], axis=1) + logw
     normals = nodes["normals"]
     g0 = normals[None, :, 0]
     g1 = normals[None, :, 1]
     p0 = mean[..., 0:1] + L00[:, None] * g0
     p1 = mean[..., 1:2] + L10[:, None] * g0 + L11[:, None] * g1
-    # log-space average: a plain mean of probabilities underflows to 0 for a component far outside the
+    pg = jnp.stack([p0, p1], -1)
+    # everything in logs: a plain mean of probabilities underflows to 0 for a component far outside the
     # region, and a clipped log(0) then hands that component a +690 nats bonus per star (seen in the
     # first smoke fit, 2026-11-05: a cluster parked outside the circle took the whole likelihood)
-    lp = region.logprob(jnp.stack([p0, p1], -1))
-    return _jlse(lp, axis=1) - jnp.log(lp.shape[1])
+    lng = -0.5 * (g0 * g0 + g1 * g1) - jnp.log(L00 * L11)[:, None] - _LOG2PI
+    n1, n2 = jnp.log(normals.shape[0]), jnp.log(pts.shape[0])
+    tg = region.logprob(pg) + lng - jnp.logaddexp(n1 + lng, n2 + region.support_logdensity(pg))
+    ts = lpr[None, :] + ln - jnp.logaddexp(n1 + ln, n2 + nodes["support_logdensity"][None, :])
+    return _jlse(jnp.concatenate([tg, ts], axis=1), axis=1)
 
 
 def _log_window(mu, sd, window):
@@ -752,8 +781,12 @@ class MixtureModel:
             if selection is not None and selection.region is not None:
                 sp, slw = selection.region.support(selection.n_support, selection.seed)
                 lpr = selection.region.logprob(jnp.asarray(sp))
+                if not hasattr(selection.region, "support_logdensity"):
+                    raise ValueError("the selection region needs support_logdensity(pm): the cluster's P_A weighs "
+                                     "its Gaussian points against the support nodes by that density")
                 nodes = dict(normals=jnp.asarray(selection.normals()), support=jnp.asarray(sp), support_logw=slw,
-                             support_logprob=lpr, log_area=float(_jlse(lpr)) + slw)
+                             support_logprob=lpr, log_area=float(_jlse(lpr)) + slw,
+                             support_logdensity=selection.region.support_logdensity(jnp.asarray(sp)))
             kw = dict(selection=selection, has_field=self.has_field, nodes=nodes, empirical=self.empirical,
                       n_groups=self.n_groups)
 
