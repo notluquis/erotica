@@ -2324,3 +2324,19 @@ transfer to a cluster that fills the search window.
 
 **Defaults unchanged:** `MixtureModel(lines=())` stays the constructor default, because a p that weights an isochrone fit
 must not carry the CMD; the validated configuration is the named preset.
+
+## 2026-11-10 — the faint-bin field prior: calibrating it on empty fields does not pay (hub thread B16)
+
+**Symptom:** faint (G >= 18.5) mid-range p under-confident; the A1 prior on the faint field count sat ~32 % above the
+truth in the confirmation replicates. **Cause, measured:** the flat extrapolation of the PM sideband (0.6-1.5 mas/yr) into
+the acceptance is wrong by a G-dependent, field-dependent factor. On eight empty fields of the plane near NGC 6383, ln(T/E1)
+has mean +0.29 / -0.01 / -0.06 and field-to-field sd 0.51 / 0.38 / 0.26 (G < 16 / 16-18.5 / >= 18.5): the ~32 % was two of
+the three validation fields, and the model term of 0.07 is ~4x too small. **What was added:** `expected_field_count`,
+`FieldPriorCalibration` (mean and spread of the log ratio, `leave_out`) and `sideband_field_prior`, whose default is the A1
+prior `cone_mixture()` was validated with. **Oracle (preregistered in hub 921e222, the 300 confirmation replicates,
+leave-one-field-out):** the calibrated prior improves the faint Brier by -0.0056 [-0.0063; -0.0049] and passes V0, but
+worsens r < 20' (+0.0008) and 16-18.5 (+0.0006), so by the preregistered rule it is **not** the default. A prior at the
+true per-field count gives -0.027: the margin is per field and does not transfer between fields. With that perfect prior
+the faint mid-range bias only drops from +0.148 to +0.108, so most of it is the likelihood: the empirical field is flat in
+PM inside the region, the same flatness that fails in the sideband [inferred, not isolated]. **Next:** a non-flat field PM
+density for the faint bin, judged against the same oracle.

@@ -107,8 +107,10 @@ WITH THE THREE PIECES, 2026-11-05 (hub ``agent-findings/membership-cmd-axis-2026
 * **CMD line + per-G fraction (Gaussian field) and CMD line + empirical field + per-G fraction pass V2 in all six
   subgroups** (MCB 0.0016 / 0.0010 overall, 0.0163 / 0.0155 at G >= 18.5; AUC 0.944 / 0.978), V0 in the three empty
   fields and C0, and the X-ray/YSO line's log score beats a constant p by ~5 nats. No arm without the CMD line passes.
-* Calibrated by the gate, not bin by bin: faint mid-range p is under-confident, because the per-bin prior on the faint
-  field count (the hub's A1 prior) sits ~32 % above the true count in these replicates.
+* Calibrated by the gate, not bin by bin: faint mid-range p is under-confident. The A1 prior on the faint field count
+  sits above the truth in two of the three fields, but on eight empty fields the mean bias is ~13 % and the
+  field-to-field scatter 0.26 in log; with the true count as the prior the faint mid-range bias only drops from
+  +0.148 to +0.108 (hub ``agent-findings/b16-faint-field-prior-2026-11-10.md``).
 * Against pyUPMASK (Pera+2021, the bench configuration) on the same 300 replicates, Brier difference with a
   replicate bootstrap: both arms beat it overall and in all six subgroups (all three pieces: -0.320 [-0.328; -0.311]
   overall, -0.171 [-0.184; -0.158] at G >= 18.5). pyUPMASK gives p ~ 0 beyond 20' here (AUC 0.515) and p = 1 to
@@ -961,7 +963,11 @@ def cone_mixture(data: MembershipData, selection: Truncation) -> MixtureModel:
     six, and was confirmed against CMD line + per-G fraction on 300 new replicates by a rule fixed before running.
     The constructor defaults of :class:`MixtureModel` stay off (``lines=()``): a p that will weight an isochrone fit must
     not carry the CMD. Fit with one ``prior_field`` per group; classify with ``TwoLineRule(p_hi=CONE_P_HI,
-    p_lo=1 - CONE_P_HI)``. The faint bin's field prior inherited from the hub (A1) sits ~32 % high (hub thread B16).
+    p_lo=1 - CONE_P_HI)``. The per-group ``prior_field`` it was validated with is :func:`sideband_field_prior` without a
+    calibration (the hub's A1 prior). A prior calibrated on eight empty fields (hub B16) improved the faint-bin Brier by
+    0.0056 [0.0049; 0.0063] but worsened 16 <= G < 18.5 and r < 20' (+0.0006 / +0.0008), so it is not the default; a
+    perfect per-field median would give 0.027, and most of the faint under-confidence comes from the flat field PM density
+    inside the region, not from the prior.
     """
     if "B" not in data.lines:
         raise ValueError("cone_mixture needs the CMD line: data.lines['B'] from photometric_llr")
