@@ -325,8 +325,9 @@ class Truncation:
     """The selection, put in the expected number of **every** component (hub ``methodology.md`` §A.1.4).
 
     ``region`` is the proper-motion acceptance (a :class:`CircularRegion`, or any object with
-    ``prob(pm, xp=np)`` for the simulators and ``logprob(pm)`` in JAX for the likelihood); ``plx_window = (lo, hi)`` a hard parallax window
-    or ``None``.
+    ``prob(pm, xp=np)`` for the simulators, ``logprob(pm)`` in JAX for the likelihood, and ``support(n, seed)`` with
+    ``support_logdensity(pm)`` for the P_A nodes -- the model refuses a region without the latter); ``plx_window =
+    (lo, hi)`` a hard parallax window or ``None``.
 
     P_A is one integral, ∫ prob(μ) N(μ; m, S) dμ. The field's Gaussian is broad, often elongated, and puts
     few of its own points inside the region; sampling it through the Gaussian let the optimiser find field
