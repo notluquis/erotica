@@ -168,6 +168,9 @@ __all__ = [
     "cone_groups",
     "CONE_G_EDGES",
     "CONE_P_HI",
+    "expected_field_count",
+    "FieldPriorCalibration",
+    "sideband_field_prior",
     "TwoLineRule",
     "PropagationResult",
     "sample_members",
@@ -968,6 +971,94 @@ def cone_mixture(data: MembershipData, selection: Truncation) -> MixtureModel:
     if g is None or g.min() < 0 or g.max() > len(CONE_G_EDGES):
         raise ValueError("cone_mixture needs data.group in {0, 1, 2} (cone_groups of G)")
     return MixtureModel(data, selection, EmpiricalField(), lines=("B",), n_groups=len(CONE_G_EDGES) + 1)
+
+
+# ====================================================================== the prior on the field count
+def expected_field_count(pm, plx, selection: Truncation, groups=None, n_groups: int = 1) -> np.ndarray:
+    """Expected number of a catalogue's stars that the selection accepts, ``Σ_i P_accept,i``, per group.
+
+    On an empty control field this is the truth that the flat sideband estimate tries to predict: the field count
+    inside the acceptance (hub ``agent-findings/b16-faint-field-prior-2026-11-10.md`` §1.1)."""
+    a = selection.accept_prob(np.asarray(pm, float), np.asarray(plx, float))
+    g = np.zeros(len(a), int) if groups is None else np.asarray(groups, int)
+    return np.bincount(g, weights=a, minlength=n_groups).astype(float)
+
+
+@dataclass(frozen=True)
+class FieldPriorCalibration:
+    """How wrong the flat sideband estimate of the field count is, measured on empty control fields.
+
+    ``log_ratio[f, g] = ln(T_f,g / E1_f,g)``: ``T`` is the field count inside the acceptance (:func:`expected_field_count`)
+    and ``E1`` the flat extrapolation from the PM sideband, ``n_sideband × area(acceptance)/area(sideband)``. Its mean
+    over fields is the shift of the prior's median and its spread the model term of the prior's width. On the
+    three empty fields of the NGC 6383 validation the ratio at G >= 18.5 was 0.69 / 0.53 / 1.05 and at G < 16
+    1.64 / 0.83 / 2.41: a field-to-field model error of 0.3-0.6 in log, not the 0.07 the hub's A1 prior assumed
+    (hub B16 §1.1). Calibrate on fields other than the one the prior is for (:meth:`leave_out`).
+    """
+
+    log_ratio: np.ndarray
+
+    def __post_init__(self):
+        r = np.asarray(self.log_ratio, float)
+        if r.ndim != 2 or r.shape[0] < 2:
+            raise ValueError("log_ratio is (n_fields, n_groups) with at least two fields: the spread needs two")
+        if not np.all(np.isfinite(r)):
+            raise ValueError("log_ratio must be finite (a zero count has no log ratio)")
+        object.__setattr__(self, "log_ratio", r)
+
+    @classmethod
+    def from_counts(cls, expected, flat) -> FieldPriorCalibration:
+        """From ``T`` and ``E1``, each ``(n_fields, n_groups)``."""
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r = np.log(np.asarray(expected, float)) - np.log(np.asarray(flat, float))
+        return cls(r)
+
+    @property
+    def n_fields(self) -> int:
+        return self.log_ratio.shape[0]
+
+    @property
+    def shift(self) -> np.ndarray:
+        """Mean log ratio per group."""
+        return self.log_ratio.mean(axis=0)
+
+    @property
+    def spread(self) -> np.ndarray:
+        """Field-to-field standard deviation of the log ratio per group (ddof = 1)."""
+        return self.log_ratio.std(axis=0, ddof=1)
+
+    def leave_out(self, k: int) -> FieldPriorCalibration:
+        """The calibration without field ``k``: the one to use on ``k`` itself or on data drawn from its catalogue."""
+        return FieldPriorCalibration(np.delete(self.log_ratio, k, axis=0))
+
+
+def sideband_field_prior(flat, n_sideband, calibration: FieldPriorCalibration | None = None, *,
+                         shift: bool = True, widen: bool = True, inflation: float = 1.065,
+                         model_sd: float = 0.07) -> tuple[tuple[float, float], ...]:
+    """The ``prior_field`` of :meth:`MixtureModel.fit`, one ``(median, sdlog)`` per group, from the flat sideband
+    estimate ``flat = E1_g`` and the sideband count ``n_sideband = n_g``.
+
+    Without ``calibration`` it is the hub's A1 prior that :func:`cone_mixture` was validated with: median
+    ``E1_g × inflation`` and ``sdlog² = 1/E1_g + 1/n_g + model_sd²`` (Poisson of the realised field, Poisson of the
+    sideband, model term). With a :class:`FieldPriorCalibration` of ``K`` fields, ``shift`` replaces the median by
+    ``E1_g × exp(shift_g)`` (and the realised-field Poisson term by ``1/median``), and ``widen`` replaces the model
+    term by ``spread_g² (1 + 1/K)`` (the spread between fields plus the error of their mean).
+    """
+    e1 = np.atleast_1d(np.asarray(flat, float))
+    n = np.atleast_1d(np.asarray(n_sideband, float))
+    if e1.shape != n.shape:
+        raise ValueError("flat and n_sideband need one value per group")
+    med, pois, model = e1 * inflation, e1, np.full(e1.shape, model_sd ** 2)
+    if calibration is not None:
+        if calibration.log_ratio.shape[1] != e1.size:
+            raise ValueError(f"calibration has {calibration.log_ratio.shape[1]} groups, the prior {e1.size}")
+        if shift:
+            med = e1 * np.exp(calibration.shift)
+            pois = med
+        if widen:
+            model = calibration.spread ** 2 * (1 + 1 / calibration.n_fields)
+    sd = np.sqrt(1 / np.maximum(pois, 0.5) + 1 / np.maximum(n, 1) + model)
+    return tuple((float(m), float(s)) for m, s in zip(med, sd, strict=True))
 
 
 def _sig(x):

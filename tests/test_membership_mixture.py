@@ -642,3 +642,94 @@ def test_cone_mixture_is_the_validated_configuration():
         M.cone_mixture(_with(data, lines={"B": lB}, group=M.cone_groups(G)), SEL)
     with pytest.raises(ValueError, match="group"):
         M.cone_mixture(_with(data, lines={"B": lB}, field_plx_logpdf=fpl), SEL)
+
+
+# ====================================================================== the calibrated field-count prior (hub B16)
+def test_sideband_prior_default_is_the_a1_prior_of_the_validation():
+    """No calibration: median E1 × 1.065 and sdlog² = 1/E1 + 1/n + 0.07², the hub's A1 prior (hub
+    membership_rule_faint_fix.TemplateB), with E1 floored at 0.5 and n at 1."""
+    pr = M.sideband_field_prior([3.98, 10.39, 13.92], [69, 180, 241])
+    for (m, s), e1, n in zip(pr, (3.98, 10.39, 13.92), (69, 180, 241), strict=True):
+        assert m == pytest.approx(e1 * 1.065, rel=1e-12)
+        assert s == pytest.approx(np.sqrt(1 / e1 + 1 / n + 0.07**2), rel=1e-12)
+    (m0, s0), = M.sideband_field_prior([0.2], [0])
+    assert s0 == pytest.approx(np.sqrt(1 / 0.5 + 1 + 0.07**2), rel=1e-12)
+
+
+def test_calibrated_prior_shifts_the_median_and_widens_by_the_field_spread():
+    """Hand algebra on a 3-field, 2-group calibration: shift = mean log ratio, spread = sd(ddof=1), K = 3."""
+    T = np.array([[6.0, 10.0], [4.0, 7.0], [9.0, 15.0]])
+    E = np.array([4.0, 14.0, 5.0, 13.0, 4.0, 13.5]).reshape(3, 2)
+    cal = M.FieldPriorCalibration.from_counts(T, E)
+    r = np.log(T / E)
+    assert cal.n_fields == 3
+    np.testing.assert_allclose(cal.shift, r.mean(0), rtol=1e-12)
+    np.testing.assert_allclose(cal.spread, r.std(0, ddof=1), rtol=1e-12)
+    e1, n = np.array([5.0, 12.0]), np.array([80.0, 230.0])
+    full = M.sideband_field_prior(e1, n, cal)
+    med = e1 * np.exp(r.mean(0))
+    sd = np.sqrt(1 / med + 1 / n + r.std(0, ddof=1) ** 2 * (1 + 1 / 3))
+    np.testing.assert_allclose([p[0] for p in full], med, rtol=1e-12)
+    np.testing.assert_allclose([p[1] for p in full], sd, rtol=1e-12)
+    # the two halves of the calibration, each alone (the S and W arms of hub B16)
+    s_only = M.sideband_field_prior(e1, n, cal, widen=False)
+    np.testing.assert_allclose([p[1] for p in s_only], np.sqrt(1 / med + 1 / n + 0.07**2), rtol=1e-12)
+    w_only = M.sideband_field_prior(e1, n, cal, shift=False)
+    np.testing.assert_allclose([p[0] for p in w_only], e1 * 1.065, rtol=1e-12)
+    np.testing.assert_allclose([p[1] for p in w_only], np.sqrt(1 / e1 + 1 / n + r.std(0, ddof=1) ** 2 * (4 / 3)),
+                               rtol=1e-12)
+
+
+def test_leave_out_drops_exactly_one_field_and_the_shapes_are_checked():
+    r = np.array([[0.1, -0.3], [0.5, -0.6], [-0.2, 0.05], [0.3, -0.1]])
+    cal = M.FieldPriorCalibration(r)
+    lo = cal.leave_out(1)
+    assert lo.n_fields == 3
+    np.testing.assert_allclose(lo.shift, r[[0, 2, 3]].mean(0), rtol=1e-12)
+    with pytest.raises(ValueError, match="two fields"):
+        M.FieldPriorCalibration(r[:1])
+    with pytest.raises(ValueError, match="finite"):
+        M.FieldPriorCalibration.from_counts([[0.0, 1.0], [1.0, 1.0]], [[1.0, 1.0], [1.0, 1.0]])
+    with pytest.raises(ValueError, match="groups"):
+        M.sideband_field_prior([1.0, 2.0, 3.0], [10, 10, 10], cal)
+
+
+def _gradient_field(rng, mu, n=40000, half=2.5):
+    """Field PM uniform in a box, thinned with a density that is linear in |Δμ| (slope set by ``mu``): the flat
+    sideband extrapolation is then wrong by a field-dependent factor, as on the real empty fields (hub B16 §1.1)."""
+    pm = rng.uniform(-half, half, (n, 2))
+    r = np.hypot(pm[:, 0], pm[:, 1])
+    keep = rng.random(n) < np.clip(0.5 + mu * (r - 1.0), 0.02, 1.0) / 1.0
+    return pm[keep]
+
+
+def test_expected_count_and_calibration_beat_the_flat_estimate_on_held_out_fields():
+    """Eight synthetic fields whose PM density falls towards the acceptance (slopes 0.15-0.35 in |Δμ|): T from
+    expected_field_count is Σ accept_prob, and the leave-one-out calibrated median lands closer to T than the
+    flat × 1.065 median on held-out fields. Measured on seeds 0-3 (2026-11-10): mean |ln(med/T)| 0.144-0.197
+    calibrated against 0.565-0.647 flat. Red if the shift is ignored (calibrated = flat)."""
+    rng = np.random.default_rng(SEED)
+    sel = Truncation(CircularRegion((0.0, 0.0), 0.33, 0.02))
+    a_acc = np.pi * 0.33**2
+    a_side = np.pi * (1.5**2 - 0.6**2)
+    T, E, N = [], [], []
+    for mu in np.linspace(0.15, 0.35, 8):
+        pm = _gradient_field(rng, mu)
+        t = M.expected_field_count(pm, np.zeros(len(pm)), sel)
+        assert t[0] == pytest.approx(sel.region.prob(pm).sum(), rel=1e-12)
+        r = np.hypot(pm[:, 0], pm[:, 1])
+        n_side = float(((r > 0.6) & (r < 1.5)).sum())
+        T.append(t[0])
+        E.append(n_side / a_side * a_acc)
+        N.append(n_side)
+    T, E, N = map(np.asarray, (T, E, N))
+    cal = M.FieldPriorCalibration.from_counts(T[:, None], E[:, None])
+    err_cal, err_flat = [], []
+    for k in range(len(T)):
+        (mc, _), = M.sideband_field_prior([E[k]], [N[k]], cal.leave_out(k))
+        (mf, _), = M.sideband_field_prior([E[k]], [N[k]])
+        err_cal.append(abs(np.log(mc / T[k])))
+        err_flat.append(abs(np.log(mf / T[k])))
+    assert np.mean(err_cal) < 0.30
+    assert np.mean(err_flat) > 0.45
+    assert np.mean(err_cal) < 0.5 * np.mean(err_flat)
