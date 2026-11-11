@@ -18,6 +18,10 @@ Every choice carries the process it models (methodology §A.1):
   - a **field component**: Binomial(N, f_bg) stars uniform over the real members' CMD box, the same
     process as the likelihood's f_bg / A term;
   - the completeness cut at the faintest real member (G 20.66), as ``_draw_stars``.
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 0.5; applied in
+cov_summary.py): an estimator dies for a cell when, over its 8 replicates, the log t interval
+covers the truth in <= 2 at 68 % or <= 5 at 90 %. This script only produces inputs to that count.
 """
 
 from __future__ import annotations
