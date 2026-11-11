@@ -3,6 +3,7 @@ export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM
 export PYTHONPATH="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 PY=~/miniforge3/envs/erotica/bin/python
 cd "$(dirname "$0")"
+mkdir -p logs
 
 run() { echo "$(date +%T) START $*" >> logs/lanes.log; nice -n 19 $PY run_arms.py "$@" >> "logs/$(echo $* | tr ' ,-' '___').log" 2>&1; echo "$(date +%T) END($?) $*" >> logs/lanes.log; }
 ( run e3 --src identity --arm g; run e3 --src spots51 --arm s; run e3 --src spots34_2T --arm a; run e3 --src spots85 --arm a --bc iso ) &

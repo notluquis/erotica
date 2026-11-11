@@ -263,7 +263,7 @@ def make_grid(src_name, bc_mode="table"):
 
 def task_e3(src_name, arm, windows, bc_mode):
     data = real_data()
-    t0 = time.time()
+    t0 = time.perf_counter()
     grid, stats = make_grid(src_name, bc_mode)
     tag = f"e3_{src_name}_{arm}" + ("" if bc_mode == "table" else f"_{bc_mode}")
     if os.environ.get("TRANSPLANT_TAPER") is not None:
@@ -292,7 +292,13 @@ def task_e3(src_name, arm, windows, bc_mode):
         if w in out:
             continue
         out[w] = prof(fitter(grid, data, WINDOWS[w]), sh)
-        print(tag, w, round(out[w]["summary"]["loga_hat"], 3), round(time.time() - t0), flush=True)
+        print(
+            tag,
+            w,
+            round(out[w]["summary"]["loga_hat"], 3),
+            round(time.perf_counter() - t0),
+            flush=True,
+        )
         save(tag, out)
 
 

@@ -31,6 +31,7 @@ def loadj(name):
 def slice_masses(where):
     """Median mass of the members of each slice, read off the MIST isochrone at the slice's own
     best log t (shared parameters of the global mode): nearest isochrone point in (G, colour)."""
+    sys.path.insert(0, str(HERE.parent / "isochrone_phases"))
     from phases import mist
     from run_arms import GLOBAL, fitter, real_data
 
@@ -61,9 +62,11 @@ def slice_masses(where):
 
 
 def null_stats():
-    reps = []
+    by_rep = {}  # keyed by the stored replicate: two launchers can write the same seeds
     for p in sorted(OUT.glob("where_null_*.json")):
-        reps += json.loads(p.read_text())["reps"]
+        for r in json.loads(p.read_text())["reps"]:
+            by_rep.setdefault(r["rep"], r)
+    reps = [by_rep[k] for k in sorted(by_rep)]
     if not reps:
         return None
     keys = [k for k in reps[0]["slices"]]

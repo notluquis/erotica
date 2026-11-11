@@ -97,7 +97,7 @@ def search_fixed_feh(f, feh: float, age_stride: int = 2, polish: int = 4) -> dic
     the ``polish`` best polished on (log t, dm, A_V, sigma_int, f_bg). Parallax dm prior included."""
     from scipy.optimize import minimize
 
-    t0 = time.time()
+    t0 = time.perf_counter()
     fl = f._compiled_loglike(None)
     lo = np.array([f.loga_range[0], f.dm_range[0], f.Av_range[0], 1e-4, 1e-4])
     hi = np.array([f.loga_range[1], f.dm_range[1], f.Av_range[1], 0.5, 0.5])
@@ -149,7 +149,7 @@ def search_fixed_feh(f, feh: float, age_stride: int = 2, polish: int = 4) -> dic
         "logpost": ll,
         "at_bound": at,
         "n": int(f._N_obs),
-        "seconds": round(time.time() - t0, 1),
+        "seconds": round(time.perf_counter() - t0, 1),
     }
 
 

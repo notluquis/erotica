@@ -13,7 +13,7 @@ sys.path.insert(0, str(HERE.parent / "isochrone_phases"))
 from phases import mist  # noqa: E402
 from transplant import feiden_shift, spots_shift, transplant, v1_bc_holdout  # noqa: E402
 
-t0 = time.time()
+t0 = time.perf_counter()
 grid = mist(feh=[-0.5, -0.25, 0.0])
 out = {"v1": v1_bc_holdout(grid)}
 gid, st = transplant(grid, None)
@@ -50,6 +50,6 @@ for nm, src, tt in (
             ]
         rows[str(a)] = r
     out[nm] = {"stats": st, "dG_dcol_feh-0.5": rows}
-out["seconds"] = round(time.time() - t0, 1)
+out["seconds"] = round(time.perf_counter() - t0, 1)
 (HERE / "check_transplant.json").write_text(json.dumps(out, indent=1) + "\n")
 print(json.dumps(out, indent=1))

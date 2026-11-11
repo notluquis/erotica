@@ -124,6 +124,8 @@ def feiden_shift(mgrid=np.round(np.arange(0.09, 1.7001, 0.01), 3)) -> dict:
         myr = float(fm.name.split("_")[1].replace("myr", ""))
         fs = FEIDEN_DIR / "std" / fm.name.replace("_magBeq", "")
         M, S = _read_feiden(fm), _read_feiden(fs)
+        # np.interp needs increasing x; the 72 files of the release are (checked 2026-11-11)
+        assert (np.diff(M[:, 0]) > 0).all() and (np.diff(S[:, 0]) > 0).all(), fm.name
         lo = max(M[:, 0].min(), S[:, 0].min())
         hi = min(M[:, 0].max(), S[:, 0].max())
         row_l = np.interp(mgrid, M[:, 0], M[:, 3]) - np.interp(mgrid, S[:, 0], S[:, 3])

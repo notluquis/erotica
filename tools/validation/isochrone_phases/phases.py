@@ -101,7 +101,7 @@ def profile_loga(f, fixed: dict, free=("sigma_int", "f_bg"), loga_grid=LOGA_PROF
     start = {"sigma_int": 0.05, "f_bg": 0.05, **{k: v for k, v in fixed.items() if k in free}}
     x0 = np.array([start.get(k, fixed.get(k, 0.5)) for k in free], float)
     out_ll, out_x = [], []
-    t0 = time.time()
+    t0 = time.perf_counter()
     # sweep from the middle outwards in both directions so the warm start is always a neighbour
     order = np.argsort(np.abs(loga_grid - np.median(loga_grid)), kind="stable")
     done = {}
@@ -132,7 +132,7 @@ def profile_loga(f, fixed: dict, free=("sigma_int", "f_bg"), loga_grid=LOGA_PROF
         "free_at": out_x,
         "fixed": {k: float(v) for k, v in fixed.items() if k not in free and k != "loga"},
         "n": int(f._N_obs),
-        "seconds": round(time.time() - t0, 1),
+        "seconds": round(time.perf_counter() - t0, 1),
     }
 
 
