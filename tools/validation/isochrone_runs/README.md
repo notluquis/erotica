@@ -62,8 +62,8 @@ corrida trae la conversión.
 
 ```bash
 cd ~/erotica-wt-runs   # rama isochrone-runs
-OMP_NUM_THREADS=1 ~/miniforge3/envs/cosmic/bin/python tools/validation/isochrone_runs/export_run.py
-~/miniforge3/envs/cosmic/bin/python -m pytest tests/test_isochrone_runs.py
+OMP_NUM_THREADS=1 ~/miniforge3/envs/erotica-2026-10/bin/python tools/validation/isochrone_runs/export_run.py
+~/miniforge3/envs/erotica-2026-10/bin/python -m pytest tests/test_isochrone_runs.py
 ```
 
 El test de la curva necesita los MIST locales y se salta en CI; el de cuantiles sólo lee JSON
