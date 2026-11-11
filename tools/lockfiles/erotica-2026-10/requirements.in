@@ -13,7 +13,9 @@
 #
 # REGENERATE (MACOSX_DEPLOYMENT_TARGET=14.0 because torch 2.14.1 ships only macosx_14_0_arm64
 # wheels; uv's default target is 13.0 and the solve fails without it)
-#   ~/miniforge3/envs/erotica-2026-10/bin/python -m pip freeze | grep -vE '^ellc @|^-e ' > requirements.in
+#   { sed -n '/^#/!q;p' requirements.in                # keep this comment header, whatever its length
+#     ~/miniforge3/envs/erotica-2026-10/bin/python -m pip freeze | grep -vE '^ellc @|^-e '
+#   } > requirements.in.new && mv requirements.in.new requirements.in
 #   MACOSX_DEPLOYMENT_TARGET=14.0 uv pip compile requirements.in -c requirements.in \
 #       --python-version 3.14.10 --python-platform aarch64-apple-darwin --no-annotate -o requirements.lock.txt
 #   conda list --explicit --md5 -p ~/miniforge3/envs/erotica-2026-10 > conda-explicit.txt
