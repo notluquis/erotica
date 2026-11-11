@@ -366,6 +366,7 @@ def finalize(a) -> None:
             {
                 p: [round(s["params"][p][k], 4) for k in ("q05", "q16", "median", "q84", "q95")]
                 for p in ("feh", "loga")
+                if p in s["params"]  # nuts8 with ZFIX drops feh
             }
         ),
     )
