@@ -18,7 +18,13 @@ for pass in 0 1 2 3 4 5; do
     pids+=($!)
   done
   echo "${pids[@]}" > logs/sweep.pids
-  for p in "${pids[@]}"; do wait "$p"; done
+  bad=0
+  for p in "${pids[@]}"; do wait "$p" || bad=$((bad + 1)); done
+  n=$(grep -h '^GAIN' logs/sweep_p${pass}_w*.log | wc -l | tr -d ' ')
+  if [ "$bad" -ne 0 ] || [ "$n" -ne "${#pids[@]}" ]; then
+    echo "pass $pass: $bad worker(s) failed, $n of ${#pids[@]} GAIN lines; not converged" >&2
+    exit 1
+  fi
   g=$(grep -h '^GAIN' logs/sweep_p${pass}_w*.log | awk '{print $2}' | sort -g | tail -1)
   echo "pass $pass max gain $g"
   awk -v g="$g" 'BEGIN{exit !(g <= 0.01)}' && break

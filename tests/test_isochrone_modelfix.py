@@ -87,3 +87,46 @@ from common import MIST12 as MIST  # noqa: E402
 def test_arm_I_is_the_parent_likelihood():
     r = A.selftest()
     assert r["max_abs_diff"] < 1e-10
+
+
+class _LinearIso:
+    """Two [Fe/H] x two age nodes, each with G, BP, RP linear in mass: the bilinear blend at any
+    (feh, loga) inside is the same line, so the generator's band values have a closed form."""
+
+    _met_values = [-0.5, 0.0]
+    _loga_values = [6.0, 6.5]
+    mass = np.linspace(0.1, 3.0, 300)
+
+    @staticmethod
+    def line(m):
+        return np.array([12.0 - 2.0 * m, 12.6 - 1.7 * m, 11.4 - 2.2 * m])
+
+    def get_isochrone_eep(self, feh, loga):
+        G, BP, RP = self.line(self.mass)
+        return None, self.mass[::-1].copy(), G[::-1].copy(), BP[::-1].copy(), RP[::-1].copy()
+
+
+def test_independent_generator_bands_are_the_closed_form():
+    """C3' generator (``kw_c3.ind_true_stars``): with bands linear in mass, a single sits on the
+    line and a binary is the flux sum of the line at m1 and at max(q m1, lowest mass), plus dm and
+    k A_V. Oracle: the line and the flux sum written here, not ``_mag_combine``."""
+    import kw_c3
+
+    iso, kG, kBP, kRP, dm, Av = _LinearIso(), 0.84, 1.08, 0.63, 10.2, 0.5
+    rng = np.random.default_rng(7)
+    for alpha, beta in [(0.0, 0.0), (1.0, 0.0), (0.3, 0.4)]:
+        G, col, m1, isb, q = kw_c3.ind_true_stars(
+            iso, kG, kBP, kRP, -0.2, 6.3, dm, Av, 4000, rng, alpha, beta, detail=True
+        )
+        if (alpha, beta) == (0.0, 0.0):
+            assert not isb.any()
+        elif (alpha, beta) == (1.0, 0.0):
+            assert isb.all()
+        else:
+            assert 0.05 < isb.mean() < 0.95
+        b1 = _LinearIso.line(m1)
+        b2 = _LinearIso.line(np.maximum(q * m1, _LinearIso.mass[0]))
+        pair = -2.5 * np.log10(10 ** (-0.4 * b1) + 10 ** (-0.4 * b2))
+        bands = np.where(isb[None, :], pair, b1)
+        np.testing.assert_allclose(G, bands[0] + dm + kG * Av, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(col, bands[1] - bands[2] + (kBP - kRP) * Av, rtol=0, atol=1e-9)

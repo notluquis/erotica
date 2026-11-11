@@ -96,7 +96,8 @@ def ppc(run: str, R: int = 1000) -> dict:
     thr = 0.05 / K
     fails = {k: v for k, v in p.items() if v < thr}
     ff = []
-    for j in range(50):
+    n_gate = min(50, len(cats))  # R between 21 and 49 stores fewer catalogues
+    for j in range(n_gate):
         Gj, Cj = cats[j]
         oj = [P2.stats(Gj, Cj, ridges[s][0], ridges[s][1], bins) for s in range(R) if s != j]
         rj = [T_rep[s] for s in range(R) if s != j]
@@ -121,7 +122,7 @@ def ppc(run: str, R: int = 1000) -> dict:
         "passes": not fails,
         "gate_false_fail": float(np.mean(ff)),
         "gate_false_fail_k": int(sum(ff)),
-        "gate_n": 50,
+        "gate_n": n_gate,
         "stats": q,
         "zfix": ZFIX,
     }
