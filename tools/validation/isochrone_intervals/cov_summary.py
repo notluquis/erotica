@@ -64,6 +64,7 @@ def main() -> None:
             }
             for p in ("feh", "loga"):
                 m, s = ctrl["mode"][p], ctrl["laplace_sd"][p]
+                s = float("nan") if s is None else s  # a failed curvature, written as null
                 row[f"ctrl_{p}"] = {
                     "mode": m,
                     "sd": s,
@@ -104,7 +105,7 @@ def main() -> None:
                 "scatter_of_mode": float(np.std([c["err"] for c in cr], ddof=1))
                 if len(cr) > 1
                 else None,
-                "sd_median": float(np.median([c["sd"] for c in cr])),
+                "sd_median": float(np.nanmedian([c["sd"] for c in cr])),
             }
             nr = [r for r in rows if f"nuts_{p}" in r]
             if nr:
