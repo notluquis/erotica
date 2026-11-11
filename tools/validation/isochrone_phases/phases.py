@@ -68,7 +68,7 @@ def window_fitter(grid, data, window, pri=PRI_PLX):
 
     lo, hi = window
     hi = faint_limit(data) if hi is None else hi
-    f = IsochroneFitter(grid=grid, magnitude=EDR3[0], color=EDR3[1:], **pri)
+    f = IsochroneFitter(grid=grid, magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **pri)
     f.setup(data, prob_threshold=0.0, mag_window=(lo, hi))
     return f
 
@@ -76,7 +76,7 @@ def window_fitter(grid, data, window, pri=PRI_PLX):
 def full_fitter(grid, data, pri=PRI_PLX):
     from erotica.analysis._isochrone import IsochroneFitter
 
-    f = IsochroneFitter(grid=grid, magnitude=EDR3[0], color=EDR3[1:], **pri)
+    f = IsochroneFitter(grid=grid, magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **pri)
     f.setup(data, prob_threshold=0.0)
     return f
 

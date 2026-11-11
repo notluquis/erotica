@@ -81,7 +81,7 @@ def fitter_on(grid, name, data, pri, window=None):
     from erotica.analysis._isochrone import IsochroneFitter
 
     b = bands_of(name)
-    f = IsochroneFitter(grid=grid, magnitude=b[0], color=b[1:], **pri)
+    f = IsochroneFitter(grid=grid, magnitude=b[0], color=b[1:], extinction_law="ccm89", **pri)
     if window is None:
         f.setup(data, prob_threshold=0.0)
     else:

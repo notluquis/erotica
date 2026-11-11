@@ -62,7 +62,9 @@ FEH3 = [-0.5, -0.25, 0.0]
 def fitter(grid, data, window=None, **kw):
     from erotica.analysis._isochrone import IsochroneFitter
 
-    f = IsochroneFitter(grid=grid, magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX, **kw)
+    f = IsochroneFitter(
+        grid=grid, magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **PRI_PLX, **kw
+    )
     if window is None:
         f.setup(data, prob_threshold=0.0)
     else:
