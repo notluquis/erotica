@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Multiband isochrone likelihood (`erotica.analysis._isochrone_multiband`)
+- **Added:** `MultibandIsochroneFitter`, the unbinned isochrone fit in (G, BP-RP, near-infrared magnitudes): closed-form
+  n-dimensional segment integral, missing bands marginalised, optional differential extinction `sigma_av`, near-infrared
+  zero points per instrument group, `NIRBand`, and `ext="ccm"` (constant CCM89) or `ext="fitz19"` (ESA Gaia EDR3 law per
+  EEP point, also for 2MASS J, H, Ks). With no near-infrared band it equals `IsochroneFitter(extinction_law="ccm89")`.
+- `extinction_law` follows `ext` (`"ccm89"` or `"ccm89_o94"` with `"ccm"`, `"gaia_edr3"` with `"fitz19"`) and a mismatch
+  raises, so the fit provenance records the law the likelihood used. The default is `"ccm89"`, not the 2D fitter's
+  `"gaia_edr3"`.
+
 ### PMS [Fe/H] bias of ASPCAP: hierarchical posterior by default (hub decisions D26-63, D26-64)
 - **Changed:** `predict_bias` predicts from the posterior of a hierarchical model (random cluster offsets, tau with a
   prior instead of a moment estimate) shipped as package data, `erotica/metallicity/data/pms_bias_hierarchical_posterior.npz`.
