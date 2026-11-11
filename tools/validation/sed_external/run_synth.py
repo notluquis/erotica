@@ -9,6 +9,17 @@ A_V ~ U[0.3, 1.6], log g ~ U[3.6, 4.6]. R replicas per star. Arms:
   floor2     MIST truth, MIST fit with the systematic floor x2
 Coverage of the p16-p84 interval and median bias, per G bin (<14, 14-17, >17), not only in aggregate.
 Writes synth_<arm>_<config>.json and synth_perstar.npz.
+
+Decision rules (pre-registered, hub finding isochrone-sed-external.md section 0.5; applied in compare.py):
+  gate       a G bin is not interpreted if ``ctl`` has |median A_V bias| > 0.05 or p16-p84 coverage
+             < 0.55 in it.
+  per star   A_V is usable as an external constraint only in config b, with sd(A_V) <= 0.15, in a bin
+             that passes the gate, and with |A_V(MIST) - A_V(EEM)| <= 0.10 for that star.
+  cluster    the hierarchical A_V level mu (over the usable stars) is read against the CMD A_V
+             (0.59-0.71, fits X1-X3): within +-1 sigma_mu of 0.66 supports the CMD level; above
+             0.71 + 2 sigma_mu says the CMD underestimates A_V; below 0.59 - 2 sigma_mu, overestimates.
+What would falsify the use of the SED: the gate failing in a bin (that bin's A_V is not used), or no
+star passing the per-star rule (no external A_V from the SED at all).
 """
 
 from __future__ import annotations

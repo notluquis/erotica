@@ -83,6 +83,8 @@ def main():
     full = np.frombuffer(_get(URL, a, a + 4 * mean_h["dims"][0] - 1), dtype=">f4").astype(float)
     same = bool(np.array_equal(full[pix], mean[row]))
     print("full-row check identical:", same, flush=True)
+    if not same:  # the reader's own control: do not publish a subset it rejects (av_maps reads the npz)
+        raise SystemExit("full-row control failed: edenhofer_subset.npz not written")
     np.savez_compressed(
         HERE / "edenhofer_subset.npz",
         pix=pix,
