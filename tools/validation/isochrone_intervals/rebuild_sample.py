@@ -38,7 +38,9 @@ def main() -> None:
     ref = cds[cds["Ref"] == 1]
     assert len(ref) == 254, len(ref)
     raw = HERE / "gaia_raw.ecsv"
-    if raw.exists():  # the query's own output, kept so the rebuild does not depend on the archive
+    if (
+        "--from-cache" in sys.argv[1:]
+    ):  # the committed snapshot of the query, offline on request only
         r = Table.read(raw)
     else:
         # sync GET/POST with an IN list (254 ids, no truncation at TOP 2000): the async job with an

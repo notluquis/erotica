@@ -103,6 +103,10 @@ def check_cli():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        raise SystemExit(
+            "usage: chain_z.py selftest | selftest7 | check_cli | RUN_DIR [RUN_DIR ...]"
+        )
     if sys.argv[1] == "selftest":
         selftest()
     elif sys.argv[1] == "selftest7":  # the K x W arm: PARAMS + k

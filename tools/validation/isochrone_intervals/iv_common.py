@@ -57,7 +57,9 @@ def real_table():
 def fitter(data):
     from erotica.analysis._isochrone import IsochroneFitter
 
-    f = IsochroneFitter(grid=mist(), magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
+    f = IsochroneFitter(
+        grid=mist(), magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **PRI_PLX
+    )
     f.setup(data, prob_threshold=0.0)
     return f
 

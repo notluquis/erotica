@@ -107,9 +107,11 @@ def run(a) -> None:
     sfile = out / "state.npz"
     if sfile.exists():
         old = json.loads((out / "config.json").read_text())
-        for k in ("warmup", "draws", "chunk", "seed", "chain", "target_accept", "data"):
+        for k in ("warmup", "draws", "chunk", "seed", "chain", "target_accept"):
             if old[k] != cfg[k]:
                 raise SystemExit(f"resume refused: {k} {old[k]} != {cfg[k]}")
+        if Path(old["data"]).resolve() != Path(cfg["data"]).resolve():
+            raise SystemExit(f"resume refused: data {old['data']} != {cfg['data']}")
         d = np.load(sfile)
         state = jax.tree_util.tree_unflatten(
             treedef, [jax.numpy.asarray(d[f"l{i}"]) for i in range(len(leaves0))]

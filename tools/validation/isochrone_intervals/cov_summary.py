@@ -46,7 +46,8 @@ def main() -> None:
     out = {}
     for cell in ("A", "B", "C"):
         rows = []
-        for d in sorted((HERE / "runs").glob(f"{cell}_*"), key=lambda p: int(p.name.split("_")[1])):
+        reps = [d for d in (HERE / "runs").glob(f"{cell}_*") if d.name.split("_", 1)[1].isdigit()]
+        for d in sorted(reps, key=lambda p: int(p.name.split("_")[1])):
             pj = d / "prep.json"
             if not pj.exists():
                 continue
