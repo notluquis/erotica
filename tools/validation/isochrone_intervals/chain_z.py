@@ -45,7 +45,10 @@ def zs(x):
 
 def gate(post, params=PARAMS):
     z = {p: zs(post[p]) for p in params}
-    zmax = max(abs(v) for p in params for v in z[p])
+    allz = [v for p in params for v in z[p]]
+    # nan, not max(): Python's max() drops a NaN unless it comes first, so an undefined z (ESS 0
+    # or NaN on a stuck chain) could leave the gate passing.
+    zmax = float("nan") if any(not np.isfinite(v) for v in allz) else max(abs(v) for v in allz)
     thr = z_max(len(params) * next(iter(post.values())).shape[0])
     return {"z": z, "z_abs_max": zmax, "z_thr": thr, "pass": bool(zmax <= thr)}
 
