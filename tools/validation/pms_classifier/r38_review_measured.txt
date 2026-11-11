@@ -1,0 +1,4 @@
+[M2a] 115 viejos: Spearman IQR(DeltaA_V) vs diffAV50 +0.804 p 2.9e-27; IQR mediano por diffAV50: 0-0.5: 0.21 (n 24)  0.5-1: 0.37 (n 38)  1-2: 0.52 (n 38)  2-3: 0.77 (n 14)  3-9: 0.88 (n 1)
+load_oos: quito 28 estrellas del pool que tambien estan en el entrenamiento
+[M2b] FP: n 368; dB - linea base del cumulo > 1,03 en 0.60
+[M2b] no FP: n 13331; dB - linea base del cumulo > 1,03 en 0.02
