@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   raises, so the fit provenance records the law the likelihood used. The default is `"ccm89"`, not the 2D fitter's
   `"gaia_edr3"`.
 
+### Proper motions from two catalogues that are not independent (`erotica.multicatalog`)
+- **Added:** `combine_proper_motions` (per-star GLS of two measurements of the same proper motion with a
+  cross-covariance and a catalogue offset; also returns the difference and its covariance),
+  `inheritance_cross_covariance` (`X = lam * C_G`, for a catalogue calibrated against the other, as VIRAC2 is against
+  Gaia DR3) and `difference_loglike`. With `cross=None, offset=None` it is the inverse-variance mean.
+
 ### PMS [Fe/H] bias of ASPCAP: hierarchical posterior by default (hub decisions D26-63, D26-64)
 - **Changed:** `predict_bias` predicts from the posterior of a hierarchical model (random cluster offsets, tau with a
   prior instead of a moment estimate) shipped as package data, `erotica/metallicity/data/pms_bias_hierarchical_posterior.npz`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tres exigencias del autor que dependían de la vigilancia, convertidas en una negación previa.
+"""Cuatro exigencias del autor que dependían de la vigilancia, convertidas en una negación previa.
 
 `methodology.md` §L.11 cuenta lo que el autor tuvo que pedir más de una vez, mensaje por mensaje, en
 `agent-findings/author-thinking-catalog-2026-10-04.md`. Tres filas marcadas **vigilancia** tienen
@@ -8,6 +8,7 @@ una forma que un hook `PreToolUse` puede juzgar sin adivinar:
   P1   «tenías que cargar las skills para ocuparlas sipo» (10 mensajes)  -> herramienta Agent
   P14  «ya no editaremos esas cosas» — P01 y la tesis (4 mensajes)       -> Edit/Write/Bash
   P12  «hazme las preguntas alternativas y recomendado» (3 mensajes)      -> AskUserQuestion
+  PREVIO «ya las hemos investigado antes [...] no hacer dos búsquedas»    -> herramienta Agent
 
 Un hook `PreToolUse` corre aunque la herramienta esté preaprobada y puede negar con motivo; el
 motivo le llega al modelo, que puede corregir y reintentar. Es lo único que ataja un olvido antes
@@ -19,6 +20,7 @@ de que ocurra, en vez de encontrarlo después.
 |---|---|---|---|---|
 | P1 skills en el prompt | llamadas a Agent (sin exentos) | 149 | 43 | 37 de 47 antes del 2026-09-22, cuando el autor ya lo pedía; 6 de 102 después |
 | P12 opciones + recomendada primera | llamadas a AskUserQuestion | 25 (52 preguntas) | 3 | 2 sí-o-no sin alternativa recomendada; 1 legítima (autoría: decide el autor) |
+| PREVIO (2026-11-03) | subagentes con transcripción | 510 | 209 | precisión 0,87, recall 0,76 contra «hizo ≥3 llamadas de literatura»; criterio declarado antes: ≥0,80 y ≥0,70 (`agent-findings/prior-research-reuse-2026-11-03.md` §4) |
 
 La de P12 tiene una exención explícita para la tercera: `sin recomendación: <motivo>` en el texto
 de la pregunta, visible para el autor.
@@ -27,6 +29,9 @@ de la pregunta, visible para el autor.
 
 - P1 mira que el prompt **nombre** una skill, no que el subagente la cargue: es lo que el hook puede
   leer. Un subagente que recibe el nombre y no la abre pasa.
+- PREVIO mira que el prompt de un subagente que nombra herramientas de literatura traiga una línea
+  «Previo: …», no que `src/find_prior.py` se haya corrido ni que lo citado cubra el tema. Un prompt
+  que manda a investigar sin nombrar scix/arXiv/ADS/WebSearch/bibcode pasa (recall 0,76).
 - P14 sobre Bash es una lista de comandos que escriben (`>`, `tee`, `sed -i`, `mv`, `cp`, `rm`,
   `git commit`…). Un `python -c "open(f, 'w')"` o un `latexmk` dentro de `clean_source/` escriben
   igual y no están en ella. Es la misma limitación declarada de `guard_destructive.py`, del que
@@ -209,13 +214,36 @@ def juzgar_agente(entrada: dict) -> str | None:
     prompt = entrada.get("prompt") or ""
     nombres = skills_conocidas()
     if not nombres or nombra_skill(prompt, nombres) or SIN_SKILL.search(prompt):
-        return None
+        return juzgar_previo(prompt)
     return (
         "el prompt del subagente no nombra ninguna skill, y el autor pidió diez veces que cada "
         "subagente las use, también al verificar (methodology.md §L.11, P1). Agrega al prompt "
         "«Antes de nada lee y sigue `.claude/skills/<x>/SKILL.md`» con las que apliquen de: "
         + ", ".join(nombres)
         + ". Si de verdad ninguna aplica, escribe en el prompt «sin skill: <motivo>»."
+    )
+
+
+# --- PREVIO: un subagente que va a buscar literatura cita lo que ya está escrito -------------------
+
+# «Varias de estas cosas ya las hemos investigado antes [...] no hacer dos búsquedas» (2026-11-03).
+# El clasificador es el que pasó el criterio declarado antes de medir (precisión ≥ 0,80, recall
+# ≥ 0,70) sobre 510 subagentes con verdad de terreno: precisión 0,87, recall 0,76
+# (`agent-findings/prior-research-reuse-2026-11-03.md` §4). Mira si el prompt NOMBRA las
+# herramientas de literatura, no si el subagente las usará.
+INVESTIGA = re.compile(r"scix|arxiv|\bADS\b|SciX|WebSearch|bibcode", re.I)
+PREVIO = re.compile(r"previo:\s*\S.{8,}", re.I)
+BUSCADOR = "python3 ~/phd/src/find_prior.py"
+
+
+def juzgar_previo(prompt: str) -> str | None:
+    if not INVESTIGA.search(prompt) or PREVIO.search(prompt):
+        return None
+    return (
+        "el prompt manda a buscar literatura (nombra scix/arXiv/ADS/WebSearch/bibcode) y no dice qué "
+        "ya está investigado en el programa. Corre `" + BUSCADOR + " \"<tema>\"` y agrega una línea "
+        "«Previo: <rutas de hallazgos o secciones que ya lo cubren>», o «Previo: find_prior: nada "
+        "(<consulta>)» si no devolvió nada. Pedido del autor del 2026-11-03: no hacer dos búsquedas."
     )
 
 
