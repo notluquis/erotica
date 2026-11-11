@@ -270,9 +270,10 @@ def summarize(post, stats) -> dict:
     g = out["gate"]
     # max()/min() drop a NaN unless it comes first: an undefined diagnostic on any parameter or chain
     # (constant chain, ESS 0) must fail the gate, not vanish from it.
-    diag = [P[p][k] for p in C.PARAMS for k in ("rhat", "ess_bulk", "ess_tail")]
-    diag += [v for p in C.PARAMS for v in P[p]["rhat_split_chain"]]
-    g["all_finite"] = bool(np.all(np.isfinite(diag)))
+    core = [P[p][k] for p in C.PARAMS for k in ("rhat", "ess_bulk", "ess_tail")]
+    split = [v for p in C.PARAMS for v in P[p]["rhat_split_chain"]]
+    g["core_finite"] = bool(np.all(np.isfinite(core)))  # what the post hoc gates read
+    g["all_finite"] = bool(g["core_finite"] and np.all(np.isfinite(split)))
     g["converged"] = bool(
         g["all_finite"]
         and g["rhat_max"] <= 1.01
