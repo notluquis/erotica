@@ -2483,6 +2483,7 @@ raise. Seen red on the branch under three mutations: cross block set to zero, of
 
 **Not decided here:** the value of `lam` and of the offset for NGC 6383, and how the membership mixture uses the
 combined proper motion. Those belong to the analysis that calls this module.
+
 ## 2026-11-11 — `MultibandIsochroneFitter` enters the package; its extinction law is `ext`, and `extinction_law` must agree
 
 **What enters.** `erotica/analysis/_isochrone_multiband.py` and `tests/test_isochrone_multiband.py`, written on
