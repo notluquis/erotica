@@ -1,0 +1,41 @@
+{
+ "url": "https://dataverse.harvard.edu/api/access/datafile/3424724",
+ "n_pixels": 4214070,
+ "nsides": [
+  64,
+  128,
+  256,
+  512,
+  1024
+ ],
+ "members_covered": 0,
+ "members": 254,
+ "member_dec_range": [
+  -33.22555846464168,
+  -31.93050940628339
+ ],
+ "controls": [
+  {
+   "l": 10.0,
+   "b": 0.0,
+   "dec": -20.29002949776088,
+   "covered": true
+  },
+  {
+   "l": 0.0,
+   "b": 0.0,
+   "dec": -28.93617776179148,
+   "covered": true
+  },
+  {
+   "l": 355.66,
+   "b": 5.0,
+   "dec": -29.813797158031626,
+   "covered": true
+  }
+ ],
+ "map_min_dec_of_pixel_centres": -33.56721890862446,
+ "http_requests": 15,
+ "bytes": 62914560,
+ "seconds": 28.5
+}

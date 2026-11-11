@@ -299,9 +299,15 @@ ignore = [
 # against. Scoped to this one file rather than disabled globally, so `l` as a loop variable is
 # still caught everywhere else.
 "erotica/analysis/dynamics.py" = ["E741"]
+# The SED experiment is a record: its JSON sidecars were written by this code at sed-external
+# eb2e444, and the hub's findings cite them. Only style rules are off; pyflakes' bug classes still
+# run (the four B023 hits are lambdas called in the iteration that defines them, checked).
+"tools/validation/sed_external/*" = ["I001", "E401", "E702", "E731", "F401", "B007", "B023", "B905"]
 
 [tool.ruff.format]
 docstring-code-format = true
+# Same reason as the per-file-ignores entry for this directory.
+exclude = ["tools/validation/sed_external/*"]
 
 [tool.mypy]
 python_version = "3.14"
