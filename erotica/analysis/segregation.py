@@ -577,9 +577,14 @@ def lambda_msr(
     # The exact permutation identities.  Because Lambda = mean_ref / T and
     # x -> mean_ref/x is decreasing, upper quantiles of Lambda come from LOWER
     # quantiles of the pool, and P(Lambda >= Lambda_obs) = P(T <= T_obs).
+    # The four quantiles of the pool from one np.quantile call (one partition instead of
+    # four): the same floats as one call per q.  The median stays np.median, which averages
+    # the two middle values where np.quantile(pool, 0.5) interpolates; the two differ in the
+    # last bit for about 1 pool in 20000 (measured 2026-11-11).
+    q01, q05, q16, q83 = np.quantile(pool, [0.01, 0.05, 1.0 / 6.0, 5.0 / 6.0])
     null_median = mean_ref / float(np.median(pool))
-    null_p95 = mean_ref / float(np.quantile(pool, 0.05))
-    null_p99 = mean_ref / float(np.quantile(pool, 0.01))
+    null_p95 = mean_ref / float(q05)
+    null_p99 = mean_ref / float(q01)
     p_value = float((np.sum(pool <= t_massive) + 1) / (n_sets + 1))
     p_mcerr = float(np.sqrt(max(p_value, 1.0 / n_sets) * (1 - p_value) / n_sets))
 
@@ -601,12 +606,12 @@ def lambda_msr(
         # deviations taken from the mean reference length, i.e. the 1/6 and 5/6 points
         # of the ordered reference lengths divided by T_massive.  No inversion: the
         # bar is on Lambda, and it scales with 1/T_massive.
-        lo_1sigma=float(np.quantile(pool, 1.0 / 6.0) / t_massive),
-        hi_1sigma=float(np.quantile(pool, 5.0 / 6.0) / t_massive),
+        lo_1sigma=float(q16 / t_massive),
+        hi_1sigma=float(q83 / t_massive),
         # The band of Lambda under the null (same inversion as null_p95): what the two
         # fields above held until 2026-11-05.
-        null_p17=float(mean_ref / np.quantile(pool, 5.0 / 6.0)),
-        null_p83=float(mean_ref / np.quantile(pool, 1.0 / 6.0)),
+        null_p17=float(mean_ref / q83),
+        null_p83=float(mean_ref / q16),
         t_massive=t_massive * unit,
         t_reference_mean=mean_ref * unit,
         n_sets=n_sets,

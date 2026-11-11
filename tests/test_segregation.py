@@ -534,6 +534,31 @@ def test_parker_goodwin_bar_matches_a_hand_computed_three_star_case():
     assert abs(res.null_p83 - 2.0) < 0.05, res.null_p83
 
 
+@pytest.mark.parametrize("statistic", ["total", "median_edge", "geometric_edge"])
+@pytest.mark.parametrize("n_sets", [37, 1000, 1001])
+def test_quantile_fields_are_the_pool_quantiles_exactly(statistic, n_sets):
+    """Every quantile field is the stated function of ``reference_statistics``, to the bit:
+    the bar is T_{1/6}/T_massive and T_{5/6}/T_massive, the null band and null_p95/p99 are
+    <T> over the 5/6, 1/6, 0.05 and 0.01 points, null_median is <T> over np.median.  The
+    implementation takes the four quantiles from one ``np.quantile`` call (2026-11-11); this
+    pins it to one call per q, the form it replaced (bit-identical on 108 fits)."""
+    rng = np.random.default_rng(n_sets)
+    pts = rng.normal(size=(120, 2))
+    res = quiet(
+        lambda_msr, pts, rng.lognormal(size=120), 8, statistic=statistic, n_sets=n_sets, rng=3
+    )
+    pool = res.reference_statistics
+    t_m = res.t_massive.to_value("arcmin")  # bare positions are arcmin, as the pool
+    mean_ref = pool.mean()
+    assert res.lo_1sigma == float(np.quantile(pool, 1.0 / 6.0) / t_m)
+    assert res.hi_1sigma == float(np.quantile(pool, 5.0 / 6.0) / t_m)
+    assert res.null_p17 == float(mean_ref / np.quantile(pool, 5.0 / 6.0))
+    assert res.null_p83 == float(mean_ref / np.quantile(pool, 1.0 / 6.0))
+    assert res.null_p95 == mean_ref / float(np.quantile(pool, 0.05))
+    assert res.null_p99 == mean_ref / float(np.quantile(pool, 0.01))
+    assert res.null_median == mean_ref / float(np.median(pool))
+
+
 def test_parker_goodwin_bar_brackets_a_strongly_segregated_lambda():
     """Oracle: properties of a bar ON Lambda, checked where the null band cannot pass.
 
