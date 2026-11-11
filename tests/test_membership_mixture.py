@@ -795,3 +795,45 @@ def test_expected_count_and_calibration_beat_the_flat_estimate_on_held_out_field
     assert np.mean(err_cal) < 0.30
     assert np.mean(err_flat) > 0.45
     assert np.mean(err_cal) < 0.5 * np.mean(err_flat)
+
+
+def test_pa_constants_are_trace_time_constants_and_the_node_density_matches_support():
+    """``support_logdensity`` is the density the ``support`` nodes are drawn from: 1/A on the disc, so
+    -log A = -(support_logw + log n) up to rounding. The log area and the log node counts in
+    ``_log_pa_pm`` depend only on a float field and on static shapes, so they are NumPy constants and no
+    ``log`` is staged for them (2026-11-11; the jnp form staged three, 101 -> 93 jaxpr equations in
+    ``_log_pa_pm``, values and gradients bit-identical). The result stays jit-able and differentiable."""
+    import jax
+    import jax.numpy as jnp
+
+    reg = CircularRegion((0.1, -0.2), 0.8, 0.05)
+    n = 512
+    sp, slw = reg.support(n, 0)
+    inside = np.asarray(reg.support_logdensity(jnp.asarray(sp)))
+    rmax = reg.radius + 12.0 * reg.softness
+    assert np.all(inside == -np.log(np.pi * rmax * rmax))
+    np.testing.assert_allclose(inside, -(slw + np.log(n)), rtol=0, atol=1e-14)
+    assert np.asarray(reg.support_logdensity(jnp.asarray([[9.0, 9.0]])))[0] == -np.inf
+
+    jaxpr = jax.make_jaxpr(reg.support_logdensity)(jnp.asarray(sp))
+    assert "log" not in {e.primitive.name for e in jaxpr.jaxpr.eqns}
+
+    sel = Truncation(reg, n_qmc=64, n_support=n)
+    nodes = dict(normals=jnp.asarray(sel.normals()), support=jnp.asarray(sp), support_logw=slw,
+                 support_logprob=reg.logprob(jnp.asarray(sp)),
+                 support_logdensity=reg.support_logdensity(jnp.asarray(sp)))
+    rng = np.random.default_rng(1)
+    mean = jnp.asarray(rng.normal(scale=1.0, size=(5, 2)))
+    L = [jnp.asarray(rng.uniform(0.05, 0.3, 5)), jnp.asarray(rng.normal(0, 0.03, 5)),
+         jnp.asarray(rng.uniform(0.05, 0.3, 5))]
+
+    def f(mean, a, b, c):
+        return M._log_pa_pm(mean, a, b, c, reg, nodes, "cluster")
+
+    logs = [e for e in jax.make_jaxpr(f)(mean, *L).jaxpr.eqns if e.primitive.name == "log"]
+    # every staged log takes a traced input; a log of a literal is a constant that was staged
+    assert logs and all(any(type(v).__name__ != "Literal" for v in e.invars) for e in logs)
+    eager, jitted = np.asarray(f(mean, *L)), np.asarray(jax.jit(f)(mean, *L))
+    np.testing.assert_allclose(jitted, eager, rtol=0, atol=1e-12)
+    grads = jax.jit(jax.grad(lambda *a: f(*a).sum(), argnums=(0, 1, 2, 3)))(mean, *L)
+    assert all(np.all(np.isfinite(np.asarray(g))) for g in grads)

@@ -317,7 +317,8 @@ class CircularRegion:
         (:func:`_log_pa_pm`), so it must be the density of exactly those nodes."""
         rmax = self.radius + 12.0 * self.softness
         r2 = jnp.sum((pm - jnp.asarray(self.center)) ** 2, axis=-1)
-        return jnp.where(r2 <= rmax * rmax, -jnp.log(jnp.pi * rmax * rmax), -jnp.inf)
+        # the log area is a trace-time constant (rmax is a float field), computed as support() computes its weights
+        return jnp.where(r2 <= rmax * rmax, -np.log(np.pi * rmax * rmax), -jnp.inf)
 
 
 @dataclass(frozen=True)
@@ -548,7 +549,7 @@ def _log_pa_pm(mean, L00, L10, L11, region, nodes, component):
     # region, and a clipped log(0) then hands that component a +690 nats bonus per star (seen in the
     # first smoke fit, 2026-11-05: a cluster parked outside the circle took the whole likelihood)
     lng = -0.5 * (g0 * g0 + g1 * g1) - jnp.log(L00 * L11)[:, None] - _LOG2PI
-    n1, n2 = jnp.log(normals.shape[0]), jnp.log(pts.shape[0])
+    n1, n2 = np.log(normals.shape[0]), np.log(pts.shape[0])  # static shapes: constants at trace time
     tg = region.logprob(pg) + lng - jnp.logaddexp(n1 + lng, n2 + region.support_logdensity(pg))
     ts = lpr[None, :] + ln - jnp.logaddexp(n1 + ln, n2 + nodes["support_logdensity"][None, :])
     return _jlse(jnp.concatenate([tg, ts], axis=1), axis=1)
