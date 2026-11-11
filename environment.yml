@@ -43,7 +43,9 @@
 # ---------------------------------------------------------------------------------------------
 # WHICH LOCAL ENV ACTUALLY RUNS THIS PACKAGE — re-audited 2026-11-05 (author's decision 2026-10-26).
 #
-#   erotica-2026-10  DEFAULT. Built 2026-10-26 as `mamba create python=3.14 pip gfortran clang` plus
+#   erotica-2026-10  DEFAULT. Built 2026-10-26 as `mamba create -y -n erotica-2026-10 -c conda-forge
+#                    --override-channels python=3.14 pip gfortran clang` (verbatim from the env's
+#                    conda-meta/history) plus
 #                    `pip install -e ".[dev,bayes,asteca,selection,docs,oracles,gp]" "pymc[nutpie]"
 #                    emcee dynesty` (the PyPI stack, ahead of conda-forge). Reproduced the isochrone
 #                    batch and the slow tests of `erotica` (hub: agent-findings/env-refresh-2026-10-26.md
