@@ -149,6 +149,21 @@ class TestODonnell94:
         for lam, k in asteca.items():
             assert _ccm89(lam, 3.1, optical="o94") == pytest.approx(k, rel=0, abs=1e-15)
 
+    def test_evaluation_is_np_polyval_bit_for_bit(self):
+        """Both oracles evaluate the O94 polynomials with ``np.polyval`` (ASteCA's ``ccmo_model``
+        reverses the tuples and calls it; dust_extinction's ``O94`` too), i.e. Horner from the top.
+        ``_ccm89`` does the same, so a + b/R_V is the same float, not the same to 1e-15: the
+        power sum it replaced (2026-11-11) differed from np.polyval at 20145 of 40002 (x, a|b)
+        evaluations on this x grid, by up to 5.0e-14."""
+        from erotica.analysis._isochrone import _O94_A, _O94_B
+
+        ca, cb = list(reversed(_O94_A)), list(reversed(_O94_B))
+        for lam in 1e4 / np.linspace(1.1, 3.3, 2201):
+            y = 1e4 / float(lam) - 1.82  # the x that _ccm89 itself computes from lam
+            a, b = float(np.polyval(ca, y)), float(np.polyval(cb, y))
+            for Rv in (2.5, 3.1, 5.0):
+                assert _ccm89(float(lam), Rv, optical="o94") == a + b / Rv, (lam, Rv)
+
     def test_coefficients_are_odonnell_1994_p161(self):
         """The tuples as printed in O'Donnell (1994) p. 161, read from the ADS scan."""
         from erotica.analysis._isochrone import _O94_A, _O94_B
@@ -175,6 +190,33 @@ class TestODonnell94:
         for Rv in (2.5, 3.1, 5.0):
             jump = _ccm89(1e4 / x_in, Rv, "o94") - _ccm89(1e4 / x_out, Rv, "o94")
             assert lo <= abs(jump) < hi, (x_edge, Rv, jump)
+
+    @requires_bayes_extra
+    def test_constant_laws_are_one_reparametrisation(self, tmp_path):
+        """With a constant law the likelihood sees A_V and dm only through (dm + k_G A_V, k_col A_V),
+        so a CCM89 point maps onto an O94 one with the same log L: A_V' = A_V k_col/k_col',
+        dm' = dm + k_G A_V - k_G' A_V'. ``docs/design-notes/decisions.md`` (2026-11-05) leans on
+        this; ``tools/validation/extinction_o94_ngc6383.py`` measures it on NGC 6383. Controls:
+        O94 at the unmapped point, and the map without rescaling A_V, must both move log L."""
+        _make_mist_file(tmp_path, n_ages=3)
+        data = _make_cluster_data(n=60)
+        kw = dict(loga_range=(6.5, 6.7), Av_range=(0.0, 2.0), dm_mu=10.0, dm_range=(9.0, 11.0))
+        f = {}
+        for law in ("ccm89", "ccm89_o94"):
+            f[law] = IsochroneFitter(tmp_path, extinction_law=law, **kw)
+            f[law].setup(data, prob_threshold=0.5)
+        kc, ko = f["ccm89"]._compute_ext_coefs(), f["ccm89_o94"]._compute_ext_coefs()
+        kcol_c, kcol_o = kc[1] - kc[2], ko[1] - ko[2]
+        for met, loga, dm, av in [(0.0152, 6.6, 10.0, 0.8), (0.0152, 6.55, 9.7, 1.5)]:
+            ref = f["ccm89"].loglike(met, loga, dm, av, 0.05, 0.1)
+            av2 = av * kcol_c / kcol_o
+            dm2 = dm + kc[0] * av - ko[0] * av2
+            assert f["ccm89_o94"].loglike(met, loga, dm2, av2, 0.05, 0.1) == pytest.approx(
+                ref, rel=0, abs=1e-9
+            )
+            unmapped = f["ccm89_o94"].loglike(met, loga, dm, av, 0.05, 0.1)
+            dm_only = f["ccm89_o94"].loglike(met, loga, dm + (kc[0] - ko[0]) * av, av, 0.05, 0.1)
+            assert abs(unmapped - ref) > 1e-6 and abs(dm_only - ref) > 1e-6
 
     def test_unknown_optical_branch_raises(self):
         with pytest.raises(ValueError, match="optical"):

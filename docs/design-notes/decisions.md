@@ -2271,3 +2271,22 @@ does use the O94 polynomials. At erotica's Gaia wavelengths it gives 0.836198391
 0.6343873059899496, **bit-identical to `"ccm89_o94"`** (now a test). So P01's text is right, and this fitter's
 `"ccm89"` was never P01's law: the 2026-10-20 entry ("P01 and the CCM-era validation runs are reproduced with
 `extinction_law="ccm89"`") holds for the validation runs, not for P01. The docstrings and the CHANGELOG now say so.
+
+**Regenerable, 2026-11-11.** The "Measured" paragraph above pointed only at a hub finding for its fit-level numbers
+(the Codex review of PR #59). `tools/validation/extinction_o94_ngc6383.py` (sidecar `extinction_o94_ngc6383.json`) now
+recomputes them from this repository: the four coefficient shifts (-0.97 / +1.02 / +1.82 / -0.08 %, from the fitter's own
+effective wavelengths), and the map of the stored CCM optimum (quoted from the hub's `ngc6383_feh_tornado/ccm_free.json`,
+embedded in the script and checked against that file when the hub is present) to A_V 0.7592, dm 10.2182, equal to the
+hub's `control_mapped_params` to 0.0. The log L identity is measured on this fitter's single-age `loglike` for the 254
+members of the P01 reference sample: |Delta log L| = 0.0 at the mapped point, against 0.250 for O94 at the unmapped point
+and 0.045 for the map without rescaling A_V (the two controls). That log L (-582.33) is not the hub frame's (-545.27, two
+ages and an empirical field); the identity holds in both because both apply the law only as the constant shifts. Every
+figure quoted above reproduced; none changed. The structural claim is also a CI test on synthetic data
+(`TestODonnell94::test_constant_laws_are_one_reparametrisation`; seen red with a quadratic A_V term added to the colour
+shift).
+
+**Evaluation order, 2026-11-11.** The O94 branch now evaluates its polynomials by Horner from the highest degree, the
+order of `np.polyval`, which ASteCA's `ccmo_model` and dust_extinction's `O94` both use. The power sum it replaced was
+already bit-identical to ASteCA at the three Gaia wavelengths, but differed from `np.polyval` in the last bits at 20145 of
+40002 (x, a|b) evaluations on a 20001-point grid of 1.1 <= x <= 3.3 (up to 5.0e-14). Now 0 of 40002, a test
+(`test_evaluation_is_np_polyval_bit_for_bit`, red on the power sum). The `"ccm89"` branch is untouched.

@@ -1,0 +1,68 @@
+{
+  "script": "tools/validation/extinction_o94_ngc6383.py",
+  "coefficients": {
+    "Rv": 3.1,
+    "effl_AA": {
+      "G": 6390.7,
+      "BP": 5182.6,
+      "RP": 7825.1
+    },
+    "k": {
+      "ccm89": {
+        "G": 0.8443949482869203,
+        "BP": 1.0723843367953647,
+        "RP": 0.6230669949571815,
+        "BP-RP": 0.44931734183818317
+      },
+      "ccm89_o94": {
+        "G": 0.8361983917837449,
+        "BP": 1.0833639679451164,
+        "RP": 0.6343873059899496,
+        "BP-RP": 0.4489766619551667
+      }
+    },
+    "o94_vs_ccm89_percent": {
+      "G": -0.9707017456469069,
+      "BP": 1.0238522489579127,
+      "RP": 1.816868992321763,
+      "BP-RP": -0.07582166350906805
+    }
+  },
+  "ccm89_optimum_quoted": {
+    "source": "~/phd/agent-findings/scripts/ngc6383_feh_tornado/ccm_free.json ['free'] (2026-10-20)",
+    "params": {
+      "met": 0.004640373382362379,
+      "loga": 5.98555294680986,
+      "dm": 10.212464101476325,
+      "Av": 0.7586135468774481,
+      "sigma_int": 0.13549275115159165,
+      "f_bg": 0.17000000000000004
+    },
+    "hub_frame_logL": -545.2738871479884
+  },
+  "mapped_o94": {
+    "Av": 0.7591891767404334,
+    "dm": 10.21820077951169
+  },
+  "hub": {
+    "ccm_free.json_sha256": "a3227cffcb179d23ab1d801c92b21a21c3be6ceb847f987634564fee3425369d",
+    "o94_free.json_sha256": "db2685c1d541ebaeaef49cc4418aada75f6ecf2185e45b15a8edc52a46fee101",
+    "max_abs_diff_mapped_vs_hub": 0.0,
+    "hub_control_mapped_logL": [
+      -545.2738871479884,
+      -545.2738871479884
+    ]
+  },
+  "loglike_identity": {
+    "N": 254,
+    "sample_sha256": "a876dcaca7cdc194ef4a4cfd88d69d9ed4d6f94ea8824c8bb295d26f42d024e4",
+    "logL_ccm89_at_optimum": -582.3278721311319,
+    "logL_o94_at_mapped": -582.3278721311319,
+    "control_logL_o94_at_unmapped": -582.5782532217629,
+    "control_logL_o94_dm_shift_only": -582.2826957596153,
+    "abs_delta_mapped": 0.0,
+    "abs_delta_unmapped": 0.2503810906309809,
+    "abs_delta_dm_shift_only": 0.04517637151661802,
+    "gate": 1e-09
+  }
+}

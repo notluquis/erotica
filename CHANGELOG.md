@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   isochrone fit ran ASteCA, whose law equals `"ccm89_o94"` bit for bit.
 - **Changed:** with `extinction_law=None` and non-Gaia bands or R_V != 3.1, the fallback is `"ccm89_o94"` (was
   `"ccm89"`). The Gaia EDR3 default is unchanged; 2MASS J, H, Ks are unaffected (x < 1.1).
+- **Validation:** `tools/validation/extinction_o94_ngc6383.py` regenerates the coefficient shifts and the closed-form map
+  of a CCM89 fit onto O94 (same log L) quoted in the design note; the O94 polynomials are evaluated as `np.polyval`
+  does, bit-identical to ASteCA's and dust_extinction's over the whole optical branch.
 
 ### Wilson (1975) model in `compare_radial_profiles` (hub thread G7)
 - **Added:** `models=(..., "wilson")`, `WilsonPriors`, and `erotica.analysis.wilson` (Poisson solve + Abel projection of the

@@ -90,8 +90,13 @@ def _ccm89(lam_aa: float, Rv: float = 3.1, optical: str = "ccm89") -> float:
     x = 1e4 / lam_aa  # Å → 1/μm
     if 1.1 <= x <= 3.3 and optical == "o94":
         y = x - 1.82
-        a = sum(c * y**n for n, c in enumerate(_O94_A))
-        b = sum(c * y**n for n, c in enumerate(_O94_B))
+        # Horner from the highest degree, the order of np.polyval: bit-identical to ASteCA's
+        # ccmo_model and dust_extinction's O94, which both evaluate with np.polyval (the power sum
+        # differed from them in the last bits at about half the points of 1.1 <= x <= 3.3)
+        a = b = 0.0
+        for ca, cb in zip(reversed(_O94_A), reversed(_O94_B), strict=True):
+            a = a * y + ca
+            b = b * y + cb
     elif 1.1 <= x <= 3.3:
         y = x - 1.82
         a = (
