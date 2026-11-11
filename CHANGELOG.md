@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed (before release):** the cluster's selection probability P_A combines Gaussian QMC and the region nodes by
   multiple importance sampling; the Gaussian QMC alone underestimated it by 17.8 nats with the mean 5 sd outside the region.
 - **Added:** `erotica.calibration.corp` and `CORPResult`: CORP reliability (PAV) and `BS = MCB - DSC + UNC`.
+- **Fixed** (PR #64 review): the generators return an empty catalogue for 0 donors (was `TypeError`, reachable
+  when an injection replicate draws 0 members); `calibrate_by_injection` refuses `n_rep < 1`; `prior_field` accepts
+  lists and arrays (a list was unhashable as a JAX static argument) and a wrong shape raises `ValueError`.
 
 ### PMS [Fe/H] bias of ASPCAP: hierarchical posterior by default (hub decisions D26-63, D26-64)
 - **Changed:** `predict_bias` predicts from the posterior of a hierarchical model (random cluster offsets, tau with a

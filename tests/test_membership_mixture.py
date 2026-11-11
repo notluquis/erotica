@@ -837,3 +837,53 @@ def test_pa_constants_are_trace_time_constants_and_the_node_density_matches_supp
     np.testing.assert_allclose(jitted, eager, rtol=0, atol=1e-12)
     grads = jax.jit(jax.grad(lambda *a: f(*a).sum(), argnums=(0, 1, 2, 3)))(mean, *L)
     assert all(np.all(np.isfinite(np.asarray(g))) for g in grads)
+
+
+# ---------------------------------------------------------------------------------------------- PR #64 review
+def test_generators_with_zero_donors_return_an_empty_catalogue():
+    """A Poisson draw of 0 members in an injection replicate hands the generators 0 donors. Red before the fix:
+    ``_sample_conditional`` returned ``None`` and the unpacking raised ``TypeError``."""
+    rng = np.random.default_rng(3)
+    none = _donors(rng, 0)
+    for gen in (sample_members, sample_field):
+        out = gen(TRUTH, none, rng, SEL)
+        assert out.n == 0 and out.pm.shape == (0, 2) and out.plx.shape == (0,)
+
+
+@pytest.mark.parametrize("n_rep", [0, -1])
+def test_calibrate_by_injection_refuses_a_non_positive_n_rep(fitted, n_rep):
+    model, _ = fitted
+    rng = np.random.default_rng(11)
+    fld = sample_field(TRUTH, _donors(rng, 20), rng, SEL)
+    with pytest.raises(ValueError, match="n_rep"):
+        calibrate_by_injection(model, fld, n_rep, n_starts=1, init=INIT)
+
+
+def test_prior_field_given_as_lists_or_an_array_equals_the_tuple():
+    """``prior_field`` is a static argument of the jitted log posterior, so it must be hashable. Red before the
+    fix: a list (one group) or a list of lists / an array (two groups) raised ``TypeError`` (unhashable)."""
+    data, _ = make(SEED, n=80)
+    m1 = MixtureModel(data, SEL)
+    th1 = _theta_truth()
+    want = m1.logpost(th1, (120.0, 0.07))
+    assert m1.logpost(th1, [120.0, 0.07]) == pytest.approx(want, rel=1e-12)
+    assert m1.logpost(th1, np.array([120.0, 0.07])) == pytest.approx(want, rel=1e-12)
+    grp = (np.arange(data.n) % 3 == 0).astype(int)
+    m2 = MixtureModel(_with(data, group=grp), SEL, n_groups=2)
+    th2 = _theta_truth(2, [0.2, 0.7])
+    pf = ((10.0, 0.3), (20.0, 0.5))
+    want2 = m2.logpost(th2, pf)
+    assert m2.logpost(th2, [[10.0, 0.3], [20.0, 0.5]]) == pytest.approx(want2, rel=1e-12)
+    assert m2.logpost(th2, np.array(pf)) == pytest.approx(want2, rel=1e-12)
+    fa = m1.fit(n_starts=1, seed=0, ridge=False, init=INIT, prior_field=(120.0, 0.07))
+    fb = MixtureModel(data, SEL).fit(n_starts=1, seed=0, ridge=False, init=INIT, prior_field=[120.0, 0.07])
+    np.testing.assert_allclose(fb.theta, fa.theta, rtol=1e-10)
+
+
+def test_prior_field_of_the_wrong_shape_is_refused():
+    data, _ = make(SEED, n=80)
+    with pytest.raises(ValueError, match="prior_field"):
+        MixtureModel(data, SEL).logpost(_theta_truth(), (120.0, 0.07, 1.0))
+    grp = (np.arange(data.n) % 3 == 0).astype(int)
+    with pytest.raises(ValueError, match="prior_field"):
+        MixtureModel(_with(data, group=grp), SEL, n_groups=2).logpost(_theta_truth(2, [0.2, 0.7]), (10.0, 0.3))

@@ -613,6 +613,20 @@ def _per_star_loglike(th, d, **kw):
     return jnp.logaddexp(jnp.log1p(-eta) + lc, jnp.log(eta) + lf)
 
 
+def _static_prior(prior_field, n_groups: int):
+    """``prior_field`` as the hashable tuple the jitted log posterior takes as a static argument: ``(median,
+    sdlog)`` of floats, or with ``n_groups > 1`` one such pair per group. Lists and arrays are accepted; a list
+    is unhashable and JAX would refuse it."""
+    if prior_field is None:
+        return None
+    a = np.asarray(prior_field, float)
+    want = (2,) if n_groups == 1 else (n_groups, 2)
+    if a.shape != want:
+        raise ValueError(f"prior_field must have shape {want} (median, sdlog{' per group' if n_groups > 1 else ''}), "
+                         f"got {a.shape}")
+    return (float(a[0]), float(a[1])) if n_groups == 1 else tuple((float(m), float(s)) for m, s in a)
+
+
 def _logpost(th, d, prior_field, **kw):
     """``prior_field``: ``(median, sdlog)`` on the number of field stars, or with ``n_groups > 1`` one such pair per
     group, on that group's number ``η_g Σ_{i∈g} w_i``."""
@@ -875,7 +889,7 @@ class MixtureModel:
 
     def logpost(self, theta, prior_field=None) -> float:
         """Log posterior at a full parameter vector (for checks and tests)."""
-        return float(self._fns["lp"](jnp.asarray(theta, float), self._d, prior_field))
+        return float(self._fns["lp"](jnp.asarray(theta, float), self._d, _static_prior(prior_field, self.n_groups)))
 
     # -------------------------------------------------------------- fit
     def fit(self, n_starts: int = 9, *, seed: int = 0, prior_field: tuple[float, float] | None = None,
@@ -892,8 +906,9 @@ class MixtureModel:
         (400 stars, 13 parameters): 6 uniform starts alone missed the global mode in 1 of 4 seeds.
 
         ``prior_field = (median, sdlog)``: log-normal prior on the number of field stars ``η Σw``
-        (C5's ``prior_Nf`` from the sideband E1).
+        (C5's ``prior_Nf`` from the sideband E1). Lists and arrays are accepted and stored as tuples.
         """
+        prior_field = _static_prior(prior_field, self.n_groups)
         lo, hi = self.default_bounds() if bounds is None else (np.asarray(bounds[0], float), np.asarray(bounds[1], float))
         rng = np.random.default_rng(seed)
         starts = rng.uniform(lo, hi, (n_starts, lo.size))
@@ -1109,16 +1124,16 @@ def _sig(x):
 
 # ====================================================================== generators
 def _sample_conditional(n, draw, accept, rng, max_iter=100_000):
-    """Per-star rejection: star i is redrawn with ITS errors until accepted (C5 §13 'estrella a estrella')."""
-    out = None
+    """Per-star rejection: star i is redrawn with ITS errors until accepted (C5 §13 'estrella a estrella').
+
+    ``n = 0`` (a Poisson draw of no members) returns empty arrays."""
+    out = [np.empty((n, 2)), np.empty(n)]
     todo = np.ones(n, bool)
     it = 0
     while todo.any():
         k = np.where(todo)[0]
         pm, plx = draw(k)
         acc = rng.random(k.size) < accept(pm, plx)
-        if out is None:
-            out = [np.empty((n, 2)), np.empty(n)]
         out[0][k[acc]] = pm[acc]
         out[1][k[acc]] = plx[acc]
         todo[k[acc]] = False
@@ -1206,6 +1221,8 @@ def calibrate_by_injection(model: MixtureModel, field_catalog: MembershipData, n
     same detection-stage ``init`` and ``ridge`` -- never the fitted values, which would seed every replicate at its own
     truth and hide the modes the real fit can fall into (hub ``state/findings.yaml`` R26-13).
     """
+    if n_rep < 1:
+        raise ValueError(f"n_rep must be a positive number of replicates, got {n_rep}")
     if model.lines or model.empirical or model.n_groups > 1:
         raise NotImplementedError(
             "calibrate_by_injection draws members in astrometry only: it cannot give them a CMD line, a sideband "
