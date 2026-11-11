@@ -41,6 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of a CCM89 fit onto O94 (same log L) quoted in the design note; the O94 polynomials are evaluated as `np.polyval`
   does, bit-identical to ASteCA's and dust_extinction's over the whole optical branch.
 
+### `lambda_msr`: `lo_1sigma`/`hi_1sigma` are now the Parker & Goodwin (2015) bar on Λ (hub D26-36)
+- **Fixed (numbers change):** `SegregationResult.lo_1sigma`/`hi_1sigma` returned `mean(pool)/q_{5/6}(pool)` and
+  `mean(pool)/q_{1/6}(pool)`, the 1/6-5/6 band of Λ **under the null** (≈ 0.80-1.34 for NGC 6383 whatever Λ is), while the
+  docstring called them the Parker & Goodwin (2015, Eq. 2) error bars. They are now `q_{1/6}(pool)/T_massive` and
+  `q_{5/6}(pool)/T_massive`, which bracket Λ and scale with it (NGC 6383, 40′, N_MST = 10: Λ = 2.86, bar [2.14; 3.59]; the old
+  fields gave [0.80; 1.34]).
+- **Added:** `null_p17`/`null_p83` keep the null band under a name that says what it is, next to `null_p95`/`null_p99`.
+- **Not affected:** `lam`, `p_value`, `sigma_equivalent`, `null_*`, `sigma_norm`. The P01 figure used `sigma_norm`, not these
+  fields.
+
 ### Wilson (1975) model in `compare_radial_profiles` (hub thread G7)
 - **Added:** `models=(..., "wilson")`, `WilsonPriors`, and `erotica.analysis.wilson` (Poisson solve + Abel projection of the
   `g = 2` lowered isothermal model, tabulated for `W0` in [1, 10]; no new dependency). `compare_radial_profiles` also takes `cores`.

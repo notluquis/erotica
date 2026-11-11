@@ -2227,6 +2227,42 @@ King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 
 **Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
 (1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
 
+## 2026-11-05 — `lambda_msr`: the "Parker & Goodwin error bar" was the null band; now it is the bar on Λ
+
+**Symptom.** `SegregationResult.lo_1sigma`/`hi_1sigma` were documented as *"Parker & Goodwin (2015) percentile error bars"* but
+computed `mean(pool)/q_{5/6}(pool)` and `mean(pool)/q_{1/6}(pool)`. Neither depends on `T_massive`: they are the 1/6 and 5/6
+quantiles of Λ **under the null**, a band around ~1. Found in the hub while writing the AD-P66 exploratory table
+(`~/phd/agent-findings/ngc6383-lambda-msr-blind-exclusion-2026-11-05.md` §5): at 50′ the fields gave [0.81; 1.33] for Λ = 1.45 and
+for Λ = 3.48 alike.
+
+**Cause.** The original comment reasoned that "mapped through Λ = mean_ref/T the order inverts", which is true of the **null**
+quantiles of Λ (that is how `null_p95` is built) and not of a bar on the measured Λ, whose denominator is the one massive-subset
+length. The test asserted the same formula at rtol 1e-12 against a pool recomputed in the test: it re-implemented the code
+instead of checking the promise (`~/phd/methodology.md` §K.1.6, the "reimplements" cause), so it could only fail on a swap of
+`lo` and `hi`.
+
+**Source of the fix.** Parker & Goodwin (2015, MNRAS 449, 3381, `2015MNRAS.449.3381P`, read in arXiv:1503.02692 §2.2, Eq. 2;
+the identical text is Eq. 1 of Parker et al. 2011, `2011MNRAS.412.2489P`, arXiv:1011.5503 §3.2):
+Λ = ⟨l_average⟩/l_subset with +σ_{5/6}/l_subset and −σ_{1/6}/l_subset, where the lower (upper) uncertainty is *"the MST length
+which lies 1/6 (5/6) of the way through an ordered list of all the random lengths (corresponding to a 66 per cent deviation from
+the median value, ⟨l_average⟩)"*. With the deviations measured from ⟨l_average⟩ the bounds are exactly `q_{1/6}/T` and
+`q_{5/6}/T`. The paper calls ⟨l_average⟩ both "average" and "median"; centring on the pool median instead moves both bounds by
+(mean − median)/T, measured on NGC 6383 at N_MST = 10 as +0.005 to +0.052 (`~/phd/agent-findings/scripts/lambda_msr_bar_fix_check_measured.txt`),
+against half-widths of 0.3-1.4. The mean is used because it is the same quantity as Λ's numerator.
+
+**Fix.** `lo_1sigma = q_{1/6}(pool)/T_massive`, `hi_1sigma = q_{5/6}(pool)/T_massive`; the null band is kept as
+`null_p17`/`null_p83`, built like `null_p95`.
+
+**Oracle.** `test_parker_goodwin_bar_matches_a_hand_computed_three_star_case`: three collinear stars with pair distances
+{1, 2, 3} and the two heaviest at distance 1, so Λ = 2 with the bar [1, 3] exactly and the null band [2/3, 2].
+`test_parker_goodwin_bar_brackets_a_strongly_segregated_lambda`: Λ > 3 in a Plummer sphere, `lo < Λ < hi`, the relative width
+equal to the pool's relative 1/6-5/6 spread, and the null band below the bar. Re-applying the old two lines turns both red
+(0.669 against 1; Λ = 10.3 outside the null band [0.73; 1.51], where the corrected bar is [6.82; 14.06]). The old test was replaced, not loosened.
+
+**Number that moved.** NGC 6383, 40′, N_MST = 10: Λ = 2.86, the returned bar went from [0.80; 1.34] to [2.14; 3.59]. No
+published number used these fields: P01's Fig. (`mass_segregation_mst.pdf`) plots `σ_norm/l_massive` from its own script, and
+the hub's PG15 bars were computed by hand with the corrected formula.
+
 ## 2026-11-05 — `"ccm89_o94"`: O'Donnell (1994) in the optical, and the label that said it was already there
 
 **Symptom.** The comment above `_ccm89`, the `IsochroneFitter` docstring and the hub's model catalogue all said

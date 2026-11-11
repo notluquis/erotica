@@ -308,10 +308,36 @@ class SegregationResult:
         of the reference sets, and carries no information about the variance of
         the single massive-set draw in the denominator.
     lo_1sigma, hi_1sigma
-        Parker & Goodwin (2015) percentile error bars: the 1/6 and 5/6 points of
-        the ordered reference statistics, mapped through :math:`\\Lambda`.  They
-        replaced :math:`\\sigma_{\\rm norm}` deliberately, *"to prevent a single
-        outlying object from heavily influencing the uncertainty"*.
+        The Parker & Goodwin (2015, ``2015MNRAS.449.3381P``, Eq. 2) error bar **on**
+        :math:`\\Lambda`, :math:`T_{1/6}/T_{\\rm massive}` and
+        :math:`T_{5/6}/T_{\\rm massive}`, where :math:`T_{1/6}` and :math:`T_{5/6}`
+        are the reference lengths *"which lie 1/6 (5/6) of the way through an
+        ordered list of all the random lengths"*.  Their Eq. 2,
+
+        .. math::
+            \\Lambda_{\\rm MSR} = \\frac{\\langle l_{\\rm average}\\rangle}{l_{\\rm subset}}
+            {}^{+\\sigma_{5/6}/l_{\\rm subset}}_{-\\sigma_{1/6}/l_{\\rm subset}},
+
+        measures the deviations :math:`\\sigma_{1/6} = \\langle T\\rangle - T_{1/6}`
+        and :math:`\\sigma_{5/6} = T_{5/6} - \\langle T\\rangle` from
+        :math:`\\langle l_{\\rm average}\\rangle` (the same text first appears as
+        Eq. 1 of Parker et al. 2011, ``2011MNRAS.412.2489P``), so the bounds collapse
+        exactly to :math:`T_q/T_{\\rm massive}`.  The paper calls
+        :math:`\\langle l_{\\rm average}\\rangle` both "average" and "median"; centring
+        the deviations on the pool median instead shifts both bounds by
+        :math:`(\\langle T\\rangle - {\\rm med}\\,T)/T_{\\rm massive}`.  The bar scales with
+        :math:`1/T_{\\rm massive}`, so it brackets :math:`\\Lambda` and widens with it,
+        as the :math:`\\sigma_{\\rm norm}/T_{\\rm massive}` bar of Allison et al. (2009)
+        does (their ONC value is :math:`8.0 \\pm 3.5`).  It is a
+        description of the spread of the reference sets, **not** a significance:
+        quote ``p_value`` for that.  Until 2026-11-05 these two fields held
+        ``null_p17``/``null_p83`` instead (see below), a band around ~1 that does not
+        depend on :math:`T_{\\rm massive}`.
+    null_p17, null_p83
+        The 1/6 and 5/6 quantiles of :math:`\\Lambda` **under the null**,
+        :math:`\\langle T\\rangle/T_{5/6}` and :math:`\\langle T\\rangle/T_{1/6}`, the same
+        inversion as ``null_p95``.  A band around the null median, independent of
+        the massive subset; not an error bar on the measured :math:`\\Lambda`.
     warnings_raised
         Every validity warning emitted, so a caller can record them in a paper.
     """
@@ -329,6 +355,8 @@ class SegregationResult:
     sigma_norm: float
     lo_1sigma: float
     hi_1sigma: float
+    null_p17: float
+    null_p83: float
     t_massive: u.Quantity
     t_reference_mean: u.Quantity
     n_sets: int
@@ -549,9 +577,14 @@ def lambda_msr(
     # The exact permutation identities.  Because Lambda = mean_ref / T and
     # x -> mean_ref/x is decreasing, upper quantiles of Lambda come from LOWER
     # quantiles of the pool, and P(Lambda >= Lambda_obs) = P(T <= T_obs).
+    # The four quantiles of the pool from one np.quantile call (one partition instead of
+    # four): the same floats as one call per q.  The median stays np.median, which averages
+    # the two middle values where np.quantile(pool, 0.5) interpolates; the two differ in the
+    # last bit for about 1 pool in 20000 (measured 2026-11-11).
+    q01, q05, q16, q83 = np.quantile(pool, [0.01, 0.05, 1.0 / 6.0, 5.0 / 6.0])
     null_median = mean_ref / float(np.median(pool))
-    null_p95 = mean_ref / float(np.quantile(pool, 0.05))
-    null_p99 = mean_ref / float(np.quantile(pool, 0.01))
+    null_p95 = mean_ref / float(q05)
+    null_p99 = mean_ref / float(q01)
     p_value = float((np.sum(pool <= t_massive) + 1) / (n_sets + 1))
     p_mcerr = float(np.sqrt(max(p_value, 1.0 / n_sets) * (1 - p_value) / n_sets))
 
@@ -569,11 +602,16 @@ def lambda_msr(
         null_p95=null_p95,
         null_p99=null_p99,
         sigma_norm=float(pool.std() / t_massive),
-        # Parker & Goodwin (2015): the 1/6 and 5/6 points of the ordered reference
-        # lengths.  Mapped through Lambda = mean_ref/T the order INVERTS -- the lower
-        # bound on Lambda comes from the 5/6 point of T.
-        lo_1sigma=float(mean_ref / np.quantile(pool, 5.0 / 6.0)),
-        hi_1sigma=float(mean_ref / np.quantile(pool, 1.0 / 6.0)),
+        # Parker & Goodwin (2015, Eq. 2): Lambda -/+ sigma_{1/6, 5/6}/T_massive with the
+        # deviations taken from the mean reference length, i.e. the 1/6 and 5/6 points
+        # of the ordered reference lengths divided by T_massive.  No inversion: the
+        # bar is on Lambda, and it scales with 1/T_massive.
+        lo_1sigma=float(q16 / t_massive),
+        hi_1sigma=float(q83 / t_massive),
+        # The band of Lambda under the null (same inversion as null_p95): what the two
+        # fields above held until 2026-11-05.
+        null_p17=float(mean_ref / q83),
+        null_p83=float(mean_ref / q16),
         t_massive=t_massive * unit,
         t_reference_mean=mean_ref * unit,
         n_sets=n_sets,
