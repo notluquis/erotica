@@ -6,7 +6,8 @@ Forward model with ASteCA's ingredients, likelihood unbinned per star (since 202
   - Offner binary fraction + Duchêne & Kraus (2013) mass-ratio distribution, marginalised
   - Per-star photometric errors, a fitted error model for the completeness cut
   - Extinction: the Gaia EDR3 colour-dependent law (Riello+2020, Fitzpatrick+2019 curve; default for
-    Gaia EDR3 bands) or Cardelli, Clayton & Mathis (1989) + O'Donnell (1994) at fixed wavelengths
+    Gaia EDR3 bands), or constant coefficients at fixed wavelengths from Cardelli, Clayton & Mathis
+    (1989), alone or with O'Donnell's (1994) optical polynomials
 """
 
 from __future__ import annotations
@@ -45,13 +46,58 @@ def _require_pymc():
 
 
 # ---------------------------------------------------------------------------
-# CCM89 + O'Donnell 94  (A_lambda / A_V)
+# CCM89 (A_lambda / A_V), and CCM89 with the O'Donnell (1994) optical polynomials
 # ---------------------------------------------------------------------------
 
+# O'Donnell (1994, ApJ 422, 158; 1994ApJ...422..158O), p. 161: eighth-order fits for
+# 1.1 <= x <= 3.3 um^-1, y = x - 1.82, "may be used in place of equations (3a) and (3b) in CCM".
+# Coefficients of y^0 .. y^8, copied from the ADS scan of the paper (read 2026-11-05).
+_O94_A = (1.0, 0.104, -0.609, 0.701, 1.137, -1.718, -0.827, 1.647, -0.505)
+_O94_B = (0.0, 1.952, 2.908, -3.989, -7.985, 11.102, 5.491, -10.805, 3.347)
 
-def _ccm89(lam_aa: float, Rv: float = 3.1) -> float:
+
+def _ccm89(lam_aa: float, Rv: float = 3.1, optical: str = "ccm89") -> float:
+    r"""Mean extinction curve :math:`A_\lambda/A_V = a(x) + b(x)/R_V`, :math:`x = 1/\lambda`.
+
+    Cardelli, Clayton & Mathis (1989, ``1989ApJ...345..245C``), Eqs. 2-5: infrared
+    (:math:`x < 1.1\,\mu m^{-1}`), optical/near-IR (:math:`1.1 \le x \le 3.3`) and
+    ultraviolet (:math:`3.3 < x \le 8`). With ``optical="o94"`` the optical branch is
+    O'Donnell's (1994, ``1994ApJ...422..158O``) refit, which adds Strömgren *uvby* and ANS
+    3300 Å points; the infrared and ultraviolet branches stay CCM89, as O'Donnell prescribes.
+    O94 matched :math:`a, b` and their slopes to CCM89 at the branch ends, but prints the
+    coefficients to three decimals: the curve steps by < 4e-4 at :math:`x = 1.1` and by
+    0.009-0.011 at :math:`x = 3.3` (:math:`R_V` 2.5-5; the same in ``dust_extinction``), far
+    from the Gaia bands (:math:`x \le 1.93`).
+
+    Effect at the Gaia EDR3 effective wavelengths (6390.7 / 5182.6 / 7825.1 Å) and
+    :math:`R_V = 3.1`: CCM89 gives :math:`k_G, k_{BP}, k_{RP}` = 0.8444 / 1.0724 / 0.6231 and
+    O94 0.8362 / 1.0834 / 0.6344 (the same values as ``dust_extinction`` 1.7's ``CCM89`` and
+    ``O94``); :math:`k_{BP} - k_{RP}` moves by -0.08 %, :math:`k_G` by -0.97 %.
+
+    Parameters
+    ----------
+    lam_aa : float
+        Wavelength in Ångström.
+    Rv : float, default 3.1
+        :math:`R_V = A_V/E(B-V)`.
+    optical : {"ccm89", "o94"}, default "ccm89"
+        Which polynomial pair to use for :math:`1.1 \le x \le 3.3`. The default keeps the
+        name of the function honest: ``_ccm89(lam)`` is CCM89. ``"o94"`` is bit-identical to
+        ASteCA 0.7.0's ``ccmo_model``, the law P01's isochrone fit ran.
+    """
+    if optical not in ("ccm89", "o94"):
+        raise ValueError(f"optical must be 'ccm89' or 'o94', got {optical!r}")
     x = 1e4 / lam_aa  # Å → 1/μm
-    if 1.1 <= x <= 3.3:
+    if 1.1 <= x <= 3.3 and optical == "o94":
+        y = x - 1.82
+        # Horner from the highest degree, the order of np.polyval: bit-identical to ASteCA's
+        # ccmo_model and dust_extinction's O94, which both evaluate with np.polyval (the power sum
+        # differed from them in the last bits at about half the points of 1.1 <= x <= 3.3)
+        a = b = 0.0
+        for ca, cb in zip(reversed(_O94_A), reversed(_O94_B), strict=True):
+            a = a * y + ca
+            b = b * y + cb
+    elif 1.1 <= x <= 3.3:
         y = x - 1.82
         a = (
             1
@@ -90,7 +136,9 @@ def _ccm89(lam_aa: float, Rv: float = 3.1) -> float:
 # Gaia EDR3 extinction law  (k_x = A_x / A_0 as a function of intrinsic colour and A_0)
 # ---------------------------------------------------------------------------
 
-EXTINCTION_LAWS = ("gaia_edr3", "ccm89")
+EXTINCTION_LAWS = ("gaia_edr3", "ccm89", "ccm89_o94")
+# laws with one constant coefficient per band, evaluated at the effective wavelength
+_CONSTANT_LAWS = {"ccm89": "ccm89", "ccm89_o94": "o94"}
 
 # Main-sequence fit (log g > 4.5) in X = (BP-RP)_0, from Fitz19_EDR3_MainSequence.csv, "BPRP" rows
 # (ESA, https://www.cosmos.esa.int/web/gaia/edr3-extinction-law; Riello+2020 2021A&A...649A...3R).
@@ -737,7 +785,9 @@ class IsochroneFitter:
       ``2013ARA&A..51..269D``, Table 1) by a uniform deposit along the binary locus between
       the mass-ratio nodes ``_Q_NODES``, each piece weighted by its exact probability
       :math:`q_{j+1}^{\gamma+1} - q_j^{\gamma+1}`.
-    * **Extinction**: CCM89 + O'Donnell (1994), :math:`A_\lambda = k_\lambda A_V`.
+    * **Extinction**: the Gaia EDR3 colour-dependent law for the Gaia bands (default), or a
+      constant :math:`A_\lambda = k_\lambda A_V` from CCM89, alone or with O'Donnell (1994)
+      in the optical (see ``extinction_law``).
 
     Likelihood, for star :math:`i` with photometric errors :math:`(e_{G,i}, e_{c,i})`:
 
@@ -843,8 +893,8 @@ class IsochroneFitter:
         magnitude : str, default "Gaia_G_EDR3" (or ``grid.default_bands[0]``)
             Name of the magnitude column in the isochrone files.
         magnitude_effl : float, default 6390.7
-            Effective wavelength of that band **in Ångström**. Feeds the CCM89 /
-            O'Donnell-94 law that turns :math:`A_V` into the band's extinction
+            Effective wavelength of that band **in Ångström**. Feeds the constant-coefficient
+            laws (``"ccm89"``, ``"ccm89_o94"``) that turn :math:`A_V` into the band's extinction
             coefficient :math:`A_\lambda/A_V`, so an error here biases the
             fitted extinction rather than merely shifting a plot. The default is
             Gaia :math:`G` (EDR3).
@@ -864,7 +914,7 @@ class IsochroneFitter:
             Total-to-selective extinction ratio :math:`R_V = A_V/E(B-V)`,
             dimensionless. 3.1 is the diffuse-ISM average; sightlines through
             dense cloud material run higher. It is **fixed, not fitted**.
-        extinction_law : {"gaia_edr3", "ccm89"} or None, default None
+        extinction_law : {"gaia_edr3", "ccm89", "ccm89_o94"} or None, default None
             How the sampled ``Av`` becomes a shift of the G magnitude and of the colour.
 
             - ``"gaia_edr3"``: the official Gaia EDR3 law (Riello+2020, Fitzpatrick+2019
@@ -878,12 +928,23 @@ class IsochroneFitter:
               curve), so any other band or ``Rv`` raises ``ValueError``. Domain: Teff 3500 to
               10000 K, :math:`0.01 < A_0 < 20` mag; the colour is clipped to [-0.06, 2.5] and
               :math:`A_0` floored at 0.01 inside the coefficient, **not** in the shift.
-            - ``"ccm89"``: constant coefficients from CCM89 + O'Donnell94 at the effective
-              wavelengths ``magnitude_effl`` / ``color_effl`` and ``Rv``. This is what P01
-              used (and what the fitter did until 2026-10-20); choose it to reproduce
-              published numbers. ``Av`` is then :math:`A_V` in the CCM89 frame.
+            - ``"ccm89"``: constant coefficients from Cardelli, Clayton & Mathis (1989) at the
+              effective wavelengths ``magnitude_effl`` / ``color_effl`` and ``Rv``. This is
+              what the fitter did until 2026-10-20 and what its CCM-era runs and frozen
+              oracles (the C1 certificate among them) used; choose it to reproduce those.
+              ``Av`` is then :math:`A_V` in the CCM89 frame. Until 2026-11-05 this docstring
+              called it "CCM89 + O'Donnell94" and "what P01 used"; the arithmetic was always
+              CCM89's, and P01's own fit ran ASteCA, whose law is ``"ccm89_o94"``.
+            - ``"ccm89_o94"``: the same, with O'Donnell's (1994) optical polynomials for
+              :math:`1.1 \le x \le 3.3\,\mu m^{-1}` (CCM89 outside). At the Gaia EDR3
+              wavelengths and :math:`R_V = 3.1`, :math:`k_G` is 0.97 % lower and
+              :math:`k_{BP} - k_{RP}` 0.08 % lower than under ``"ccm89"``; the 2MASS J, H, Ks
+              wavelengths fall below :math:`x = 1.1`, where the two laws are identical. This
+              is the law of ASteCA (bit-identical to its ``ccmo_model``), so it is the one to
+              choose to match P01's isochrone fit.
             - ``None`` (default): ``"gaia_edr3"`` when the bands are the Gaia EDR3 defaults
-              and ``Rv == 3.1``, else ``"ccm89"``.
+              and ``Rv == 3.1``, else ``"ccm89_o94"`` (``"ccm89"`` until 2026-11-05: the
+              fallback is the law the docstring said it was).
 
             Measured on NGC 6383 (2026-10-20): the Gaia law raises the free-fit log L by 4.4
             with the same six parameters, and the free ``Av`` from 0.649 to 0.770.
@@ -1110,7 +1171,7 @@ class IsochroneFitter:
             "Gaia_RP_EDR3",
         )
         if law is None:
-            return "gaia_edr3" if gaia_bands and self.Rv == 3.1 else "ccm89"
+            return "gaia_edr3" if gaia_bands and self.Rv == 3.1 else "ccm89_o94"
         if law not in EXTINCTION_LAWS:
             raise ValueError(
                 f"extinction_law must be one of {EXTINCTION_LAWS} or None, got {law!r}"
@@ -1118,13 +1179,13 @@ class IsochroneFitter:
         if law == "gaia_edr3" and not (gaia_bands and self.Rv == 3.1):
             raise ValueError(
                 "extinction_law='gaia_edr3' is defined only for the Gaia EDR3 G, BP, RP bands and "
-                f"R_V = 3.1 (got {self.magnitude!r}, {self.color!r}, Rv={self.Rv}); use 'ccm89'"
+                f"R_V = 3.1 (got {self.magnitude!r}, {self.color!r}, Rv={self.Rv}); use 'ccm89_o94' or 'ccm89'"
             )
         return law
 
     def _extinguish(self, G: Any, col: Any, Av: Any, xp: Any = np) -> tuple[Any, Any]:
         """Apply the extinction ``Av`` to intrinsic G (already with the distance modulus) and colour."""
-        if self.extinction_law == "ccm89":
+        if self.extinction_law in _CONSTANT_LAWS:
             self._ensure_ext_coefs()
             return G + self._kG * Av, col + self._k_col1 * Av
         kg = _gaia_edr3_k("G", col, Av, xp)
@@ -1132,15 +1193,21 @@ class IsochroneFitter:
         return G + kg * Av, col + kc * Av
 
     def _ensure_ext_coefs(self) -> None:
-        """CCM89 coefficients when ``setup()`` has not run (a fitter that only ``load_grid``-ed)."""
+        """Constant-law coefficients when ``setup()`` has not run (a fitter that only ``load_grid``-ed)."""
         if self._kG is None:
             self._kG, self._kBP, self._kRP = self._compute_ext_coefs()
             self._k_col1 = self._kBP - self._kRP
 
     def _compute_ext_coefs(self) -> tuple[float, float, float]:
-        kG = _ccm89(self.magnitude_effl, self.Rv)
-        kBP = _ccm89(self.color_effl[0], self.Rv)
-        kRP = _ccm89(self.color_effl[1], self.Rv)
+        r""":math:`k = A_\lambda/A_V` at the three effective wavelengths under the constant law.
+
+        Under ``"gaia_edr3"`` these are not used by the likelihood; they are the CCM89 values,
+        kept for the plots and diagnostics that read ``_kG`` (as before 2026-11-05).
+        """
+        optical = _CONSTANT_LAWS.get(getattr(self, "extinction_law", "ccm89"), "ccm89")
+        kG = _ccm89(self.magnitude_effl, self.Rv, optical)
+        kBP = _ccm89(self.color_effl[0], self.Rv, optical)
+        kRP = _ccm89(self.color_effl[1], self.Rv, optical)
         return kG, kBP, kRP
 
     # ------------------------------------------------------------------
@@ -1255,7 +1322,7 @@ class IsochroneFitter:
         """Segments and weights of the model population at the sampled parameters."""
         X = self._interp_isochrone(met, loga, xp)
         mass = xp.maximum(X[0], 1e-9)
-        if self.extinction_law == "ccm89":  # constant shifts, applied here
+        if self.extinction_law in _CONSTANT_LAWS:  # constant shifts, applied here
             self._ensure_ext_coefs()
             dmag, dcol = dm + self._kG * Av, self._k_col1 * Av
         else:  # colour-dependent: applied per model point below, once the sheet is subsampled
@@ -1303,7 +1370,7 @@ class IsochroneFitter:
         cdf = [m_b * 0.0] + [m_b * 0.0 + 1.0 if q == 1.0 else q**g1 for q in _Q_NODES[1:]]
         pq = [cdf[k + 1] - cdf[k] for k in range(len(_Q_NODES) - 1)]
         Gq_s, cq_s = _sub(Gq_c), _sub(cq_c)
-        if self.extinction_law != "ccm89":
+        if self.extinction_law not in _CONSTANT_LAWS:
             # each point is reddened by the law at its own intrinsic colour; the sheet's
             # sub-primary steps vq, vc below keep their A_0 = 0 values (a colour-dependent
             # law changes them by dk * A_0 across one EEP step, neglected)

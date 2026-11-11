@@ -2325,6 +2325,147 @@ transfer to a cluster that fills the search window.
 **Defaults unchanged:** `MixtureModel(lines=())` stays the constructor default, because a p that weights an isochrone fit
 must not carry the CMD; the validated configuration is the named preset.
 
+## 2026-11-05 — `lambda_msr`: the "Parker & Goodwin error bar" was the null band; now it is the bar on Λ
+
+**Symptom.** `SegregationResult.lo_1sigma`/`hi_1sigma` were documented as *"Parker & Goodwin (2015) percentile error bars"* but
+computed `mean(pool)/q_{5/6}(pool)` and `mean(pool)/q_{1/6}(pool)`. Neither depends on `T_massive`: they are the 1/6 and 5/6
+quantiles of Λ **under the null**, a band around ~1. Found in the hub while writing the AD-P66 exploratory table
+(`~/phd/agent-findings/ngc6383-lambda-msr-blind-exclusion-2026-11-05.md` §5): at 50′ the fields gave [0.81; 1.33] for Λ = 1.45 and
+for Λ = 3.48 alike.
+
+**Cause.** The original comment reasoned that "mapped through Λ = mean_ref/T the order inverts", which is true of the **null**
+quantiles of Λ (that is how `null_p95` is built) and not of a bar on the measured Λ, whose denominator is the one massive-subset
+length. The test asserted the same formula at rtol 1e-12 against a pool recomputed in the test: it re-implemented the code
+instead of checking the promise (`~/phd/methodology.md` §K.1.6, the "reimplements" cause), so it could only fail on a swap of
+`lo` and `hi`.
+
+**Source of the fix.** Parker & Goodwin (2015, MNRAS 449, 3381, `2015MNRAS.449.3381P`, read in arXiv:1503.02692 §2.2, Eq. 2;
+the identical text is Eq. 1 of Parker et al. 2011, `2011MNRAS.412.2489P`, arXiv:1011.5503 §3.2):
+Λ = ⟨l_average⟩/l_subset with +σ_{5/6}/l_subset and −σ_{1/6}/l_subset, where the lower (upper) uncertainty is *"the MST length
+which lies 1/6 (5/6) of the way through an ordered list of all the random lengths (corresponding to a 66 per cent deviation from
+the median value, ⟨l_average⟩)"*. With the deviations measured from ⟨l_average⟩ the bounds are exactly `q_{1/6}/T` and
+`q_{5/6}/T`. The paper calls ⟨l_average⟩ both "average" and "median"; centring on the pool median instead moves both bounds by
+(mean − median)/T, measured on NGC 6383 at N_MST = 10 as +0.005 to +0.052 (`~/phd/agent-findings/scripts/lambda_msr_bar_fix_check_measured.txt`),
+against half-widths of 0.3-1.4. The mean is used because it is the same quantity as Λ's numerator.
+
+**Fix.** `lo_1sigma = q_{1/6}(pool)/T_massive`, `hi_1sigma = q_{5/6}(pool)/T_massive`; the null band is kept as
+`null_p17`/`null_p83`, built like `null_p95`.
+
+**Oracle.** `test_parker_goodwin_bar_matches_a_hand_computed_three_star_case`: three collinear stars with pair distances
+{1, 2, 3} and the two heaviest at distance 1, so Λ = 2 with the bar [1, 3] exactly and the null band [2/3, 2].
+`test_parker_goodwin_bar_brackets_a_strongly_segregated_lambda`: Λ > 3 in a Plummer sphere, `lo < Λ < hi`, the relative width
+equal to the pool's relative 1/6-5/6 spread, and the null band below the bar. Re-applying the old two lines turns both red
+(0.669 against 1; Λ = 10.3 outside the null band [0.73; 1.51], where the corrected bar is [6.82; 14.06]). The old test was replaced, not loosened.
+
+**Number that moved.** NGC 6383, 40′, N_MST = 10: Λ = 2.86, the returned bar went from [0.80; 1.34] to [2.14; 3.59]. No
+published number used these fields: P01's Fig. (`mass_segregation_mst.pdf`) plots `σ_norm/l_massive` from its own script, and
+the hub's PG15 bars were computed by hand with the corrected formula.
+
+## 2026-11-05 — `"ccm89_o94"`: O'Donnell (1994) in the optical, and the label that said it was already there
+
+**Symptom.** The comment above `_ccm89`, the `IsochroneFitter` docstring and the hub's model catalogue all said
+"CCM89 + O'Donnell 94". The optical polynomial in the code was CCM89's (`0.17699 y - 0.50447 y^2 ...`), so
+`_ccm89` gave 0.8444 / 1.0724 / 0.6231 at the Gaia G / BP / RP effective wavelengths, equal to `CCM89` of
+`dust_extinction` 1.7 and not to its `O94` (0.8362 / 1.0834 / 0.6344). Found by the hub's survey of extinction laws
+(`~/phd/agent-findings/extinction-laws-gaia-2026-11-05.md`). The label was wrong; the numbers that reached P01 were
+CCM89's and are what P01 says it used, numerically.
+
+**Fix.** The author chose to implement O94 rather than only relabel (hub decision AD-I54). `_ccm89(lam, Rv,
+optical="ccm89" | "o94")`: with `"o94"`, the 1.1 <= x <= 3.3 um^-1 branch is O'Donnell (1994, ApJ 422, 158,
+`1994ApJ...422..158O`) p. 161, coefficients copied from the ADS scan; infrared and ultraviolet stay CCM89, as the paper
+prescribes. A new law name, `extinction_law="ccm89_o94"`. **`"ccm89"` keeps its arithmetic bit for bit** (the frozen
+oracles, `test_fit_determinism`, the C1 certificate and P01 pin it), and its docstring now says pure CCM89.
+
+**Default.** Unchanged for the Gaia EDR3 bands at R_V = 3.1 (`"gaia_edr3"`). The fallback for any other band or R_V
+moves from `"ccm89"` to `"ccm89_o94"`, because that fallback was documented as CCM89 + O'Donnell 94; this is the law the
+package said it used. The 2MASS J, H, Ks wavelengths sit at x < 1.1, where the two laws are identical, so only an
+optical non-Gaia band or a Gaia fit at R_V != 3.1 can see the change. Open as a question to the author.
+
+**Measured.** At the Gaia wavelengths and R_V = 3.1: k_G -0.97 %, k_BP +1.02 %, k_RP +1.82 %, k_BP - k_RP -0.08 % (O94 relative to CCM89).
+With a constant law the likelihood sees only (dm + k_G A_V, k_col A_V), so a CCM optimum maps exactly onto an O94 one:
+A_V' = A_V k_col / k_col', dm' = dm + k_G A_V - k_G' A_V'. On the NGC 6383 frame of the hub's metallicity tornado
+(stored CCM optimum, A_V 0.7586, dm 10.2125) that map gives A_V 0.7592 and dm 10.2182 with the same log L to the last
+printed digit; the dm prior is the only term that breaks the identity. The re-optimised O94 fit is in the hub finding
+`extinction-o94-2026-11-05.md`.
+
+**Not adopted.** A dependency on `dust_extinction`: it is the oracle (frozen values in `tests/test_isochrone.py`), not
+a runtime need, and its models are NumPy/astropy, not traceable in PyTensor or JAX. Fitzpatrick 1999/2004, Gordon 2023 and
+the other curves of the hub's survey: not asked for, and the Gaia EDR3 law already covers the default case.
+
+**Oracle / mutations seen red.** `TestODonnell94`: both branches against `dust_extinction` 1.7 at 21 (R_V, lambda) points
+to 1e-12; the coefficient tuples against p. 161; IR/UV identical to CCM89; the published step at x = 1.1 (< 4e-4) and
+x = 3.3 (0.009-0.011, the same in `dust_extinction`). Mutations: one coefficient 0.104 -> 0.105 (24 tests red); the
+`"ccm89_o94"` law routed to the CCM89 branch (2 red); the fallback back to `"ccm89"` (1 red).
+
+**Correction, same day (2026-11-05), after the entry above was committed.** The entry above, and the docstrings it
+describes, kept saying that `"ccm89"` is "what P01 used". That is false. P01's isochrone fit ran ASteCA ("the CCM89
+extinction law with the optical coefficients of O'Donnell 1994, as implemented in ASteCA", aa52082-24.tex), and
+ASteCA's `ccmo_model` (0.7.0, and the legacy copy under `data/test/NGC6383/ASteCA/packages/synth_clust/extin_coefs.py`)
+does use the O94 polynomials. At erotica's Gaia wavelengths it gives 0.8361983917837449 / 1.0833639679451164 /
+0.6343873059899496, **bit-identical to `"ccm89_o94"`** (now a test). So P01's text is right, and this fitter's
+`"ccm89"` was never P01's law: the 2026-10-20 entry ("P01 and the CCM-era validation runs are reproduced with
+`extinction_law="ccm89"`") holds for the validation runs, not for P01. The docstrings and the CHANGELOG now say so.
+
+**Regenerable, 2026-11-11.** The "Measured" paragraph above pointed only at a hub finding for its fit-level numbers
+(the Codex review of PR #59). `tools/validation/extinction_o94_ngc6383.py` (sidecar `extinction_o94_ngc6383.json`) now
+recomputes them from this repository: the four coefficient shifts (-0.97 / +1.02 / +1.82 / -0.08 %, from the fitter's own
+effective wavelengths), and the map of the stored CCM optimum (quoted from the hub's `ngc6383_feh_tornado/ccm_free.json`,
+embedded in the script and checked against that file when the hub is present) to A_V 0.7592, dm 10.2182, equal to the
+hub's `control_mapped_params` to 0.0. The log L identity is measured on this fitter's single-age `loglike` for the 254
+members of the P01 reference sample: |Delta log L| = 0.0 at the mapped point, against 0.250 for O94 at the unmapped point
+and 0.045 for the map without rescaling A_V (the two controls). That log L (-582.33) is not the hub frame's (-545.27, two
+ages and an empirical field); the identity holds in both because both apply the law only as the constant shifts. Every
+figure quoted above reproduced; none changed. The structural claim is also a CI test on synthetic data
+(`TestODonnell94::test_constant_laws_are_one_reparametrisation`; seen red with a quadratic A_V term added to the colour
+shift).
+
+**Evaluation order, 2026-11-11.** The O94 branch now evaluates its polynomials by Horner from the highest degree, the
+order of `np.polyval`, which ASteCA's `ccmo_model` and dust_extinction's `O94` both use. The power sum it replaced was
+already bit-identical to ASteCA at the three Gaia wavelengths, but differed from `np.polyval` in the last bits at 20145 of
+40002 (x, a|b) evaluations on a 20001-point grid of 1.1 <= x <= 3.3 (up to 5.0e-14). Now 0 of 40002, a test
+(`test_evaluation_is_np_polyval_bit_for_bit`, red on the power sum). The `"ccm89"` branch is untouched.
+
+## 2026-11-09 — `erotica.metallicity.pms_bias`: ASPCAP's [Fe/H] deficit in young K stars, with the symptom as regressor
+
+**Symptom.** ASPCAP DR17 returns [Fe/H] too low for young (< 10 Myr) late-G/K stars. In the 104-star calibration sample
+(12 clusters), relative to the Pleiades + alpha Per G-dwarf anchor (+0.021), the median deficit is -0.17 dex without
+infrared excess (Ks - [4.5] < 0.4, 82 stars) and -0.45 dex with it (22). Using ASPCAP [Fe/H] of a young cluster as its
+metallicity, as the HD 159176 / NGC 6383 work needed, inherits that offset. The DR17 calibration applies no correction for it
+(hub finding, section 4.2).
+
+**Cause (as far as measured; inferred where marked).** Something in the spectrum that varies star to star lowers ASPCAP's
+log g and [Fe/H] together. Measured in the hub's young-K sample: the infrared excess correlates with ASPCAP's log g
+(rho = -0.78, N 122) and not with the physical log g from the Gaia luminosity (+0.02); inside a cluster at fixed T_eff,
+[Fe/H] follows ASPCAP's log g (+0.26 dex per dex in stars without excess) and not the physical one. Which mechanism
+(veiling, spots, Zeeman) is the hub's section 6, not this module's claim.
+
+**Fix.** An empirical model, delta = a + b (log g_ASPCAP - 4) + c (T_eff - 4800)/500 + d max(Ks - [4.5], 0), OLS on the
+104 stars, per-star scatter sigma_e = 0.061 and between-cluster tau = 0.028 from the residuals. Prediction error =
+parameters (+) tau (+) sigma_ref 0.05 (+) anchor 0.005, without sigma_e. Ported from the hub prototype
+`agent-findings/scripts/apogee_pms_bias_correction_2026_11_09.py`; the coefficients are its `.json` at full precision.
+Three guards follow from the regressor being the symptom: `logg_source` is required and only `"aspcap_dr17"` /
+`"aspcap_dr19"` pass (a log g from isochrones or another pipeline is a different variable); outside T_eff 4000-5500 K,
+log g 3.0-4.8 or Ks - [4.5] -0.2 to 2 a `PMSBiasDomainWarning`; and `extrapolated` for a star without excess
+(< 0.4, the split of the hub findings of 2026-11-06 and 2026-11-09) at log g < 3.45, because the slope b is learned
+mostly from disc stars at low log g. In this sample the lowest-log g star without excess sits at 3.507; the hub's
+"two stars below 3.45" refers to the 2026-11-06 sample, not to these 104.
+
+**Not done.** No physical model, and no claim that the terms are mechanisms. 12 clusters, all within 1 kpc and mostly northern.
+Not added to `docs/api/index.rst`, which is a curated list with a stated count.
+
+**Oracle.** The prototype's frozen outputs: N 104 in 12 clusters from the 229-row table, LOCO RMS 0.076 per star against
+0.137 for a constant (and 0.047 per cluster mean), delta = -0.238 +- 0.060 (4654 K, 3.78, 0.04) and -0.320 +- 0.063
+(5024 K, 3.20, 0.09) for the two NGC 6383 members, all reproduced. The embedded coefficients are refitted to 1e-10.
+Non-default arguments have exact consequences: `anchor=0` moves only `a`, by 0.021; `sigma_ref` and `anchor_err` add in
+quadrature.
+
+**Mutations seen red** (`tests/test_pms_bias.py`): no clip of the excess (2 tests), sign of the log g term (4), `|` for `&`
+in the extrapolation flag (2), anchor error dropped from sigma (2). The excess clip does not move the LOCO thresholds
+(8 calibration stars have Ks - [4.5] < 0, the most negative -0.06); only the refit and the negative-excess test catch it.
+
+**Number that moved.** None in the package: new module. Source: hub `agent-findings/apogee-pms-bias-deep-2026-11-09.md`
+sections 4.3 and 7; author decision D26-52 (2026-11-09).
+
 ## 2026-11-10 — the faint-bin field prior: calibrating it on empty fields does not pay (hub thread B16)
 
 **Symptom:** faint (G >= 18.5) mid-range p under-confident; the A1 prior on the faint field count sat ~32 % above the
@@ -2362,3 +2503,91 @@ narrow member inside that kills the region-nodes-only variant); red before the f
 red), red again under each mutation. **Side effect, measured:** the fixture fits (256 normals) move toward the
 converged answer: against fits with 16384 normals (the old scheme converges with the mean inside), |Δμ_x| goes from
 0.036-0.046 to 0.000-0.034 and |Δσ_c| from 0.015-0.025 to 0.001-0.018 over seeds 0-3. The recovery tolerances hold.
+
+## 2026-11-11 — `pms_bias` predicts from the hierarchical posterior; the OLS with tau by moments stays as the control
+
+**Symptom.** `predict_bias` gave the two NGC 6383 members delta = -0.238 +- 0.060 and -0.320 +- 0.063 (entry of
+2026-11-09). That sigma adds the between-cluster scatter tau = 0.028 as if it were known; it is a moment estimate from
+12 clusters. With 12 clusters tau is not known, and the uncertainty of a prediction for a new cluster has to carry that.
+
+**Cause.** The hub's hierarchical fit of the same model (finding `agent-findings/pms-bias-hierarchical-2026-11-10.md`,
+model M1: random cluster offsets tau z_c, non-centred; per-star error sqrt(fe_h_err^2 + sigma^2); priors a, c ~ N(0, 0.3),
+b, d ~ N(0, 0.5), tau, sigma ~ HalfNormal(0.10), each scale argued there from a physical range) gives tau a posterior
+median of 0.043, 68 % [0.031; 0.060], P(tau < 0.02) = 0.020. The moment estimate 0.028 sits at the 4th percentile of that
+posterior, and it entered the prediction as a point. The members' centres barely move; their sigma was short by 0.013.
+
+**Fix (author decision D26-64, 2026-11-11).** The default of `predict_bias` is the M1 posterior. Its draws (2 nutpie
+chains x 4000 after 2000 tuning, seed 11, from the hub run `scripts/pms_bias_hierarchical_2026_11_10.py fit`, draws file
+sha256 f290b5a6..., hub commit 0669a745) ship as package data, `erotica/metallicity/data/pms_bias_hierarchical_posterior.npz`
+(float32, 340 kB; `[tool.setuptools.package-data]` added so the wheel carries it). Applying the correction therefore needs
+no sampler. `predict_bias` takes the predictive moments in closed form from the draws,
+sigma = sqrt(Var(x.beta) + E[tau^2] + sigma_ref^2 + anchor_err^2), deterministic, no random numbers; `predictive_draws`
+returns the joint predictive for stars of one new cluster (u_new and r shared), which is what averaging members needs:
+the mean of the two members is -0.277 +- 0.075, not +- 0.053. `fit_hierarchical_model` refits with PyMC + nutpie (JAX
+backend, through `erotica.analysis.inference._sample`, `cores=1`). No optional extra was added: `pymc[nutpie]`, `jax` and
+`arviz` are already core dependencies (pyproject, 2026-10-19), so the lazy import only keeps `import erotica.metallicity`
+light. The OLS path is unchanged and selectable (`model=CALIBRATED_MODEL`). The vendored calibration table gains
+`fe_h_err` (ASPCAP DR17 FE_H_ERR, joined by apogee_id and fe_h as the hub loader does; the 104 selected values equal its
+output exactly), which the refit needs.
+
+The **Student-t** likelihood is shipped as a declared arm, not the default (author decision D26-63): `load_posterior("student_t")`.
+The normal likelihood does not reproduce the tails of the within-cluster residuals (excess kurtosis 5.35 against
+[-0.73; 0.99] in replicas, a statistic chosen after looking), and one disc star of NGC 2264 decides it; with Student-t the
+log g slope goes from +0.21 to +0.29 and the low-log g member from -0.323 to -0.376. Two lines, neither decisive, and
+the hub asks for a second one (DR19, or no discs below log g 3.5) before the central changes.
+
+**Not done.** The posterior is not refitted at import or install: the shipped draws are the calibration, and a refit with
+another seed moves posterior means by <= 0.01 (test). No interaction term (the hub's B-int: +0.018 +- 0.056, moves the
+member by 0.005; not adopted by its own rule). Mode search is opt-in in `fit_hierarchical_model`: in the non-centred
+space the joint mode sits at tau ~ 0.15 with small z (the funnel), which is not the marginal mode of tau; the hub's
+10-start search on M1 found one mode in (a, b, c, d, sigma).
+
+**Oracle.** The hub run, an implementation written separately (its own `build()`, `pm.Potential` likelihood, nutpie's
+numba backend): the members' Monte Carlo predictive -0.230 +- 0.073 and -0.323 +- 0.077, the Student-t arm -0.255 +- 0.082
+and -0.376 +- 0.086, posterior means and tau quantiles (sec. 2.1). Here: closed-form moments within 0.002; the
+closed form against `predictive_draws` within MC error; and a refit with the package's own builder (normal, Student-t,
+and tau scale 0.05, a non-default prior the hub ran as B-tau) lands within 0.01 of the shipped posterior means and
+0.004 of the hub's tau medians, with R-hat <= 1.01, ESS >= 400 and < 1 % divergences. Validation of the model itself is
+the hub's: SBC p >= 0.040 in 7 quantities, leave-one-cluster-out predictive coverage 0.952 at 95 % and 0.750 at 68 % over
+104 stars, coverage at fixed truth inside Jeffreys for the predictive in all three tau (one cell of 24, b at 68 % with
+tau = 0.08, outside, at the rate the gate itself produces).
+
+**Number that moved.**
+
+| quantity | OLS (2026-11-09, now `model=CALIBRATED_MODEL`) | M1 posterior (default) |
+|---|---|---|
+| tau | 0.028 (moments, as known) | 0.043 [68 %: 0.031; 0.060] |
+| delta, 2M17345303-3233578 (4654 K, log g 3.78, excess 0.04) | -0.238 +- 0.060 | -0.230 +- 0.073 (closed form 0.0725) |
+| delta, 2M17344796-3234216 (5024 K, log g 3.20, excess 0.09) | -0.320 +- 0.063 | -0.323 +- 0.077 (closed form 0.0761) |
+| mean of the two members | -0.279 +- 0.061 (hub sec. 2.1 table) | -0.277 +- 0.075 (joint draws) |
+| (a, b, c, d) | -0.181, +0.183, +0.041, -0.124 | -0.165, +0.208, +0.047, -0.143 |
+
+The closed-form sigma of the second member is 0.0761, the hub's Monte Carlo printed 0.077: the MC error of a standard
+deviation from 8000 draws is ~0.0006.
+
+**Mutations seen red** (`tests/test_pms_bias.py`, each confirmed applied before reading): no E[tau^2] in sigma (6 tests);
+tau's median squared in place of E[tau^2], i.e. tau as known (5); Student-t as the default (4); independent u_new and r
+per star in `predictive_draws` (1, the shared-offset test); no r in `predictive_draws` (2); `tau_scale` ignored in the
+refit (1, the HalfNormal(0.01) test; the hub's B-tau 0.05 alone could not see it, its tau median moves 0.002); cluster
+term removed from the refit model (1). First, on the code before this change, the members' test was red on sigma:
+0.0595 and 0.0634 against 0.073 and 0.077.
+
+## 2026-11-11 — `pms_bias` review of PR #61: shared cluster offsets in the OLS covariance, masks, degenerate samples
+
+**Symptom / cause / fix**, one per review thread, each with a test seen red before the fix and red again under its
+mutation:
+
+| thread | symptom | cause | fix | test |
+|---|---|---|---|---|
+| Codex P2, OLS covariance | the least-squares coefficient errors understate: sd of a 0.0131, of b 0.0284 | `(X^T X)^-1 (sigma_e^2 + tau^2)` treats tau as per-star noise, but the offset is shared by a cluster's stars, so more stars per cluster average it away | cluster-aware sandwich `A^-1 X^T V X A^-1`, `V = sigma_e^2 I + tau^2` on same-cluster pairs; embedded `CALIBRATED_MODEL.cov` regenerated: sd of a 0.0162, b 0.0355, c 0.0146, d 0.0307 | replicating every star 10x keeps > 70 % of the intercept sd (the old form: 32 %); closed form of the sandwich to 1e-10 |
+| Codex P2, masks | a masked `ks_minus_45` or `fe_h` with finite data underneath enters the fit and can lift a cluster over the 3-star threshold | `np.asarray` on an astropy `MaskedColumn` returns the values under the mask | `_numeric`: `np.ma.filled(np.ma.asarray(col, float), nan)` for every numeric column, also `fe_h_err` in the hierarchical fit | masking 5 selected rows equals setting them to NaN, in selection and coefficients |
+| Gemini, singleton clusters | `select=False` with one star per cluster gives `sigma_e` = NaN and a RuntimeWarning | no within-cluster variance exists | `_check_sample` raises `ValueError` | one star per cluster raises |
+| Gemini, < 4 stars | `lstsq` returns a minimum-norm solution, no error | 4 coefficients, design of rank < 4 | `_check_sample` checks the **rank** of the design, which also catches >= 4 stars with an all-zero excess column (d unidentified) | 3 stars raise; all-zero excess raises |
+| Gemini, LOCO with < 2 clusters | silent or NaN | each training fit needs >= 2 clusters for tau | `leave_one_cluster_out` needs >= 3 clusters; the same `_check_sample` guards each training fit and `fit_hierarchical_model` | 2 clusters raise |
+
+The default path (hierarchical posterior) already models the shared offset as `u_c` and puts `E[tau^2]` in every
+prediction for a new cluster; a test pins that floor. The least-squares path is what the covariance fix changes.
+
+**Number that moved.** `predict_bias(..., model=CALIBRATED_MODEL)` for the NGC 6383 members: sigma 0.060 -> 0.061 and
+0.063 -> 0.065 (delta unchanged, -0.238 and -0.320); the hierarchical default is unchanged (0.073, 0.076). The gap
+between the two is now 0.012 and 0.011, not 0.013. LOCO is unchanged (it uses coefficients, not their covariance).

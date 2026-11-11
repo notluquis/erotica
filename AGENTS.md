@@ -44,6 +44,16 @@ Design decisions are logged **append-only** in `docs/design-notes/decisions.md` 
 that was wrong and why, not only the fix. A struck-through row in a results table is worth more than
 the row that replaced it.
 
+## Which local env runs this package (author's decision, 2026-10-26)
+
+- **Default: `erotica-2026-10`** (`~/miniforge3/envs/erotica-2026-10/bin/python`). The PyPI stack, built per
+  `~/phd/agent-findings/env-refresh-2026-10-26.md`; it reproduced the batch (R5) and the slow tests (R6) of the old one.
+- **`erotica`: frozen.** Kept unchanged only to reproduce the isochrone batch and HD 159176 (B9). Do not upgrade it.
+- **`cosmic`: retired 2026-11-05** (pymc 6.0.1, below the F1 floor; never had `erotica` installed). Its `conda list
+  --explicit` and `pip freeze` are kept in `~/phd/agent-findings/data/env-cosmic-retired-2026-11-05/`.
+- Never `base`. `environment.yml` declares the dependencies and its own env name (`erotica`); for new work
+  use `erotica-2026-10`, which carries the same package with the newer PyPI stack.
+
 ## Landmines
 - **~30 files hardcode `/Users/notluquis/erotica/...`** (paper figure regen). They
   were rewritten during the 2026-07-21 dir move; if this dir moves again, rewrite

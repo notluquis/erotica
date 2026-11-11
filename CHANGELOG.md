@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Membership mixture with the selection in every component: `erotica.membership` (hub decision AD-I48)
+- **Added:** `erotica.membership`: `MixtureModel` (cluster + field, each normalised over the selected volume through
+  `Truncation` and `CircularRegion`), `EmpiricalField`, CMD line (`photometric_llr`, `MemberSequence`, `SidebandTemplate`),
+  per-G mixing fraction, `TwoLineRule`, `calibrate_by_injection`, `propagate`, and the `cone_mixture()` preset with
+  `CONE_P_HI = 0.8`. On 300 injection replicates in three empty Gaia DR3 fields, then 300 new ones preregistered before any
+  fit, the preset passes the CORP gate in all six subgroups (MCB 0.0012 overall, 0.0174 at G >= 18.5). The bare mixture
+  without the CMD line fails it (MCB 0.0145, AUC 0.727). Full record in `docs/design-notes/decisions.md`, 2026-11-05.
+- **Added:** `expected_field_count`, `FieldPriorCalibration` and `sideband_field_prior` (field-count prior calibrated on
+  empty fields); measured and **not** the default (it worsens r < 20' and 16 <= G < 18.5).
+- **Fixed (before release):** the cluster's selection probability P_A combines Gaussian QMC and the region nodes by
+  multiple importance sampling; the Gaussian QMC alone underestimated it by 17.8 nats with the mean 5 sd outside the region.
+- **Added:** `erotica.calibration.corp` and `CORPResult`: CORP reliability (PAV) and `BS = MCB - DSC + UNC`.
+
+### PMS [Fe/H] bias of ASPCAP: hierarchical posterior by default (hub decisions D26-63, D26-64)
+- **Changed:** `predict_bias` predicts from the posterior of a hierarchical model (random cluster offsets, tau with a
+  prior instead of a moment estimate) shipped as package data, `erotica/metallicity/data/pms_bias_hierarchical_posterior.npz`.
+  The NGC 6383 members go from -0.238 +- 0.060 and -0.320 +- 0.063 to -0.230 +- 0.073 and -0.323 +- 0.077; tau from
+  0.028 to 0.043 [0.031; 0.060]. The OLS path is unchanged under `model=CALIBRATED_MODEL`.
+- **Added:** `HierarchicalPosterior`, `load_posterior` (`"normal"`, default; `"student_t"`, declared arm),
+  `predictive_draws` (joint predictive for stars of one cluster) and `fit_hierarchical_model` (PyMC + nutpie). The
+  vendored calibration table gains `fe_h_err`.
+- **Fixed** (PR #61 review): the least-squares coefficient covariance is cluster-aware (tau is shared by a cluster's
+  stars), so `model=CALIBRATED_MODEL` gives sigma 0.061 and 0.065 for the members instead of 0.060 and 0.063; masked
+  table entries count as missing; samples without a rank-4 design, with fewer than 2 clusters or without a
+  multi-star cluster, and LOCO with fewer than 3 clusters, raise `ValueError`.
+
+### PMS [Fe/H] bias of ASPCAP: `erotica.metallicity.pms_bias` (hub decision D26-52)
+- **Added:** `erotica.metallicity` with `predict_bias`, `fit_bias_model`, `leave_one_cluster_out` and
+  `select_calibration_sample`. Empirical model of the [Fe/H] that ASPCAP DR17 under-reports in young K stars,
+  delta = a + b (log g - 4) + c (T_eff - 4800)/500 + d max(Ks - [4.5], 0), calibrated on 104 stars in 12 clusters
+  (vendored as `tests/data/apogee_dr17_young_k_pms_bias.ecsv`). Leaving one cluster out: RMS 0.076 dex per star
+  against 0.137 for a constant. `logg_source` is required and must be `"aspcap_dr17"` or `"aspcap_dr19"`: the
+  regressor is ASPCAP's own log g, which carries the bias. Stars outside the calibration domain warn
+  (`PMSBiasDomainWarning`); stars without excess below log g 3.45 are flagged `extrapolated`.
+
+### O'Donnell (1994) optical extinction (`extinction_law="ccm89_o94"`)
+- **Added:** `extinction_law="ccm89_o94"` and `_ccm89(..., optical="o94")`: CCM89 with O'Donnell's (1994) optical
+  polynomials for 1.1 <= x <= 3.3 um^-1. At the Gaia wavelengths k_G is 0.97 % lower and k_BP - k_RP 0.08 % lower.
+- **Fixed (label, numbers unchanged):** `"ccm89"` was documented as "CCM89 + O'Donnell 94" and as "what P01 used",
+  and always computed pure CCM89; the docstrings now say so. Every pinned `"ccm89"` result is bit-identical. P01's
+  isochrone fit ran ASteCA, whose law equals `"ccm89_o94"` bit for bit.
+- **Changed:** with `extinction_law=None` and non-Gaia bands or R_V != 3.1, the fallback is `"ccm89_o94"` (was
+  `"ccm89"`). The Gaia EDR3 default is unchanged; 2MASS J, H, Ks are unaffected (x < 1.1).
+- **Validation:** `tools/validation/extinction_o94_ngc6383.py` regenerates the coefficient shifts and the closed-form map
+  of a CCM89 fit onto O94 (same log L) quoted in the design note; the O94 polynomials are evaluated as `np.polyval`
+  does, bit-identical to ASteCA's and dust_extinction's over the whole optical branch.
+
+### `lambda_msr`: `lo_1sigma`/`hi_1sigma` are now the Parker & Goodwin (2015) bar on Λ (hub D26-36)
+- **Fixed (numbers change):** `SegregationResult.lo_1sigma`/`hi_1sigma` returned `mean(pool)/q_{5/6}(pool)` and
+  `mean(pool)/q_{1/6}(pool)`, the 1/6-5/6 band of Λ **under the null** (≈ 0.80-1.34 for NGC 6383 whatever Λ is), while the
+  docstring called them the Parker & Goodwin (2015, Eq. 2) error bars. They are now `q_{1/6}(pool)/T_massive` and
+  `q_{5/6}(pool)/T_massive`, which bracket Λ and scale with it (NGC 6383, 40′, N_MST = 10: Λ = 2.86, bar [2.14; 3.59]; the old
+  fields gave [0.80; 1.34]).
+- **Added:** `null_p17`/`null_p83` keep the null band under a name that says what it is, next to `null_p95`/`null_p99`.
+- **Not affected:** `lam`, `p_value`, `sigma_equivalent`, `null_*`, `sigma_norm`. The P01 figure used `sigma_norm`, not these
+  fields.
+
 ### Wilson (1975) model in `compare_radial_profiles` (hub thread G7)
 - **Added:** `models=(..., "wilson")`, `WilsonPriors`, and `erotica.analysis.wilson` (Poisson solve + Abel projection of the
   `g = 2` lowered isothermal model, tabulated for `W0` in [1, 10]; no new dependency). `compare_radial_profiles` also takes `cores`.

@@ -295,7 +295,7 @@ def expected_calibration_error(
 ) -> tuple[float, float]:
     """Return ``(ECE, MCE)`` — the count-weighted mean and max reliability gap.
 
-    ECE = Σ_m (n_m / N) · |obs_m − pred_m|; MCE = max_m |obs_m − pred_m|,
+    ``ECE = Σ_m (n_m / N) · |obs_m − pred_m|``; ``MCE = max_m |obs_m − pred_m|``,
     over non-empty bins (Guo et al. 2017). Uses equal-width bins by default.
     """
     diagram = reliability_diagram(probabilities, labels, n_bins=n_bins, strategy=strategy)
@@ -326,8 +326,8 @@ def hosmer_lemeshow(
     and the p-value is :math:`P(\chi^2_{g-2} > \hat{H})`. Large :math:`\hat{H}`
     (small p) rejects calibration.
 
-    Caveats
-    -------
+    Notes
+    -----
     * ``dof = n_groups - 2`` is the convention Hosmer & Lemeshow calibrated for
       probabilities *fit* to the same sample by logistic regression. EROTICA's p̃
       is computed externally (not fit to these labels), so ``g-2`` is mildly
