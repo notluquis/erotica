@@ -29,7 +29,7 @@ for lo, hi in ((0, 15), (15, 17), (17, 18), (18, 19), (19, 21)):
     k1 = int(np.sum(o["oof"][s] >= .5))
     print(f"  G {lo}-{hi}: n {s.sum():5d}  propio {k1 / max(s.sum(), 1):.3f} {np.round(cp(k1, s.sum()), 3)}")
 
-t = Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))
+t = Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))
 t = t[np.argsort(np.asarray(t["GaiaDR3"], np.int64))]
 pr = np.load(C / "ngc6383_pred.npz")
 h = Table.read(C / "ngc6383_hr23.ecsv")[0]

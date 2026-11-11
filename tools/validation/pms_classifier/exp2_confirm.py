@@ -210,7 +210,7 @@ if __name__ == "__main__":
           f"{'pasa' if g3 else 'FALLA'}")
 
     # ------------------------------------------------------------ G4 ablacion de NIR
-    t83 = Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))
+    t83 = Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))
     q83 = np.array([str(x) if (x is not None and not np.ma.is_masked(x) and len(str(x)) == 3) else "XXX"
                     for x in t83["tmass_ph_qual"]])
     miss83 = np.stack([~np.isfinite(core.nir_clean(f(t83[f"{bd}_2mass"]), [s[i] for s in q83]))

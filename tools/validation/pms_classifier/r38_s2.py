@@ -101,7 +101,7 @@ for nm, th in (("S0", th0), ("S2", th2)):
     rt = [float(np.mean(d6[sel6 & (k6 == i)])) for i in range(4)]
     print(f"  {nm}: recall {d6[sel6].mean():.3f}; por tramo {np.round(rt, 3).tolist()}; reponderado a NGC 6383 {np.dot(E.W6383, rt):.3f}; "
           f"diferencia {np.mean(a - b):+.3f} [{lo:+.3f}; {hi:+.3f}] -> G3 {'pasa' if not hi < -0.05 else 'FALLA'}")
-t83 = Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))
+t83 = Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))
 q83 = np.array([str(x) if (x is not None and not np.ma.is_masked(x) and len(str(x)) == 3) else "XXX" for x in t83["tmass_ph_qual"]])
 miss83 = np.stack([~np.isfinite(core.nir_clean(f(t83[f"{bd}_2mass"]), [s[i] for s in q83])) for i, bd in enumerate(("J", "H", "Ks"))], 1)
 G83 = f(t83["G"])

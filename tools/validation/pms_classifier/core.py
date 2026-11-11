@@ -31,9 +31,9 @@ MIST = Path(
 ).expanduser()
 #: Tablas de entrada que no viven en este repositorio: variable de entorno -> que tabla es.
 INPUTS = {
-    "PMS_VIRAC2_MEMBERS": "virac2_ngc6383_members_clean.ecsv, los miembros de NGC 6383 con VIRAC2 y 2MASS"
+    "NGC6383_VIRAC2_MEMBERS": "virac2_ngc6383_members_clean.ecsv, los miembros de NGC 6383 con VIRAC2 y 2MASS"
     " (GaiaDR3, tmass_ph_qual y fotometria NIR; no publicada)",
-    "PMS_P01_CDS_MEMBERS": "ngc6383_members.ecsv, la tabla de miembros del CDS de Pulgar-Escobar et al."
+    "P01_CDS_MEMBERS": "ngc6383_members.ecsv, la tabla de miembros del CDS de Pulgar-Escobar et al."
     " (A&A 715, A228), columnas Ref, GaiaDR3, RAdeg, DEdeg, Plx, Gmag, BPmag, RPmag, Jmag, Hmag, Ksmag",
 }
 

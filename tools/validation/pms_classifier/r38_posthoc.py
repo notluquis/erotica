@@ -26,7 +26,7 @@ th = np.array(json.load(open(C / "exp2_selected.json"))["th"])
 o = load_oos()
 sid_pool = np.asarray(o["m"]["GaiaDR3"], np.int64)
 sid_tr = np.asarray(Table.read(C / "hr23_members.ecsv")["GaiaDR3"], np.int64)
-sid_p01 = np.asarray(Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))["GaiaDR3"], np.int64)
+sid_p01 = np.asarray(Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))["GaiaDR3"], np.int64)
 print("[P1] pool contra entrenamiento completo (hr23_members, train + val):", np.isin(sid_pool, sid_tr).sum(),
       "| contra los 254 de P01:", np.isin(sid_pool, sid_p01).sum(),
       "| guardia con uno metido a proposito:", np.isin(np.append(sid_pool, sid_tr[0]), sid_tr).sum(),

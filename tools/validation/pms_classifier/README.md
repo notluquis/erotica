@@ -13,8 +13,8 @@ es la salida de su script homónimo en la rama `pms-classifier` (`300e028`, cons
 
 | variable | qué es |
 |---|---|
-| `PMS_VIRAC2_MEMBERS` | `virac2_ngc6383_members_clean.ecsv`: miembros de NGC 6383 con VIRAC2 y 2MASS (no publicada) |
-| `PMS_P01_CDS_MEMBERS` | `ngc6383_members.ecsv`: tabla de miembros del CDS de Pulgar-Escobar et al. (A&A 715, A228) |
+| `NGC6383_VIRAC2_MEMBERS` | `virac2_ngc6383_members_clean.ecsv`: miembros de NGC 6383 con VIRAC2 y 2MASS (no publicada) |
+| `P01_CDS_MEMBERS` | `ngc6383_members.ecsv`: tabla de miembros del CDS de Pulgar-Escobar et al. (A&A 715, A228) |
 | `PMS_MIST_UBVRIPLUS` | isócrona MIST v1.2 UBVRIplus ([Fe/H] = 0, v/v_crit = 0,4); por defecto `data/test/NGC6383/MIST/UBVRIplus/` del checkout |
 | `SAGITTA_SRC` | sdist extraído de `sagitta-1.2.3.tar.gz` (control con Sagitta; ver `sagitta_ref.py`) |
 

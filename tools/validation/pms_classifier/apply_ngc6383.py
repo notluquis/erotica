@@ -50,9 +50,9 @@ print(f"NGC 6383 (HR23): dist50 {float(h['dist50']):.1f} pc, MOD50 {MOD:.3f} [{f
       f"AV50 {AV:.3f} [{float(h['AV16']):.3f}; {float(h['AV84']):.3f}], diffAV50 {float(h['diffAV50']):.2f} "
       f"(logAge50 {float(h['logAge50']):.2f}: NO se usa)")
 
-tab = Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))
+tab = Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))
 tab = tab[np.argsort(np.asarray(tab["GaiaDR3"], np.int64))]
-cds = Table.read(core.input_table("PMS_P01_CDS_MEMBERS"))
+cds = Table.read(core.input_table("P01_CDS_MEMBERS"))
 cds = cds[cds["Ref"] == 1]
 cds = cds[np.argsort(np.asarray(cds["GaiaDR3"], np.int64))]
 assert np.all(np.asarray(cds["GaiaDR3"], np.int64) == np.asarray(tab["GaiaDR3"], np.int64))

@@ -20,10 +20,10 @@ import sagitta_ref as S
 import core
 
 f = lambda t, k: np.ma.filled(np.ma.asarray(t[k]).astype(float), np.nan)  # noqa: E731
-cds = Table.read(core.input_table("PMS_P01_CDS_MEMBERS"))
+cds = Table.read(core.input_table("P01_CDS_MEMBERS"))
 cds = cds[cds["Ref"] == 1]
 cds = cds[np.argsort(np.asarray(cds["GaiaDR3"], np.int64))]
-tab = Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))
+tab = Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))
 tab = tab[np.argsort(np.asarray(tab["GaiaDR3"], np.int64))]
 assert np.all(np.asarray(cds["GaiaDR3"], np.int64) == np.asarray(tab["GaiaDR3"], np.int64))
 q = np.array([str(x) if (x is not None and not np.ma.is_masked(x) and len(str(x)) == 3) else "---" for x in tab["tmass_ph_qual"]])

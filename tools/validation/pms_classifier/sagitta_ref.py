@@ -75,7 +75,7 @@ if __name__ == "__main__":
     from astropy.table import Table
     import astropy.units as u
 
-    cds = Table.read(core.input_table("PMS_P01_CDS_MEMBERS"))
+    cds = Table.read(core.input_table("P01_CDS_MEMBERS"))
     cds = cds[cds["Ref"] == 1]
     f = lambda k: np.ma.filled(np.ma.asarray(cds[k]).astype(float), np.nan)  # noqa: E731
     sc = SkyCoord(f("RAdeg") * u.deg, f("DEdeg") * u.deg).galactic

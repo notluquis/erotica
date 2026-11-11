@@ -122,7 +122,7 @@ if __name__ == "__main__":
     m, X, y, grp, logt, dist, av = m[ok], X[ok], y[ok], grp[ok], logt[ok], dist[ok], av[ok]
     ph = {k: v[ok] for k, v in ph.items()}
     sid = np.asarray(m["GaiaDR3"], np.int64)
-    p01 = Table.read(core.input_table("PMS_VIRAC2_MEMBERS"))
+    p01 = Table.read(core.input_table("NGC6383_VIRAC2_MEMBERS"))
     ids254 = np.asarray(p01["GaiaDR3"], np.int64)
     inter = np.intersect1d(sid, ids254)
     print(f"    GUARDIA: miembros de P01 (254) en el entrenamiento: {len(inter)}  (debe ser 0)")
