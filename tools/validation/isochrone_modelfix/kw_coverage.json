@@ -3407,7 +3407,7 @@
     },
     "ctrl_sigma_int": {
      "mode": 0.050493774082287515,
-     "sd": NaN,
+     "sd": null,
      "err": 0.010493774082287514,
      "in68": false,
      "in90": false
@@ -3421,7 +3421,7 @@
     },
     "ctrl_f_bg": {
      "mode": 0.0001,
-     "sd": NaN,
+     "sd": null,
      "err": 0.0001,
      "in68": false,
      "in90": false

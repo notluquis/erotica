@@ -105,7 +105,7 @@
     "n": 18,
     "run_mad": 0.17824363708496094,
     "run_tail": 0.3333333333333333,
-    "ridge_med": Infinity,
+    "ridge_med": null,
     "ridge_mad": 0.08727725833594535,
     "ridge_tail": 1.0,
     "ridge_nan": 14,
@@ -361,7 +361,7 @@
      "n": 13,
      "run_mad": 0.18821281920985866,
      "run_tail": 0.4166666666666667,
-     "ridge_med": Infinity,
+     "ridge_med": null,
      "ridge_mad": 0.07367885264921781,
      "ridge_tail": 1.0,
      "ridge_nan": 7
@@ -695,7 +695,7 @@
      "n": 13,
      "run_mad": 0.19185401966407012,
      "run_tail": 0.36363636363636365,
-     "ridge_med": Infinity,
+     "ridge_med": null,
      "ridge_mad": 0.11301295225760621,
      "ridge_tail": 1.0,
      "ridge_nan": 7

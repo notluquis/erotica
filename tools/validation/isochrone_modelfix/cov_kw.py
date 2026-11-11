@@ -279,7 +279,10 @@ def main(cells) -> None:
             r.get("rule"),
         )
     name = os.environ.get("COV_OUT", "kw_coverage.json")  # C3' arms go to their own file (§2.17)
-    (HERE / name).write_text(json.dumps(out, indent=1, default=float) + "\n")
+    sys.path.insert(0, str(HERE.parent / "isochrone_intervals"))
+    from iv_common import dump
+
+    dump(HERE / name, out)  # NaN / inf as null
 
 
 if __name__ == "__main__":
