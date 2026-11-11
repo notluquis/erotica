@@ -2227,6 +2227,70 @@ King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 
 **Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
 (1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
 
+## 2026-11-05 — `"ccm89_o94"`: O'Donnell (1994) in the optical, and the label that said it was already there
+
+**Symptom.** The comment above `_ccm89`, the `IsochroneFitter` docstring and the hub's model catalogue all said
+"CCM89 + O'Donnell 94". The optical polynomial in the code was CCM89's (`0.17699 y - 0.50447 y^2 ...`), so
+`_ccm89` gave 0.8444 / 1.0724 / 0.6231 at the Gaia G / BP / RP effective wavelengths, equal to `CCM89` of
+`dust_extinction` 1.7 and not to its `O94` (0.8362 / 1.0834 / 0.6344). Found by the hub's survey of extinction laws
+(`~/phd/agent-findings/extinction-laws-gaia-2026-11-05.md`). The label was wrong; the numbers that reached P01 were
+CCM89's and are what P01 says it used, numerically.
+
+**Fix.** The author chose to implement O94 rather than only relabel (hub decision AD-I54). `_ccm89(lam, Rv,
+optical="ccm89" | "o94")`: with `"o94"`, the 1.1 <= x <= 3.3 um^-1 branch is O'Donnell (1994, ApJ 422, 158,
+`1994ApJ...422..158O`) p. 161, coefficients copied from the ADS scan; infrared and ultraviolet stay CCM89, as the paper
+prescribes. A new law name, `extinction_law="ccm89_o94"`. **`"ccm89"` keeps its arithmetic bit for bit** (the frozen
+oracles, `test_fit_determinism`, the C1 certificate and P01 pin it), and its docstring now says pure CCM89.
+
+**Default.** Unchanged for the Gaia EDR3 bands at R_V = 3.1 (`"gaia_edr3"`). The fallback for any other band or R_V
+moves from `"ccm89"` to `"ccm89_o94"`, because that fallback was documented as CCM89 + O'Donnell 94; this is the law the
+package said it used. The 2MASS J, H, Ks wavelengths sit at x < 1.1, where the two laws are identical, so only an
+optical non-Gaia band or a Gaia fit at R_V != 3.1 can see the change. Open as a question to the author.
+
+**Measured.** At the Gaia wavelengths and R_V = 3.1: k_G -0.97 %, k_BP +1.02 %, k_RP +1.82 %, k_BP - k_RP -0.08 % (O94 relative to CCM89).
+With a constant law the likelihood sees only (dm + k_G A_V, k_col A_V), so a CCM optimum maps exactly onto an O94 one:
+A_V' = A_V k_col / k_col', dm' = dm + k_G A_V - k_G' A_V'. On the NGC 6383 frame of the hub's metallicity tornado
+(stored CCM optimum, A_V 0.7586, dm 10.2125) that map gives A_V 0.7592 and dm 10.2182 with the same log L to the last
+printed digit; the dm prior is the only term that breaks the identity. The re-optimised O94 fit is in the hub finding
+`extinction-o94-2026-11-05.md`.
+
+**Not adopted.** A dependency on `dust_extinction`: it is the oracle (frozen values in `tests/test_isochrone.py`), not
+a runtime need, and its models are NumPy/astropy, not traceable in PyTensor or JAX. Fitzpatrick 1999/2004, Gordon 2023 and
+the other curves of the hub's survey: not asked for, and the Gaia EDR3 law already covers the default case.
+
+**Oracle / mutations seen red.** `TestODonnell94`: both branches against `dust_extinction` 1.7 at 21 (R_V, lambda) points
+to 1e-12; the coefficient tuples against p. 161; IR/UV identical to CCM89; the published step at x = 1.1 (< 4e-4) and
+x = 3.3 (0.009-0.011, the same in `dust_extinction`). Mutations: one coefficient 0.104 -> 0.105 (24 tests red); the
+`"ccm89_o94"` law routed to the CCM89 branch (2 red); the fallback back to `"ccm89"` (1 red).
+
+**Correction, same day (2026-11-05), after the entry above was committed.** The entry above, and the docstrings it
+describes, kept saying that `"ccm89"` is "what P01 used". That is false. P01's isochrone fit ran ASteCA ("the CCM89
+extinction law with the optical coefficients of O'Donnell 1994, as implemented in ASteCA", aa52082-24.tex), and
+ASteCA's `ccmo_model` (0.7.0, and the legacy copy under `data/test/NGC6383/ASteCA/packages/synth_clust/extin_coefs.py`)
+does use the O94 polynomials. At erotica's Gaia wavelengths it gives 0.8361983917837449 / 1.0833639679451164 /
+0.6343873059899496, **bit-identical to `"ccm89_o94"`** (now a test). So P01's text is right, and this fitter's
+`"ccm89"` was never P01's law: the 2026-10-20 entry ("P01 and the CCM-era validation runs are reproduced with
+`extinction_law="ccm89"`") holds for the validation runs, not for P01. The docstrings and the CHANGELOG now say so.
+
+**Regenerable, 2026-11-11.** The "Measured" paragraph above pointed only at a hub finding for its fit-level numbers
+(the Codex review of PR #59). `tools/validation/extinction_o94_ngc6383.py` (sidecar `extinction_o94_ngc6383.json`) now
+recomputes them from this repository: the four coefficient shifts (-0.97 / +1.02 / +1.82 / -0.08 %, from the fitter's own
+effective wavelengths), and the map of the stored CCM optimum (quoted from the hub's `ngc6383_feh_tornado/ccm_free.json`,
+embedded in the script and checked against that file when the hub is present) to A_V 0.7592, dm 10.2182, equal to the
+hub's `control_mapped_params` to 0.0. The log L identity is measured on this fitter's single-age `loglike` for the 254
+members of the P01 reference sample: |Delta log L| = 0.0 at the mapped point, against 0.250 for O94 at the unmapped point
+and 0.045 for the map without rescaling A_V (the two controls). That log L (-582.33) is not the hub frame's (-545.27, two
+ages and an empirical field); the identity holds in both because both apply the law only as the constant shifts. Every
+figure quoted above reproduced; none changed. The structural claim is also a CI test on synthetic data
+(`TestODonnell94::test_constant_laws_are_one_reparametrisation`; seen red with a quadratic A_V term added to the colour
+shift).
+
+**Evaluation order, 2026-11-11.** The O94 branch now evaluates its polynomials by Horner from the highest degree, the
+order of `np.polyval`, which ASteCA's `ccmo_model` and dust_extinction's `O94` both use. The power sum it replaced was
+already bit-identical to ASteCA at the three Gaia wavelengths, but differed from `np.polyval` in the last bits at 20145 of
+40002 (x, a|b) evaluations on a 20001-point grid of 1.1 <= x <= 3.3 (up to 5.0e-14). Now 0 of 40002, a test
+(`test_evaluation_is_np_polyval_bit_for_bit`, red on the power sum). The `"ccm89"` branch is untouched.
+
 ## 2026-11-09 — `erotica.metallicity.pms_bias`: ASPCAP's [Fe/H] deficit in young K stars, with the symptom as regressor
 
 **Symptom.** ASPCAP DR17 returns [Fe/H] too low for young (< 10 Myr) late-G/K stars. In the 104-star calibration sample

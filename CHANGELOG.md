@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regressor is ASPCAP's own log g, which carries the bias. Stars outside the calibration domain warn
   (`PMSBiasDomainWarning`); stars without excess below log g 3.45 are flagged `extrapolated`.
 
+### O'Donnell (1994) optical extinction (`extinction_law="ccm89_o94"`)
+- **Added:** `extinction_law="ccm89_o94"` and `_ccm89(..., optical="o94")`: CCM89 with O'Donnell's (1994) optical
+  polynomials for 1.1 <= x <= 3.3 um^-1. At the Gaia wavelengths k_G is 0.97 % lower and k_BP - k_RP 0.08 % lower.
+- **Fixed (label, numbers unchanged):** `"ccm89"` was documented as "CCM89 + O'Donnell 94" and as "what P01 used",
+  and always computed pure CCM89; the docstrings now say so. Every pinned `"ccm89"` result is bit-identical. P01's
+  isochrone fit ran ASteCA, whose law equals `"ccm89_o94"` bit for bit.
+- **Changed:** with `extinction_law=None` and non-Gaia bands or R_V != 3.1, the fallback is `"ccm89_o94"` (was
+  `"ccm89"`). The Gaia EDR3 default is unchanged; 2MASS J, H, Ks are unaffected (x < 1.1).
+- **Validation:** `tools/validation/extinction_o94_ngc6383.py` regenerates the coefficient shifts and the closed-form map
+  of a CCM89 fit onto O94 (same log L) quoted in the design note; the O94 polynomials are evaluated as `np.polyval`
+  does, bit-identical to ASteCA's and dust_extinction's over the whole optical branch.
+
 ### Wilson (1975) model in `compare_radial_profiles` (hub thread G7)
 - **Added:** `models=(..., "wilson")`, `WilsonPriors`, and `erotica.analysis.wilson` (Poisson solve + Abel projection of the
   `g = 2` lowered isothermal model, tabulated for `W0` in [1, 10]; no new dependency). `compare_radial_profiles` also takes `cores`.

@@ -98,6 +98,147 @@ def _make_cluster_data(n: int = 80, rng: np.random.Generator | None = None) -> Q
 
 
 # ---------------------------------------------------------------------------
+# O'Donnell (1994) optical branch, against an independent implementation
+# ---------------------------------------------------------------------------
+
+# A_lambda/A_V from dust_extinction 1.7 (Gordon 2024, 2024JOSS....9.7023G), classes
+# parameter_averages.O94 and .CCM89, evaluated 2026-11-05 in a separate venv (dust_extinction is
+# not a dependency of erotica). Rows: (Rv, lambda in Angstrom, O94, CCM89). The wavelengths span
+# the optical branch (1.1 <= x <= 3.3 um^-1) and include the three Gaia EDR3 effective ones.
+_DUST_EXTINCTION_O94_CCM89 = (
+    (2.5, 4000.0, 1.526364791109588, 1.580370698294253),
+    (2.5, 4400.0, 1.399357418238947, 1.402466692583215),
+    (2.5, 5182.6, 1.1021373333891429, 1.0865394234736336),
+    (2.5, 5500.0, 0.9983931101478642, 0.9986516360645136),
+    (2.5, 6390.7, 0.8140549389000078, 0.8250090825092099),
+    (2.5, 7825.1, 0.5984308144139392, 0.5813707677284219),
+    (2.5, 9000.0, 0.4306765129703188, 0.43049927380111075),
+    (3.1, 4000.0, 1.4261780246195963, 1.4645557029425837),
+    (3.1, 4400.0, 1.3222187337749216, 1.324521253696164),
+    (3.1, 5182.6, 1.083363967945116, 1.0723843367953645),
+    (3.1, 5500.0, 0.9986671323773463, 0.9988500031135105),
+    (3.1, 6390.7, 0.8361983917837448, 0.8443949482869204),
+    (3.1, 7825.1, 0.6343873059899492, 0.623066994957181),
+    (3.1, 9000.0, 0.4789091501198438, 0.4788075325936101),
+    (5.0, 4000.0, 1.2675489776771096, 1.2811819603024408),
+    (5.0, 4400.0, 1.2000824833735484, 1.2011076421249993),
+    (5.0, 5182.6, 1.05363947265874, 1.049972116221438),
+    (5.0, 5500.0, 0.9991010009073594, 0.9991640842744223),
+    (5.0, 6390.7, 0.8712588588496616, 0.8750892357682953),
+    (5.0, 7825.1, 0.6913184176519651, 0.6890860214027162),
+    (5.0, 9000.0, 0.5552774922732584, 0.5552956090150675),
+)
+
+
+class TestODonnell94:
+    @pytest.mark.parametrize("Rv, lam, k_o94, k_ccm", _DUST_EXTINCTION_O94_CCM89)
+    def test_both_branches_match_dust_extinction(self, Rv, lam, k_o94, k_ccm):
+        """External oracle: O94 and CCM89 of dust_extinction, to rounding."""
+        assert _ccm89(lam, Rv, optical="o94") == pytest.approx(k_o94, rel=0, abs=1e-12)
+        assert _ccm89(lam, Rv) == pytest.approx(k_ccm, rel=0, abs=1e-12)
+
+    def test_gaia_coefficients_equal_asteca(self):
+        """Second implementation: ASteCA 0.7.0 ``synth_cluster_priv.ccmo_model`` (a + b/3.1), the code
+        P01's isochrone fit ran ("CCM89 with the optical coefficients of O'Donnell 1994, as implemented
+        in ASteCA"), evaluated 2026-11-05 at erotica's Gaia effective wavelengths. Bit-identical."""
+        asteca = {
+            6390.7: 0.8361983917837449,
+            5182.6: 1.0833639679451164,
+            7825.1: 0.6343873059899496,
+        }
+        for lam, k in asteca.items():
+            assert _ccm89(lam, 3.1, optical="o94") == pytest.approx(k, rel=0, abs=1e-15)
+
+    def test_evaluation_is_np_polyval_bit_for_bit(self):
+        """Both oracles evaluate the O94 polynomials with ``np.polyval`` (ASteCA's ``ccmo_model``
+        reverses the tuples and calls it; dust_extinction's ``O94`` too), i.e. Horner from the top.
+        ``_ccm89`` does the same, so a + b/R_V is the same float, not the same to 1e-15: the
+        power sum it replaced (2026-11-11) differed from np.polyval at 20145 of 40002 (x, a|b)
+        evaluations on this x grid, by up to 5.0e-14."""
+        from erotica.analysis._isochrone import _O94_A, _O94_B
+
+        ca, cb = list(reversed(_O94_A)), list(reversed(_O94_B))
+        for lam in 1e4 / np.linspace(1.1, 3.3, 2201):
+            y = 1e4 / float(lam) - 1.82  # the x that _ccm89 itself computes from lam
+            a, b = float(np.polyval(ca, y)), float(np.polyval(cb, y))
+            for Rv in (2.5, 3.1, 5.0):
+                assert _ccm89(float(lam), Rv, optical="o94") == a + b / Rv, (lam, Rv)
+
+    def test_coefficients_are_odonnell_1994_p161(self):
+        """The tuples as printed in O'Donnell (1994) p. 161, read from the ADS scan."""
+        from erotica.analysis._isochrone import _O94_A, _O94_B
+
+        assert _O94_A == (1.0, 0.104, -0.609, 0.701, 1.137, -1.718, -0.827, 1.647, -0.505)
+        assert _O94_B == (0.0, 1.952, 2.908, -3.989, -7.985, 11.102, 5.491, -10.805, 3.347)
+
+    @pytest.mark.parametrize("lam", [25000.0, 12000.0, 9200.0, 2500.0, 1500.0])
+    def test_infrared_and_ultraviolet_are_ccm89(self, lam):
+        """O94 replaces only 1.1 <= x <= 3.3; J/H/Ks and the UV stay CCM89 exactly."""
+        for Rv in (2.5, 3.1, 5.0):
+            assert _ccm89(lam, Rv, optical="o94") == _ccm89(lam, Rv)
+
+    @pytest.mark.parametrize("x_edge, lo, hi", [(1.1, 0.0, 5e-4), (3.3, 5e-3, 1.2e-2)])
+    def test_step_at_the_branch_ends_is_the_published_one(self, x_edge, lo, hi):
+        """O94 matched a, b to CCM89 at the endpoints, but the coefficients are printed to three
+        decimals: the step at x = 1.1 stays below 4e-4 and at x = 3.3 is 0.009-0.011 (Rv 2.5-5),
+        the same in dust_extinction 1.7 (measured 2026-11-05). A step outside these bounds is a
+        transcription error, not the law."""
+        eps = 1e-6
+        x_in, x_out = (
+            (x_edge + eps, x_edge - eps) if x_edge == 1.1 else (x_edge - eps, x_edge + eps)
+        )
+        for Rv in (2.5, 3.1, 5.0):
+            jump = _ccm89(1e4 / x_in, Rv, "o94") - _ccm89(1e4 / x_out, Rv, "o94")
+            assert lo <= abs(jump) < hi, (x_edge, Rv, jump)
+
+    @requires_bayes_extra
+    def test_constant_laws_are_one_reparametrisation(self, tmp_path):
+        """With a constant law the likelihood sees A_V and dm only through (dm + k_G A_V, k_col A_V),
+        so a CCM89 point maps onto an O94 one with the same log L: A_V' = A_V k_col/k_col',
+        dm' = dm + k_G A_V - k_G' A_V'. ``docs/design-notes/decisions.md`` (2026-11-05) leans on
+        this; ``tools/validation/extinction_o94_ngc6383.py`` measures it on NGC 6383. Controls:
+        O94 at the unmapped point, and the map without rescaling A_V, must both move log L."""
+        _make_mist_file(tmp_path, n_ages=3)
+        data = _make_cluster_data(n=60)
+        kw = dict(loga_range=(6.5, 6.7), Av_range=(0.0, 2.0), dm_mu=10.0, dm_range=(9.0, 11.0))
+        f = {}
+        for law in ("ccm89", "ccm89_o94"):
+            f[law] = IsochroneFitter(tmp_path, extinction_law=law, **kw)
+            f[law].setup(data, prob_threshold=0.5)
+        kc, ko = f["ccm89"]._compute_ext_coefs(), f["ccm89_o94"]._compute_ext_coefs()
+        kcol_c, kcol_o = kc[1] - kc[2], ko[1] - ko[2]
+        for met, loga, dm, av in [(0.0152, 6.6, 10.0, 0.8), (0.0152, 6.55, 9.7, 1.5)]:
+            ref = f["ccm89"].loglike(met, loga, dm, av, 0.05, 0.1)
+            av2 = av * kcol_c / kcol_o
+            dm2 = dm + kc[0] * av - ko[0] * av2
+            assert f["ccm89_o94"].loglike(met, loga, dm2, av2, 0.05, 0.1) == pytest.approx(
+                ref, rel=0, abs=1e-9
+            )
+            unmapped = f["ccm89_o94"].loglike(met, loga, dm, av, 0.05, 0.1)
+            dm_only = f["ccm89_o94"].loglike(met, loga, dm + (kc[0] - ko[0]) * av, av, 0.05, 0.1)
+            assert abs(unmapped - ref) > 1e-6 and abs(dm_only - ref) > 1e-6
+
+    def test_unknown_optical_branch_raises(self):
+        with pytest.raises(ValueError, match="optical"):
+            _ccm89(5500.0, 3.1, optical="f99")
+
+    def test_fitter_under_o94_uses_the_o94_coefficients(self, tmp_path):
+        """Non-default value: extinction_law='ccm89_o94' changes the three k; 'ccm89' does not."""
+        _make_mist_file(tmp_path)
+        kw = dict(loga_range=(6.5, 6.7), dm_mu=10.0, dm_range=(9.0, 11.0))
+        f = IsochroneFitter(tmp_path, extinction_law="ccm89_o94", **kw)
+        g = IsochroneFitter(tmp_path, extinction_law="ccm89", **kw)
+        assert f.extinction_law == "ccm89_o94"
+        got = f._compute_ext_coefs()
+        assert got == pytest.approx(
+            (0.8361983917837448, 1.083363967945116, 0.6343873059899492), abs=1e-12
+        )
+        assert g._compute_ext_coefs() == pytest.approx(
+            (0.8443949482869204, 1.0723843367953645, 0.623066994957181), abs=1e-12
+        )
+
+
+# ---------------------------------------------------------------------------
 # TestCCM89
 # ---------------------------------------------------------------------------
 
@@ -1862,11 +2003,16 @@ class TestGaiaExtinctionLaw:
         kw = dict(loga_range=(6.5, 6.7), dm_mu=10.0, dm_range=(9.0, 11.0))
         assert IsochroneFitter(tmp_path, **kw).extinction_law == "gaia_edr3"
         assert IsochroneFitter(tmp_path, extinction_law="ccm89", **kw).extinction_law == "ccm89"
-        assert IsochroneFitter(tmp_path, Rv=5.0, **kw).extinction_law == "ccm89"
+        # the fallback is CCM89 + O'Donnell 94 since 2026-11-05 (it was pure CCM89 before)
+        assert IsochroneFitter(tmp_path, Rv=5.0, **kw).extinction_law == "ccm89_o94"
+        assert (
+            IsochroneFitter(tmp_path, extinction_law="ccm89_o94", **kw).extinction_law
+            == "ccm89_o94"
+        )
         other = dict(
             magnitude="V", color=("B", "V"), color_effl=(4400.0, 5500.0), magnitude_effl=5500.0
         )
-        assert IsochroneFitter(tmp_path, **other, **kw).extinction_law == "ccm89"
+        assert IsochroneFitter(tmp_path, **other, **kw).extinction_law == "ccm89_o94"
         with pytest.raises(ValueError, match="Gaia EDR3"):
             IsochroneFitter(tmp_path, extinction_law="gaia_edr3", **other, **kw)
         with pytest.raises(ValueError, match="Gaia EDR3"):
@@ -1906,10 +2052,13 @@ class TestGaiaExtinctionLaw:
         assert seen == ["ccm89", "ccm89"]
 
     @requires_bayes_extra
-    def test_ccm89_option_keeps_the_constant_shift(self, tmp_path):
-        """Non-default value: the explicit CCM option is the old arithmetic, exactly."""
-        f = _toy_fitter(tmp_path, extinction_law="ccm89")
+    @pytest.mark.parametrize("law", ["ccm89", "ccm89_o94"])
+    def test_ccm89_option_keeps_the_constant_shift(self, tmp_path, law):
+        """Non-default value: the explicit CCM options are a constant shift, exactly."""
+        f = _toy_fitter(tmp_path, extinction_law=law)
+        optical = "o94" if law == "ccm89_o94" else "ccm89"
         f.setup(_toy_stars(60, 6.5, 0.015, 10.0, 0.6, np.random.default_rng(0)), prob_threshold=0)
+        assert f._kG == _ccm89(6390.7, 3.1, optical)
         met, loga, dm, Av = 0.015, 6.5, 10.0, 0.7
         X = f._interp_isochrone(met, loga, np)
         d = f._deposit(met, loga, dm, Av, np)
