@@ -51,8 +51,10 @@ def wq(x, w, q):
 
 def converged(nu, cz):
     g = nu["gate"]
+    if any(g[k] is None for k in ("rhat_max", "ess_bulk_min", "ess_tail_min")):
+        return False  # NaN written as null: undefined, not converged
     return bool(
-        g.get("all_finite", True)  # nuts_chain's gate since 07dd21a; older nuts.json lack it
+        g.get("core_finite", True)  # nuts_chain gate; older nuts.json lack it
         and g["rhat_max"] <= 1.01
         and g["ess_bulk_min"] >= 400
         and g["ess_tail_min"] >= 400
