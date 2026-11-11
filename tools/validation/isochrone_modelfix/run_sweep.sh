@@ -27,6 +27,7 @@ for pass in 0 1 2 3 4 5; do
   fi
   g=$(grep -h '^GAIN' logs/sweep_p${pass}_w*.log | awk '{print $2}' | sort -g | tail -1)
   echo "pass $pass max gain $g"
-  awk -v g="$g" 'BEGIN{exit !(g <= 0.01)}' && break
+  awk -v g="$g" 'BEGIN{exit !(g <= 0.01)}' && { echo SWEEP_DONE; exit 0; }
 done
-echo SWEEP_DONE
+echo "pass limit reached with max gain $g > 0.01: not converged" >&2
+exit 2
