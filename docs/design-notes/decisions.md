@@ -2267,3 +2267,91 @@ in the extrapolation flag (2), anchor error dropped from sigma (2). The excess c
 
 **Number that moved.** None in the package: new module. Source: hub `agent-findings/apogee-pms-bias-deep-2026-11-09.md`
 sections 4.3 and 7; author decision D26-52 (2026-11-09).
+
+## 2026-11-11 — `pms_bias` predicts from the hierarchical posterior; the OLS with tau by moments stays as the control
+
+**Symptom.** `predict_bias` gave the two NGC 6383 members delta = -0.238 +- 0.060 and -0.320 +- 0.063 (entry of
+2026-11-09). That sigma adds the between-cluster scatter tau = 0.028 as if it were known; it is a moment estimate from
+12 clusters. With 12 clusters tau is not known, and the uncertainty of a prediction for a new cluster has to carry that.
+
+**Cause.** The hub's hierarchical fit of the same model (finding `agent-findings/pms-bias-hierarchical-2026-11-10.md`,
+model M1: random cluster offsets tau z_c, non-centred; per-star error sqrt(fe_h_err^2 + sigma^2); priors a, c ~ N(0, 0.3),
+b, d ~ N(0, 0.5), tau, sigma ~ HalfNormal(0.10), each scale argued there from a physical range) gives tau a posterior
+median of 0.043, 68 % [0.031; 0.060], P(tau < 0.02) = 0.020. The moment estimate 0.028 sits at the 4th percentile of that
+posterior, and it entered the prediction as a point. The members' centres barely move; their sigma was short by 0.013.
+
+**Fix (author decision D26-64, 2026-11-11).** The default of `predict_bias` is the M1 posterior. Its draws (2 nutpie
+chains x 4000 after 2000 tuning, seed 11, from the hub run `scripts/pms_bias_hierarchical_2026_11_10.py fit`, draws file
+sha256 f290b5a6..., hub commit 0669a745) ship as package data, `erotica/metallicity/data/pms_bias_hierarchical_posterior.npz`
+(float32, 340 kB; `[tool.setuptools.package-data]` added so the wheel carries it). Applying the correction therefore needs
+no sampler. `predict_bias` takes the predictive moments in closed form from the draws,
+sigma = sqrt(Var(x.beta) + E[tau^2] + sigma_ref^2 + anchor_err^2), deterministic, no random numbers; `predictive_draws`
+returns the joint predictive for stars of one new cluster (u_new and r shared), which is what averaging members needs:
+the mean of the two members is -0.277 +- 0.075, not +- 0.053. `fit_hierarchical_model` refits with PyMC + nutpie (JAX
+backend, through `erotica.analysis.inference._sample`, `cores=1`). No optional extra was added: `pymc[nutpie]`, `jax` and
+`arviz` are already core dependencies (pyproject, 2026-10-19), so the lazy import only keeps `import erotica.metallicity`
+light. The OLS path is unchanged and selectable (`model=CALIBRATED_MODEL`). The vendored calibration table gains
+`fe_h_err` (ASPCAP DR17 FE_H_ERR, joined by apogee_id and fe_h as the hub loader does; the 104 selected values equal its
+output exactly), which the refit needs.
+
+The **Student-t** likelihood is shipped as a declared arm, not the default (author decision D26-63): `load_posterior("student_t")`.
+The normal likelihood does not reproduce the tails of the within-cluster residuals (excess kurtosis 5.35 against
+[-0.73; 0.99] in replicas, a statistic chosen after looking), and one disc star of NGC 2264 decides it; with Student-t the
+log g slope goes from +0.21 to +0.29 and the low-log g member from -0.323 to -0.376. Two lines, neither decisive, and
+the hub asks for a second one (DR19, or no discs below log g 3.5) before the central changes.
+
+**Not done.** The posterior is not refitted at import or install: the shipped draws are the calibration, and a refit with
+another seed moves posterior means by <= 0.01 (test). No interaction term (the hub's B-int: +0.018 +- 0.056, moves the
+member by 0.005; not adopted by its own rule). Mode search is opt-in in `fit_hierarchical_model`: in the non-centred
+space the joint mode sits at tau ~ 0.15 with small z (the funnel), which is not the marginal mode of tau; the hub's
+10-start search on M1 found one mode in (a, b, c, d, sigma).
+
+**Oracle.** The hub run, an implementation written separately (its own `build()`, `pm.Potential` likelihood, nutpie's
+numba backend): the members' Monte Carlo predictive -0.230 +- 0.073 and -0.323 +- 0.077, the Student-t arm -0.255 +- 0.082
+and -0.376 +- 0.086, posterior means and tau quantiles (sec. 2.1). Here: closed-form moments within 0.002; the
+closed form against `predictive_draws` within MC error; and a refit with the package's own builder (normal, Student-t,
+and tau scale 0.05, a non-default prior the hub ran as B-tau) lands within 0.01 of the shipped posterior means and
+0.004 of the hub's tau medians, with R-hat <= 1.01, ESS >= 400 and < 1 % divergences. Validation of the model itself is
+the hub's: SBC p >= 0.040 in 7 quantities, leave-one-cluster-out predictive coverage 0.952 at 95 % and 0.750 at 68 % over
+104 stars, coverage at fixed truth inside Jeffreys for the predictive in all three tau (one cell of 24, b at 68 % with
+tau = 0.08, outside, at the rate the gate itself produces).
+
+**Number that moved.**
+
+| quantity | OLS (2026-11-09, now `model=CALIBRATED_MODEL`) | M1 posterior (default) |
+|---|---|---|
+| tau | 0.028 (moments, as known) | 0.043 [68 %: 0.031; 0.060] |
+| delta, 2M17345303-3233578 (4654 K, log g 3.78, excess 0.04) | -0.238 +- 0.060 | -0.230 +- 0.073 (closed form 0.0725) |
+| delta, 2M17344796-3234216 (5024 K, log g 3.20, excess 0.09) | -0.320 +- 0.063 | -0.323 +- 0.077 (closed form 0.0761) |
+| mean of the two members | -0.279 +- 0.061 (hub sec. 2.1 table) | -0.277 +- 0.075 (joint draws) |
+| (a, b, c, d) | -0.181, +0.183, +0.041, -0.124 | -0.165, +0.208, +0.047, -0.143 |
+
+The closed-form sigma of the second member is 0.0761, the hub's Monte Carlo printed 0.077: the MC error of a standard
+deviation from 8000 draws is ~0.0006.
+
+**Mutations seen red** (`tests/test_pms_bias.py`, each confirmed applied before reading): no E[tau^2] in sigma (6 tests);
+tau's median squared in place of E[tau^2], i.e. tau as known (5); Student-t as the default (4); independent u_new and r
+per star in `predictive_draws` (1, the shared-offset test); no r in `predictive_draws` (2); `tau_scale` ignored in the
+refit (1, the HalfNormal(0.01) test; the hub's B-tau 0.05 alone could not see it, its tau median moves 0.002); cluster
+term removed from the refit model (1). First, on the code before this change, the members' test was red on sigma:
+0.0595 and 0.0634 against 0.073 and 0.077.
+
+## 2026-11-11 — `pms_bias` review of PR #61: shared cluster offsets in the OLS covariance, masks, degenerate samples
+
+**Symptom / cause / fix**, one per review thread, each with a test seen red before the fix and red again under its
+mutation:
+
+| thread | symptom | cause | fix | test |
+|---|---|---|---|---|
+| Codex P2, OLS covariance | the least-squares coefficient errors understate: sd of a 0.0131, of b 0.0284 | `(X^T X)^-1 (sigma_e^2 + tau^2)` treats tau as per-star noise, but the offset is shared by a cluster's stars, so more stars per cluster average it away | cluster-aware sandwich `A^-1 X^T V X A^-1`, `V = sigma_e^2 I + tau^2` on same-cluster pairs; embedded `CALIBRATED_MODEL.cov` regenerated: sd of a 0.0162, b 0.0355, c 0.0146, d 0.0307 | replicating every star 10x keeps > 70 % of the intercept sd (the old form: 32 %); closed form of the sandwich to 1e-10 |
+| Codex P2, masks | a masked `ks_minus_45` or `fe_h` with finite data underneath enters the fit and can lift a cluster over the 3-star threshold | `np.asarray` on an astropy `MaskedColumn` returns the values under the mask | `_numeric`: `np.ma.filled(np.ma.asarray(col, float), nan)` for every numeric column, also `fe_h_err` in the hierarchical fit | masking 5 selected rows equals setting them to NaN, in selection and coefficients |
+| Gemini, singleton clusters | `select=False` with one star per cluster gives `sigma_e` = NaN and a RuntimeWarning | no within-cluster variance exists | `_check_sample` raises `ValueError` | one star per cluster raises |
+| Gemini, < 4 stars | `lstsq` returns a minimum-norm solution, no error | 4 coefficients, design of rank < 4 | `_check_sample` checks the **rank** of the design, which also catches >= 4 stars with an all-zero excess column (d unidentified) | 3 stars raise; all-zero excess raises |
+| Gemini, LOCO with < 2 clusters | silent or NaN | each training fit needs >= 2 clusters for tau | `leave_one_cluster_out` needs >= 3 clusters; the same `_check_sample` guards each training fit and `fit_hierarchical_model` | 2 clusters raise |
+
+The default path (hierarchical posterior) already models the shared offset as `u_c` and puts `E[tau^2]` in every
+prediction for a new cluster; a test pins that floor. The least-squares path is what the covariance fix changes.
+
+**Number that moved.** `predict_bias(..., model=CALIBRATED_MODEL)` for the NGC 6383 members: sigma 0.060 -> 0.061 and
+0.063 -> 0.065 (delta unchanged, -0.238 and -0.320); the hierarchical default is unchanged (0.073, 0.076). The gap
+between the two is now 0.012 and 0.011, not 0.013. LOCO is unchanged (it uses coefficients, not their covariance).

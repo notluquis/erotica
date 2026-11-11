@@ -260,6 +260,11 @@ Changelog = "https://github.com/notluquis/erotica/blob/main/CHANGELOG.md"
 # should use `from erotica.utils.utils import compare_datasets` instead.
 py-modules = []
 
+[tool.setuptools.package-data]
+# The posterior draws of the PMS [Fe/H] bias model (340 kB): applying the correction reads them, so
+# they ship; without this entry the wheel would carry the code and not the calibration.
+"erotica.metallicity" = ["data/*.npz"]
+
 [tool.setuptools.packages.find]
 include = ["erotica*"]
 exclude = ["legacy*", "tests*", "notebooks*", "backups*", "data*"]
