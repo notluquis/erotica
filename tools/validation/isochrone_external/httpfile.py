@@ -75,6 +75,8 @@ class HTTPFile(io.RawIOBase):
             blk = self._block(k)
             s = p - k * self.block
             take = blk[s : s + n - len(out)]
+            if not take:  # a short block would otherwise loop forever
+                raise EOFError(f"block {k} ended at offset {p}, {n - len(out)} bytes short")
             out += take
             p += len(take)
         b[:n] = out

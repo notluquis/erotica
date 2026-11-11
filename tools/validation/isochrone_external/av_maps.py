@@ -145,7 +145,11 @@ def ext_coefs():
     from tools.validation.isochrone_colour.common import EDR3, PRI_PLX, mist  # noqa: F401
 
     f = IsochroneFitter(
-        grid=mist(feh=[0.0], loga_range=(6.3, 6.5)), magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX
+        grid=mist(feh=[0.0], loga_range=(6.3, 6.5)),
+        magnitude=EDR3[0],
+        color=EDR3[1:],
+        extinction_law="ccm89",
+        **PRI_PLX,
     )
     kG, kBP, kRP = f._compute_ext_coefs()
     return kG, kBP - kRP
@@ -219,7 +223,7 @@ def main():
         z = np.load(dp)
         hpi = z["healpix_index"].astype(np.int64)
         p = hp.ang2pix(8192, glon, b, nest=True, lonlat=True)
-        j = np.searchsorted(hpi, p)
+        j = np.minimum(np.searchsorted(hpi, p), hpi.size - 1)
         assert np.array_equal(hpi[j], p), "a member pixel missing from the DECaPS slice"
         dmc = 5 * np.log10(D_C / 10)
         for tag, dd in (("", D_C), ("_m50", D_C - 50), ("_p50", D_C + 50)):

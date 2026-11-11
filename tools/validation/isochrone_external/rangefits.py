@@ -23,7 +23,11 @@ def _get(url: str, a: int, b: int, tries: int = 6) -> bytes:
         try:
             r = requests.get(url, headers={"Range": f"bytes={a}-{b}"}, timeout=120)
             if r.status_code == 429:  # Zenodo: measured 2026-10-05, 8 parallel -> 12/16 refused
-                time.sleep(1.0 + float(r.headers.get("Retry-After") or 1))
+                try:  # Retry-After is seconds or an HTTP date
+                    wait = float(r.headers.get("Retry-After") or 1)
+                except ValueError:
+                    wait = 5.0
+                time.sleep(1.0 + wait)
                 continue
             if r.status_code == 206 and len(r.content) == b - a + 1:
                 return r.content

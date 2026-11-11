@@ -49,7 +49,9 @@ def build(run: str):
         "sigma_column": scol,
         "priors": {k: list(v) if isinstance(v, tuple) else v for k, v in PRI_PLX.items()},
     }
-    f0 = IsochroneFitter(grid=mist(), magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
+    f0 = IsochroneFitter(
+        grid=mist(), magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **PRI_PLX
+    )
     f0.setup(real, prob_threshold=0.0)
     if run == "X1":
         data, f = real, f0
@@ -60,7 +62,9 @@ def build(run: str):
             G, C, f0._e_obs_mag, f0._e_obs_col, A - np.median(A), sA, f0._kG, f0._k_col1, True
         )
         data["source_id"] = real["source_id"]
-        f = IsochroneFitter(grid=mist(), magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
+        f = IsochroneFitter(
+            grid=mist(), magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **PRI_PLX
+        )
         f.setup(data, prob_threshold=0.0)
         out["dA_applied_p16_p84"] = np.percentile(A - np.median(A), [16, 84]).tolist()
         if run == "X3":

@@ -167,7 +167,9 @@ def fit_table(G, C, eG, eC, dA, sA, kG, kc, correct: bool):
 def run_fit(data, prior_sd=None, prior_mu=None):
     from erotica.analysis._isochrone import IsochroneFitter
 
-    f = IsochroneFitter(grid=mist(), magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
+    f = IsochroneFitter(
+        grid=mist(), magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **PRI_PLX
+    )
     f.setup(data, prob_threshold=0.0)
     if prior_sd is not None:
         with_av_prior(f, prior_mu, prior_sd)
@@ -200,7 +202,9 @@ def main() -> None:
     r = np.asarray(per["radius_arcmin"], float)
     Greal = np.asarray(real["Gmag"], float)
 
-    gen = IsochroneFitter(grid=mist(), magnitude=EDR3[0], color=EDR3[1:], **PRI_PLX)
+    gen = IsochroneFitter(
+        grid=mist(), magnitude=EDR3[0], color=EDR3[1:], extinction_law="ccm89", **PRI_PLX
+    )
     gen.setup(real, prob_threshold=0.0)
     kG, kc = gen._kG, gen._k_col1
     step = radial_step(r, kc)

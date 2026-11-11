@@ -43,6 +43,7 @@ def fitter(data):
     from erotica.analysis._isochrone import IsochroneFitter
 
     f = IsochroneFitter(
+        extinction_law="ccm89",
         grid=hr_view(mist()),
         obs_columns=("Gmag", "T", "Z"),
         obs_error_columns=("e_Gmag", "e_T", "e_Z"),

@@ -70,7 +70,7 @@ def main():
     svc = pyvo.dal.TAPService("https://gaia.aip.de/tap")
     for k in range(0, len(sid), 100):
         chunk = ",".join(str(x) for x in sid[k : k + 100])
-        for attempt in range(3):
+        for attempt in range(3):  # noqa: B007 - read after the loop
             try:
                 t = svc.run_sync(
                     "SELECT source_id, teff16, teff50, teff84, logg50, met50, av16, av50, av84, "
@@ -83,6 +83,10 @@ def main():
             except Exception as e:  # noqa: BLE001 - report and retry, never silence
                 print(f"  StarHorse chunk {k}: {type(e).__name__}: {e}", file=sys.stderr)
                 time.sleep(5)
+        else:
+            # A failed chunk would enter the left join as stars without StarHorse values, i.e. a
+            # different comparison sample, and the run would still succeed.
+            raise SystemExit(f"StarHorse chunk {k}: 3 attempts failed; {OUT} not written")
     if sh_rows:
         from astropy.table import vstack
 
