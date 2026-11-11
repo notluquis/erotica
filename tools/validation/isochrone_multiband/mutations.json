@@ -1,0 +1,48 @@
+[
+ {
+  "mutation": "floor twice on colour",
+  "test": "reproduces_the_2d and single and one-sided",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 12.11s"
+ },
+ {
+  "mutation": "background over one coordinate",
+  "test": "reproduces_the_2d and single and one-sided",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 8.70s"
+ },
+ {
+  "mutation": "Woodbury rank-1 correction dropped",
+  "test": "reproduces_the_2d and binaries and one-sided",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 11.64s"
+ },
+ {
+  "mutation": "capacitance off-diagonal sign",
+  "test": "segment_integral",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 7.19s"
+ },
+ {
+  "mutation": "zero point applied to every star",
+  "test": "zero_point",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 6.51s"
+ },
+ {
+  "mutation": "fitz19 at a constant colour",
+  "test": "per_point",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 9.31s"
+ },
+ {
+  "mutation": "missing band counted in the normalisation",
+  "test": "missing_for_every",
+  "red": true,
+  "summary": "1 failed, 13 deselected in 8.53s"
+ },
+ {
+  "restored_suite_green": true,
+  "summary": "8 passed, 6 deselected in 18.14s"
+ }
+]
