@@ -268,8 +268,14 @@ def summarize(post, stats) -> dict:
         "rhat_split_chain_max": max(max(P[p]["rhat_split_chain"]) for p in C.PARAMS),
     }
     g = out["gate"]
+    # max()/min() drop a NaN unless it comes first: an undefined diagnostic on any parameter or chain
+    # (constant chain, ESS 0) must fail the gate, not vanish from it.
+    diag = [P[p][k] for p in C.PARAMS for k in ("rhat", "ess_bulk", "ess_tail")]
+    diag += [v for p in C.PARAMS for v in P[p]["rhat_split_chain"]]
+    g["all_finite"] = bool(np.all(np.isfinite(diag)))
     g["converged"] = bool(
-        g["rhat_max"] <= 1.01
+        g["all_finite"]
+        and g["rhat_max"] <= 1.01
         and g["ess_bulk_min"] >= 400
         and g["ess_tail_min"] >= 400
         and g["divergences"] == 0
