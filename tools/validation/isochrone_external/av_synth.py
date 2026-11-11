@@ -32,6 +32,14 @@ posterior at the mode (``laplace``). Main map: see ``main_map`` (pre-registered 
 post hoc by Edenhofer+2024 after DECaPS failed the predictive check).
 
 Output: ``av_synth_<arm>.json`` (rewritten after every replicate).
+
+Decision rules (applied by ``summarize.py`` to the median over replicates of fit minus truth):
+  recovery   ``ctl``, ``map-cor`` and ``ctl-off`` recover the truth unless |median d[Fe/H]| > 0.10 or
+             |median d log t| > 0.10; a failing ``ctl`` falsifies the fit itself, a failing ``map-cor``
+             the map correction.
+  radial     ``grad-ign`` tests whether an unmodelled radial A_V step explains the real fit's offset:
+             it "reproduces" it with d[Fe/H] <= -0.20 and d log t <= -0.15, "dies" (rejected) with
+             d[Fe/H] > -0.10 or d log t > -0.05, and is "partial" in between.
 """
 
 from __future__ import annotations
