@@ -8,6 +8,10 @@ more than 0.3 mag from it; and the G-rank correlation of the errors. Figure: rea
 The generator is accepted if the real value of each width statistic lies inside the range of the
 8 synthetic ones widened by 25 %, and no KS p < 0.01 in more than 2 of 8 draws.
 Writes ``gencheck.json`` and ``gencheck.png``.
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 0.5; applied in
+cov_summary.py): an estimator dies for a cell when, over its 8 replicates, the log t interval
+covers the truth in <= 2 at 68 % or <= 5 at 90 %. This script only produces inputs to that count.
 """
 
 from __future__ import annotations

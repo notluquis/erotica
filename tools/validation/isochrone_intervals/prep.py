@@ -11,6 +11,10 @@ Cells, seeds and truths are the pre-registration of hub finding ``isochrone-inte
 Writes ``runs/<cell>_<rep>/{data.ecsv, prep.json, starts.json}``. The truth's log L and log
 posterior are evaluated next to the mode's (a construction bug shows as a truth far below the
 mode; methodology §A.1.3).
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 0.5; applied in
+cov_summary.py): an estimator dies for a cell when, over its 8 replicates, the log t interval
+covers the truth in <= 2 at 68 % or <= 5 at 90 %. This script only produces inputs to that count.
 """
 
 from __future__ import annotations

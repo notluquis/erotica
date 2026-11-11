@@ -15,6 +15,10 @@ One chain per process, ``NPROC=1`` (one core).
 quantiles, nothing parabolic), ``az.rhat`` (rank-normalised split R-hat) and ``az.ess`` bulk/tail
 over the chains, and **per chain**: mean, sd, divergences, mean tree depth, R-hat of that chain
 against the others pooled; and the per-chain mean of the log density.
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 0.5; applied in
+cov_summary.py): an estimator dies for a cell when, over its 8 replicates, the log t interval
+covers the truth in <= 2 at 68 % or <= 5 at 90 %. This script only produces inputs to that count.
 """
 
 from __future__ import annotations
