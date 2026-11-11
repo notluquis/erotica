@@ -304,11 +304,15 @@ ignore = [
 # would make the code differ from what produced the numbers. Only style rules are off here;
 # pyflakes' bug classes (undefined names, redefinitions) still run.
 "tools/validation/pms_classifier/*" = ["I001", "E401", "E701", "E702", "E741", "F401", "UP031", "B905"]
+# The SED experiment is a record: its JSON sidecars were written by this code at sed-external
+# eb2e444, and the hub's findings cite them. Only style rules are off; pyflakes' bug classes still
+# run (the four B023 hits are lambdas called in the iteration that defines them, checked).
+"tools/validation/sed_external/*" = ["I001", "E401", "E702", "E731", "F401", "B007", "B023", "B905"]
 
 [tool.ruff.format]
 docstring-code-format = true
-# Same reason as the per-file-ignores entry for this directory.
-exclude = ["tools/validation/pms_classifier/*"]
+# Same reason as the per-file-ignores entries for these directories.
+exclude = ["tools/validation/pms_classifier/*", "tools/validation/sed_external/*"]
 
 [tool.mypy]
 python_version = "3.14"

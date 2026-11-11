@@ -1,0 +1,5 @@
+# Per-run state (data, starts, chains, draws, logs) and the per-star E6 table: kept with the hub
+# finding isochrone-model-fix.md, not here. Point MODELFIX_RUNS / E6_MEMBERS_COMPUTED at the hub copies.
+kw_runs/
+logs/
+e6_members_computed.csv

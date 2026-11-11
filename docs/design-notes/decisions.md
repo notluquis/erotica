@@ -2619,3 +2619,42 @@ raise. Seen red on the branch under three mutations: cross block set to zero, of
 
 **Not decided here:** the value of `lam` and of the offset for NGC 6383, and how the membership mixture uses the
 combined proper motion. Those belong to the analysis that calls this module.
+
+## 2026-11-11 — `MultibandIsochroneFitter` enters the package; its extinction law is `ext`, and `extinction_law` must agree
+
+**What enters.** `erotica/analysis/_isochrone_multiband.py` and `tests/test_isochrone_multiband.py`, written on
+branch `isochrone-multiband` (`0415260`, tests `7bdcad8`): the unbinned isochrone likelihood in (G, BP-RP, near-infrared
+magnitudes), with the segment integral in closed form in n dimensions (Woodbury), missing bands marginalised, an
+optional rank-1 differential extinction `sigma_av`, one zero point per near-infrared band for stars brought from
+another instrument, and two extinction laws selected by `ext`. Its construction oracle: with no near-infrared band,
+`ext="ccm"` and `sigma_av` off, it is the 2D likelihood of `IsochroneFitter` to 1e-10, in NumPy and in the compiled
+graph (value and gradient).
+
+**Symptom.** On `dev`, 6 of the 13 non-slow tests of the branch failed: the four parametrisations of
+`test_gaia_only_reproduces_the_2d_likelihood`, the compiled value-and-gradient control and the C1 control,
+on one C1 point ln L = -595.37 (2D, `"gaia_edr3"`) against -601.21 (multiband).
+
+**Cause.** The branch was written when `IsochroneFitter` reddened with constant CCM89 coefficients. Since the
+2026-10-20 entry its default for Gaia bands is `"gaia_edr3"`, which reddens each point at its own colour, while
+`ext="ccm"` uses constant coefficients. The two sides of the control were on different laws. Same situation as PR #38
+after #37.
+
+**Fix, two parts.**
+
+1. The controls pin `extinction_law="ccm89"` on the 2D side (13/13 pass).
+2. A defect the controls could not see: the multiband likelihood reddens with `ext` and never reads
+   `extinction_law`, but the parent writes `extinction_law` into the fit provenance. With the defaults a multiband
+   fit using constant CCM89 coefficients would have been recorded as `"gaia_edr3"`. `extinction_law` now follows
+   `ext`: `"ccm"` takes `"ccm89"` (default) or `"ccm89_o94"`, `"fitz19"` takes `"gaia_edr3"` (default), and any other
+   combination raises `ValueError`. The `fitz19` G, BP, RP coefficients equal the parent's `_gaia_edr3_k` to 0.0 on
+   a 7 × 4 grid of intrinsic colour and A_0, so `"gaia_edr3"` names that law exactly. With `"ccm89_o94"` the Gaia
+   coordinates take O'Donnell's optical polynomials; the near-infrared bands are below O94's range and do not change.
+   The module docstring said `"ccm"` was "CCM89 + O'Donnell 94 (the 2D fitter's law)"; after #59 neither half held.
+
+**Oracle.** `test_extinction_law_records_the_law_ext_applies`: the default per `ext` and the three mismatches.
+Seen red with the agreement check removed (`'gaia_edr3' == 'ccm89'`).
+
+**Number that moved:** none. The likelihood is unchanged; only what is recorded and what is accepted.
+
+**Out of scope here:** `tools/validation/isochrone_multiband/` (the synthetic test of whether the near infrared
+reduces the colour bias, and the mutation driver the test docstrings cite) and `export_multiband`, in a separate PR.

@@ -1,0 +1,17 @@
+{
+ "url": "https://zenodo.org/records/8187943/files/mean_and_std_healpix.fits",
+ "nside": 256,
+ "nest": true,
+ "n_pix": 165,
+ "n_layers": 516,
+ "radii_pc": [
+  68.81187438964844,
+  1244.5968017578125
+ ],
+ "runs_per_row": 1,
+ "full_row_check": {
+  "row": 400,
+  "identical": true
+ },
+ "seconds": 548.0
+}

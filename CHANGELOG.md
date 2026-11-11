@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when an injection replicate draws 0 members); `calibrate_by_injection` refuses `n_rep < 1`; `prior_field` accepts
   lists and arrays (a list was unhashable as a JAX static argument) and a wrong shape raises `ValueError`.
 
+### Multiband isochrone likelihood (`erotica.analysis._isochrone_multiband`)
+- **Added:** `MultibandIsochroneFitter`, the unbinned isochrone fit in (G, BP-RP, near-infrared magnitudes): closed-form
+  n-dimensional segment integral, missing bands marginalised, optional differential extinction `sigma_av`, near-infrared
+  zero points per instrument group, `NIRBand`, and `ext="ccm"` (constant CCM89) or `ext="fitz19"` (ESA Gaia EDR3 law per
+  EEP point, also for 2MASS J, H, Ks). With no near-infrared band it equals `IsochroneFitter(extinction_law="ccm89")`.
+- `extinction_law` follows `ext` (`"ccm89"` or `"ccm89_o94"` with `"ccm"`, `"gaia_edr3"` with `"fitz19"`) and a mismatch
+  raises, so the fit provenance records the law the likelihood used. The default is `"ccm89"`, not the 2D fitter's
+  `"gaia_edr3"`.
+
 ### Proper motions from two catalogues that are not independent (`erotica.multicatalog`)
 - **Added:** `combine_proper_motions` (per-star GLS of two measurements of the same proper motion with a
   cross-covariance and a catalogue offset; also returns the difference and its covariance),

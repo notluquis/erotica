@@ -1,0 +1,5 @@
+dl/
+# Per-star results and the figure: not published from here (sed_paths.py).
+sed_real_perstar.ecsv
+synth_perstar.npz
+isochrone_sed_external.png

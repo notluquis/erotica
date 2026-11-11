@@ -1,0 +1,28 @@
+{
+ "url": "https://dataverse.harvard.edu/api/access/datafile/11838924",
+ "nside": 8192,
+ "nest": true,
+ "slice": [
+  9011654,
+  9071693
+ ],
+ "n_pixels": 60039,
+ "n_wanted_in_disc": 34978,
+ "n_wanted_present": 34978,
+ "attrs_mean": {
+  "description": "Mean reddening in each distance bin of each pixel",
+  "shape": "(# of pixels, 1, # of distance bins)",
+  "units": "E(B-V) in mags"
+ },
+ "attrs_pixel_info": {
+  "DM_bin_edges": "[ 4.     4.125  4.25   4.375  4.5    4.625  4.75   4.875  5.     5.125\n  5.25   5.375  5.5    5.625  5.75   5.875  6.     6.125  6.25   6.375\n  6.5    6.625  6.75   6.875  7.     7.125  7.25   7.375  ",
+  "description": "Locations and quality flags for pixels",
+  "n_samples": "5",
+  "nside": "8192",
+  "shape": "(# of pixels,)"
+ },
+ "fraction_monotone_in_dm": 0.9999666883192592,
+ "http_requests": 992,
+ "bytes": 65011712,
+ "seconds": 621.3
+}

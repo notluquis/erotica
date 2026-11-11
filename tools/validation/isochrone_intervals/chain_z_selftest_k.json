@@ -1,0 +1,22 @@
+{
+ "params": [
+  "feh",
+  "loga",
+  "dm",
+  "Av",
+  "sigma_int",
+  "f_bg",
+  "k"
+ ],
+ "z_thr": 3.3430173771930005,
+ "210": {
+  "false_fail": 0.03,
+  "detects_0p5sd_shift": 1.0,
+  "n": 300
+ },
+ "450": {
+  "false_fail": 0.013333333333333334,
+  "detects_0p5sd_shift": 1.0,
+  "n": 300
+ }
+}
