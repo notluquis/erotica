@@ -1,0 +1,5 @@
+# Per-task results and logs of the drivers: kept with the hub finding isochrone-ms-pms-mechanism.md,
+# not here. summary.json and the figures are the committed summaries; MAGNETIC_OUT points
+# summarize.py at the hub copy.
+out/
+logs/

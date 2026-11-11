@@ -2591,3 +2591,31 @@ prediction for a new cluster; a test pins that floor. The least-squares path is 
 **Number that moved.** `predict_bias(..., model=CALIBRATED_MODEL)` for the NGC 6383 members: sigma 0.060 -> 0.061 and
 0.063 -> 0.065 (delta unchanged, -0.238 and -0.320); the hierarchical default is unchanged (0.073, 0.076). The gap
 between the two is now 0.012 and 0.011, not 0.013. LOCO is unchanged (it uses coefficients, not their covariance).
+
+## 2026-11-11 — `erotica.multicatalog`: proper motions from two catalogues that are not independent
+
+**Symptom.** Combining VIRAC2 (Smith et al. 2025, `2025MNRAS.536.3707S`) with Gaia DR3 proper motions by an
+inverse-variance weighted mean, the published precedent (Peña Ramírez et al. 2022, `2022MNRAS.513.5799P`, Sect. 2.2),
+treats the two errors as independent and the catalogues as offset-free.
+
+**Cause.** VIRAC2 calibrates each VISTA chip against Gaia DR3 reference stars (5-parameter, `ruwe < 1.4`) propagated
+with Gaia's own proper motion (Smith et al. 2025, Sect. 2.3). A reference star's VIRAC2 track is pulled towards its
+Gaia track, Gaia's error included; the size of that pull is not published. And VIRAC2 minus Gaia is not zero on
+average, differently for reference and non-reference stars in NGC 6383.
+
+**Fix.** `erotica/multicatalog.py`, written on branch `membership-multicat` (`4a0e8b3`) and moved here unchanged:
+the inheritance is a fraction `lam` (`e_V = lam e_G + eta`, cross-covariance `X = lam C_G`, scalar or per star),
+the offset is subtracted, and `combine_proper_motions` is the GLS estimate with the joint covariance
+`[[C_G, X], [X^T, C_V]]`. It also returns the difference `d = (y_V - offset) - y_G` and its covariance
+`C_G + C_V - X - X^T`; `difference_loglike` is its Gaussian log-density. `d` does not depend on the true proper
+motion, so it carries no membership information and is where the offset and the error scale are constrained.
+`cross=None, offset=None` is the inverse-variance mean.
+
+**Oracles** (`tests/test_multicatalog.py`, 6 tests): the inverse-variance mean for independent diagonal errors;
+full inheritance (`lam = 1`) adds nothing; the offset is subtracted; a Monte Carlo of correlated errors with
+`lam = 0.5` reproduces `C_hat` (chi2); `difference_loglike` against `scipy.stats.multivariate_normal`; shape errors
+raise. Seen red on the branch under three mutations: cross block set to zero, offset not subtracted, sign of `X` in
+`C_d`.
+
+**Not decided here:** the value of `lam` and of the offset for NGC 6383, and how the membership mixture uses the
+combined proper motion. Those belong to the analysis that calls this module.

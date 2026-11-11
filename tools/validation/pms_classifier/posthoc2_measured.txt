@@ -1,0 +1,28 @@
+NGC 6383 (HR23): dist50 1100.9 pc, MOD50 10.183 [10.019; 10.311], AV50 1.209 [1.025; 1.400], diffAV50 2.00 (logAge50 6.61: NO se usa)
+[Q2] FPR viejos Sagitta(0,6) 0.0337; umbral propio que lo iguala t* = 0.753 (FPR 0.0337)
+  celda NGC 6383, recall contra la etiqueta: propio(t*) 0.763, Sagitta(0,6) 0.636
+  NGC 6530 (etiqueta PMS, n 708): propio(t*) 0.856 [0.828 0.881]; Sagitta(0,6) 0.684; diferencia +0.172 [+0.136; +0.208]
+  NGC 6383 (CAL) a t*: propio 190 (a 0,5: 202)
+[Q3] FPR propio(0,5) en viejos, por Prob de HR23 y por tramo de M_G,0
+  M_G,0 -5 a +5: Prob >= 0,95 0.016 (n 5474) | Prob 0,7-0,95 0.038 (n 4559)
+  M_G,0 +5 a +7: Prob >= 0,95 0.155 (n 1579) | Prob 0,7-0,95 0.150 (n 1542)
+  M_G,0 +7 a +12: Prob >= 0,95 0.538 (n 636) | Prob 0,7-0,95 0.528 (n 615)
+  model_young (nunca vio logAge >= 8,3) en viejos: FPR 0.1607; model_all fuera de particion 0.0973
+    M_G,0 -5 a +5: model_young 0.044
+    M_G,0 +5 a +7: model_young 0.272
+    M_G,0 +7 a +12: model_young 0.816
+[Q4] recall en NGC 6530 (etiqueta PMS) por tramo de M_G,0; peso = fraccion de los 241 PMS-por-definicion de NGC 6383
+  M_G,0 -5 a +3: n6530  40, peso NGC 6383 0.091: propio(0,5) 0.475, propio(t*) 0.000, Sagitta(0,6) 0.100, Sagitta U listada(0,6) 0.150
+  M_G,0 +3 a +5: n6530 195, peso NGC 6383 0.232: propio(0,5) 0.928, propio(t*) 0.826, Sagitta(0,6) 0.533, Sagitta U listada(0,6) 0.421
+  M_G,0 +5 a +7: n6530 433, peso NGC 6383 0.444: propio(0,5) 0.982, propio(t*) 0.949, Sagitta(0,6) 0.799, Sagitta U listada(0,6) 0.670
+  M_G,0 +7 a +12: n6530  40, peso NGC 6383 0.232: propio(0,5) 0.950, propio(t*) 0.850, Sagitta(0,6) 0.750, Sagitta U listada(0,6) 0.675
+  reponderado a NGC 6383: propio(0,5) 0.916, propio(t*) 0.811, Sagitta(0,6) 0.662, Sagitta U listada(0,6) 0.566
+[Q5] Sagitta con las magnitudes 2MASS tal como vienen listadas (U incluidas; NaN -> token solo sin contraparte)
+  viejos: FPR Sagitta(0,6) U listada 0.0213 [0.019  0.0238] (U -> token: 0.0337)
+  celda NGC 6383 recall Sagitta(0,6) U listada 0.618 (U -> token 0.636)
+  NGC 6530 recall Sagitta(0,6) U listada 0.572 [0.535 0.609]; todos con G,BP,RP 0.547
+[Q1] censo propio NGC 6383, N(P >= 0,5): B = 30 modelos con cumulos remuestreados
+  solo modelo                      mediana 204 [2,5; 97,5 %] = [202; 205] sd 1.0
+  solo A_V y MOD (sigma de HR23)   mediana 202 [2,5; 97,5 %] = [196; 205] sd 2.8
+  total                            mediana 203 [2,5; 97,5 %] = [194; 208] sd 3.4
+  (sigma A_V 0.188, sigma MOD 0.146; mezcla de edades aparte: model_young 205 contra model_all 202)

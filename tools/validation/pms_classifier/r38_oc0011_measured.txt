@@ -1,0 +1,36 @@
+OC_0011 en B: 320 estrellas, FP 153; HR23 MOD 10.943 AV50 3.330 log t 9.142; Ks valida en 241
+=== (a) DeltaA_V por estrella hasta la MS de MIST, dos planos (estrellas con M_G,0 HR23 en +1..+7)
+  todas  n 295, con raiz BP-RP 203: mediana +0.91 IQR [+0.49; +1.37] (ancho 0.88)
+  FP     n 153, con raiz BP-RP 103: mediana +1.37 IQR [+1.03; +1.77] (ancho 0.74)
+  no FP  n 142, con raiz BP-RP 100: mediana +0.48 IQR [+0.16; +0.74] (ancho 0.58)
+  dos planos, n 125: Spearman 0.928 (p 1.3e-54); mediana de dK - dB -0.21 IQR [-0.33; -0.04]
+    FP: n 63, mediana dB +1.24, dK +1.14
+    no FP: n 62, mediana dB +0.51, dK +0.31
+  FP - no FP en dB: diferencia de medianas +0.88; Mann-Whitney p 1.7e-26
+  sensibilidad A_G/A_V = 0.759: mediana +0.97 IQR ancho 0.91
+  sensibilidad A_G/A_V = 0.819: mediana +0.90 IQR ancho 0.87
+  LECTURA (regla §4.1 a): planos coinciden: True; IQR 0.88 -> mixto
+=== (b) astrometria FP contra no FP
+  Plx   FP mediana 0.6301  no FP 0.6143  diferencia +0.0159 (+2.5 SE); Mann-Whitney p 8.56e-02
+  pmRA  FP mediana 0.4779  no FP 0.4497  diferencia +0.0283 (+1.6 SE); Mann-Whitney p 1.49e-01
+  pmDE  FP mediana 0.8002  no FP 0.8100  diferencia -0.0098 (-0.5 SE); Mann-Whitney p 9.09e-01
+  Prob  FP mediana 0.8311  no FP 0.8014  diferencia +0.0297 (+2.4 SE); Mann-Whitney p 9.02e-02
+  RUWE  FP mediana 1.0053  no FP 0.9917  diferencia +0.0137 (+1.4 SE); Mann-Whitney p 1.65e-02
+=== (c) A_V del mapa 3D (Vergely+2022, 25 pc)
+  l 8.125 b -2.149 d 1521 pc: A0 mapa 1.53 (d +-10 %: 1.23, 1.65); HR23 AV50 3.33
+  mapa en la posicion de cada miembro: mediana 1.53, rango 5-95 % [1.49; 1.57]; FP 1.53 no FP 1.53
+=== (d) re-prediccion con el modelo de su particion (control: reproduce el OOF)
+  particion 0; control: |p - OOF| max 0.0e+00; FP con A_V HR23 153
+  (ii) A_V mapa = 1.53: FP 230 de 320  (H1 se sostiene si <= 40)
+  (iii) AV50 + mediana dB (H1) = 4.24: FP 57 de 320  (H1 se sostiene si <= 40)
+    barrido A_V 2.0: FP 208
+    barrido A_V 2.5: FP 190
+    barrido A_V 3.0: FP 164
+    barrido A_V 3.5: FP 136
+    barrido A_V 4.0: FP 82
+    barrido A_V 4.5: FP 47
+    barrido A_V 5.0: FP 24
+=== (e) ¿subgigantes? magnitud de los FP respecto del turn-off de MIST a la edad, MOD y A_V de HR23
+  G turn-off 14.78: FP con G > G_TO + 0.5: 150 de 153; no FP: 118 de 167
+  G turn-off 14.78: FP con G > G_TO + 1.0: 146 de 153; no FP: 103 de 167
+  G turn-off 14.78: FP con G > G_TO + 2.0: 83 de 153; no FP: 56 de 167

@@ -15,6 +15,7 @@ Every choice carries the process it models (methodology §A.1):
 from __future__ import annotations
 
 import copy
+import os
 import sys
 import time
 from pathlib import Path
@@ -23,7 +24,10 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent.parent.parent))
-NGC = Path("/Users/notluquis/erotica/data/test/NGC6383")
+# Working-checkout data (not versioned): $EROTICA_NGC6383_DATA, or data/test/NGC6383 of this checkout.
+NGC = Path(
+    os.environ.get("EROTICA_NGC6383_DATA", HERE.parents[2] / "data/test/NGC6383")
+).expanduser()
 SAMPLE = NGC / "comments_paper/radius_robustness/generated/40/paperfaithful_reference_p06.ecsv"
 MIST12 = NGC / "MIST/UBVRIplus"
 CACHE = Path.home() / ".cache/erotica-grids"

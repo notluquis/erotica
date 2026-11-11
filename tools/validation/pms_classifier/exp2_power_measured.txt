@@ -1,0 +1,6 @@
+viejos: 14405 estrellas en 115 cumulos; ajuste A 8336 (57 cum), confirmatoria B 6069 (58 cum)
+  todos    n  6069 en  58 cumulos (max 404): P(falla | FPR 0,03) disp 0.193 | P(falla | FPR 0,05) binom 0.000 disp 0.433 | P(pasa | FPR 0,15) binom 0.000 disp 0.003
+  -5..+3   n  1980 en  58 cumulos (max 157): P(falla | FPR 0,03) disp 0.193 | P(falla | FPR 0,05) binom 0.000 disp 0.440 | P(pasa | FPR 0,15) binom 0.000 disp 0.007
+  +3..+5   n  2254 en  58 cumulos (max 269): P(falla | FPR 0,03) disp 0.207 | P(falla | FPR 0,05) binom 0.000 disp 0.410 | P(pasa | FPR 0,15) binom 0.000 disp 0.017
+  +5..+7   n  1291 en  58 cumulos (max 98): P(falla | FPR 0,03) disp 0.223 | P(falla | FPR 0,05) binom 0.000 disp 0.467 | P(pasa | FPR 0,15) binom 0.000 disp 0.007
+  +7..+12  n   544 en  43 cumulos (max 60): P(falla | FPR 0,03) disp 0.273 | P(falla | FPR 0,05) binom 0.007 disp 0.493 | P(pasa | FPR 0,15) binom 0.000 disp 0.023
