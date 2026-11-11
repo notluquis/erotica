@@ -34,6 +34,9 @@ def count(flags):
 
 
 def _conv_posthoc(g):
+    vals = [g[k] for k in ("rhat_max", "ess_bulk_min", "ess_tail_min", "divergences")]
+    if not g.get("core_finite", True) or any(v is None for v in vals):
+        return False  # an undefined diagnostic is not convergence (None: NaN written as null)
     return bool(
         g["rhat_max"] <= 1.01
         and g["ess_bulk_min"] >= 400
