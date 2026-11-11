@@ -32,6 +32,7 @@ from erotica.analysis._isochrone_multiband import (
     FITZ19_BPRP,
     MultibandIsochroneFitter,
     NIRBand,
+    _column,
     _segment_density_nd,
     fitz19_k,
 )
@@ -191,6 +192,18 @@ def test_c1_sample_mist_v12_gaia_only_equals_2d():
     for p in [(-0.37, 6.07, 10.26, 0.64, 0.12, 0.08), (-0.1, 6.4, 10.2, 1.0, 0.05, 0.02)]:
         a, b = f2.loglike(*p), fn.loglike(*p)
         assert abs(a - b) < 1e-10 * abs(a), (p, a, b)
+
+
+def test_masked_integer_column_reads_as_nan():
+    """A masked entry is missing (NaN), also in an integer column: ``filled(np.nan)`` on an int
+    column raised TypeError."""
+    from astropy.table import MaskedColumn
+
+    t = QTable()
+    t["n"] = MaskedColumn([12, 13, 14], mask=[False, True, False], dtype=int)
+    t["x"] = MaskedColumn([1.5, 2.5, 3.5], mask=[True, False, False])
+    np.testing.assert_array_equal(_column(t, "n"), [12.0, np.nan, 14.0])
+    np.testing.assert_array_equal(_column(t, "x"), [np.nan, 2.5, 3.5])
 
 
 def test_extinction_law_records_the_law_ext_applies(tmp_path):

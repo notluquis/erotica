@@ -241,10 +241,11 @@ TWOMASS_BEST = (
 
 def _column(t: QTable, name: str) -> np.ndarray:
     """A float column with masked entries as NaN (``np.asarray`` of a masked column returns the
-    fill value, 0 -- the bug that produced Ks = 0.0 in the VIRAC2 preprocessing)."""
+    fill value, 0 -- the bug that produced Ks = 0.0 in the VIRAC2 preprocessing). Cast before
+    filling: an integer column cannot hold NaN."""
     c = t[name]
     if hasattr(c, "filled"):
-        c = c.filled(np.nan)
+        c = c.astype(float).filled(np.nan)
     return np.asarray(c, dtype=float)
 
 
