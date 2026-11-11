@@ -82,8 +82,8 @@ def figure():
     r = np.array(s["reps"])
     ax[0].plot(r - 0.05, s["err_ISL"], "o", label="ISL (singles / singles)")
     ax[0].plot(r + 0.05, s["err_IBL"], "s", label="IBL (binaries / binaries)")
-    for k in r:
-        ax[0].plot([k - 0.05, k + 0.05], [s["err_ISL"][k], s["err_IBL"][k]], color="0.7", lw=0.8)
+    for i, k in enumerate(r):  # the error arrays are compact: index by position, not by replicate
+        ax[0].plot([k - 0.05, k + 0.05], [s["err_ISL"][i], s["err_IBL"][i]], color="0.7", lw=0.8)
     ax[0].axhline(0, color="k", lw=0.8)
     for y in (-0.010, 0.010):
         ax[0].axhline(y, color="C3", lw=0.6, ls=":")
