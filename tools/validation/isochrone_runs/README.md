@@ -14,6 +14,7 @@ directorio desde `$EROTICA_RUNS` (apúntalo a `.../isochrone_runs/runs`).
 | `c1-ngc6383-unbinned-eep-v1-96ce4c0` | C1: NUTS 4×2000, likelihood no binada por estrella, EEP | sí (`~/.cache/erotica-c1`, fuera de git) |
 | `map-ngc6383-<grilla>-<commit>` | la misma muestra de C1 con cada grilla de la capa (`isochrone_grids/ngc6383_grids.json`): **máxima verosimilitud con anchura de Laplace, no posterior**; `config.at_prior_bound` dice si el modo está en un borde | no |
 | `colour-ngc6383-r{1..4}-<commit>` | experimento de color (`isochrone_colour/hr_fit.py`; hallazgo del hub `isochrone-colour-mechanism.md`): R1/R2 CMD con el prior de dm de la paralaje, R3/R4 en el plano (G, −10 log T_eff) con GSP-Phot crudo y calibrado; **MAP, no posterior**; en R3/R4 `cmd.x` no es BP−RP | no |
+| `external-ngc6383-x{1,2,3}-<commit>` | restricciones externas (`isochrone_external/real_fits.py`; hallazgo del hub `isochrone-external-constraints.md`): X1 = R1 sin mapa, X2 con la fotometría corregida por el ΔA_V de Edenhofer+2024, X3 = X2 + prior de nivel de A_V del mapa; **MAP, no posterior**; en X2/X3 `cmd` es la fotometría corregida | no |
 
 No se exportan: `isochrone_unbinned/ngc_attempt1_start_on_bound` (3 de 4 cadenas congeladas en el
 arranque, 6000 divergencias: no es un posterior), las corridas `A_*`/`B_*`/`loo_*` (cúmulos
