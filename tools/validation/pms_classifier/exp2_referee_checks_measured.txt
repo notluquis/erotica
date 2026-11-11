@@ -1,0 +1,74 @@
+=== [R-a] semilla del bootstrap de G1 y FPR en B de las configuraciones D1 (ref1)
+chosen T0P1K0F0D1 [0.5, 0.5, 0.63, 0.94]
+A&B 0 A clusters 57 B clusters 58 overlap 0
+G1 boot upper over 40 seeds R=1000: min 0.0965 med 0.0992 max 0.1047 frac>0.10 0.300
+R=20000 seed 1: 0.09864184846216771
+-5..+3 upper min/med/max 0.0845 0.0876 0.0969 frac>0.10 0.00
++3..+5 upper min/med/max 0.1408 0.1494 0.1622 frac>0.10 1.00
++5..+7 upper min/med/max 0.0662 0.0677 0.0691 frac>0.10 0.00
++7..+12 upper min/med/max 0.0340 0.0349 0.0357 frac>0.10 0.00
+config  B global FPR, boot upper(R=4000), per-tramo FPR, recw
+T0P0K0F0D1   0.0409 up 0.0720 PASS tramos [0.018, 0.062, 0.045, 0.026] ups [0.042, 0.118, 0.058, 0.043] recw 0.809
+T0P0K0F1D1   0.0387 up 0.0678 PASS tramos [0.013, 0.062, 0.046, 0.018] ups [0.031, 0.117, 0.061, 0.031] recw 0.805
+T0P0K1F0D1   0.0402 up 0.0720 PASS tramos [0.017, 0.063, 0.046, 0.018] ups [0.039, 0.122, 0.059, 0.031] recw 0.804
+T0P0K1F1D1   0.0379 up 0.0667 PASS tramos [0.014, 0.059, 0.043, 0.022] ups [0.032, 0.112, 0.058, 0.033] recw 0.809
+T0P0K2F0D1   0.0423 up 0.0737 PASS tramos [0.018, 0.063, 0.048, 0.029] ups [0.042, 0.119, 0.062, 0.042] recw 0.807
+T0P0K2F1D1   0.0394 up 0.0670 PASS tramos [0.014, 0.061, 0.048, 0.022] ups [0.032, 0.111, 0.063, 0.032] recw 0.805
+T0P1K0F0D1   0.0503 up 0.1001 FAIL tramos [0.033, 0.071, 0.053, 0.024] ups [0.087, 0.147, 0.068, 0.035] recw 0.823
+T0P1K0F1D1   0.0504 up 0.0966 PASS tramos [0.027, 0.073, 0.06, 0.02] ups [0.07, 0.149, 0.077, 0.03] recw 0.826
+T0P1K1F0D1   0.0511 up 0.1019 FAIL tramos [0.034, 0.072, 0.053, 0.024] ups [0.09, 0.149, 0.068, 0.034] recw 0.822
+T0P1K1F1D1   0.0486 up 0.0920 PASS tramos [0.024, 0.07, 0.058, 0.026] ups [0.061, 0.144, 0.076, 0.038] recw 0.824
+T0P1K2F0D1   0.0496 up 0.0984 PASS tramos [0.029, 0.071, 0.056, 0.02] ups [0.079, 0.147, 0.072, 0.03] recw 0.815
+T0P1K2F1D1   0.0484 up 0.0916 PASS tramos [0.024, 0.072, 0.057, 0.02] ups [0.06, 0.145, 0.073, 0.031] recw 0.816
+T1P0K0F0D1   0.0362 up 0.0622 PASS tramos [0.01, 0.053, 0.054, 0.022] ups [0.025, 0.101, 0.07, 0.031] recw 0.816
+T1P0K0F1D1   0.0341 up 0.0564 PASS tramos [0.009, 0.049, 0.054, 0.017] ups [0.02, 0.093, 0.07, 0.025] recw 0.817
+T1P0K1F0D1   0.0362 up 0.0617 PASS tramos [0.01, 0.051, 0.057, 0.02] ups [0.028, 0.098, 0.073, 0.029] recw 0.818
+T1P0K1F1D1   0.0339 up 0.0573 PASS tramos [0.008, 0.05, 0.053, 0.017] ups [0.019, 0.096, 0.07, 0.026] recw 0.819
+T1P0K2F0D1   0.0371 up 0.0644 PASS tramos [0.011, 0.053, 0.055, 0.026] ups [0.027, 0.104, 0.07, 0.036] recw 0.813
+T1P0K2F1D1   0.0349 up 0.0588 PASS tramos [0.01, 0.049, 0.053, 0.026] ups [0.024, 0.094, 0.07, 0.036] recw 0.813
+T1P1K0F0D1   0.0460 up 0.0906 PASS tramos [0.024, 0.067, 0.054, 0.02] ups [0.065, 0.141, 0.07, 0.029] recw 0.825
+T1P1K0F1D1   0.0438 up 0.0850 PASS tramos [0.019, 0.066, 0.054, 0.018] ups [0.051, 0.136, 0.072, 0.027] recw 0.826
+T1P1K1F0D1   0.0458 up 0.0894 PASS tramos [0.023, 0.068, 0.052, 0.024] ups [0.06, 0.143, 0.068, 0.033] recw 0.824
+T1P1K1F1D1   0.0437 up 0.0832 PASS tramos [0.02, 0.066, 0.051, 0.02] ups [0.051, 0.134, 0.068, 0.029] recw 0.827
+T1P1K2F0D1   0.0451 up 0.0865 PASS tramos [0.023, 0.065, 0.055, 0.022] ups [0.058, 0.136, 0.071, 0.031] recw 0.816
+T1P1K2F1D0   0.0473 up 0.0888 PASS tramos [0.021, 0.065, 0.049, 0.066] ups [0.056, 0.135, 0.066, 0.086] recw 0.825
+T1P1K2F1D1   0.0435 up 0.0856 PASS tramos [0.021, 0.065, 0.049, 0.024] ups [0.056, 0.135, 0.066, 0.033] recw 0.816
+=== [R-b] concentracion por cumulo en B (ref2)
++3..+5 B: total FP 159.0 n 2254 clusters 58
+OC_0011 92 152 0.605 logt 9.14
+NGC_188 22 269 0.082 logt 9.42
+COIN-Gaia_41 9 80 0.112 logt 8.51
+UBC_156 5 32 0.156 logt 8.56
+FSR_0977 4 58 0.069 logt 8.79
+UBC_1258 4 29 0.138 logt 8.76
+FP share top3 0.7735849056603774  FPR without top1 0.031874405328258804
+OC_0011 in B: 320 FP all tramos 153 per tramo [57, 92, 4, 0] n per tramo [157, 152, 11, 0]
+G1 without OC_0011: FPR 0.0264
+boot upper 0.03561832389990638
+{'logAge50': 9.14239407, 'logAge16': 8.7885952, 'logAge84': 9.40747643, 'AV50': 3.33034909, 'dist50': 1520.81955449}
+=== [R-c] 200 particiones A/B y FPR contra AV50 (ref3)
+example th [0.5  0.5  0.68 0.94]
+P(G1 pasa) over 200 splits: 0.99
+established sets (-5..+3,+3..+5,+5..+7,+7..+12): {(1, 0, 1, 0): 102, (1, 1, 1, 0): 96, (0, 0, 1, 0): 2}
+spearman FPR vs AV50 (n>=10): SignificanceResult(statistic=np.float64(0.23654942389054553), pvalue=np.float64(0.010920615369992963))
+AV 0-1: clusters 65 FPR pooled 0.017
+AV 1-2: clusters 34 FPR pooled 0.027
+AV 2-3: clusters 10 FPR pooled 0.039
+AV 3-4: clusters 6 FPR pooled 0.146
+[(np.str_('OC_0011'), np.float64(0.48), np.int64(320), np.float64(3.33)), (np.str_('HSC_2819'), np.float64(0.11), np.int64(37), np.float64(1.16)), (np.str_('FSR_1378'), np.float64(0.1), np.int64(194), np.float64(1.81)), (np.str_('UBC_1258'), np.float64(0.1), np.int64(60), np.float64(3.49)), (np.str_('UBC_156'), np.float64(0.1), np.int64(94), np.float64(1.7)), (np.str_('CWNU_367'), np.float64(0.09), np.int64(22), np.float64(1.5))]
+=== [R-d] P0 contra P1 con D1: FPR en B
+  T0K0F0: P0 0.0409 -> P1 0.0503 (recall ponderado 0.809 -> 0.823)
+  T1K0F0: P0 0.0362 -> P1 0.0460 (recall ponderado 0.816 -> 0.825)
+  T0K0F1: P0 0.0387 -> P1 0.0504 (recall ponderado 0.805 -> 0.826)
+  T1K0F1: P0 0.0341 -> P1 0.0438 (recall ponderado 0.817 -> 0.826)
+  T0K1F0: P0 0.0402 -> P1 0.0511 (recall ponderado 0.804 -> 0.822)
+  T1K1F0: P0 0.0362 -> P1 0.0458 (recall ponderado 0.818 -> 0.824)
+  T0K1F1: P0 0.0379 -> P1 0.0486 (recall ponderado 0.809 -> 0.824)
+  T1K1F1: P0 0.0339 -> P1 0.0437 (recall ponderado 0.819 -> 0.827)
+  T0K2F0: P0 0.0423 -> P1 0.0496 (recall ponderado 0.807 -> 0.815)
+  T1K2F0: P0 0.0371 -> P1 0.0451 (recall ponderado 0.813 -> 0.816)
+  T0K2F1: P0 0.0394 -> P1 0.0484 (recall ponderado 0.805 -> 0.816)
+  T1K2F1: P0 0.0349 -> P1 0.0435 (recall ponderado 0.813 -> 0.816)
+=== [R-e] mitad sintetica de G2 para Sagitta (0,6), en las dos codificaciones
+NGC 6383 (HR23): dist50 1100.9 pc, MOD50 10.183 [10.019; 10.311], AV50 1.209 [1.025; 1.400], diffAV50 2.00 (logAge50 6.61: NO se usa)
+  FPR Sagitta(0,6) MS log t 9,0 (faltante -> token; el sintetico no tiene U): -5..+3 0.000 (G<=20,66: 0.000)  +3..+5 0.000 (G<=20,66: 0.000)  +5..+7 0.000 (G<=20,66: 0.000)  +7..+12 0.064 (G<=20,66: 0.020)
