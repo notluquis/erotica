@@ -21,7 +21,8 @@ field+cluster mixtures where truth is known — this module computes:
 * the **Brier score**, and
 * the **expected / maximum calibration error** (ECE / MCE),
 
-and provides **isotonic** and **Platt** recalibration that return a fitted,
+the **CORP** reliability decomposition of the Brier score (:func:`corp`), and provides
+**isotonic** and **Platt** recalibration that return a fitted,
 callable mapping ``p̃ ↦ p̃_calibrated``.
 
 Everything here is pure ``numpy`` / ``scipy`` / ``scikit-learn`` (no PyMC).
@@ -33,6 +34,7 @@ plotting method, matching :meth:`Clustering.plot_mcs_sweep`.
 References
 ----------
 Brier (1950); Hosmer & Lemeshow (1980, 2000); Platt (1999);
+Dimitriadis, Gneiting & Jordan (2021, PNAS 118, e2016191118; CORP);
 Zadrozny & Elkan (2002); Niculescu-Mizil & Caruana (2005); Guo et al. (2017).
 """
 
@@ -60,6 +62,8 @@ __all__ = [
     "fit_platt",
     "recalibrate",
     "calibration_report_from_clustering",
+    "CORPResult",
+    "corp",
 ]
 
 _EPS = 1e-6
@@ -512,3 +516,77 @@ def calibration_report_from_clustering(
             "run Clustering.search_pseudoprobability first."
         )
     return calibration_report(np.asarray(table[probability_column], dtype=float), labels, **kwargs)
+
+# ---------------------------------------------------------------------------
+# CORP reliability decomposition
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class CORPResult:
+    """CORP decomposition of the Brier score, ``BS = MCB - DSC + UNC``.
+
+    ``MCB`` (miscalibration) is the Brier score the forecast loses against its own
+    isotonic (PAV) recalibration; ``DSC`` (discrimination) is what the recalibrated
+    forecast gains over the climatological base rate; ``UNC`` is ``ȳ(1 - ȳ)``.
+    ``reliability_x``/``reliability_y`` sample the fitted PAV curve on a fixed grid.
+    """
+
+    n: int
+    base_rate: float
+    mean_p: float
+    brier: float
+    MCB: float
+    DSC: float
+    UNC: float
+    reliability_x: np.ndarray
+    reliability_y: np.ndarray
+
+    def as_dict(self) -> dict[str, Any]:
+        out = {k: getattr(self, k) for k in ("n", "base_rate", "mean_p", "brier", "MCB", "DSC", "UNC")}
+        out["reliability_x"] = self.reliability_x.tolist()
+        out["reliability_y"] = self.reliability_y.tolist()
+        return out
+
+
+def corp(
+    probabilities: Sequence[float] | np.ndarray,
+    labels: Sequence[int] | np.ndarray,
+    *,
+    grid: int = 21,
+) -> CORPResult:
+    """CORP reliability: PAV recalibration and the Brier decomposition ``BS = MCB - DSC + UNC``.
+
+    Dimitriadis, Gneiting & Jordan (2021): the reliability curve is the isotonic
+    (pool-adjacent-violators) regression of the labels on the forecast, which is
+    consistent, optimally binned and reproducible -- no bin edges to choose. With
+    ``p_c`` the PAV fit evaluated at each forecast,
+
+    * ``MCB = BS(p) - BS(p_c)``  (>= 0: PAV is the Brier-optimal monotone map),
+    * ``DSC = UNC - BS(p_c)``,
+    * ``UNC = ȳ (1 - ȳ)``,
+
+    so the identity ``BS = MCB - DSC + UNC`` holds exactly. ``MCB`` is computed
+    in-sample, so it carries a small upward bias of order ``log(n)/n`` from PAV
+    fitting noise; compare MCB values across subgroups of similar size.
+
+    Ported from the hub analysis script ``agent-findings/scripts/c5_mixture.py::corp``
+    (hub repo ``notluquis/phd``, C5 §15), with this module's input validation.
+    """
+    p, y = _validate_pair(probabilities, labels)
+    iso = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds="clip", increasing=True).fit(p, y)
+    pc = iso.predict(p)
+    bs = float(np.mean((p - y) ** 2))
+    bsc = float(np.mean((pc - y) ** 2))
+    ybar = float(y.mean())
+    unc = ybar * (1.0 - ybar)
+    xs = np.linspace(0.0, 1.0, grid)
+    return CORPResult(
+        n=int(y.size),
+        base_rate=ybar,
+        mean_p=float(p.mean()),
+        brier=bs,
+        MCB=bs - bsc,
+        DSC=unc - bsc,
+        UNC=unc,
+        reliability_x=xs,
+        reliability_y=np.asarray(iso.predict(xs), dtype=float),
+    )

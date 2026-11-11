@@ -19,6 +19,7 @@ recalibration maps. Everything is `numpy`/`scipy`/`scikit-learn`; no PyMC.
 | `expected_calibration_error` | `(ECE, MCE)`: count-weighted mean and max bin gap | depends on the binning |
 | `hosmer_lemeshow` | $\hat H$ statistic and its $\chi^2_{g-2}$ p-value | dof convention, §4 |
 | `calibration_report` | all of the above in one object | none |
+| `corp` | CORP reliability (Dimitriadis, Gneiting & Jordan 2021): PAV fit and `BS = MCB - DSC + UNC` | MCB in-sample, biased up by ~log(n)/n |
 | `fit_isotonic` / `fit_platt` / `recalibrate` | a fitted map p̃ → calibrated p̃ | needs labelled data, §4 |
 
 `calibration_report_from_clustering` reads the `probability` column (p̃) straight from a

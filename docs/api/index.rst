@@ -4,10 +4,10 @@ API reference
 EROTICA's public API — a **curated** selection, not an exhaustive one, and the difference is
 stated here rather than left for a reader to discover.
 
-This page lists **51** names: 11 of the 12 in ``erotica.__all__`` (all but ``__version__``),
+This page lists **53** names: 11 of the 12 in ``erotica.__all__`` (all but ``__version__``),
 ``core.HDBSCANEstimator`` (from ``erotica.core.__all__``), 22 more drawn from
 ``erotica.analysis.__all__`` (which itself exports **124**; 29 of them are listed here, 7 of those
-also in ``erotica.__all__``), 4 from ``erotica.viz``, and the 13 in ``erotica.calibration.__all__``.
+also in ``erotica.__all__``), 4 from ``erotica.viz``, and the 15 in ``erotica.calibration.__all__``.
 So 95 public names in the analysis layer are *importable and supported but not listed on this page* — among them
 ``distance_model``, ``fit_parallax_model``, ``lambda_msr``, ``half_mass_relaxation_time``,
 ``coulomb_argument_from_mass_function`` and ``identifiability_report``.
@@ -182,6 +182,7 @@ plus isotonic and Platt recalibration. Pure ``numpy``/``scipy``/``scikit-learn``
    ReliabilityDiagram
    HosmerLemeshowResult
    Recalibrator
+   CORPResult
 
 .. autosummary::
    :toctree: generated
@@ -196,3 +197,4 @@ plus isotonic and Platt recalibration. Pure ``numpy``/``scipy``/``scikit-learn``
    fit_platt
    recalibrate
    calibration_report_from_clustering
+   corp

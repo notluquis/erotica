@@ -2227,6 +2227,104 @@ King *wins* by 0.5: King's free R_t imitates a concentrated Wilson profile. NGC 
 **Oracle / mutations seen red.** Uniform nodes (quad test), g = 1 in the table (8 tests), count without 2 pi (9), no truncation
 (1 test, added after the first mutation survived), Poisson coefficient 9 -> 8 (5).
 
+## 2026-11-05 — `erotica.membership`: the mixture of the membership rule, and four numbers that were wrong on the way
+
+**Plan:** hub `agent-findings/membership-rule-literature-2026-11-03.md` §6, rule in hub `methodology.md` §A.3 (decision AD-I48).
+`erotica.calibration.corp` (CORP, ported from hub `agent-findings/scripts/c5_mixture.py::corp`) and `erotica/membership.py`
+(`MixtureModel`, `Truncation`, `TwoLineRule`, `calibrate_by_injection`, `propagate`), structure from `c5_mixture.py::Model`.
+
+**What was wrong first, each measured on the test fixture (details in the docstrings):**
+- **P_A as a plain mean of probabilities, clipped at 1e-300.** A component far outside the region got P_A = 0 → log clip →
+  +690 nats per star; the first smoke fit parked the cluster outside the circle at log posterior +272 820. Fixed by
+  log-sum-exp of `log_sigmoid` (`CircularRegion.logprob`) and a log-space parallax window without cancellation.
+- **The field's P_A sampled through its own Gaussian.** A broad, elongated field puts almost no QMC normals inside the
+  region; the optimiser found shapes whose P_A was underestimated by ~e^19 per star (log posterior +7 661 against −130 at the
+  real mode). The field integral now uses nodes over the region (`region.support`); the cluster keeps the C5 Gaussian QMC.
+- **Field scale allowed down to R/2.** One of the 3-start smoke fits landed in the swapped mode (σ_c → 0.002, field shaped
+  like the cluster). Field scales now start at R, cluster σ ends at R; the box is a convention (C), documented in `default_bounds`.
+- **6 uniform starts missed the global mode in 1 of 4 seeds** (400 stars, 13 parameters). `fit(init=...)` adds the detection
+  stage's cluster as one more start; the verdict counts it among the "prior" starts and `MixtureFit.init_start` says so.
+
+**Oracles / mutations seen red.** V1 against an independent truncated MLE (Rice radial integral + `truncnorm`): residual is
+QMC error, 3.9e-3 with 4096 normals and 4e-4 with 16384 at an edge of width 0.03. Components integrate to 1.0001 / 0.99997 on the
+selected volume. Red: PAV → identity (2 tests), cluster P_A (V1 + recovery + normalisation), field P_A (recovery +
+normalisation), cluster W (V1, **only after** moving V1's window to cut the cluster — with ϖ_c centred it survived), field W
+(normalisation **only**: recovery stayed green, the field's parallax shape absorbs the factor), veto, Bernoulli-as-cut, generator
+ignoring the selection. Weakest guard: `nopa` on the field fails η by 0.066 at the test seed and by 0.053 against 0.05 at seed 2.
+
+## 2026-11-05 — `erotica.membership` validated on the real cone: V2 fails, and what is missing is measured
+
+**Validation:** hub `agent-findings/membership-rule-validation-2026-11-05.md` (preregistered in hub commit 56b6eef before
+running). Script and JSON: hub `agent-findings/scripts/membership_rule_package_validation.py` / `.json`. The 300 injection
+replicates of the hub's §10 (three empty Gaia DR3 control fields of B12, members from the hub's C0 model), reproduced
+bit-for-bit (y, G, r, ℓ_B), so every arm is scored on the same 60 507 star-replicates.
+
+**The numbers:**
+- C0 passes: 36.2 field responsibility on NGC 6383's 254 (gate [25; 45]). V0 passes in three empty fields, one at the edge
+  (Σp 4.93 against 5).
+- **V2 fails.** CORP MCB 0.0145 > 0.01 overall, > 0.02 in four of six subgroups, 0.29 at G >= 18.5. AUC 0.727, against 0.976 for
+  the hub's model (A0) and 0.985 for its per-G-fraction variant (A1). η is recovered (0.139 against 0.136), so the defect is
+  discrimination, not the fraction.
+- Measured on the same arrays: the astrometric line has AUC 0.728 with this Gaussian field, against 0.794 with the hub's
+  empirical field conditioned on G (0.747 against 0.881 at G < 16). The photometric line alone is 0.928. Adding it to the logit
+  passes the overall gate (MCB 0.0029) and still fails G >= 18.5 (0.082).
+- Laplace coverage of the cluster parameters: 0.54-0.56 at 68 %, 0.85-0.90 at 95 %.
+- Against the state of the art on 60 of the replicates: P01's p̃ and HDBSCAN `probabilities_` fail the same gate (MCB 0.013 and
+  0.012). This module's Brier is better than p̃ in five subgroups (overall −0.0100 [−0.0137; −0.0062]) and worse at
+  G >= 18.5 (+0.077). P01's list carries 9.4 % field stars (65 % among the faint ones). The two-line rule at 0.99 stays ≤ 4.1 % in
+  every subgroup, with completeness 0.16.
+
+**Defect fixed on the way** (124e30e): `calibrate_by_injection` drew the injected members' errors and G from the field
+catalogue. It now takes `member_donors`; the test passes the non-default and was seen red with the parameter ignored.
+
+**What this changes:** the module docstring now says p is not a calibrated membership probability on a real young-cluster cone
+until three pieces are in: the CMD axis, the field conditioned on G, and the per-G mixing fraction. Each is to be judged
+against these same replicates, V0 and V3.
+
+## 2026-11-05 — the three missing pieces: CMD line in p, empirical field, per-G fraction
+
+**Validation:** hub `agent-findings/membership-cmd-axis-2026-11-05.md` (preregistered in hub commit 8b236c3 before running;
+code in 892d721). Script: hub `agent-findings/scripts/membership_cmd_axis.py`. Same 300 replicates, V0 and V3 as the
+validation above; seven arms, the full factorial over the three pieces.
+
+**What went in, each off by default:** `MembershipData.lines` + `MixtureModel(lines=...)` (a per-star log-likelihood
+ratio multiplies the cluster term; the CMD line is `photometric_llr` from `MemberSequence` + `SidebandTemplate`, the
+hub's density-ratio form, not an isochrone); `EmpiricalField` (flat PM over the region, the sideband's p_f(plx | G));
+`n_groups` with one prior per group. `calibrate_by_injection` refuses a model whose axes it cannot draw.
+
+**The numbers (MCB overall / at G >= 18.5, AUC):** CMD line alone 0.0023 / 0.079, 0.943; + empirical field 0.0035 /
+0.078, 0.964; + per-G fraction 0.0016 / 0.0163, 0.944; all three 0.0010 / 0.0155, 0.978. The last two pass all six
+subgroups, V0 and C0, and beat a constant p on the X-ray/YSO line. Without the CMD line no arm passes.
+
+**A diagnosis that corrected the earlier one:** the gap in line A at G < 16 (0.747 against the hub's 0.881) was mostly the
+field's PM *shape* (a fitted Gaussian against flat: 0.747 → 0.826), not the parallax conditioned on G (→ 0.870 only on top
+of the flat PM). Measured with the Gaussian fits frozen.
+
+**Open:** the comparison with pyUPMASK on these replicates (not run: external code needs the author's approval); the
+faint bin's prior on the field count is ~32 % high, so faint mid-range p is under-confident.
+
+## 2026-11-05 — the cone configuration: all three pieces, confirmed on new replicates; and pyUPMASK
+
+**Choosing between the two arms that passed** (CMD line + per-G fraction, and all three pieces) was a post hoc question
+after the first 300 replicates: the preregistered rule took the one with fewer pieces, the other had the better Brier in
+all six subgroups. Settled by a confirmation preregistered in hub 62ec43c before any fit: 300 new replicates of the same
+generator (seeds 4101-4103, fit seeds 1300-1599), V0 on ten acceptances per field, and the decision rule written in
+`decide()` of hub `agent-findings/scripts/membership_cmd_axis_confirm.py`. All three pieces pass V2 in all six subgroups
+(MCB 0.0012 overall, 0.0174 at G >= 18.5) and V0, and beat the other arm in Brier overall (-0.0047 [-0.0054; -0.0041]),
+with no subgroup against. So `cone_mixture()` returns that configuration and `CONE_P_HI = 0.8` is its V4 threshold.
+
+**Its limits:** the new replicates reuse the three field catalogues, the member ridge that colours the injections and the
+faint-bin field prior (~32 % high, hub thread B16). The X-ray/YSO line on the real cone does not separate the two arms
+(Delta log score -0.42 [-1.98; +1.52]). One line of evidence, not two.
+
+**pyUPMASK on the same 300 replicates** (Pera+2021, commit 509e9090, the bench configuration): MCB 0.252, Brier 0.355,
+AUC 0.762, and p ~ 0 beyond 20' (AUC 0.515); p = 1 to every star of the three empty fields (n = 19-33). Both arms beat
+it in Brier overall and in all six subgroups. The bench figure (pyUPMASK Brier 0.012 on fractal synthetics) does not
+transfer to a cluster that fills the search window.
+
+**Defaults unchanged:** `MixtureModel(lines=())` stays the constructor default, because a p that weights an isochrone fit
+must not carry the CMD; the validated configuration is the named preset.
+
 ## 2026-11-05 — `lambda_msr`: the "Parker & Goodwin error bar" was the null band; now it is the bar on Λ
 
 **Symptom.** `SegregationResult.lo_1sigma`/`hi_1sigma` were documented as *"Parker & Goodwin (2015) percentile error bars"* but
@@ -2367,6 +2465,44 @@ in the extrapolation flag (2), anchor error dropped from sigma (2). The excess c
 
 **Number that moved.** None in the package: new module. Source: hub `agent-findings/apogee-pms-bias-deep-2026-11-09.md`
 sections 4.3 and 7; author decision D26-52 (2026-11-09).
+
+## 2026-11-10 — the faint-bin field prior: calibrating it on empty fields does not pay (hub thread B16)
+
+**Symptom:** faint (G >= 18.5) mid-range p under-confident; the A1 prior on the faint field count sat ~32 % above the
+truth in the confirmation replicates. **Cause, measured:** the flat extrapolation of the PM sideband (0.6-1.5 mas/yr) into
+the acceptance is wrong by a G-dependent, field-dependent factor. On eight empty fields of the plane near NGC 6383, ln(T/E1)
+has mean +0.29 / -0.01 / -0.06 and field-to-field sd 0.51 / 0.38 / 0.26 (G < 16 / 16-18.5 / >= 18.5): the ~32 % was two of
+the three validation fields, and the model term of 0.07 is ~4x too small. **What was added:** `expected_field_count`,
+`FieldPriorCalibration` (mean and spread of the log ratio, `leave_out`) and `sideband_field_prior`, whose default is the A1
+prior `cone_mixture()` was validated with. **Oracle (preregistered in hub 921e222, the 300 confirmation replicates,
+leave-one-field-out):** the calibrated prior improves the faint Brier by -0.0056 [-0.0063; -0.0049] and passes V0, but
+worsens r < 20' (+0.0008) and 16-18.5 (+0.0006), so by the preregistered rule it is **not** the default. A prior at the
+true per-field count gives -0.027: the margin is per field and does not transfer between fields. With that perfect prior
+the faint mid-range bias only drops from +0.148 to +0.108, so most of it is the likelihood: the empirical field is flat in
+PM inside the region, the same flatness that fails in the sideband [inferred, not isolated]. **Next:** a non-flat field PM
+density for the faint bin, judged against the same oracle.
+
+## 2026-11-10 — the cluster's P_A off the region: Gaussian QMC fabricated a mode; the region nodes alone fail inside
+
+**Symptom (hub C7, `agent-findings/ngc6383-kappa-inmodel-e123-2026-11-09.md` §1.13):** in the hub's κ model of NGC 6383
+the member's per-star mean can sit outside the PM acceptance; with P_A drawn from the member's Gaussian (512 QMC normals,
+the scheme of this module's cluster branch) one star got log P_A = −31.14 against −8.37 by brute force, a 22.8-nat bonus
+(the component is divided by P_A), and the chain stuck in a mode that does not exist. **Measured on this module** against
+the radial Rice integral (hub `agent-findings/scripts/erotica_pa_quadrature.py`, `_measured.txt`; R ∈ {0.33, 1.5},
+edge 0.02/0.03, s ∈ {0.015, 0.03, 0.1, 0.4}): the Gaussian QMC errs by up to **1.26 nats at 3 s outside, 17.8 at 5 s,
+57.5 at 8 s** (underestimates: bonuses). **The obvious fix is wrong too:** integrating the cluster over the field's
+region nodes only (1024 nodes) errs by **10.3 nats** at the edge for s = 0.015, because the nodes are coarser than a
+bright member's Gaussian. **Fix:** the cluster combines both node sets by multiple importance sampling with the balance
+heuristic (Veach & Guibas 1995); `CircularRegion.support_logdensity` gives the density of the region nodes. Worst error:
+0.003 nats inside, 0.081 at 3 s, 0.064 at 5 s. Cost: 2.2 → 4.4 ms per gradient on the 400-star fixture.
+**Not fixed:** sd ≈ 5 edge widths with the mean ≥ 8 s out still errs by 0.72 nats (the integrand peaks in the logistic
+tail beyond R + 12 widths), and log P_A has one 0.02-nat step at 5.2 s out for s = 0.1 (smoother variants — nodes ∝ prob,
+a C² taper — traded it for 0.6-0.8 nats of error at 5 s). The default box reaches 0.2 R / s sd out at its corner.
+**Oracle:** `test_cluster_pa_*` (mean 3 and 5 s out against Rice, anisotropic 4 sd out against a dense grid, and a
+narrow member inside that kills the region-nodes-only variant); red before the fix (+0.68, −9.1 nats; anisotropic
+red), red again under each mutation. **Side effect, measured:** the fixture fits (256 normals) move toward the
+converged answer: against fits with 16384 normals (the old scheme converges with the mean inside), |Δμ_x| goes from
+0.036-0.046 to 0.000-0.034 and |Δσ_c| from 0.015-0.025 to 0.001-0.018 over seeds 0-3. The recovery tolerances hold.
 
 ## 2026-11-11 — `pms_bias` predicts from the hierarchical posterior; the OLS with tau by moments stays as the control
 

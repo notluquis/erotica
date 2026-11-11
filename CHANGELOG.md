@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Membership mixture with the selection in every component: `erotica.membership` (hub decision AD-I48)
+- **Added:** `erotica.membership`: `MixtureModel` (cluster + field, each normalised over the selected volume through
+  `Truncation` and `CircularRegion`), `EmpiricalField`, CMD line (`photometric_llr`, `MemberSequence`, `SidebandTemplate`),
+  per-G mixing fraction, `TwoLineRule`, `calibrate_by_injection`, `propagate`, and the `cone_mixture()` preset with
+  `CONE_P_HI = 0.8`. On 300 injection replicates in three empty Gaia DR3 fields, then 300 new ones preregistered before any
+  fit, the preset passes the CORP gate in all six subgroups (MCB 0.0012 overall, 0.0174 at G >= 18.5). The bare mixture
+  without the CMD line fails it (MCB 0.0145, AUC 0.727). Full record in `docs/design-notes/decisions.md`, 2026-11-05.
+- **Added:** `expected_field_count`, `FieldPriorCalibration` and `sideband_field_prior` (field-count prior calibrated on
+  empty fields); measured and **not** the default (it worsens r < 20' and 16 <= G < 18.5).
+- **Fixed (before release):** the cluster's selection probability P_A combines Gaussian QMC and the region nodes by
+  multiple importance sampling; the Gaussian QMC alone underestimated it by 17.8 nats with the mean 5 sd outside the region.
+- **Added:** `erotica.calibration.corp` and `CORPResult`: CORP reliability (PAV) and `BS = MCB - DSC + UNC`.
+- **Fixed** (PR #64 review): the generators return an empty catalogue for 0 donors (was `TypeError`, reachable
+  when an injection replicate draws 0 members); `calibrate_by_injection` refuses `n_rep < 1`; `prior_field` accepts
+  lists and arrays (a list was unhashable as a JAX static argument) and a wrong shape raises `ValueError`.
+
 ### Multiband isochrone likelihood (`erotica.analysis._isochrone_multiband`)
 - **Added:** `MultibandIsochroneFitter`, the unbinned isochrone fit in (G, BP-RP, near-infrared magnitudes): closed-form
   n-dimensional segment integral, missing bands marginalised, optional differential extinction `sigma_av`, near-infrared
