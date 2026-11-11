@@ -1,0 +1,24 @@
+[P1] FPR (propio >= 0,5 / Sagitta >= 0,6) en cumulos viejos con etiqueta 0, por M_G,0 y por G
+  M_G,0 -5 a +1: n   959  propio 0.000 [0.    0.004]  Sagitta 0.001
+  M_G,0 +1 a +3: n  3775  propio 0.018 [0.014 0.022]  Sagitta 0.005
+  M_G,0 +3 a +5: n  5299  propio 0.036 [0.031 0.042]  Sagitta 0.036
+  M_G,0 +5 a +7: n  3121  propio 0.153 [0.14  0.166]  Sagitta 0.056
+  M_G,0 +7 a +12: n  1251  propio 0.533 [0.505 0.561]  Sagitta 0.078
+  G 0-15: n  5429  propio 0.011 [0.008 0.014]
+  G 15-17: n  5265  propio 0.055 [0.049 0.062]
+  G 17-18: n  2057  propio 0.148 [0.133 0.164]
+  G 18-19: n  1101  propio 0.330 [0.302 0.358]
+  G 19-21: n   553  propio 0.694 [0.654 0.733]
+[P2] NGC 6383: M_G,0 de los 254 [p5 p50 p95] [0.8  5.85 8.19]; G [11.94 16.99 19.32]
+  sobre el turn-on (etiqueta 0): 13; de ellas el propio llama PMS a 0; Sagitta 0
+  bajo el turn-on (etiqueta 1): 241; propio PMS 202 (0.838); Sagitta 120 (0.498)
+  M_G,0 -5 a +3: n  35, propio PMS   1, Sagitta PMS   0
+  M_G,0 +3 a +5: n  56, propio PMS  43, Sagitta PMS  17
+  M_G,0 +5 a +7: n 107, propio PMS 103, Sagitta PMS  68
+  M_G,0 +7 a +12: n  56, propio PMS  55, Sagitta PMS  35
+[P3] discriminacion por tramo de M_G,0: recall en cumulos jovenes (logAge < 6,8, etiqueta 1) contra FPR en viejos (de [P1])
+  M_G,0 -5 a +1: jovenes n    99 recall propio 0.010 Sagitta 0.030 | viejos FPR propio 0.000 Sagitta 0.001 | recall - FPR: propio +0.010 Sagitta +0.029
+  M_G,0 +1 a +3: jovenes n  1832 recall propio 0.166 Sagitta 0.064 | viejos FPR propio 0.018 Sagitta 0.005 | recall - FPR: propio +0.149 Sagitta +0.059
+  M_G,0 +3 a +5: jovenes n  2612 recall propio 0.825 Sagitta 0.505 | viejos FPR propio 0.036 Sagitta 0.036 | recall - FPR: propio +0.788 Sagitta +0.468
+  M_G,0 +5 a +7: jovenes n  4414 recall propio 0.967 Sagitta 0.863 | viejos FPR propio 0.153 Sagitta 0.056 | recall - FPR: propio +0.814 Sagitta +0.807
+  M_G,0 +7 a +12: jovenes n  3447 recall propio 0.985 Sagitta 0.898 | viejos FPR propio 0.533 Sagitta 0.078 | recall - FPR: propio +0.452 Sagitta +0.820

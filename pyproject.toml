@@ -299,6 +299,11 @@ ignore = [
 # against. Scoped to this one file rather than disabled globally, so `l` as a loop variable is
 # still caught everywhere else.
 "erotica/analysis/dynamics.py" = ["E741"]
+# The PMS-classifier experiment is a record: its *_measured.txt were printed by this code at
+# pms-classifier 300e028, and the hub's findings cite those files. Reformatting or re-sorting it
+# would make the code differ from what produced the numbers. Only style rules are off here;
+# pyflakes' bug classes (undefined names, redefinitions) still run.
+"tools/validation/pms_classifier/*" = ["I001", "E401", "E701", "E702", "E741", "F401", "UP031", "B905"]
 # The SED experiment is a record: its JSON sidecars were written by this code at sed-external
 # eb2e444, and the hub's findings cite them. Only style rules are off; pyflakes' bug classes still
 # run (the four B023 hits are lambdas called in the iteration that defines them, checked).
@@ -306,8 +311,8 @@ ignore = [
 
 [tool.ruff.format]
 docstring-code-format = true
-# Same reason as the per-file-ignores entry for this directory.
-exclude = ["tools/validation/sed_external/*"]
+# Same reason as the per-file-ignores entries for these directories.
+exclude = ["tools/validation/pms_classifier/*", "tools/validation/sed_external/*"]
 
 [tool.mypy]
 python_version = "3.14"
