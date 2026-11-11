@@ -13,6 +13,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cov_summary import _conv_posthoc  # noqa: E402
+
+
 def main(cell: str) -> None:
     import matplotlib
 
@@ -39,11 +43,7 @@ def main(cell: str) -> None:
                 n = r[f"nuts_{p}"]
                 t = n["median"] - n["err"]
                 g = r["nuts_gate"]
-                conv = (
-                    g["rhat_max"] <= 1.01
-                    and min(g["ess_bulk_min"], g["ess_tail_min"]) >= 400
-                    and g["divergences"] == 0
-                )
+                conv = _conv_posthoc(g)  # the predicate of the counts in coverage.json
                 col = "C0" if conv else "C3"
                 a.plot([i + 0.12] * 2, [n["q05"] - t, n["q95"] - t], color=col, lw=1, alpha=0.6)
                 a.plot([i + 0.12] * 2, [n["q16"] - t, n["q84"] - t], color=col, lw=2.5)
