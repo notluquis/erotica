@@ -669,7 +669,7 @@ def export_multiband() -> list[Path]:
     coordinate; ``bands`` lists, per band, the model column, the observed column, the extinction law,
     how many members have it and the fitted zero point."""
     sys.path.insert(0, str(VALIDATION / "isochrone_multiband"))
-    from common_mb import mist_mb
+    from common_mb import members, mist_mb
     from real_fit import make
 
     p = VALIDATION / "isochrone_multiband/real_fit.json"
@@ -760,13 +760,9 @@ def export_multiband() -> list[Path]:
             },
             "posterior": {kk: {"q50": float(v)} for kk, v in m.items()},
             "diagnostics": None,
-            "cmd": {
-                "x": "BP-RP",
-                "y": "G",
-                "color": [round(float(v), 5) for v in f._obs_col],
-                "mag": [round(float(v), 5) for v in f._obs_mag],
-                "mag_limit": float(f._mag_lim),
-            },
+            # the Gaia coordinates of the members the fit used (real_fit.make: every member,
+            # prob_threshold 0), with the fields the registry schema requires
+            "cmd": observed_cmd(f, members()),
             "sample": "isochrone_multiband/ngc6383_multiband_members.ecsv",
             "isochrone": {
                 "computed_with": f"MultibandIsochroneFitter at {head}",

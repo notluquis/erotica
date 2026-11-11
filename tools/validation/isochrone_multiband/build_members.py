@@ -66,6 +66,10 @@ def col(t, name):
 
 
 def main() -> None:
+    if not NIR.exists():
+        raise SystemExit(
+            f"{NIR}: not found; set NGC6383_VIRAC2_MEMBERS to the VIRAC2 + 2MASS member table"
+        )
     s = Table.read(SAMPLE)
     t = Table.read(NIR)
     sha = hashlib.sha256(NIR.read_bytes()).hexdigest()

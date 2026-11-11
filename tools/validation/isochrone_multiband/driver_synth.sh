@@ -4,8 +4,9 @@
 cd "$(dirname "$0")"
 export PYTHONPATH="$(git rev-parse --show-toplevel)" OMP_NUM_THREADS=1
 PY=${PYTHON:-python}
-mp() { memory_pressure | awk -F': ' '/free percentage/{gsub("%","",$2); print int($2)}'; }
-sw() { sysctl -n vm.swapusage | sed -E 's/.*free = ([0-9.]+)M.*/\1/' | cut -d. -f1; }
+# macOS memory gauges; elsewhere they print nothing and the gate stays open
+mp() { v=$(memory_pressure 2>/dev/null | awk -F': ' '/free percentage/{gsub("%","",$2); print int($2)}'); echo "${v:-100}"; }
+sw() { v=$(sysctl -n vm.swapusage 2>/dev/null | sed -E 's/.*free = ([0-9.]+)M.*/\1/' | cut -d. -f1); echo "${v:-99999}"; }
 gate() { while [ $(mp) -lt 25 -o $(sw) -lt 500 ]; do echo "gate closed mp=$(mp) swap=$(sw) $(date +%T)"; sleep 60; done; }
 run() {
   gate

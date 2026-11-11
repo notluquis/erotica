@@ -50,8 +50,8 @@ def main() -> None:
     import erotica
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arms", nargs="*", default=list(ARMS))
-    ap.add_argument("--profile", default=None)
+    ap.add_argument("--arms", nargs="*", default=list(ARMS), choices=list(ARMS))
+    ap.add_argument("--profile", default=None, choices=list(ARMS))
     ap.add_argument("--noprior", action="store_true")
     a = ap.parse_args()
     path = HERE / "real_fit.json"

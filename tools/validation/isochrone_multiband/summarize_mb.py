@@ -41,6 +41,8 @@ def boot_median(d: np.ndarray, rng, n=10000) -> np.ndarray:
 
 def main() -> None:
     ctl, lori, nirj = load("control"), load("lori"), load("nirJ")
+    if not ctl or not lori:
+        raise SystemExit("no control or lori replicates: run colour_synth_mb.py first")
     rng = np.random.default_rng(0)
     out: dict = {"n_pairs": {}, "control": {}, "b": {}, "ci95_b": {}}
     for s in ("gaia", "nir"):
