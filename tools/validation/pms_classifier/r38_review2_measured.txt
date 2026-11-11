@@ -1,0 +1,22 @@
+[K] OC_0011 (272,9928; -22,9714; plx 0,615; pm 0,473, 0,794) en catalogos alternativos, cono 0,5 deg
+  Cantat-Gaudin+2020 (J/A+A/640/A1): 0 filas en ninguna tabla
+  Dias+2021 (J/MNRAS/504/356): 0 filas en ninguna tabla
+  Hao+2022 J/A+A/660/A4/table1: 1 filas; _r=0.003437; Cluster=OC-0011; RA_ICRS=272.989147; DE_ICRS=-22.970908; plx=0.610888; pmRA=0.45199; pmDE=0.805722; age=9.100000381469727; e_age=0.20999999344348907; RV=11.413238; N=289
+  Hao+2022 J/A+A/660/A4/table2: 289 filas; _r=0.11857; RA_ICRS=273.00384; DE_ICRS=-23.089489; plx=0.640851; pmRA=0.465932; pmDE=0.977208; RV=--; Cluster=OC-0011 | _r=0.122296; RA_ICRS=273.007523; DE_ICRS=-23.092899; plx=0.606436; pmRA=0.429021; pmDE=0.853456; RV=--; Cluster=OC-0011 | _r=0.13253; RA_ICRS=272.977853; DE_ICRS=-23.103161; plx=0.596412; pmRA=0.469884; pmDE=0.698371; RV=--; Cluster=OC-0011 | _r=0.119486; RA_ICRS=272.984727; DE_ICRS=-23.090603; plx=0.632545; pmRA=0.555974; pmDE=0.958579; RV=--; Cluster=OC-0011 | _r=0.103182; RA_ICRS=273.02193; DE_ICRS=-23.071001; plx=0.617738; pmRA=0.779101; pmDE=0.792785; RV=--; Cluster=OC-0011
+[T] ¿la edad mueve los FP de OC_0011?
+  core.features recibe la edad: False
+  M_G,on(log t 8.79) = 11.28; M_G,0 maximo de los FP 5.91 -> ninguna edad del rango cambia sus etiquetas (todas 0)
+  M_G,on(log t 9.41) = inf; M_G,0 maximo de los FP 5.91 -> ninguna edad del rango cambia sus etiquetas (todas 0)
+[B] HR23 AV50 - A0 del mapa (Vergely+2022) por AV50, en los 115 viejos
+  AV50 0-1:  62 cumulos, mediana HR23 - mapa -0.04
+  AV50 1-2:  34 cumulos, mediana HR23 - mapa +0.12
+  AV50 2-3:  10 cumulos, mediana HR23 - mapa +0.70
+  AV50 3-4:   6 cumulos, mediana HR23 - mapa +0.98
+[R] base de la RGB (punto mas debil de phase 2) de MIST a la edad, MOD y A_V de HR23 de OC_0011
+  log t 9.15: G = 15.54, BP-RP = 2.36; G del turn-off 14.78 (corte de (e): 15.78)
+[X] C* (Riello+2021) > 3 sigma
+  viejos A u B: FP 39/457 = 0.085; no FP 405/13948 = 0.029; Fisher p 8.6e-09
+  OC_0011: FP 19/153 = 0.124; no FP 14/167 = 0.084; Fisher p 0.27
+[K2] OC_0011 con la A_V de Hao+2022 (A_G = 3,78 -> A_V = A_G/0,789 con Wang & Chen; edad 9,10 +- 0,21): FP con el modelo de su particion
+  A_V 3.33: FP 153 de 320 (de los 153 FP con HR23 siguen 153)
+  A_V 4.79: FP 29 de 320 (de los 153 FP con HR23 siguen 25)

@@ -1,0 +1,4 @@
+filas (source_id con contraparte a <= 1''): 135402; separacion mediana 0.073''
+  j_m: U 3217; con magnitud 3217; con error nulo 3217; sin U y error nulo 0 de 132185
+  h_m: U 5565; con magnitud 5565; con error nulo 5565; sin U y error nulo 1 de 129837
+  ks_m: U 10996; con magnitud 10996; con error nulo 10996; sin U y error nulo 1 de 124406

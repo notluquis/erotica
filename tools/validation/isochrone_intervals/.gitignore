@@ -1,0 +1,3 @@
+# Per-run state of the drivers (data, chains, draws, figures): kept with the hub finding
+# isochrone-intervals-nuts.md, not here. The committed summaries are coverage.json and the figures.
+runs/
