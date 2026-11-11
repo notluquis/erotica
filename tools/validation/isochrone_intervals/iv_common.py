@@ -239,9 +239,22 @@ def chain_starts(f, ctrl: dict, rng) -> dict:
     return {"mode": m, "local_sd": sd, "chain_starts": starts, "ridge_vector": v.tolist()}
 
 
+def _strict(x):
+    """NaN and +-inf as null: ``json.dumps`` writes them as bare tokens that are not JSON
+    (``tools/check_json_strict.py``)."""
+    if isinstance(x, float) and not np.isfinite(x):
+        return None
+    if isinstance(x, dict):
+        return {k: _strict(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_strict(v) for v in x]
+    return x
+
+
 def dump(path: Path, obj) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=1, default=float) + "\n")
+    obj = _strict(json.loads(json.dumps(obj, default=float)))
+    path.write_text(json.dumps(obj, indent=1, allow_nan=False) + "\n")
 
 
 def now() -> str:
