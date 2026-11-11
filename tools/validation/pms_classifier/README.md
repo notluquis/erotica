@@ -26,3 +26,23 @@ Los datos de entrenamiento y validación los bajan `fetch_training.py`, `fetch_v
 Fuera de las del paquete: `xgboost`, `scikit-learn`, `astroquery`, `pyvo` y, para el control con Sagitta,
 `torch`. No son extras de `erotica`: nada del paquete las importa. `test_core.py` se salta sin `xgboost`
 (`python -m pytest -q test_core.py` desde este directorio; `pytest` en la raíz no lo recoge).
+
+## Resultados
+
+Los scripts escriben sus resultados completos en `cache/` (ignorado). `results/` guarda las cinco sidecars
+agregadas de la corrida que imprimió los `*_measured.txt` (copiadas de `cache/` del worktree de la rama):
+`exp2_summary.json` (las 48 configuraciones de la grilla en la mitad A), `exp2_selected.json` (la elegida),
+`exp2_confirm.json` (compuertas en la mitad B y tramos establecidos), `r38_oos_eval.json` (FPR en el pool de
+352 cúmulos viejos fuera de muestra) y `r38_s2.json` (umbrales del brazo S2). Los modelos (`model_*.json`,
+~2 MB cada uno) y las predicciones por estrella no se versionan.
+
+## Defecto conocido: la dispersión de las simulaciones de potencia
+
+`exp2_power.py` y `r38_power.py` (`sim`) generan el FPR por cúmulo como Beta(p a, (1 − p) a) con
+`a = (1 − p(1 + cv²)) / cv²`; para un coeficiente de variación `cv` la concentración es
+`a = (1 − p(1 + cv²)) / (p cv²)`. Falta el factor `1/p`: con `cv = 1` el CV simulado es 3,16 a p = 0,05,
+4,08 a p = 0,03 y 1,83 a p = 0,15 (2·10⁶ draws; con la fórmula corregida, 1,00 en los tres). Las columnas
+`disp` de `exp2_power_measured.txt` y `r38_power_measured.txt` describen entonces una dispersión entre cúmulos
+mayor que la declarada; las columnas `binom` no dependen de esto. El código y las salidas quedan como se
+corrieron porque son las que cita el hallazgo; corregirlas y releerlas es una decisión del análisis, no de
+este traslado.

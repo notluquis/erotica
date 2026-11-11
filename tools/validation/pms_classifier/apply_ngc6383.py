@@ -29,6 +29,7 @@ import sagitta_ref as S
 from train_validate import f
 
 C = Path(__file__).parent / "cache"
+C.mkdir(exist_ok=True)
 RNG = np.random.default_rng(6383)
 BANDS = ("J", "H", "Ks")
 CJ, CH, CK = -0.031, 0.015, -0.006          # GF2018 eqs. 7-9 invertidas, como el hub
