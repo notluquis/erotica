@@ -28,11 +28,13 @@ def main(cell: str) -> None:
     for a, p in zip(ax, ("loga", "feh"), strict=True):
         for i, r in enumerate(d["rows"]):
             c = r[f"ctrl_{p}"]
-            a.errorbar(i - 0.12, c["err"], yerr=1.645 * c["sd"], fmt="none", ecolor="0.6", lw=1)
+            # a failed curvature is written as null: plot the mode, no interval
+            sd = float("nan") if c["sd"] is None else c["sd"]
+            a.errorbar(i - 0.12, c["err"], yerr=1.645 * sd, fmt="none", ecolor="0.6", lw=1)
             a.errorbar(
                 i - 0.12,
                 c["err"],
-                yerr=c["sd"],
+                yerr=sd,
                 fmt="o",
                 color="0.3",
                 ms=4,
