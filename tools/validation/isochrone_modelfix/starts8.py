@@ -4,7 +4,13 @@
 Laplace covariance at the arm's mode, the four starts moved along its (feh, dm, Av) regression line
 on log t by START_DLOGA (+-0.06, +-0.17), nuisance at the mode x U(0.7, 1.4), local_sd = Laplace
 marginal sd. ``python starts8.py <arm> <win> [fits/<arm>_<win>.json]`` -> ``starts_<arm>_<win>.json``
-with PyMC variable names (feh, loga, dm, Av, sigma_int, f_bg, k, beta, sigma_c, tau)."""
+with PyMC variable names (feh, loga, dm, Av, sigma_int, f_bg, k, beta, sigma_c, tau).
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 2.5; applied in
+cov_kw.py): converged = R-hat <= 1.01, bulk and tail ESS >= 400, no divergence and the chain_z gate;
+the K x W intervals die for a cell when log t covers the truth in <= 2 of 8 at 68 % or <= 5 of 8 at
+90 %, and more than 2 of 8 unconverged fits mean NUTS does not converge in that cell.
+"""
 
 import json
 import sys

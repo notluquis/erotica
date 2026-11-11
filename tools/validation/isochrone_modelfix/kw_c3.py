@@ -25,6 +25,11 @@ Arms (same truths and seeds as cell A, 6000 + rep, so every replicate is paired 
 
     kw_c3.py selftest                     closed-form and oracle checks of the generator
     kw_c3.py prep --arm IB --rep k        data + search8 control + Laplace + chain starts
+
+Decision rules (hub finding isochrone-intervals-nuts.md section 2.17 and amendment 1; applied in
+kw_c3_summary.py): rule 1, the control (singles fitted with singles) must have |median error of the
+log t mode| <= 0.010; then the binary systematic D_N is "not detected, <= 0.015 dex" if its interval
+lies inside +-0.015, "measured" if |D_N| >= 0.010, otherwise undecided.
 """
 
 from __future__ import annotations

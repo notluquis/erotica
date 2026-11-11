@@ -3,7 +3,13 @@
 ``ARM=K WINDOW=W python nuts8.py run|finalize <nuts_chain arguments>``. Same kernel, chunking,
 resume and summaries; only the model (``aniso.build_model8``) and the summarised parameter list
 (+ the arm's extra variables) change. ``--data`` is the table the model is built on (a synthetic
-replicate or the 254 members), cut to the arm's window by ``setup``."""
+replicate or the 254 members), cut to the arm's window by ``setup``.
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 2.5; applied in
+cov_kw.py): converged = R-hat <= 1.01, bulk and tail ESS >= 400, no divergence and the chain_z gate;
+the K x W intervals die for a cell when log t covers the truth in <= 2 of 8 at 68 % or <= 5 of 8 at
+90 %, and more than 2 of 8 unconverged fits mean NUTS does not converge in that cell.
+"""
 
 import os
 import sys

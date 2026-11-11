@@ -13,6 +13,10 @@
 The field component (uniform over the window's CMD box) and everything else is the fitter's own.
 ``WidthFitter`` only replaces the per-star covariance; with tau = 0 and sigma_G = sigma_c it is the
 parent's likelihood exactly (checked in ``selftest``).
+
+Decision rule (isochrone-model-fix.md section 0.4, applied in ppc2.py): an arm passes PPC2 if every
+two-sided predictive p of its K statistics is >= 0.05 / K; the gate noise is measured with 50
+synthetic draws taken as the data.
 """
 
 from __future__ import annotations

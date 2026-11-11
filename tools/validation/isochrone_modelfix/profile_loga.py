@@ -18,6 +18,10 @@ Objectives (terms stored separately at every optimum):
     profile_loga.py laplace            nuisance log-det (6-D Hessian of post) at each point's optimum
     profile_loga.py runnerup           polish search8's runner-up (log t 6.62) to convergence, s8 metric
     profile_loga.py summary            profile.json + profile.png
+
+Decision rule (section 2.16, applied in summary()): the mode search is backed over the profiled
+range if the best log posterior outside the window W around the mode is at least 2 below the
+maximum (M_out < -2); it fails otherwise, strongly if a point outside W beats the mode by > 0.05.
 """
 
 from __future__ import annotations

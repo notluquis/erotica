@@ -15,6 +15,11 @@ per-star errors UNSCALED (the likelihood multiplies them by k); ``aniso.draw`` r
 so ``draw_table`` is ``aniso.draw`` with both error columns kept before scaling (checked in
 ``selftest``). Cell C also runs the control with the lattice's A_V start at 0.5 instead of 1.0
 (R32-21: ``search`` starts (dm, A_V) at (dm_mu, 1.0), which is C's true A_V).
+
+Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 2.5; applied in
+cov_kw.py): converged = R-hat <= 1.01, bulk and tail ESS >= 400, no divergence and the chain_z gate;
+the K x W intervals die for a cell when log t covers the truth in <= 2 of 8 at 68 % or <= 5 of 8 at
+90 %, and more than 2 of 8 unconverged fits mean NUTS does not converge in that cell.
 """
 
 from __future__ import annotations
