@@ -1,7 +1,7 @@
 # EROTICA development environment — the single source of truth for dependencies.
 #
 #   mamba env create -f environment.yml
-#   mamba activate erotica
+#   mamba activate erotica          # this file's env; the default for new work is erotica-2026-10 (see below)
 #   pip install -e . --no-deps        # the package itself only; see "Why pip appears" below
 #
 # WHY THIS FILE EXISTS
@@ -41,21 +41,25 @@
 #   mamba create -n _probe --dry-run -c conda-forge python=3.14 <every dependency below>
 
 # ---------------------------------------------------------------------------------------------
-# WHICH LOCAL ENV ACTUALLY RUNS THIS PACKAGE — audited 2026-08-04, because the answer surprised me
-# and the wrong choice fails SILENTLY rather than loudly.
+# WHICH LOCAL ENV ACTUALLY RUNS THIS PACKAGE — re-audited 2026-11-05 (author's decision 2026-10-26).
 #
-#   erotica-bench   erotica 0.1.0 (editable) + asteca 0.7.0   <- the only env that reproduces the
-#                                                                published benchmark table
-#   cosmic          NO erotica installed; asteca 0.6.9        <- prior sessions prescribed this one
-#   erotica         does not exist locally, despite `name:` below naming it
+#   erotica-2026-10  DEFAULT. Built 2026-10-26 as `mamba create -y -n erotica-2026-10 -c conda-forge
+#                    --override-channels python=3.14 pip gfortran clang` (verbatim from the env's
+#                    conda-meta/history) plus
+#                    `pip install -e ".[dev,bayes,asteca,selection,docs,oracles,gp]" "pymc[nutpie]"
+#                    emcee dynesty` (the PyPI stack, ahead of conda-forge). Reproduced the isochrone
+#                    batch and the slow tests of `erotica` (hub: agent-findings/env-refresh-2026-10-26.md
+#                    §9.1, §10.1).
+#   erotica          FROZEN. Kept unchanged to reproduce the isochrone batch
+#                    and HD 159176 (B9). Do not upgrade it in place.
+#   erotica-bench    erotica 0.1.0 (editable) + asteca 0.7.0: the published benchmark table.
+#   cosmic           RETIRED 2026-11-05. It never had `erotica` installed and ran only because pytest
+#                    put the repo root on sys.path; its spec is archived in the hub
+#                    (agent-findings/data/env-cosmic-retired-2026-11-05/).
 #
-# `cosmic` appears to work because `pytest` and the validation scripts are run from the repo root,
-# which puts `erotica/` on sys.path via the current directory. `import erotica` from ANY other
-# working directory fails there. And its asteca 0.6.9 exposes the same API as 0.7.0, so the
-# benchmark runs to completion and silently reports a different `asteca_fastmp` baseline.
-#
-# Two failure modes with no error message between them. Use `erotica-bench` for anything that
-# produces a number, or create the env this file declares.
+# The 2026-08-04 audit this block replaces said `erotica` "does not exist locally"; it has existed
+# since then. The failure mode it warned about still applies to any env without `pip install -e .`:
+# `import erotica` works from the repo root only.
 # ---------------------------------------------------------------------------------------------
 name: erotica
 

@@ -26,7 +26,7 @@ THE SWITCHES -- each with the physical process it models (methodology §A.1)
              *individual-object* IMF, labelled "Chabrier 2014 system"); ``"chc14"``: what ASteCA's
              ``chabrier_2014`` implements (n_c 11, m_c 0.18, sigma 0.579, m0 = n_c m_c = 1.98, x 1.35;
              Chabrier, Hennebelle & Charlot 2014 Table 2, MW row), the IMF P01 and the thesis cite.
-``ext``      ``"ccm"``: CCM89+O'Donnell at fixed effective wavelengths (constant k); ``"fitz19"``: the
+``ext``      ``"ccm"``: CCM89 at fixed effective wavelengths (constant k; pure CCM89, not O'Donnell 1994); ``"fitz19"``: the
              ESA Gaia EDR3 extinction law (Fitzpatrick+2019 curve; Riello+2021) -- k as a cubic in the
              intrinsic (BP-RP)_0 of each EEP point and in A0 = A_V, ``Fitz19_EDR3_MainSequence.csv``
              row BPRP, X clipped to its validity range [-0.06, 2.5].
