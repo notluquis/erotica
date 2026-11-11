@@ -1,5 +1,6 @@
-"""Mutation run of tests/test_isochrone_multiband.py, on a COPY of the package (here /tmp/mut_mb_47555,
-made with cp -R of erotica/ and the test file) so the running experiments never import a mutant.
+"""Mutation run of tests/test_isochrone_multiband.py, on a COPY of the package (a fresh temporary
+directory holding erotica/, tests/conftest.py and the test file, copied from this checkout) so the
+running experiments never import a mutant.
 Each mutation is applied, checked to be in the file, the named test run, the original restored;
 the last entry is the restored suite. Output: mutations.json (committed copy next to this file).
 """
@@ -9,11 +10,18 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 
-M = "/tmp/mut_mb_47555"
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[2]
+M = tempfile.mkdtemp(prefix="mut_mb_")
+shutil.copytree(ROOT / "erotica", f"{M}/erotica", ignore=shutil.ignore_patterns("__pycache__"))
+os.makedirs(f"{M}/tests")
+for t in ("conftest.py", "test_isochrone_multiband.py"):
+    shutil.copy(ROOT / "tests" / t, f"{M}/tests/{t}")
 F = f"{M}/erotica/analysis/_isochrone_multiband.py"
 orig = open(F).read()
-shutil.copy(F, F + ".orig")
 muts = [
     (
         "floor twice on colour",
@@ -86,6 +94,10 @@ for name, old, new, k in muts:
         },
     )
     last = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else r.stderr[-300:]
+    # a skipped test (no pytensor, missing data) is not a survived mutant: refuse to record it
+    if "skipped" in last and "failed" not in last:
+        shutil.rmtree(M)
+        sys.exit(f"{name}: the selected test was skipped ({last}); run with the bayes extra installed")
     res.append({"mutation": name, "test": k, "red": r.returncode != 0, "summary": last})
     print(res[-1], flush=True)
     open(F, "w").write(orig)
@@ -116,4 +128,5 @@ res.append(
     {"restored_suite_green": r.returncode == 0, "summary": r.stdout.strip().splitlines()[-1]}
 )
 print(res[-1])
-json.dump(res, open(f"{M}/mutations.json", "w"), indent=1)
+json.dump(res, open(HERE / "mutations.json", "w"), indent=1)
+shutil.rmtree(M)
