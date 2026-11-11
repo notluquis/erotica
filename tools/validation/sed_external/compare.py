@@ -4,6 +4,10 @@ selection and the hierarchical cluster A_V level (pre-registered §0.5).
 Published sources and their independence class (§0.2): Zhang+23 (isochrone-free, XP), GSP-Phot and
 StarHorse (isochrone priors), BossNet and XCSAO (SDSS-V DR20 BOSS spectra), spectral-type anchors.
 Writes compare.json.
+
+Decision rules: the pre-registered gate, per-star usability rule and cluster-level reading
+(hub finding isochrone-sed-external.md section 0.5) are stated in ``run_synth.py``'s docstring and
+applied in ``compare.py``; this script's output is read only through them.
 """
 
 from __future__ import annotations

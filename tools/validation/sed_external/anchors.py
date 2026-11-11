@@ -1,7 +1,12 @@
 """A_V of members with a spectroscopic type (T_eff restricted to the type's EEM range +- one subtype,
 or Aidelman+2018 / Rauw+2010 T_eff ranges), per star with its posterior width, MIST and EEM, and the
 hierarchical level over them. Declared in the finding as an addition to the pre-registration: §0.5
-pre-registered the hierarchical level over 'usable' stars, of which there are none."""
+pre-registered the hierarchical level over 'usable' stars, of which there are none.
+
+Decision rules: the pre-registered gate, per-star usability rule and cluster-level reading
+(hub finding isochrone-sed-external.md section 0.5) are stated in ``run_synth.py``'s docstring and
+applied in ``compare.py``; this script's output is read only through them.
+"""
 import json, sys
 from pathlib import Path
 import numpy as np

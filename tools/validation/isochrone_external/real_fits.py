@@ -11,6 +11,11 @@
   foreground dust: a lower bound used as a value).
 
 Output: ``real_fit_<run>.json``.
+
+Decision rules (pre-registered, hub finding isochrone-external-constraints.md section 0.6): the map
+changes the conclusion only if |d log t| > 0.10 or |d [Fe/H]| > 0.10 between X2 (or X3) and X1 AND
+the matching synthetic arm of ``av_synth.py`` passed its rule; otherwise the map does not decide. No
+age is quoted from a fit whose synthetic arm has coverage <= 2/8 or bias > 0.10.
 """
 
 from __future__ import annotations

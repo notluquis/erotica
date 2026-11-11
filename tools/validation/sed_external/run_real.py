@@ -7,6 +7,10 @@ Variants (model, config, [Fe/H], floor scale):
 Spectral-type anchors: for members with a spectroscopic type, A_V with T_eff restricted to the
 type's EEM T_eff +- one subtype (configuration a and b, MIST).
 Writes sed_real_perstar.ecsv and sed_real.json.
+
+Decision rules: the pre-registered gate, per-star usability rule and cluster-level reading
+(hub finding isochrone-sed-external.md section 0.5) are stated in ``run_synth.py``'s docstring and
+applied in ``compare.py``; this script's output is read only through them.
 """
 
 from __future__ import annotations

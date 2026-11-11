@@ -15,6 +15,11 @@ the level known from elsewhere, e.g. the upper MS or a map).
 The generator's error model in T is fitted on the 202 real members with GSP-Phot T_eff, with
 e_T = 10 * 100 K / (T ln 10) at each star's GSP-Phot T (only the G dependence of the error is taken
 from the data). Output: ``hr_nspec_<mode>.json``.
+
+Decision rule (pre-registered, hub finding isochrone-external-constraints.md section 0.3): the
+(G, T_eff) plane is fitted only if the number of PMS members (G > 14) with spectroscopic,
+isochrone-independent T_eff reaches the N this script measures as needed for sigma(log t) <= 0.10
+dex; otherwise the deficit and an observing proposal are reported.
 """
 
 from __future__ import annotations

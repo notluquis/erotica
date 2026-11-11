@@ -17,6 +17,14 @@ Extinction coefficients: the grid layer's own (CCM89, R_V 3.1, MIST v1.2 EDR3 ef
 
 Output: ``av_maps.json`` (summary) and ``av_maps_perstar.ecsv`` (A_V per member and map).
 Run: ``~/miniforge3/bin/python av_maps.py [--selftest]`` (base env: healpy, dustmaps, scipy).
+
+Decision rules (pre-registered, hub finding isochrone-external-constraints.md section 0.4): the map
+explains the radial colour-residual gradient if its outer-minus-inner (20-41' minus 0-5')
+difference of k_col * A_V is >= 2/3 of the observed -0.097 with the same sign AND the
+rank correlation residual-radius controlling for k_col * A_V drops to |rho| < 0.15; it does not
+explain it at its own scale if that difference is < 1/3 of the observed; partial in between. The
+re-implemented integration is checked against ``dustmaps.edenhofer2023`` on a toy sphere and must
+fail without the inner shell.
 """
 
 from __future__ import annotations
