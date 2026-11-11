@@ -52,7 +52,8 @@ def ridge_resid(gen, th, G, Cc):
                 cc = rc[k] + t * (rc[k + 1] - rc[k])
                 if abs(c - cc) < abs(best):
                     best = c - cc
-        out[i] = best
+        if np.isfinite(best):  # no bracketing segment: leave NaN, as ppc2.py does
+            out[i] = best
     return out
 
 

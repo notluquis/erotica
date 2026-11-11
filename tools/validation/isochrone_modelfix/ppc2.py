@@ -127,7 +127,7 @@ def main(arm: str, win: str, R: int = 200) -> dict:
     fails = {k: v for k, v in p.items() if v < thr}
     # gate noise: synthetic j as the data against the rest
     ff = []
-    for j in range(50):
+    for j in range(min(50, len(S))):
         pj = pvals(S[j], S[:j] + S[j + 1 :])
         ff.append(any(v < 0.05 / len(pj) for v in pj.values()))
     # old criterion on the data (8 draws) and its false-fail rate (synthetic j vs 8 others)
@@ -135,7 +135,7 @@ def main(arm: str, win: str, R: int = 200) -> dict:
     ksC = [ks_2samp(c[1], Cr).pvalue for c in cats[:8]]
     old = old_gencheck(t, S[:8], ksG, ksC)
     old_ff = []
-    for j in range(8, 58):
+    for j in range(8, min(58, len(cats))):
         Gj, Cj, _ = cats[j]
         kG = [ks_2samp(c[0], Gj).pvalue for c in cats[:8]]
         kC = [ks_2samp(c[1], Cj).pvalue for c in cats[:8]]

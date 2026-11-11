@@ -1,6 +1,10 @@
 #!/bin/bash
 # Start the two NUTS lanes without exceeding 8 cores: lane 1 when <= 4 preps run, lane 2 when none.
 cd "$(dirname "$0")"
+mkdir -p logs
+PY=${PYTHON:-python}
+export MODELFIX_RUNS="${MODELFIX_RUNS:-kw_runs}"
+R_="$MODELFIX_RUNS"
 np() { ps aux | grep "python kw_cells.py prep" | grep -v -E "grep|sh -c" | wc -l; }
 until [ "$(np)" -le 4 ]; do sleep 30; done
 nohup ./run_kw_nuts.sh A_0 A_2 A_4 A_6 real_0 C_0 C_2 C_4 C_6 > logs/kw_lane1.out 2>&1 &

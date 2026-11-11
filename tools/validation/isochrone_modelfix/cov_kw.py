@@ -52,7 +52,8 @@ def wq(x, w, q):
 def converged(nu, cz):
     g = nu["gate"]
     return bool(
-        g["rhat_max"] <= 1.01
+        g.get("all_finite", True)  # nuts_chain's gate since 07dd21a; older nuts.json lack it
+        and g["rhat_max"] <= 1.01
         and g["ess_bulk_min"] >= 400
         and g["ess_tail_min"] >= 400
         and g["divergences"] == 0

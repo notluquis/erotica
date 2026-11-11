@@ -402,7 +402,11 @@ def decide(t, P, L, recs):
             ],
         }
     ld = np.array([r.get("laplace_post", {}).get("logdet_negH", np.nan) for r in recs])
-    ok = np.isfinite(ld)
+    # slogdet gives log|det| also for an indefinite matrix: only points with positive curvature in
+    # every nuisance direction enter the Laplace weights
+    lp = [r.get("laplace_post", {}) for r in recs]
+    posdef = np.array([q.get("sign", 0) > 0 and q.get("min_eig", -1) > 0 for q in lp])
+    ok = np.isfinite(ld) & posdef
     if ok.sum() > 3:
         m = P[ok] - 0.5 * ld[ok]
         tt = t[ok]
