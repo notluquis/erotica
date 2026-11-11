@@ -77,6 +77,9 @@ data/test/NGC6383/PARSEC/
 *.h5
 *.hdf5
 *.npz
+# Exception: the shipped posterior of erotica.metallicity.pms_bias is package data (pyproject
+# [tool.setuptools.package-data]); ignored, it would be in a local wheel and missing from the repo.
+!erotica/metallicity/data/*.npz
 
 # Optuna SQLite databases
 *.db
