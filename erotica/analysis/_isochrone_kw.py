@@ -47,7 +47,9 @@ at each segment's midpoint **times k**, the same scaling as each star's width an
 catalogues' noise (``_draw_stars``). Up to v1 it used the unscaled error (R113-04), so with :math:`k > 1`
 the numerator and the window's normalisation disagreed. Measured at k = 2.45 on NGC 6383's 201 stars at
 the K x W mode: log L moves by +0.0032 (-278.58511 to -278.58189); on cell A replicate 0 by -0.0003 at the
-truth and -4e-6 at the control's mode. The coverage numbers below were obtained with v1.
+truth and -4e-6 at the control's mode. The numbers below are the re-run with v2 (2026-11-12: the 25 cited
+NUTS fits re-run with nutpie on replicates re-drawn with the R113-03 generator, paired by seed with the v1
+runs; ``tools/validation/isochrone_intervals/r113_compare.json``); where v1 differed, its value follows.
 
 **What was measured with this likelihood** (hub finding ``isochrone-intervals-nuts.md`` §2.10-§2.16,
 research code ``tools/validation/isochrone_modelfix`` on branch ``isochrone-model-fix``; this class is the
@@ -55,11 +57,13 @@ same function, checked to 1e-10 in ``tests/test_isochrone_kw.py``):
 
 * injection-recovery, cell A (8 replicates, 201 stars, G 14-19, truths off every MIST node): log t inside
   the 68 % interval in 6/8 and the 90 % in 7/8 (6 of 8 fits converged); [Fe/H], :math:`A_V` and
-  :math:`k` under-cover (1/8, 4/8, 3/8). Not "calibrated": a rule that passes with probability 0.58 even
-  at true coverage 0.50 / 0.75.
-* cell C (log t 6.43, [Fe/H] +0.15): NUTS does **not** converge (0/8, R-hat of log t 1.76-2.76) with the
-  chain starts of :meth:`find_start`. A fit there is not to be reported without passing the gate.
-* NGC 6383, 201 stars: log t = 5.965 (+0.034 / -0.032), 0.92 (+0.08 / -0.07) Myr, 4 x 2000, R-hat <= 1.003.
+  :math:`k` under-cover (1/8, 4/8, 3/8 at 68 %; at 90 % 5/8, 6/8, 6/8, v1 4/8, 6/8, 5/8: one replicate
+  each moved across the 90 % edge, within 0.03 of it). Not "calibrated": a rule that passes with
+  probability 0.58 even at true coverage 0.50 / 0.75.
+* cell C (log t 6.43, [Fe/H] +0.15): NUTS does **not** converge (0/8, R-hat of log t 1.22-2.82; v1
+  1.76-2.76) with the chain starts of :meth:`find_start`. A fit there is not to be reported without passing the gate.
+* NGC 6383, 201 stars: log t = 5.965 (+0.035 / -0.034), 0.92 (+0.08 / -0.07) Myr, 4 x 2000, R-hat <= 1.004
+  (v1: 5.965 +0.034 / -0.032; the 16 % quantile moved by 1.4 times its Monte Carlo error).
   Conditional on the model, MIST v1.2, and the prior on dm (which fixes the age along an age-distance
   ridge: log L alone is flat within -2.7 over log t 5.80-6.56).
 

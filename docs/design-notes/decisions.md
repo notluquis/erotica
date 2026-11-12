@@ -2799,3 +2799,43 @@ M_out -7.900 -> -7.903 at 6.15 (does not fail), on log L -0.438 -> -0.434 at 6.4
 maxima outside the window are the same; the approximate marginal is 5.928 / 5.966 / 6.003 (16-50-84 %) to 1e-4.
 `TestAgainstTheNutsRun` (the package's NUTS on the data against the committed v1 run) was not re-run: its quantile
 tolerances are 0.005-0.009 dex and the profile above does not move at that level.
+
+---
+
+## 2026-11-12 — R113: the 25 cited K x W / X1 NUTS fits re-run with nutpie after R113-03/04
+
+**Why.** R113-03 (generator) and R113-04 (`F(theta)` with `k`) changed the replicates and the K x W likelihood under
+every NUTS fit the hub finding cites (X1 cell A, K x W cells A and C, K x W on the data). The controls and one
+replicate per model had been re-run (entries above); the author asked for all of them. Pre-registration in the
+hub (`r113-nutpie-rerun-prereg-2026-11-12.md`), written before the queue started.
+
+**How.** `tools/validation/isochrone_intervals/nutpie_chain.py`: nutpie with the JAX backend (the package's
+`NUTPIE_COMPILE_KWARGS`), one chain per process so that each chain keeps its own over-dispersed start
+(`pm.sample` gives nutpie one start per call), `jitter_rvs=set()` (nutpie's default jitters every free variable by
+U(-1, 1) in the transformed space; in the pilot it moved A_V from the declared 1.03 to 1.50), `target_accept` 0.9,
+500 + 500 per replicate and 1000 + 1000 on the data, seeds `100000 + 10000 m + 1000 cell + 10 rep + chain`. The
+summary is `nuts_chain.summarize`, so `cov_summary.py`, `cov_kw.py` and `chain_z.py` read it unchanged.
+`r113_compare.py` pairs each fit with its cited one (quantiles with their Monte Carlo error, convergence) and runs
+the engine control: A_0 of each model sampled with numpyro and with nutpie on the same re-drawn data.
+
+**Result** (`r113_compare.json`, `coverage_r113_nutpie.json`, `kw_coverage_r113_nutpie.json`).
+- Engine control: nutpie against numpyro on the same A_0 data, log t median +0.0008 (X1) and +0.0021 (K x W), within
+  3 MCSE (0.006 and 0.005).
+- No quantile (5, 50, 95 % of log t and [Fe/H]) of a converged fit moved by more than 3 MCSE; the largest ratio is
+  2.50 (X1 A_3, log t 95 %). Convergence verdicts are the same in all 25 fits (X1 A 8/8, K x W A 6/8, K x W C 0/8,
+  data yes).
+- Coverage, X1 cell A: log t 2/8 and 6/8, [Fe/H] 2/8 and 7/8 at 68 / 90 %, unchanged; the rule still kills NUTS
+  in that cell.
+- Coverage, K x W cell A: log t 6/8 and 7/8 unchanged (rule passes); [Fe/H] at 90 % 4/8 -> 5/8 (A_1: the 5 %
+  quantile moved from -0.3668 to -0.3694 across the truth -0.3685) and k at 90 % 5/8 -> 6/8 (A_7, not converged:
+  2.4487 -> 2.4206 across 2.4456). Both are border crossings within the Monte Carlo error.
+- K x W cell C, not converged in either run (R-hat of log t 1.76-2.76 -> 1.22-2.82): its coverage, already labelled
+  "not a calibration", is log t 6/8, 6/8 -> 4/8, 6/8 and [Fe/H] 6/8, 6/8 -> 2/8, 5/8. The chains of C sit on
+  separate plateaus of the age ridge (trace figures), so where they sit changes with the engine and the start.
+- K x W on NGC 6383's 201 stars: log t 5.965 (+0.034 / -0.032) -> 5.965 (+0.035 / -0.034); the 16 % quantile moved
+  -0.0022, 1.4 times its combined MCSE. `_REF` of `tests/test_isochrone_kw.py` now holds the v2 run.
+
+**Cost measured.** A nutpie chain with JAX uses 1.4-2 cores even with BLAS/OMP threads at 1 (XLA's thread pool; four
+`XLA_FLAGS` tried in the pilot did not limit it; numba is single-threaded and 6.5 times slower). Throughput on the
+K x W likelihood: 2.0 iterations/s with one process, 3.4 with three, about 6.3 with six. Chains: 874-1340 s (X1 A),
+849-1845 s (K x W A), 2115-2215 s (data, 2000 iterations), 1142-4039 s (C), with the machine at load 65-150 from other work.
