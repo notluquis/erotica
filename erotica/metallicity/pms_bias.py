@@ -79,11 +79,11 @@ per cluster do not average it away. Pass ``model=CALIBRATED_MODEL`` for the leas
 per-star noise in ``C``, gave 0.060 and 0.063). Leaving one cluster out, both give a per-star RMS of 0.076-0.077 dex against 0.137 for
 a constant.
 
-Provenance: hub repository ``~/phd``, ``agent-findings/apogee-pms-bias-deep-2026-11-09.md`` sections
-4.3 and 7 (2026-11-09), prototype ``agent-findings/scripts/apogee_pms_bias_correction_2026_11_09.py``
-and its ``.json``; author decision D26-52 (2026-11-09) to move it into EROTICA. Hierarchical model:
-``agent-findings/pms-bias-hierarchical-2026-11-10.md`` and ``scripts/pms_bias_hierarchical_2026_11_10.py``
-(draws ``_draws.npz``, sha256 f290b5a6..., hub commit 0669a745); author decisions D26-63 and D26-64.
+Provenance: the author's private research log (APOGEE PMS-bias analysis of 2026-11-09 and its
+prototype fit; hierarchical model of 2026-11-10, draws sha256 f290b5a6...); author decisions D26-52
+(2026-11-09) to move it into EROTICA, D26-63 and D26-64. Everything needed to reproduce the numbers
+ships here: the 104-star table in ``tests/data/``, the posterior in ``erotica/metallicity/data/``
+and the refits in ``tests/test_pms_bias.py``.
 """
 
 from __future__ import annotations
@@ -227,9 +227,8 @@ def load_posterior(likelihood="normal"):
 # OLS control (the default before D26-64; see the module docstring). ``beta``, ``sigma_e`` and ``tau``
 # are the hub prototype's; ``cov`` is the cluster-aware sandwich (PR #61 review, 2026-11-11), which the
 # prototype's (X^T X)^-1 (sigma_e^2 + tau^2) understated (sd of a 0.0131 -> 0.0162, of b 0.0284 -> 0.0355).
-# Embedded calibration: full-precision copy of the hub file
-# ~/phd/agent-findings/scripts/apogee_pms_bias_correction_2026_11_09.json (2026-11-09, hub commit
-# 23fc4bc), fitted on the 104 stars of tests/data/apogee_dr17_young_k_pms_bias.ecsv.
+# Embedded calibration: full-precision copy of the prototype fit in the author's private research log
+# (2026-11-09), fitted on the 104 stars of tests/data/apogee_dr17_young_k_pms_bias.ecsv.
 # tests/test_pms_bias.py refits them and fails if they drift.
 CALIBRATED_MODEL = BiasModel(
     beta=np.array(
