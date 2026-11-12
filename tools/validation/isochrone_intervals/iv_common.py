@@ -85,24 +85,55 @@ def table(G, C, eG, eC):
     )
 
 
+def _linear_t(c0, c1, u):
+    """Position ``t`` in [0, 1] along a segment whose density per unit ``t`` is ``c0 + c1 t``
+    (``c0 >= 0``, ``c0 + c1 >= 0``), from a uniform ``u``: the inverse of the CDF
+    ``(c0 t + c1 t^2 / 2) / (c0 + c1 / 2)``, written ``2 u M / (c0 + sqrt(c0^2 + 2 c1 u M))`` with
+    ``M = c0 + c1 / 2`` so that it stays exact at ``c1 -> 0`` (``t = u``) and at ``c0 = 0``
+    (``t = sqrt(u)``)."""
+    M = c0 + 0.5 * c1
+    num = 2.0 * u * M
+    den = c0 + np.sqrt(np.clip(c0**2 + 2.0 * c1 * u * M, 0.0, None))
+    return np.where(den > 0, num / np.where(den > 0, den, 1.0), u)
+
+
+def _single_segments(gen, feh, loga, dm, Av):
+    """The singles as the likelihood deposits them (``IsochroneFitter._segments``): segment ends
+    (G, colour) and the linear density coefficients ``c0, c1`` per unit ``t``. The mass of segment
+    ``k`` is ``c0_k + c1_k / 2``; the singles' total is ``sum(w_single)``, as in ``_deposit``."""
+    single, _ = gen._segments(feh, loga, dm, Av, np)
+    Ag, Ac, Bg, Bc, c0, c1 = (np.asarray(x, float) for x in single)
+    return Ag, Ac, Bg, Bc, c0, c1
+
+
 def _true_stars(gen, feh, loga, dm, Av, n, rng):
-    """``n`` noiseless model stars (G, colour) from the generator fitter's forward model, the same
-    draw as ``IsochroneFitter._draw_stars`` before its noise."""
+    """``n`` noiseless model stars (G, colour) from the generator fitter's forward model.
+
+    Singles are drawn from the density the likelihood integrates (``IsochroneFitter._segments``,
+    decisions.md 2026-09-24 (later)): segment ``k`` with probability proportional to its mass
+    ``c0_k + c1_k / 2`` and, inside it, ``t`` from the linear density ``c0_k + c1_k t``. Up to the
+    R113-03 fix (2026-11-12) they took segment ``k`` with probability ``w_single[k]`` and ``t``
+    uniform, the deposit the likelihood dropped on 2026-09-24: on two equal segments with
+    ``w = [0.9, 0.1]`` the likelihood puts [0.7, 0.3] and that generator [0.9, 0.1]. The random
+    stream is the same (one ``choice``, one ``uniform`` per single), only its mapping changed.
+    Binaries: unchanged, the ``_draw_stars`` draw along q at the binary sub-primaries."""
     from erotica.analysis._isochrone import _Q_NODES, _dk_gamma
 
     d = gen._deposit(feh, loga, dm, Av, np)
+    Ag, Ac, Bg, Bc, c0, c1 = _single_segments(gen, feh, loga, dm, Av)
     g1 = _dk_gamma(d["m_b"]) + 1.0
-    w_single = d["w_single"]
-    p = np.concatenate([w_single, sum(d["w_bin"])])
+    m_single = c0 + 0.5 * c1
+    p = np.concatenate([m_single, sum(d["w_bin"])])
     p = np.clip(p, 0, None) / np.clip(p, 0, None).sum()
     k = rng.choice(len(p), size=n, p=p)
-    single = k < len(w_single)
+    single = k < len(m_single)
     G = np.empty(n)
     C = np.empty(n)
-    ks, t = k[single], rng.uniform(size=int(single.sum()))
-    G[single] = d["G"][ks] + t * (d["G"][ks + 1] - d["G"][ks])
-    C[single] = d["col"][ks] + t * (d["col"][ks + 1] - d["col"][ks])
-    kb = k[~single] - len(w_single)
+    ks, u = k[single], rng.uniform(size=int(single.sum()))
+    t = _linear_t(c0[ks], c1[ks], u)
+    G[single] = Ag[ks] + t * (Bg[ks] - Ag[ks])
+    C[single] = Ac[ks] + t * (Bc[ks] - Ac[ks])
+    kb = k[~single] - len(m_single)
     q = rng.uniform(size=kb.size) ** (1.0 / g1[kb])
     j = np.clip(np.searchsorted(_Q_NODES, q, side="right") - 1, 0, len(_Q_NODES) - 2)
     fq = (q - _Q_NODES[j]) / (_Q_NODES[j + 1] - _Q_NODES[j])

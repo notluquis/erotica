@@ -41,12 +41,13 @@ Parameters, in the order the compiled function takes them: ``(met, loga, dm, Av,
 Priors: those of the parent plus :math:`k \sim U(1, 6)`; the upper bound is the search bound, not a
 physical statement.
 
-**Convention inherited and measured**: the detected fraction :math:`F(\theta)` of the window
-(:meth:`~IsochroneFitter._detected_fraction`) is computed with the intrinsic and floor widths and with
-the error at the segment midpoint from the polynomial fitted to the catalogue's **unscaled** errors
-(``_e_mag_coef``), not with :math:`k\,e_i`. At the window's faint edge that term is the smaller one
-(0.01 mag against :math:`\sigma_{\rm int}` 0.094 for NGC 6383), so its effect on :math:`F` is small
-`[I]`, not measured. The coverage numbers below were obtained with it.
+**The window's detected fraction carries k** (since 2026-11-12, ``LIKELIHOOD_VERSION`` v2): :math:`F(\theta)`
+(:meth:`~IsochroneFitter._detected_fraction`) uses the error polynomial of the catalogue (``_e_mag_coef``)
+at each segment's midpoint **times k**, the same scaling as each star's width and as the synthetic
+catalogues' noise (``_draw_stars``). Up to v1 it used the unscaled error (R113-04), so with :math:`k > 1`
+the numerator and the window's normalisation disagreed. Measured at k = 2.45 on NGC 6383's 201 stars at
+the K x W mode: log L moves by +0.0032 (-278.58511 to -278.58189); on cell A replicate 0 by -0.0003 at the
+truth and -4e-6 at the control's mode. The coverage numbers below were obtained with v1.
 
 **What was measured with this likelihood** (hub finding ``isochrone-intervals-nuts.md`` §2.10-§2.16,
 research code ``tools/validation/isochrone_modelfix`` on branch ``isochrone-model-fix``; this class is the
@@ -100,7 +101,8 @@ class IsochroneFitterKW(IsochroneFitter):
     measured values, not tuned here.
     """
 
-    LIKELIHOOD_VERSION = "unbinned-eep-kw-v1"
+    #: v2 (2026-11-12, R113-04): the window's detected fraction carries ``k``; v1 did not.
+    LIKELIHOOD_VERSION = "unbinned-eep-kw-v2"
     #: Prior bounds of the error scale ``k`` (U(1, 6)).
     K_RANGE = (1.0, 6.0)
     #: [Fe/H] values of the search lattice (those inside the grid's range); ``None`` = every node.

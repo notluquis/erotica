@@ -119,9 +119,11 @@ class TestErrorScale:
         for c in ("e_Gmag", "e_G_BPmag", "e_G_RPmag"):
             scaled[c] = k * np.asarray(data[c], float)
         parent = _toy(tmp_path, scaled, cls=IsochroneFitter)
-        # F(theta) takes the error at the segment midpoint from the polynomial fitted to the
-        # catalogue's UNSCALED errors (``_e_mag_coef``) in K x W, as measured: give the parent the same
-        parent._e_mag_coef = f._e_mag_coef
+        # F(theta) takes the error at the segment midpoint from the catalogue's error polynomial
+        # (``_e_mag_coef``) times k since R113-04 (v2): the parent fitted on the k-scaled table has the
+        # polynomial of log10(k e) = log10(k) + that of log10(e), the same widths with no override.
+        # Up to v1 this test copied the unscaled polynomial into the parent to make the paths agree.
+        np.testing.assert_allclose(parent._e_mag_coef[0], f._e_mag_coef[0] + np.log10(k), rtol=1e-10)
         th = _theta(f)
         a = f._star_loglike(**th, xp=np, k=k)
         b = IsochroneFitter._star_loglike(parent, **th, xp=np)
@@ -446,8 +448,14 @@ _X_REAL = [
     2.4456073299081154,
     0.0668623597974588,
 ]
-_LOGL_REAL = -278.58511134967847
-_LOGPOST_REAL = -278.5855743966267
+# R113-04 (2026-11-12): F(theta) of the window now carries k e(G), as the numerator does. The values
+# before (k not in F, research aniso.py and this class alike): -278.58511134967847 (real),
+# -279.4775311978356 (A_0 truth), -287.5913348243316 (A_0 mode). The new ones are the fixed aniso.py's
+# compiled8('K'), which agrees with this class to 2.4e-13.
+_LOGL_REAL = -278.5818917215975
+# v1 (k not in F): -278.5855743966267 (aniso.search8). v2: the value find_start returns on the same stars
+# after R113-04 (its mode agrees with _X_REAL to 1e-3 in every parameter, as before).
+_LOGPOST_REAL = -278.5823515710441
 #: kw_runs/A_0/prep.json (cell A, replicate 0): log L at the injected truth and at the control's mode
 _X_A0_TRUTH = [
     -0.30525315859357866,
@@ -458,7 +466,7 @@ _X_A0_TRUTH = [
     2.4456073299081154,
     0.0668623597974588,
 ]
-_LOGL_A0_TRUTH = -279.4775311978356
+_LOGL_A0_TRUTH = -279.4778102148894
 _X_A0_MODE = [
     -0.05849639208773076,
     6.191052927418514,
@@ -468,7 +476,7 @@ _X_A0_MODE = [
     1.8579410095182398,
     0.06742836343771298,
 ]
-_LOGL_A0_MODE = -287.5913348243316
+_LOGL_A0_MODE = -287.5913392553901
 _LOGPOST_A0_MODE = -287.9174129264717
 
 
@@ -555,6 +563,8 @@ class TestFrozenResearchOracle:
 # Reference run (committed in the hub finding §2.11 and kw_runs/real_0/nuts.json): 4 chains x 1000 after
 # 1000 warmup, seed 7, target_accept 0.9; log t median 5.965288, 16-84 % [5.933019, 5.999678],
 # 5-95 % [5.912724, 6.025393], sd 0.034778, ESS bulk 2247, R-hat 1.003, 0 divergences.
+# Not re-run after R113-04 (v2): at the K x W mode log L moved by +0.0032, against tolerances of
+# 0.005-0.009 dex on these quantiles; the K x W profile of log t re-run with v2 is in the hub finding.
 _REF = dict(median=5.965288, q16=5.933019, q84=5.999678, q05=5.912724, q95=6.025393, sd=0.034778)
 
 

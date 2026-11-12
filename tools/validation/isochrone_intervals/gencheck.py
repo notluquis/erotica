@@ -7,7 +7,8 @@ the colour residual about a running median in G (bins of 1 mag): its MAD and the
 more than 0.3 mag from it; and the G-rank correlation of the errors. Figure: real vs one synthetic.
 The generator is accepted if the real value of each width statistic lies inside the range of the
 8 synthetic ones widened by 25 %, and no KS p < 0.01 in more than 2 of 8 draws.
-Writes ``gencheck.json`` and ``gencheck.png``.
+Writes ``gencheck.json`` and ``gencheck.png`` (``$GENCHECK_STEM`` renames both: the R113-03 re-run
+writes ``gencheck_r113.*`` next to the cited record).
 
 Decision rules (pre-registered, hub finding isochrone-intervals-nuts.md section 0.5; applied in
 cov_summary.py): an estimator dies for a cell when, over its 8 replicates, the log t interval
@@ -16,6 +17,7 @@ covers the truth in <= 2 at 68 % or <= 5 at 90 %. This script only produces inpu
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -24,6 +26,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import iv_common as C  # noqa: E402
+
+STEM = os.environ.get("GENCHECK_STEM", "gencheck")
 
 
 def widths(G, Cc):
@@ -88,7 +92,7 @@ def main() -> None:
         verdict[k] = {"n_below_0.01": int(n), "ok": bool(n <= 2)}
     out["verdict"] = verdict
     out["accepted"] = bool(all(v.get("inside", v.get("ok")) for v in verdict.values()))
-    C.dump(HERE / "gencheck.json", out)
+    C.dump(HERE / f"{STEM}.json", out)
     fig, ax = plt.subplots(1, 2, figsize=(8, 5), sharex=True, sharey=True)
     ax[0].plot(Cr, Gr, "k.", ms=3)
     ax[0].set_title("real (254)")
@@ -99,7 +103,7 @@ def main() -> None:
         a.set_xlabel("BP-RP")
     ax[0].set_ylabel("G")
     fig.tight_layout()
-    fig.savefig(HERE / "gencheck.png", dpi=90)
+    fig.savefig(HERE / f"{STEM}.png", dpi=90)
     print(verdict, "accepted", out["accepted"])
 
 

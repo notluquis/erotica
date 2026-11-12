@@ -20,6 +20,7 @@ covers the truth in <= 2 at 68 % or <= 5 at 90 %. This script only produces inpu
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -30,7 +31,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import iv_common as C  # noqa: E402
 
-RUNS = HERE / "runs"
+# $IV_RUNS overrides the output tree (the R113-03 re-run writes next to, not over, the cited runs)
+RUNS = Path(os.environ.get("IV_RUNS", HERE / "runs")).expanduser()
 N_STARS = 254
 
 
