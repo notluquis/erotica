@@ -1,0 +1,62 @@
+{
+ "script": "r38_power.py",
+ "fix": "R113-01: Beta concentration (1 - p(1 + cv^2)) / (p cv^2)",
+ "seed": 7,
+ "S": 300,
+ "bootstrap_R": 400,
+ "gate": "97.5 % cluster-bootstrap bound of the FPR > 0.10",
+ "cv_disp": 1.0,
+ "sample": "pool fuera de muestra",
+ "rows": {
+  "todos": {
+   "n_stars": 35644,
+   "n_clusters": 352,
+   "max_per_cluster": 890,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.0,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  },
+  "-5..+3": {
+   "n_stars": 13208,
+   "n_clusters": 348,
+   "max_per_cluster": 388,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.0,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  },
+  "+3..+5": {
+   "n_stars": 12848,
+   "n_clusters": 351,
+   "max_per_cluster": 345,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.0,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  },
+  "+5..+7": {
+   "n_stars": 7014,
+   "n_clusters": 342,
+   "max_per_cluster": 211,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.0,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  },
+  "+7..+12": {
+   "n_stars": 2574,
+   "n_clusters": 248,
+   "max_per_cluster": 64,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.0,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  }
+ }
+}

@@ -215,9 +215,8 @@ def one_age_vs_two(p_ms: dict, p_pms: dict) -> dict:
 
     a1, l1 = np.asarray(p_ms["loga"], float), np.asarray(p_ms["loglike"], float)
     a2, l2 = np.asarray(p_pms["loga"], float), np.asarray(p_pms["loglike"], float)
-    common_a = np.intersect1d(np.round(a1, 3), np.round(a2, 3))
-    y1 = np.array([l1[np.isclose(a1, x)][0] for x in common_a])
-    y2 = np.array([l2[np.isclose(a2, x)][0] for x in common_a])
+    common_a, i1, i2 = np.intersect1d(np.round(a1, 3), np.round(a2, 3), return_indices=True)
+    y1, y2 = l1[i1], l2[i2]
     n_fine = int(round((common_a[-1] - common_a[0]) / FINE_STEP)) + 1
     x = np.linspace(common_a[0], common_a[-1], n_fine)
     f1, f2 = CubicSpline(common_a, y1)(x), CubicSpline(common_a, y2)(x)

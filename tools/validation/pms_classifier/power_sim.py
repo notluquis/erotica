@@ -20,8 +20,9 @@ def beta_concentration(p: float, cv: float) -> float:
 
 
 def cluster_fpr(p: float, cv: float, n_clusters: int, rng) -> np.ndarray:
-    """Per-cluster FPR: p for every cluster if ``cv`` is 0 (or no Beta exists), else the Beta draw."""
-    if cv > 0:
+    """Per-cluster FPR: p for every cluster if ``cv`` is 0, ``p`` is not in (0, 1) or no Beta has that
+    mean and CV; else the Beta draw."""
+    if cv > 0 and 0 < p < 1:
         a = beta_concentration(p, cv)
         if a > 0:
             return rng.beta(p * a, (1 - p) * a, n_clusters)
