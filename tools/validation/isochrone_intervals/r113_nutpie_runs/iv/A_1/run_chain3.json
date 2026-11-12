@@ -1,0 +1,39 @@
+{
+ "kind": "iv",
+ "fit": "iv_runs_nutpie/A_1",
+ "chain": 3,
+ "warmup": 500,
+ "draws": 500,
+ "seed": 111013,
+ "target_accept": 0.9,
+ "start": {
+  "feh": -0.13090451450694074,
+  "loga": 6.307286904521378,
+  "dm": 10.166586818085452,
+  "Av": 0.2911114042323737,
+  "sigma_int": 0.15055642391801294,
+  "f_bg": 0.1588520744825467
+ },
+ "engine": "nutpie",
+ "compile_kwargs": {
+  "mode": "JAX",
+  "gradient_backend": "jax",
+  "jitter_rvs": "set()"
+ },
+ "versions": {
+  "pymc": "6.3.2",
+  "nutpie": "0.16.11",
+  "jax": "0.12.0.1"
+ },
+ "build_s": 17.5,
+ "sample_s": 1015.9,
+ "peak_rss_mb": 1256.9,
+ "first_draw": {
+  "feh": -0.3311845345398968,
+  "loga": 6.10342839752412,
+  "dm": 10.263954469800769,
+  "Av": 0.6031907140660788,
+  "sigma_int": 0.12337943897421971,
+  "f_bg": 0.18080282774320178
+ }
+}
