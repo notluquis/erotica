@@ -1419,23 +1419,38 @@ class IsochroneFitter:
             dens = dens + xp.dot(
                 _segment_density(xg, xc, sg, sc, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w
             )
-        F = self._detected_fraction(met, loga, dm, Av, sigma_int, xp, segs=(single, binary))
+        F = self._detected_fraction(
+            met, loga, dm, Av, sigma_int, xp, segs=(single, binary), error_scale=error_scale
+        )
         return xp.log((1 - f_bg) * dens / F + f_bg / self._box_area)
 
     def _detected_fraction(
-        self, met: Any, loga: Any, dm: Any, Av: Any, sigma_int: Any, xp: Any = np, segs: Any = None
+        self,
+        met: Any,
+        loga: Any,
+        dm: Any,
+        Av: Any,
+        sigma_int: Any,
+        xp: Any = np,
+        segs: Any = None,
+        error_scale: Any = 1.0,
     ) -> Any:
         r""":math:`F(\theta)`: the fraction of the model population observed brighter than the
         completeness cut -- each segment's :meth:`_p_observed` under its own weights (linear
-        along the track for singles, uniform along q for the binary pieces)."""
+        along the track for singles, uniform along q for the binary pieces).
+
+        ``error_scale`` multiplies the catalogue error model in the width of the window, as it
+        multiplies each star's errors in :meth:`_star_loglike`; 1.0 is exact. Until 2026-11-12 it
+        was not passed here, so with ``k > 1`` the numerator's widths and the window's disagreed
+        (R113-04, decisions.md)."""
         s2 = self.SIGMA_FLOOR**2 + sigma_int**2
         single, binary = self._segments(met, loga, dm, Av, xp) if segs is None else segs
         Ag, _, Bg, _, c0, c1 = single
-        P, T = self._p_observed(Ag, Bg, s2, xp, first_moment=True)
+        P, T = self._p_observed(Ag, Bg, s2, xp, first_moment=True, error_scale=error_scale)
         F = xp.sum(c0 * P + c1 * T)
         if binary is not None:
             Ag, _, Bg, _, w, _, _ = binary
-            F = F + xp.sum(w * self._p_observed(Ag, Bg, s2, xp))
+            F = F + xp.sum(w * self._p_observed(Ag, Bg, s2, xp, error_scale=error_scale))
         return F
 
     def _segments(self, met: Any, loga: Any, dm: Any, Av: Any, xp: Any = np) -> tuple:
@@ -1495,7 +1510,15 @@ class IsochroneFitter:
         )
         return single, binary
 
-    def _p_observed(self, A: Any, B: Any, s2: Any, xp: Any, first_moment: bool = False) -> Any:
+    def _p_observed(
+        self,
+        A: Any,
+        B: Any,
+        s2: Any,
+        xp: Any,
+        first_moment: bool = False,
+        error_scale: Any = 1.0,
+    ) -> Any:
         r"""Probability that a model star deposited uniformly along the segment from apparent
         magnitude ``A`` to ``B`` is observed brighter than the completeness cut :math:`G_{\lim}`.
 
@@ -1504,7 +1527,8 @@ class IsochroneFitter:
            dG = \frac{s_k}{B_k - A_k}\Big[\psi\big(\tfrac{G_{\lim}-A_k}{s_k}\big)
            - \psi\big(\tfrac{G_{\lim}-B_k}{s_k}\big)\Big],\qquad \psi(x) = x\,\Phi(x) + \varphi(x),
 
-        with :math:`s_k^2 = e(\bar G_k)^2 + s^2`, the error model at the segment's midpoint
+        with :math:`s_k^2 = (k\,e(\bar G_k))^2 + s^2`, the error model at the segment's midpoint
+        scaled by ``error_scale`` :math:`k` (1.0, the default, is exact)
         (clipped to the observed range, because the quadratic log-error fit diverges when
         extrapolated). Zero-length segments use :math:`\Phi` at the point.
 
@@ -1523,7 +1547,7 @@ class IsochroneFitter:
         c = self._e_mag_coef
         mid = 0.5 * (A + B)
         Gc = xp.clip(mid, float(self._obs_mag.min()), float(self._obs_mag.max()))
-        e = 10.0 ** (c[0] + c[1] * Gc + c[2] * Gc**2)
+        e = error_scale * 10.0 ** (c[0] + c[1] * Gc + c[2] * Gc**2)
         s = xp.sqrt(e**2 + s2)
         erfc = xp.erfc if xp is not np else _erfc_np
 

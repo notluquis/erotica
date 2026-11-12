@@ -9,6 +9,7 @@ carries its exact (Clopper-Pearson) 95 % interval and n.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,7 @@ import numpy as np
 from scipy.stats import beta
 
 HERE = Path(__file__).resolve().parent
+RUNS = Path(os.environ.get("IV_RUNS", HERE / "runs")).expanduser()  # as prep.py
 sys.path.insert(0, str(HERE))
 import iv_common as C  # noqa: E402
 
@@ -49,7 +51,7 @@ def main() -> None:
     out = {}
     for cell in ("A", "B", "C"):
         rows = []
-        reps = [d for d in (HERE / "runs").glob(f"{cell}_*") if d.name.split("_", 1)[1].isdigit()]
+        reps = [d for d in RUNS.glob(f"{cell}_*") if d.name.split("_", 1)[1].isdigit()]
         for d in sorted(reps, key=lambda p: int(p.name.split("_")[1])):
             pj = d / "prep.json"
             if not pj.exists():
@@ -135,7 +137,7 @@ def main() -> None:
                         "complete": c68["n"] == 8,
                     }
         out[cell] = res
-    C.dump(HERE / "coverage.json", out)
+    C.dump(HERE / os.environ.get("COV_OUT", "coverage.json"), out)
     for cell, r in out.items():
         line = {
             k: (v["cov68"]["k"], v["cov90"]["k"]) for k, v in r.items() if k.startswith("ctrl_")

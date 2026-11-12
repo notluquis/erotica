@@ -2718,3 +2718,62 @@ the closed form (mu1 - mu2)^2 / (2 s^2) = 4.5; non-negativity across a 37-unit s
 PARSEC: 27.79 -> 27.45, 28.64 -> 24.25, 25.93 -> 25.74. Null T1 arm a: [1.66, 0.06, 0.76, 0.27, 0.16, 1.33,
 4.00, 3.29] -> [0.17, 0.00, 0.88, 0.08, 0.03, 0.11, 4.28, 2.77]. The deltas, z, verdicts, biases and
 `method_interpretable` do not change (they come from `loga_hat`).
+## 2026-11-12 — R113-03: the interval experiment's generator drew singles from the deposit the likelihood dropped
+
+**Symptom.** `tools/validation/isochrone_intervals/iv_common._true_stars`, the generator of the coverage
+replicates (and, through `aniso.draw` and `kw_cells.draw_table`, of the K x W cells), took segment k with
+probability `w_single[k]` and the position uniform inside it, "the same draw as `_draw_stars`". Since the
+2026-09-24 (later) entry the likelihood deposits the singles with a continuous density, point values
+`rho_j = (w_{j-1} + w_j) / (l_{j-1} + l_j)`, linear inside each segment. On two equal segments with
+`w = [0.9, 0.1]` the likelihood puts [0.7, 0.3] and the generator put [0.9, 0.1] (review thread on PR #69).
+
+**Fix.** `_true_stars` reads the singles' coefficients from `IsochroneFitter._segments` itself
+(`_single_segments`): segment k with probability `c0_k + c1_k / 2`, and `t` from the linear density by the
+inverse CDF `_linear_t` (exact at `c1 -> 0` and `c0 = 0`). The random stream is the same (one `choice`, one
+`uniform` per single), so a replicate with the same seed is the same catalogue with each single moved along its
+segment: the re-run is paired with the cited one. Binaries unchanged.
+
+**Oracles.** `tests/test_iv_generator.py`, closed form on the two-segment toy: segment masses 0.7 / 0.3, mean
+positions 0.45238 / 0.38889, KS against the CDF `(c0 t + c1 t^2 / 2) / M`. Red with the old draw (0.900 and
+mean 0.4996 on 2e5 draws).
+
+**How much it moved the population** (`kw_c3_gencheck_r113.json`, `gencheck_r113.json`, and a scratch
+measurement recorded in the hub finding): the total-variation distance between the two singles distributions,
+computed in closed form from the segments, is 0.0057 at cell A's truth (X1) and 0.0072 at cell C's; G-bin
+fractions agree to 0.1 %. Against the independent generator of `kw_c3.py` (IMF sampled in mass), with 1.7e6
+singles in G 14-19 both draws have the same KS distance (G: 0.00300 old, 0.00301 new): what separates the
+deposit from the IMF-in-mass population at that n is the linear-in-EEP interpolation the two draws share, not
+the within-segment density. `gencheck_r113.json` keeps the verdict of `gencheck.json` (fails on the colour
+width, as recorded).
+
+---
+
+## 2026-11-12 — R113-04: the K x W window's detected fraction did not carry the error scale k
+
+**Symptom.** In the K arm (`tools/validation/isochrone_modelfix/aniso.py`, `WidthFitter.star_loglike10`) and in
+the package's `IsochroneFitterKW`, each star's width used `k e_i`, and `_draw_stars` / `aniso.draw` /
+`kw_cells.draw_table` added noise with `k e` before applying the window, but the window's normalisation
+`F(theta) = _detected_fraction(...)` took the error at each segment midpoint from the catalogue's unscaled
+polynomial (`_p_observed`, `s^2 = e(G)^2 + s2`). With k > 1 the likelihood and the synthetic catalogues
+disagreed on the probability of entering the window (review thread on PR #71). `IsochroneFitterKW`'s
+docstring declared it as an inherited convention with an effect "small [I], not measured".
+
+**Fix.** `error_scale` threaded through `IsochroneFitter._star_loglike -> _detected_fraction -> _p_observed`
+(`s_k^2 = (k e(G_k))^2 + s2`; the default 1.0 is exact, so the parent and every other caller are unchanged);
+`aniso.star_loglike10` passes `k`. `IsochroneFitterKW.LIKELIHOOD_VERSION` -> `unbinned-eep-kw-v2` (saved fits of v1
+are refused, as for any likelihood change).
+
+**Oracles** (`tests/test_isochrone_kw.py`). The second-path test (`k` against the parent fed `k`-scaled errors)
+no longer copies the unscaled error polynomial into the parent: the parent fitted on the scaled table has
+`log10(k) +` the polynomial, and the two paths agree to 1e-12 with nothing overridden. The frozen research
+values (`aniso.compiled8('K')`, an independent segment density and field term) are re-frozen from the fixed
+`aniso.py`, which agrees with the package to 2.4e-13. Mutation: `k` dropped from `_p_observed` -> those three
+tests red.
+
+**Numbers that moved**, log L of the K x W model, v1 -> v2:
+
+| point | v1 | v2 | change |
+|---|---|---|---|
+| NGC 6383, 201 stars, K x W mode (k = 2.45) | -278.58511134967847 | -278.5818917215975 | +0.0032 |
+| cell A replicate 0, injected truth | -279.4775311978356 | -279.4778102148894 | -0.0003 |
+| cell A replicate 0, control's mode (k = 1.86) | -287.5913348243316 | -287.5913392553901 | -4e-6 |

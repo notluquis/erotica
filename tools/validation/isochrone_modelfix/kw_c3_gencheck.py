@@ -8,9 +8,11 @@ truths of cell A replicate 0. Two-sample KS on G and on colour:
 * positive control: independent WITH binaries vs deposit WITHOUT -- must reject (the test has power
   for the effect the experiment is about).
 
-Writes ``kw_c3_gencheck.json``."""
+Writes ``kw_c3_gencheck.json`` (``$KWC3_GENCHECK_OUT`` renames it: the R113-03 re-run writes
+``kw_c3_gencheck_r113.json`` next to the cited record)."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -70,7 +72,7 @@ def main(n=60000):
         "binaries_stride1": ks(ind(al, be), dep(al, be, 1)),
         "positive_control_binaries_vs_singles": ks(ind(al, be), dep(0, 0, 3)),
     }
-    (HERE / "kw_c3_gencheck.json").write_text(json.dumps(out, indent=1) + "\n")
+    (HERE / os.environ.get("KWC3_GENCHECK_OUT", "kw_c3_gencheck.json")).write_text(json.dumps(out, indent=1) + "\n")
     print(json.dumps(out, indent=1))
 
 

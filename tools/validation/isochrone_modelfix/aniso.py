@@ -127,9 +127,13 @@ class WidthFitter(IsochroneFitter):
             dens = dens + xp.dot(
                 _seg_density_cov(xg, xc, sg, sc, s12, Ag, Ac, Bg, Bc, xp, smear=(vg, vc)), w
             )
-        # completeness / window: only the G variance matters
+        # completeness / window: only the G variance matters, with the catalogue error scaled by k
+        # as in the numerator above and in draw(). Up to the R113-04 fix (2026-11-12) k was not
+        # passed here: with k > 1 the window's F used e(G) and the stars' widths k e(G).
         sGeff2 = sG**2 + (kG * tau) ** 2
-        F = self._detected_fraction(met, loga, dm, Av, xp.sqrt(sGeff2), xp, segs=(single, binary))
+        F = self._detected_fraction(
+            met, loga, dm, Av, xp.sqrt(sGeff2), xp, segs=(single, binary), error_scale=k
+        )
         return xp.log((1 - f_bg) * dens / F + f_bg * self.field_density(beta, xp))
 
     def compiled8(self, arm: str):
