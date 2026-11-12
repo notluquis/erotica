@@ -241,7 +241,9 @@ def figure(res: dict, cell: str) -> None:
         a.set_title(f"K x W cell {cell}: {p} (thick 68 %, thin 90 %)", fontsize=9)
     ax[0].legend(fontsize=8)
     fig.tight_layout()
-    fig.savefig(HERE / f"kw_coverage_{cell}.png", dpi=90)
+    # the figure follows COV_OUT's stem, so a re-run with its own COV_OUT does not overwrite the cited one
+    stem = Path(os.environ.get("COV_OUT", "kw_coverage.json")).stem
+    fig.savefig(HERE / f"{stem}_{cell}.png", dpi=90)
     plt.close(fig)
 
 
