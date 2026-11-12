@@ -140,7 +140,7 @@ Pending:
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -613,7 +613,12 @@ def _per_star_loglike(th, d, **kw):
     return jnp.logaddexp(jnp.log1p(-eta) + lc, jnp.log(eta) + lf)
 
 
-def _static_prior(prior_field, n_groups: int):
+#: What ``prior_field`` accepts: one ``(median, sdlog)`` pair, or with ``n_groups > 1`` one pair per group, as tuples,
+#: lists or an array of shape ``(n_groups, 2)``; :func:`_static_prior` validates the shape.
+FieldPrior = tuple[float, float] | Sequence[Sequence[float]] | np.ndarray
+
+
+def _static_prior(prior_field: FieldPrior | None, n_groups: int):
     """``prior_field`` as the hashable tuple the jitted log posterior takes as a static argument: ``(median,
     sdlog)`` of floats, or with ``n_groups > 1`` one such pair per group. Lists and arrays are accepted; a list
     is unhashable and JAX would refuse it."""
@@ -887,12 +892,12 @@ class MixtureModel:
         th[self.free] = x
         return th
 
-    def logpost(self, theta, prior_field=None) -> float:
+    def logpost(self, theta, prior_field: FieldPrior | None = None) -> float:
         """Log posterior at a full parameter vector (for checks and tests)."""
         return float(self._fns["lp"](jnp.asarray(theta, float), self._d, _static_prior(prior_field, self.n_groups)))
 
     # -------------------------------------------------------------- fit
-    def fit(self, n_starts: int = 9, *, seed: int = 0, prior_field: tuple[float, float] | None = None,
+    def fit(self, n_starts: int = 9, *, seed: int = 0, prior_field: FieldPrior | None = None,
             init: Mapping[str, Any] | None = None, bounds: tuple[np.ndarray, np.ndarray] | None = None,
             maxiter: int = 2000, ridge: bool = True) -> MixtureFit:
         """Maximise the log posterior with an explicit mode search (hub ``methodology.md`` §A.1.8).
@@ -1199,7 +1204,7 @@ def calibrate_by_injection(model: MixtureModel, field_catalog: MembershipData, n
                            rule: TwoLineRule | None = None,
                            extra_lines: Callable[[MembershipData, np.ndarray, np.random.Generator], Mapping[str, np.ndarray]] | None = None,
                            n_starts: int = 3, init: Mapping[str, Any] | None = None, ridge: bool = True, seed: int = 0,
-                           prior_field: tuple[float, float] | None = None,
+                           prior_field: FieldPrior | None = None,
                            member_donors: MembershipData | None = None) -> dict:
     """N2 of hub ``methodology.md`` §A.3: synthetic members injected into a real field catalogue, refit, score.
 
