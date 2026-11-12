@@ -2749,6 +2749,17 @@ deposit from the IMF-in-mass population at that n is the linear-in-EEP interpola
 the within-segment density. `gencheck_r113.json` keeps the verdict of `gencheck.json` (fails on the colour
 width, as recorded).
 
+**Re-run, paired by seed** (the runs live outside the repo; the summaries are committed). X1 control
+(`search` + Laplace), `coverage_r113.json` against `coverage.json`: cell A log t 1/8 and 2/8 at 68 / 90 %, [Fe/H]
+3/8 and 6/8, unchanged; the eight modes move by <= 0.002 dex. Cell C log t 0/8 and 0/8 -> 0/8 and 1/8, [Fe/H]
+0/8 -> 1/8: two of eight replicates (C_2, C_5) land on another stretch of the age-[Fe/H] ridge, the bimodality the
+hub finding already reports for this cell; the other six move by <= 0.001. K x W control (`kw_coverage_r113_ctrl.json`
+against `kw_coverage.json`, R113-03 and R113-04 together): cell A log t 2/8, 4/8 -> 1/8, 4/8 (A_1: 6.350 -> 6.277
+along the ridge), cell C 0/8, 0/8 unchanged; 14 of 16 modes move by <= 0.001. NUTS on X1 A_0 (one replicate,
+to measure the cost): log t 5-16-50-84-95 % 5.971 / 5.992 / 6.023 / 6.055 / 6.075 -> 5.970 / 5.993 / 6.024 /
+6.055 / 6.074, R-hat 1.0009, ESS 1029 / 1245, no divergences, 2029 s for the four chains in parallel. The other
+seven X1 replicates and the K x W NUTS cells were not re-run (see the PR).
+
 ---
 
 ## 2026-11-12 — R113-04: the K x W window's detected fraction did not carry the error scale k
@@ -2780,3 +2791,11 @@ tests red.
 | NGC 6383, 201 stars, K x W mode (k = 2.45) | -278.58511134967847 | -278.5818917215975 | +0.0032 |
 | cell A replicate 0, injected truth | -279.4775311978356 | -279.4778102148894 | -0.0003 |
 | cell A replicate 0, control's mode (k = 1.86) | -287.5913348243316 | -287.5913392553901 | -4e-6 |
+
+**Re-run of the K x W profile of log t on the data** (hub finding `isochrone-intervals-nuts.md` §2.16, every step:
+92 points x 8 starts, continuation sweeps, Laplace, runner-up, summary; `kw_profile_loga_real_0_r113.json`): the
+maximum of the profiled log posterior stays at 5.9713 and of log L at 5.94; the §2.16 rule on the posterior gives
+M_out -7.900 -> -7.903 at 6.15 (does not fail), on log L -0.438 -> -0.434 at 6.46 (fails, as before); the nine local
+maxima outside the window are the same; the approximate marginal is 5.928 / 5.966 / 6.003 (16-50-84 %) to 1e-4.
+`TestAgainstTheNutsRun` (the package's NUTS on the data against the committed v1 run) was not re-run: its quantile
+tolerances are 0.005-0.009 dex and the profile above does not move at that level.
