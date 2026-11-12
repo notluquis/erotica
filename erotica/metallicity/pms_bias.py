@@ -82,8 +82,8 @@ a constant.
 Provenance: the author's private research log (APOGEE PMS-bias analysis of 2026-11-09 and its
 prototype fit; hierarchical model of 2026-11-10, draws sha256 f290b5a6...); author decisions D26-52
 (2026-11-09) to move it into EROTICA, D26-63 and D26-64. Everything needed to reproduce the numbers
-ships here: the 104-star table in ``tests/data/``, the posterior in ``data/`` and the refits in
-``tests/test_pms_bias.py``.
+ships here: the 104-star table in ``tests/data/``, the posterior in ``erotica/metallicity/data/``
+and the refits in ``tests/test_pms_bias.py``.
 """
 
 from __future__ import annotations
