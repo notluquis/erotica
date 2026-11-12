@@ -453,7 +453,9 @@ _X_REAL = [
 # -279.4775311978356 (A_0 truth), -287.5913348243316 (A_0 mode). The new ones are the fixed aniso.py's
 # compiled8('K'), which agrees with this class to 2.4e-13.
 _LOGL_REAL = -278.5818917215975
-_LOGPOST_REAL = -278.5855743966267
+# v1 (k not in F): -278.5855743966267 (aniso.search8). v2: the value find_start returns on the same stars
+# after R113-04 (its mode agrees with _X_REAL to 1e-3 in every parameter, as before).
+_LOGPOST_REAL = -278.5823515710441
 #: kw_runs/A_0/prep.json (cell A, replicate 0): log L at the injected truth and at the control's mode
 _X_A0_TRUTH = [
     -0.30525315859357866,
@@ -561,6 +563,8 @@ class TestFrozenResearchOracle:
 # Reference run (committed in the hub finding §2.11 and kw_runs/real_0/nuts.json): 4 chains x 1000 after
 # 1000 warmup, seed 7, target_accept 0.9; log t median 5.965288, 16-84 % [5.933019, 5.999678],
 # 5-95 % [5.912724, 6.025393], sd 0.034778, ESS bulk 2247, R-hat 1.003, 0 divergences.
+# Not re-run after R113-04 (v2): at the K x W mode log L moved by +0.0032, against tolerances of
+# 0.005-0.009 dex on these quantiles; the K x W profile of log t re-run with v2 is in the hub finding.
 _REF = dict(median=5.965288, q16=5.933019, q84=5.999678, q05=5.912724, q95=6.025393, sd=0.034778)
 
 
