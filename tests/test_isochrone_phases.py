@@ -41,6 +41,47 @@ def test_one_age_vs_two_gaussians():
     assert r["two_dlnL"] == pytest.approx(8.0, rel=1e-6)
 
 
+@pytest.mark.parametrize("s", [0.01, 0.05, 0.1])
+@pytest.mark.parametrize("mu", [6.40, 6.425, 6.4125])
+def test_one_age_vs_two_identical_profiles_is_zero(mu, s):
+    # R113-02: two identical profiles share their age exactly, 2 Delta ln L = 0. The summed profile
+    # used to be maximised on the nodes only while each window's maximum was the parabola vertex:
+    # with the peak at 6.425 it gave 12.5 (s = 0.01), 0.5 (0.05) and 0.125 (0.10); 0 on a node.
+    r = phases.one_age_vs_two(_prof(mu, s), _prof(mu, s))
+    assert r["two_dlnL"] == pytest.approx(0.0, abs=1e-9)
+    assert r["delta_loga"] == pytest.approx(0.0, abs=1e-12)
+    assert r["loga_shared"] == pytest.approx(
+        phases.profile_summary(_prof(mu, s))["loga_hat"], abs=1e-12
+    )
+
+
+def test_one_age_vs_two_gaussians_between_nodes():
+    # equal widths, peaks off the nodes: the sum is a parabola, so both maxima are exact and
+    # 2 Delta ln L = (mu1 - mu2)^2 / (2 s^2) = 0.3^2 / 0.02 = 4.5 with s = 0.1
+    r = phases.one_age_vs_two(_prof(6.115, 0.1, 1.0), _prof(6.415, 0.1, -2.0))
+    assert r["two_dlnL"] == pytest.approx(4.5, rel=1e-9)
+    assert r["loga_shared"] == pytest.approx(6.265, abs=1e-9)
+
+
+def test_one_age_vs_two_is_non_negative_across_a_step():
+    # synth_T1 replicate 0, arm b: the ms profile drops 37 units between two nodes. Maximising the
+    # sum with profile_summary's parabola gave -8.82 there; one interpolant on one grid cannot.
+    g = np.round(np.arange(5.7, 7.0001, 0.05), 3)
+    ms = np.where(g <= 6.0, -((g - 5.96) ** 2) / (2 * 0.04**2), -37.0 - ((g - 6.5) ** 2))
+    pms = -((g - 6.0) ** 2) / (2 * 0.05**2)
+    r = phases.one_age_vs_two(
+        {"loga": g.tolist(), "loglike": ms.tolist()}, {"loga": g.tolist(), "loglike": pms.tolist()}
+    )
+    assert r["two_dlnL"] >= 0.0
+    rng = np.random.default_rng(3)
+    for _ in range(200):
+        r = phases.one_age_vs_two(
+            {"loga": g.tolist(), "loglike": (rng.normal(size=g.size) * 5).tolist()},
+            {"loga": g.tolist(), "loglike": (rng.normal(size=g.size) * 5).tolist()},
+        )
+        assert r["two_dlnL"] >= 0.0
+
+
 def _nested_ok(s):
     return s["lo2"] <= s["lo1"] <= s["loga_hat"] <= s["hi1"] <= s["hi2"]
 

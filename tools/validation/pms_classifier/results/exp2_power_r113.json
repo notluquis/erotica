@@ -1,0 +1,62 @@
+{
+ "script": "exp2_power.py",
+ "fix": "R113-01: Beta concentration (1 - p(1 + cv^2)) / (p cv^2)",
+ "seed": 7,
+ "S": 300,
+ "bootstrap_R": 400,
+ "gate": "97.5 % cluster-bootstrap bound of the FPR > 0.10",
+ "cv_disp": 1.0,
+ "sample": "confirmatoria B",
+ "rows": {
+  "todos": {
+   "n_stars": 6069,
+   "n_clusters": 58,
+   "max_per_cluster": 404,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.013333333333333334,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  },
+  "-5..+3": {
+   "n_stars": 1980,
+   "n_clusters": 58,
+   "max_per_cluster": 157,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.006666666666666667,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0033333333333332993
+  },
+  "+3..+5": {
+   "n_stars": 2254,
+   "n_clusters": 58,
+   "max_per_cluster": 269,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.02666666666666667,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0033333333333332993
+  },
+  "+5..+7": {
+   "n_stars": 1291,
+   "n_clusters": 58,
+   "max_per_cluster": 98,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.016666666666666666,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0
+  },
+  "+7..+12": {
+   "n_stars": 544,
+   "n_clusters": 43,
+   "max_per_cluster": 60,
+   "fail03_disp": 0.0,
+   "fail05_binom": 0.0,
+   "fail05_disp": 0.14,
+   "pass15_binom": 0.0,
+   "pass15_disp": 0.0033333333333332993
+  }
+ }
+}

@@ -2656,3 +2656,65 @@ Seen red with the agreement check removed (`'gaia_edr3' == 'ccm89'`).
 
 **Out of scope here:** `tools/validation/isochrone_multiband/` (the synthetic test of whether the near infrared
 reduces the colour bias, and the mutation driver the test docstrings cite) and `export_multiband`, in a separate PR.
+
+---
+
+## 2026-11-12 — R113-01: the Beta dispersion of the PMS-classifier gate-noise simulations lacked 1/p
+
+**Symptom.** `tools/validation/pms_classifier/exp2_power.py` and `r38_power.py` simulate the noise of the
+gate "95 % bootstrap bound of the FPR <= 0.10" in two worlds: binomial per cluster, and beta-binomial with a
+between-cluster coefficient of variation of 1. With `cv = 1` declared, the simulated CV of the cluster FPRs
+was 3.16 at p = 0.05, 4.08 at p = 0.03 and 1.83 at p = 0.15 (2e6 draws; review thread on PR #67).
+
+**Cause.** The concentration of Beta(p a, (1 - p) a) was written `a = (1 - p(1 + cv^2)) / cv^2`. The Beta's
+variance is p(1 - p)/(a + 1), so CV^2 = (1 - p)/(p(a + 1)) and `a = (1 - p(1 + cv^2)) / (p cv^2)`: the 1/p was
+missing.
+
+**Fix.** `power_sim.py` (`beta_concentration`, `cluster_fpr`), used by both scripts; the `a <= 0` fallback of
+`exp2_power.py` (FPR = p in every cluster) now applies to both. The scripts run on `erotica-2026-10`.
+
+**Oracle** (`tests/test_pms_power_sim.py`): the exact Beta moments give back the requested CV to 1e-12, and
+2e6 draws give mean p and CV within 0.02, for p = 0.03, 0.05, 0.15 and cv = 0.5, 1. Red with the old formula
+(6 of 7 cases fail).
+
+**Numbers that moved** (`*_r113_measured.txt` next to the old `*_measured.txt`, which stay as the record the
+hub finding cited; same seed, S = 300). Confirmatory half B, `disp` columns, per M_G,0 bin: false fail at
+FPR 0.03 from 0.193-0.273 to 0.000; at FPR 0.05 from 0.410-0.493 to 0.007-0.140 (0.433 to 0.013 for all bins
+together); false pass at FPR 0.15 from 0.003-0.023 to 0.000-0.003. Out-of-sample pool: every `disp` column is
+now 0.000 (was 0.003-0.210). The `binom` columns do not depend on the formula; the one that changed (+7..+12,
+false fail 0.007 to 0.000, i.e. 2/300 to 0/300) moved because the random stream is shared and the Beta draw
+consumes a different number of uniforms: Monte Carlo noise, not an effect.
+
+---
+
+## 2026-11-12 — R113-02: `one_age_vs_two` maximised the summed profile on the nodes only
+
+**Symptom.** In `tools/validation/isochrone_phases/phases.py`, two identical log t profiles (true 2 Delta ln L
+= 0) peaked at 6.425 on the 0.05-dex grid gave `two_dlnL` = 12.5 at width 0.01 dex, 0.5 at 0.05 and 0.125 at
+0.10; 0.0 with the peak on a node (review thread on PR #70).
+
+**Cause.** Each window's maximum was the vertex of `profile_summary`'s parabola; the maximum of the summed
+profile was the best node. The two maxima came from different interpolants.
+
+**Alternative tried and rejected.** Maximising the sum with `profile_summary`'s parabola as well makes the
+identical-profile oracle pass, but the sum's parabola and each window's sit on different node triples: on
+synth_T1 replicate 0, arm `b`, whose `ms` profile drops 37 units between two nodes, it gave 2 Delta ln L =
+-8.82.
+
+**Fix.** The three maxima (each window and the sum) are taken with one interpolant on one grid: a cubic
+spline per profile (not-a-knot, exact on a parabola) evaluated on a common 1e-4-dex grid; on the same points
+max(l1 + l2) <= max(l1) + max(l2), so 2 Delta ln L >= 0 by construction and identical profiles give exactly 0.
+`delta_loga` (the gate's statistic) is still the difference of `profile_summary` vertices and does not change.
+`summarize_phases.py` now recomputes the tension from the stored profiles (as it already did the per-window
+summaries) and writes `phases_summary_r113.json`; `phases_summary.json` stays as the cited record.
+
+**Oracles** (`tests/test_isochrone_phases.py`): identical profiles give 0 to 1e-9 for peaks on and off nodes
+and widths 0.01-0.1 (red with the node-only sum, 5 of 9 cases); two equal-width Gaussians off the nodes give
+the closed form (mu1 - mu2)^2 / (2 s^2) = 4.5; non-negativity across a 37-unit step and on 200 random profiles
+(red with the parabola-sum variant).
+
+**Numbers that moved** (`phases_summary.json` -> `phases_summary_r113.json`). Real data, MIST v1.2: arm a
+19.55 -> 19.45, b 74.79 -> 73.82, c 5.55 -> 4.36; MIST v2.5: 18.10 -> 17.89, 69.24 -> 69.33, 0.26 -> 0.39;
+PARSEC: 27.79 -> 27.45, 28.64 -> 24.25, 25.93 -> 25.74. Null T1 arm a: [1.66, 0.06, 0.76, 0.27, 0.16, 1.33,
+4.00, 3.29] -> [0.17, 0.00, 0.88, 0.08, 0.03, 0.11, 4.28, 2.77]. The deltas, z, verdicts, biases and
+`method_interpretable` do not change (they come from `loga_hat`).
