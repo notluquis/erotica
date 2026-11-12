@@ -2718,6 +2718,9 @@ the closed form (mu1 - mu2)^2 / (2 s^2) = 4.5; non-negativity across a 37-unit s
 PARSEC: 27.79 -> 27.45, 28.64 -> 24.25, 25.93 -> 25.74. Null T1 arm a: [1.66, 0.06, 0.76, 0.27, 0.16, 1.33,
 4.00, 3.29] -> [0.17, 0.00, 0.88, 0.08, 0.03, 0.11, 4.28, 2.77]. The deltas, z, verdicts, biases and
 `method_interpretable` do not change (they come from `loga_hat`).
+
+---
+
 ## 2026-11-12 — R113-03: the interval experiment's generator drew singles from the deposit the likelihood dropped
 
 **Symptom.** `tools/validation/isochrone_intervals/iv_common._true_stars`, the generator of the coverage
