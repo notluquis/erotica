@@ -2709,7 +2709,7 @@ max(l1 + l2) <= max(l1) + max(l2), so 2 Delta ln L >= 0 by construction and iden
 summaries) and writes `phases_summary_r113.json`; `phases_summary.json` stays as the cited record.
 
 **Oracles** (`tests/test_isochrone_phases.py`): identical profiles give 0 to 1e-9 for peaks on and off nodes
-and widths 0.01-0.1 (red with the node-only sum, 6 of 9 cases); two equal-width Gaussians off the nodes give
+and widths 0.01-0.1 (red with the node-only sum, 6 of 9 cases; this line first said ~~5 of 9~~, a miscount found by rerunning `pytest tests/test_isochrone_phases.py -k identical` from 1785fdb on the pre-fix tree `aa3311f^`: 6 failed, 3 passed); two equal-width Gaussians off the nodes give
 the closed form (mu1 - mu2)^2 / (2 s^2) = 4.5; non-negativity across a 37-unit step and on 200 random profiles
 (red with the parabola-sum variant).
 
