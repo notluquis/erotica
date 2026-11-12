@@ -564,7 +564,7 @@ class TestFrozenResearchOracle:
 # 4 chains x 1000 after 1000 warmup, one chain per process from the over-dispersed starts of
 # ``kw_cells.py prep --cell real`` (v2), seeds 129000-129003, target_accept 0.9: log t median 5.964846,
 # 16-84 % [5.930821, 5.999987], 5-95 % [5.910024, 6.024997], sd 0.035474, ESS bulk 1734, R-hat 1.0016,
-# 0 divergences (``tools/validation/isochrone_intervals/r113_compare.json``). The v1 reference (numpyro,
+# 0 divergences (``tools/validation/isochrone_intervals/r113_nutpie_runs/kw/real_0/nuts.json``). The v1 reference (numpyro,
 # seed 7): median 5.965288, 16-84 % [5.933019, 5.999678], 5-95 % [5.912724, 6.025393], sd 0.034778.
 _REF = dict(median=5.964846, q16=5.930821, q84=5.999987, q05=5.910024, q95=6.024997, sd=0.035474)
 

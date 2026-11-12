@@ -36,14 +36,16 @@ def mcse(p: dict, q: float, ess_key: str) -> float:
 def converged(fit: Path, nuts: dict) -> bool:
     g = nuts["gate"]
     cz = fit / "chain_z.json"
-    zpass = json.loads(cz.read_text())["pass"] if cz.exists() else None
+    if not cz.exists():
+        raise SystemExit(f"{fit}: no chain_z.json; run chain_z.py on it before comparing")
+    zpass = json.loads(cz.read_text())["pass"]
     return bool(
         g.get("core_finite", True)
         and g["rhat_max"] <= 1.01
         and g["ess_bulk_min"] >= 400
         and g["ess_tail_min"] >= 400
         and g["divergences"] == 0
-        and zpass is not False
+        and zpass is True
     )
 
 

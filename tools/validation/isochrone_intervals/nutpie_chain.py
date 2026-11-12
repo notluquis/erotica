@@ -67,6 +67,13 @@ def run(a) -> None:
     fit = Path(a.fit)
     out = fit / f"chain{a.chain}"
     if (out / "DONE").exists():
+        # resume only the run that was asked for: a finished chain with other settings is an error
+        done = json.loads((out / "run.json").read_text())
+        want = {"kind": a.kind, "seed": a.seed, "warmup": a.warmup, "draws": a.draws}
+        want["target_accept"] = a.target_accept
+        diff = {k: (done.get(k), v) for k, v in want.items() if done.get(k) != v}
+        if diff:
+            raise SystemExit(f"{out}: finished with other settings (saved, requested): {diff}")
         print(f"{out}: DONE, skipped", flush=True)
         return
     out.mkdir(parents=True, exist_ok=True)
@@ -157,6 +164,9 @@ def finalize(a) -> None:
     N.C.PARAMS = tuple(p for p in params if p in post)
     res = N.summarize(post, stats)
     runs = [json.loads((c.parent / "run.json").read_text()) for c in chains]
+    for k in ("kind", "warmup", "draws", "target_accept", "versions", "compile_kwargs"):
+        if len({json.dumps(r.get(k), sort_keys=True) for r in runs}) != 1:
+            raise SystemExit(f"{fit}: chains differ in {k}: {[r.get(k) for r in runs]}")
     res["config"] = {
         "engine": "nutpie",
         "seeds": [r["seed"] for r in runs],
