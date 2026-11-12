@@ -189,21 +189,43 @@ def profile_summary(p: dict) -> dict:
     return out
 
 
+FINE_STEP = 1e-4  # dex: the common fine grid of ``one_age_vs_two``
+
+
 def one_age_vs_two(p_ms: dict, p_pms: dict) -> dict:
     """Likelihood ratio between one log t shared by the two windows and one per window, with the
     other parameters as profiled in each. Both profiles on the same grid. 2 Delta ln L is NOT read
     against chi^2_1 (the shared parameters were fixed at a fit to the same stars): it is read against
-    the synthetic null."""
-    a1, l1 = np.asarray(p_ms["loga"]), np.asarray(p_ms["loglike"])
-    a2, l2 = np.asarray(p_pms["loga"]), np.asarray(p_pms["loglike"])
+    the synthetic null.
+
+    The three maxima (each window and their sum) are taken with ONE interpolant on ONE grid: each
+    profile is a cubic spline through its nodes (not-a-knot, exact on a parabola) evaluated on a
+    common grid of ``FINE_STEP`` over the shared nodes, and the sum is the sum of those two arrays. On
+    the same points max(l1 + l2) <= max(l1) + max(l2), so 2 Delta ln L >= 0 by construction, and
+    two identical profiles give exactly 0.
+
+    History (R113-02, 2026-11-12). Up to this fix the sum was maximised on the nodes only while each
+    window's maximum was the vertex of ``profile_summary``'s parabola: two identical profiles peaked
+    between nodes gave 2 Delta ln L > 0 (12.5 at width 0.01 dex, 0.5 at 0.05, peak at 6.425 on the
+    0.05-dex grid). Maximising the sum with ``profile_summary``'s parabola as well was tried and
+    rejected: the sum's parabola and each window's sit on different node triples, and across the
+    step of an arm-``b`` profile (a 37-unit drop between two nodes, synth_T1 replicate 0) it gave
+    -8.82. ``delta_loga`` is still the difference of ``profile_summary`` vertices, unchanged."""
+    from scipy.interpolate import CubicSpline
+
+    a1, l1 = np.asarray(p_ms["loga"], float), np.asarray(p_ms["loglike"], float)
+    a2, l2 = np.asarray(p_pms["loga"], float), np.asarray(p_pms["loglike"], float)
     common_a = np.intersect1d(np.round(a1, 3), np.round(a2, 3))
-    s = np.array([l1[np.isclose(a1, x)][0] + l2[np.isclose(a2, x)][0] for x in common_a])
+    y1 = np.array([l1[np.isclose(a1, x)][0] for x in common_a])
+    y2 = np.array([l2[np.isclose(a2, x)][0] for x in common_a])
+    n_fine = int(round((common_a[-1] - common_a[0]) / FINE_STEP)) + 1
+    x = np.linspace(common_a[0], common_a[-1], n_fine)
+    f1, f2 = CubicSpline(common_a, y1)(x), CubicSpline(common_a, y2)(x)
     s1, s2 = profile_summary(p_ms), profile_summary(p_pms)
-    one = float(s.max())
-    two = s1["loglike_max"] + s2["loglike_max"]
+    k = int(np.argmax(f1 + f2))
     return {
-        "loga_shared": float(common_a[int(np.argmax(s))]),
-        "two_dlnL": float(2 * (two - one)),
+        "loga_shared": float(x[k]),
+        "two_dlnL": float(2 * (f1.max() + f2.max() - (f1 + f2)[k])),
         "delta_loga": s1["loga_hat"] - s2["loga_hat"],
     }
 

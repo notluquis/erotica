@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Applies the pre-registered rules of the hub finding ``isochrone-ms-vs-pms.md`` §0.5 to
-``synth_T*.json`` and ``real_*.json``. Output: ``phases_summary.json`` (and stdout).
+``synth_T*.json`` and ``real_*.json``. Output: ``phases_summary_r113.json`` (and stdout).
+
+``phases_summary.json`` is the summary as it stood before the R113-02 fix (2026-11-12): its
+``two_dlnL`` came from the ``tension`` stored by the runs, whose summed profile was maximised on the
+nodes only. It is kept as the record the hub finding cited. The tension is now recomputed here from
+the stored profiles (``_tension``), as the per-window summaries already were (``_summary``).
 
 Every number the finding cites comes from here; the rules are code, not prose."""
 
@@ -10,7 +15,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from phases import profile_summary
+from phases import one_age_vs_two, profile_summary
 from scipy.stats import beta
 
 HERE = Path(__file__).resolve().parent
@@ -22,6 +27,13 @@ def _summary(p: dict) -> dict:
     written by the ``profile_summary`` of the run (up to 4828762 its intervals could exclude their
     own ``loga_hat`` and come out open at both edges). ``loga_hat`` is the same in both versions."""
     return profile_summary(p["profile"])
+
+
+def _tension(ph_ms: dict, ph_pms: dict, arm: str) -> dict:
+    """``one_age_vs_two`` recomputed from the stored profiles, never read from the JSON: the stored
+    ``tension`` was written by the run's ``one_age_vs_two`` (up to the R113-02 fix its summed profile
+    was maximised on the nodes only). ``delta_loga`` is the same in both versions."""
+    return one_age_vs_two(ph_ms[arm]["profile"], ph_pms[arm]["profile"])
 
 
 def _cp(k: int, n: int) -> list | None:
@@ -81,7 +93,7 @@ def synth(truth: str) -> dict | None:
                         sum(not (s["lo1"] <= s["loga_hat"] <= s["hi1"]) for s in ss)
                     ),
                 }
-            ten = [r["tension"][f"{key}:{arm}"] for r in reps]
+            ten = [_tension(r[key]["ms"], r[key]["pms"], arm) for r in reps]
             dl = np.array([x["delta_loga"] for x in ten])
             out[f"null:{key}:{arm}"] = {
                 "delta_mean": float(dl.mean()),
@@ -127,14 +139,22 @@ def real(grid: str, null: dict | None) -> dict | None:
                     }
                     if arm == "b":
                         out[f"{key}:{arm}:{w}"]["Av"] = _av(d[key], w, "b")
-    out["tension"] = d.get("tension")
+    if d.get("tension"):
+        ph0 = d["phases_feh0"] if "phases_feh0" in d else None
+        out["tension"] = {
+            "a": _tension(d["phases"]["ms"], d["phases"]["pms"], "a"),
+            "b": _tension(d["phases"]["ms"], d["phases"]["pms"], "b"),
+        }
+        if ph0 is not None:
+            out["tension"]["c"] = _tension(ph0["ms"], ph0["pms"], "a")
+        out["tension_stored"] = d["tension"]
     if null and d.get("tension"):
         dec = {}
         for arm, nk in (("a", "null:phases:a"), ("b", "null:phases:b"), ("c", "null:phases:a")):
             mu, sd = null[nk]["delta_mean"], null[nk]["delta_sd"]
-            z = (d["tension"][arm]["delta_loga"] - mu) / sd
+            z = (out["tension"][arm]["delta_loga"] - mu) / sd
             dec[arm] = {
-                "delta": d["tension"][arm]["delta_loga"],
+                "delta": out["tension"][arm]["delta_loga"],
                 "z": float(z),
                 "verdict": "tension" if abs(z) > 3 else ("none" if abs(z) < 2 else "marginal"),
             }
@@ -160,7 +180,7 @@ def main() -> None:
             "range": float(max(c) - min(c)),
             "range_over_s0": float((max(c) - min(c)) / null["null:phases:a"]["delta_sd"]),
         }
-    (HERE / "phases_summary.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
+    (HERE / "phases_summary_r113.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
     print(json.dumps(res, indent=1, default=float))
 
 

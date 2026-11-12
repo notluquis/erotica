@@ -1,8 +1,12 @@
 """R38-08 (prerregistro hub §4.3): ruido de la compuerta G1/G2 con los tamanos por cumulo del POOL fuera de muestra, ANTES de aplicar
 el modelo (solo cuenta estrellas; misma simulacion que exp2_power.py: binomial pura y beta-binomial con CV = 1 entre cumulos).
-Corre: ~/miniforge3/envs/erotica/bin/python r38_power.py > r38_power_measured.txt
+Corre: ~/miniforge3/envs/erotica-2026-10/bin/python r38_power.py > r38_power_r113_measured.txt
+r38_power_measured.txt es la corrida anterior al arreglo R113-01 (concentracion de la Beta sin el factor 1/p, env erotica;
+ver power_sim.py y README, Defecto conocido): queda como el registro que citaba el hallazgo.
 """
 import numpy as np
+
+from power_sim import cluster_fpr
 
 import exp2_common as E
 from r38_oos_data import load_oos
@@ -21,11 +25,7 @@ def boot_upper(fp, n, R=400):
 def sim(nc, p, cv, S=300):
     out = []
     for _ in range(S):
-        if cv > 0:
-            a = (1 - p * (1 + cv ** 2)) / cv ** 2
-            pc = rng.beta(p * a, (1 - p) * a, len(nc))
-        else:
-            pc = np.full(len(nc), p)
+        pc = cluster_fpr(p, cv, len(nc), rng)
         out.append(boot_upper(rng.binomial(nc, pc), nc) > 0.10)
     return np.mean(out)
 

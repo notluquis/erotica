@@ -3,9 +3,13 @@ mitad CONFIRMATORIA (B) de los viejos, en cada tramo, ¿con que probabilidad la 
 con un FPR verdadero de 0,05 (falso fallo) y pasa con uno de 0,15 (falso pase)? Dos mundos: binomial pura por cumulo, y beta-binomial
 con dispersion entre cumulos (coeficiente de variacion 1 del FPR por cumulo: el modelo del F2 da 0,27-1,08 por tramo y Sagitta
 0,0-2,25, momentos sobre cumulos con n >= 10; medido antes de escribir §2).
-Corre: ~/miniforge3/envs/erotica/bin/python exp2_power.py > exp2_power_measured.txt
+Corre: ~/miniforge3/envs/erotica-2026-10/bin/python exp2_power.py > exp2_power_r113_measured.txt
+exp2_power_measured.txt es la corrida anterior al arreglo R113-01 (concentracion de la Beta sin el factor 1/p, env erotica;
+ver power_sim.py y README, Defecto conocido): queda como el registro que citaba el hallazgo.
 """
 import numpy as np
+
+from power_sim import cluster_fpr
 
 import core
 import exp2_common as E
@@ -36,11 +40,7 @@ def boot_upper(fp, n, R=400):
 def sim(nc, p, cv, S=300):
     out = []
     for _ in range(S):
-        if cv > 0:
-            a = (1 - p * (1 + cv ** 2)) / cv ** 2
-            pc = rng.beta(p * a, (1 - p) * a, len(nc)) if a > 0 else np.full(len(nc), p)
-        else:
-            pc = np.full(len(nc), p)
+        pc = cluster_fpr(p, cv, len(nc), rng)
         fp = rng.binomial(nc, pc)
         out.append(boot_upper(fp, nc) > 0.10)
     return np.mean(out)

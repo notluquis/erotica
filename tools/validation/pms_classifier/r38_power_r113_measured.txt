@@ -1,0 +1,7 @@
+load_oos: quito 28 estrellas del pool que tambien estan en el entrenamiento
+pool: 35666 estrellas en 352 cumulos; etiqueta 0 (viejas) 35644 en 352 cumulos; etiqueta 1 (PMS por §0.2, quedan fuera de la FPR) 22
+  todos    n 35644 en 352 cumulos (max 890): P(falla | 0,03) disp 0.000 | P(falla | 0,05) binom 0.000 disp 0.000 | P(pasa | 0,15) binom 0.000 disp 0.000
+  -5..+3   n 13208 en 348 cumulos (max 388): P(falla | 0,03) disp 0.000 | P(falla | 0,05) binom 0.000 disp 0.000 | P(pasa | 0,15) binom 0.000 disp 0.000
+  +3..+5   n 12848 en 351 cumulos (max 345): P(falla | 0,03) disp 0.000 | P(falla | 0,05) binom 0.000 disp 0.000 | P(pasa | 0,15) binom 0.000 disp 0.000
+  +5..+7   n  7014 en 342 cumulos (max 211): P(falla | 0,03) disp 0.000 | P(falla | 0,05) binom 0.000 disp 0.000 | P(pasa | 0,15) binom 0.000 disp 0.000
+  +7..+12  n  2574 en 248 cumulos (max 64): P(falla | 0,03) disp 0.000 | P(falla | 0,05) binom 0.000 disp 0.000 | P(pasa | 0,15) binom 0.000 disp 0.000
