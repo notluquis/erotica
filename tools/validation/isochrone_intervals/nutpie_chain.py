@@ -128,7 +128,12 @@ def run(a) -> None:
         "versions": {"pymc": pm.__version__, "nutpie": nutpie.__version__, "jax": jax.__version__},
         "build_s": round(t1 - t0, 1),
         "sample_s": round(t2 - t1, 1),
-        "peak_rss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 2**20, 1),
+        # ru_maxrss is in bytes on macOS and in KiB on Linux
+        "peak_rss_mb": round(
+            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            / (2**20 if sys.platform == "darwin" else 2**10),
+            1,
+        ),
         "first_draw": {p: float(v[0]) for p, v in post.items()},
     }
     (out / "run.json").write_text(json.dumps(rec, indent=1) + "\n")
