@@ -1,0 +1,31 @@
+{
+ "n": 254,
+ "max_dG": 0.0,
+ "source_sha256": "e41e6a1bfd7de3653c1956569cbcd0f5d5ba95f6765a0cf0fde4b947cf8f32e8",
+ "bands": {
+  "J": {
+   "used": 240,
+   "virac2": 215,
+   "twomass": 25,
+   "missing_none": 4,
+   "missing_sat": 1,
+   "missing_2mass_blend": 9
+  },
+  "H": {
+   "used": 236,
+   "virac2": 198,
+   "twomass": 38,
+   "missing_none": 2,
+   "missing_sat": 3,
+   "missing_2mass_blend": 13
+  },
+  "Ks": {
+   "used": 225,
+   "virac2": 171,
+   "twomass": 54,
+   "missing_none": 1,
+   "missing_sat": 9,
+   "missing_2mass_blend": 19
+  }
+ }
+}
