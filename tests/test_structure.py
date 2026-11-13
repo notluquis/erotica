@@ -435,10 +435,15 @@ def test_king_profile_matches_ocelot_king62():
 def test_unbinned_fit_recovers_injected_parameters():
     """Oracle: the parameters the test injected, plus the PART A convergence floor."""
     import arviz as az
-    import pandas as pd
 
     from erotica.analysis.inference import SamplingConfig
 
+    # Absolute tolerances, frozen. ``3 * std`` of the posterior widened with the posterior: a fit that lost
+    # its information still passed (methodology §K.1.6, hub audit row 16, R84-07). These are 3x and 2x the
+    # posterior std measured on this exact fit (seed 1, origin/dev d50e209, 2026-11-13): k 0.568,
+    # b 0.00187, R_c 0.440, R_t 3.30.
+    tol = {"k": 1.8, "b": 0.006, "R_c": 1.4, "R_t": 10.0}
+    std_cap = {"k": 1.2, "b": 0.004, "R_c": 0.9, "R_t": 6.6}
     radii = _sample_king(3, **TRUE_KING)
     res = king_unbinned(
         radii,
@@ -449,18 +454,20 @@ def test_unbinned_fit_recovers_injected_parameters():
     for name in ("k", "b", "R_c", "R_t"):
         median = float(getattr(res[f"{name}_median"], "value", res[f"{name}_median"]))
         std = float(getattr(res[f"{name}_std"], "value", res[f"{name}_std"]))
-        assert std > 0
-        assert abs(median - TRUE_KING[name]) < 3 * std, (
-            f"{name}: posterior {median:.3f} +/- {std:.3f} excludes injected {TRUE_KING[name]}"
+        assert 0 < std < std_cap[name], f"{name}: posterior std {std:.4f} vs cap {std_cap[name]}"
+        assert abs(median - TRUE_KING[name]) < tol[name], (
+            f"{name}: posterior {median:.3f} +/- {std:.3f} vs injected {TRUE_KING[name]} (tol {tol[name]})"
         )
 
     # erotica#5: the share b carries is reported, and recovers the injected one.
     true_fraction = king_background_fraction(**TRUE_KING, field_radius=FIELD)
     assert abs(res["b_fraction_median"] - true_fraction) < 3 * res["b_fraction_std"]
 
-    summary = az.summary(res["king_trace"], var_names=["k", "b", "R_c", "R_t"])
-    assert pd.to_numeric(summary["r_hat"], errors="coerce").max() < 1.01
-    assert pd.to_numeric(summary["ess_bulk"], errors="coerce").min() > 400
+    # az.rhat / az.ess, not az.summary: arviz >= 1 rounds the summary to two decimals, so 1.0051 reads
+    # back as 1.01 (methodology §K.1.10; R84-07).
+    for v in ("k", "b", "R_c", "R_t"):
+        assert float(az.rhat(res["king_trace"], var_names=[v])[v]) < 1.01, v
+        assert float(az.ess(res["king_trace"], var_names=[v])[v]) > 400, v
     assert int(res["king_trace"].sample_stats["diverging"].values.sum()) == 0
 
 
@@ -871,7 +878,6 @@ def test_eff_has_no_tidal_cutoff():
 def test_eff_recovers_injected_parameters():
     """Oracle: the parameters the test injected, plus the PART A convergence floor."""
     import arviz as az
-    import pandas as pd
 
     from erotica.analysis.inference import SamplingConfig
 
@@ -887,15 +893,20 @@ def test_eff_recovers_injected_parameters():
             draws=1500, tune=2000, chains=4, target_accept=0.95, random_seed=5, progressbar=False
         ),
     )
+    # Frozen absolute tolerances (R84-07): 3x and 2x the posterior std measured on this fit (seed 5,
+    # origin/dev d50e209, 2026-11-13): k 1.55, b 0.00275, a 0.415, gamma 0.206.
+    tol = {"k": 4.7, "b": 0.0083, "a": 1.25, "gamma": 0.62}
+    std_cap = {"k": 3.1, "b": 0.0055, "a": 0.83, "gamma": 0.41}
     for name in ("k", "b", "a", "gamma"):
         med = float(getattr(res[f"{name}_median"], "value", res[f"{name}_median"]))
         sd = float(getattr(res[f"{name}_std"], "value", res[f"{name}_std"]))
-        assert abs(med - TRUE_EFF[name]) < 3 * sd, (
-            f"{name}: {med:.3f}+/-{sd:.3f} vs {TRUE_EFF[name]}"
+        assert 0 < sd < std_cap[name], f"{name}: posterior std {sd:.4f} vs cap {std_cap[name]}"
+        assert abs(med - TRUE_EFF[name]) < tol[name], (
+            f"{name}: {med:.3f}+/-{sd:.3f} vs {TRUE_EFF[name]} (tol {tol[name]})"
         )
 
-    summary = az.summary(res["eff_trace"], var_names=["k", "b", "a", "gamma"])
-    assert pd.to_numeric(summary["r_hat"], errors="coerce").max() < 1.01
+    for v in ("k", "b", "a", "gamma"):  # az.rhat, not the rounded az.summary (R84-07)
+        assert float(az.rhat(res["eff_trace"], var_names=[v])[v]) < 1.01, v
     assert int(res["eff_trace"].sample_stats["diverging"].values.sum()) == 0
 
 

@@ -15,7 +15,6 @@ import math
 import warnings
 
 import numpy as np
-import pandas as pd
 import pytest
 from astropy import units as u
 from astropy.table import QTable
@@ -185,12 +184,13 @@ def test_fit_parallax_model_meets_the_convergence_floor():
     trace = res.trace
     assert trace is not None, "return_trace=True did not return a trace"
 
-    summary = az.summary(trace, var_names=["mu_parallax", "sigma_parallax"])
-    # arviz >=1 returns a display-formatted frame: values arrive as strings.
-    r_hat = pd.to_numeric(summary["r_hat"], errors="coerce")
-    ess_bulk = pd.to_numeric(summary["ess_bulk"], errors="coerce")
-    assert r_hat.max() < 1.01, f"R-hat too high:\n{summary}"
-    assert ess_bulk.min() > 400, f"bulk-ESS too low:\n{summary}"
+    # az.rhat / az.ess, not az.summary: arviz >= 1 rounds the summary to two decimals, so 1.0051 reads
+    # back as 1.01 and the floor cannot be applied (methodology §K.1.10; R84-07).
+    for v in ("mu_parallax", "sigma_parallax"):
+        r_hat = float(az.rhat(trace, var_names=[v])[v])
+        ess_bulk = float(az.ess(trace, var_names=[v])[v])
+        assert r_hat < 1.01, f"{v}: R-hat too high: {r_hat}"
+        assert ess_bulk > 400, f"{v}: bulk-ESS too low: {ess_bulk}"
 
     n_div = int(trace.sample_stats["diverging"].sum())
     assert n_div == 0, f"{n_div} divergent transitions"
