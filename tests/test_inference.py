@@ -186,9 +186,12 @@ def test_fit_parallax_model_meets_the_convergence_floor():
 
     # az.rhat / az.ess, not az.summary: arviz >= 1 rounds the summary to two decimals, so 1.0051 reads
     # back as 1.01 and the floor cannot be applied (methodology §K.1.10; R84-07).
-    for v in ("mu_parallax", "sigma_parallax"):
-        r_hat = float(az.rhat(trace, var_names=[v])[v])
-        ess_bulk = float(az.ess(trace, var_names=[v])[v])
+    names = ["mu_parallax", "sigma_parallax"]
+    rhat_all = az.rhat(trace, var_names=names)
+    ess_all = az.ess(trace, var_names=names)
+    for v in names:
+        r_hat = float(rhat_all[v])
+        ess_bulk = float(ess_all[v])
         assert r_hat < 1.01, f"{v}: R-hat too high: {r_hat}"
         assert ess_bulk > 400, f"{v}: bulk-ESS too low: {ess_bulk}"
 

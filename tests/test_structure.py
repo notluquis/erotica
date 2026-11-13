@@ -465,9 +465,12 @@ def test_unbinned_fit_recovers_injected_parameters():
 
     # az.rhat / az.ess, not az.summary: arviz >= 1 rounds the summary to two decimals, so 1.0051 reads
     # back as 1.01 (methodology §K.1.10; R84-07).
-    for v in ("k", "b", "R_c", "R_t"):
-        assert float(az.rhat(res["king_trace"], var_names=[v])[v]) < 1.01, v
-        assert float(az.ess(res["king_trace"], var_names=[v])[v]) > 400, v
+    names = ["k", "b", "R_c", "R_t"]
+    rhat = az.rhat(res["king_trace"], var_names=names)
+    ess = az.ess(res["king_trace"], var_names=names)
+    for v in names:
+        assert float(rhat[v]) < 1.01, v
+        assert float(ess[v]) > 400, v
     assert int(res["king_trace"].sample_stats["diverging"].values.sum()) == 0
 
 
@@ -905,8 +908,10 @@ def test_eff_recovers_injected_parameters():
             f"{name}: {med:.3f}+/-{sd:.3f} vs {TRUE_EFF[name]} (tol {tol[name]})"
         )
 
-    for v in ("k", "b", "a", "gamma"):  # az.rhat, not the rounded az.summary (R84-07)
-        assert float(az.rhat(res["eff_trace"], var_names=[v])[v]) < 1.01, v
+    names = ["k", "b", "a", "gamma"]
+    rhat = az.rhat(res["eff_trace"], var_names=names)  # not the rounded az.summary (R84-07)
+    for v in names:
+        assert float(rhat[v]) < 1.01, v
     assert int(res["eff_trace"].sample_stats["diverging"].values.sum()) == 0
 
 
