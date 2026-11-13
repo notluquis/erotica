@@ -555,6 +555,15 @@ def lambda_msr(
     restores the size but loses the power (0.16-0.37 against 0.89-0.99), so it is a control
     that the inflation is radial, not a replacement. Measure the completeness gradient of
     the sample before reading the p-value.
+
+    Measured for NGC 6383 (hub ``r3106-hdbscan-completeness-injection-2026-11-13``): synthetic
+    members injected into the real 40' cone and P01's membership pipeline re-run in full
+    (40 runs). HDBSCAN itself keeps 0.92-1.00 of members down to G = 19; the published rule
+    (branch, probability >= 0.6, parallax clip) has a G-by-radius interaction, but its effect
+    on Lambda_10 is -0.16 on the 254 real members re-selected per run and -0.05 when the
+    measured completeness is propagated to an unsegregated parent (null rejection 0.017,
+    P(Lambda >= 2.87 | null) < 0.004). That selection lowers Lambda; it does not manufacture it.
+    The figure holds for this cluster and pipeline only.
     """
     pts, unit = _as_positions(positions)
     n_total = len(pts)
