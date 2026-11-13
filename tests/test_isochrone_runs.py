@@ -8,6 +8,12 @@ Two oracles, both independent of ``export_run.py``:
   ``ngc_0.json`` is rounded to 5 decimals: hence ``atol=1e-5`` (``assert_allclose`` defaults to 0).
 * ``IsochroneFitter._median_isochrone`` -- the package's own path from a posterior to the curve.
   Needs the local MIST files, so it is skipped where they are absent (CI).
+
+Neither oracle re-fits. Both compare the exported registry against outputs already on disk, so this
+file guards the bookkeeping (transforms, bounds, chain order, the median curve), not the
+reproducibility of C1's 1.2 Myr: a change in the model or the sampler that moves the age leaves it
+green. Re-running the fit is the job of the slow tests in ``test_isochrone_kw.py`` and
+``test_fit_determinism.py``.
 """
 
 from __future__ import annotations

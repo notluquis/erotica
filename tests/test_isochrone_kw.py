@@ -576,8 +576,12 @@ class TestAgainstTheNutsRun:
     def test_nuts_on_ngc6383_reproduces_the_committed_log_t(self):
         """Oracle: the committed K x W run (research code, hub §2.11). The tolerance is the Monte Carlo
         error of the DIFFERENCE of two independent runs, not a fraction of the posterior sd: the median's
-        standard error is ``1.2533 sd / sqrt(ESS)`` ~ 0.0009 for the reference (ESS 2247) and
-        ~0.0014 for a run with ESS 1000; their difference ~0.0017, so 0.005 is ~3 sigma. The quartile
+        standard error is ``1.2533 sd / sqrt(ESS)`` ~ 0.0011 for the reference (v2, ESS 1734; it was
+        0.0009 at the v1 reference's ESS 2247) and ~0.0014 for a run with ESS 1000; their difference
+        ~0.0018, so 0.005 is ~2.8 sigma. The reference ran nutpie from four over-dispersed starts, one
+        chain per process; this test runs ``fit`` from the package's own start, and the tolerance does not
+        budget for a start-dependent difference (hub audit row 5, R84-03, still open: this test has not
+        been run against the v2 reference). The quartile
         quantiles move more, 0.007. The package's own gate must pass too (R-hat <= 1.01, ESS > 400, 0
         divergences). Takes ~1-2 h on 4 cores at load 30-40."""
         import arviz as az
