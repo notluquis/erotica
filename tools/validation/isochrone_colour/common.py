@@ -159,7 +159,16 @@ def search(
     ll, b = pol[0]
     names = ("feh", "loga", "dm", "Av", "sigma_int", "f_bg")
     m = dict(zip(names, b.tolist(), strict=True))
-    bounds = {"feh": (zlo, zhi), "loga": f.loga_range, "dm": f.dm_range, "Av": f.Av_range}
+    # Every polished parameter, the two nuisance widths included (hub finding R32-19): f_bg sat on its 1e-4 floor in
+    # 6-7 of 8 synthetic replicates of the external-constraints arms and a list of four could not say so.
+    bounds = {
+        "feh": (zlo, zhi),
+        "loga": f.loga_range,
+        "dm": f.dm_range,
+        "Av": f.Av_range,
+        "sigma_int": (lo[4], hi[4]),
+        "f_bg": (lo[5], hi[5]),
+    }
     at = [
         k
         for k, (l_, h_) in bounds.items()
