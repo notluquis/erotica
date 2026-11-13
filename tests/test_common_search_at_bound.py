@@ -51,6 +51,6 @@ def test_search_flags_sigma_int_and_f_bg_on_their_bounds():
     assert m["sigma_int"] == pytest.approx(1e-4, abs=1e-8)
     assert m["f_bg"] == pytest.approx(1e-4, abs=1e-8)
     assert "sigma_int" in res["at_bound"] and "f_bg" in res["at_bound"]
-    for k in ("feh", "loga", "dm", "Av"):  # interior: not flagged
+    for idx, k in enumerate(("feh", "loga", "dm", "Av")):  # interior: not flagged
         assert k not in res["at_bound"]
-        assert m[k] == pytest.approx(TARGET[["feh", "loga", "dm", "Av"].index(k)], abs=1e-3)
+        assert m[k] == pytest.approx(TARGET[idx], abs=1e-3)
