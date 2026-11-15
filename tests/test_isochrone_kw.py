@@ -580,8 +580,11 @@ class TestAgainstTheNutsRun:
         0.0009 at the v1 reference's ESS 2247) and ~0.0014 for a run with ESS 1000; their difference
         ~0.0018, so 0.005 is ~2.8 sigma. The reference ran nutpie from four over-dispersed starts, one
         chain per process; this test runs ``fit`` from the package's own start, and the tolerance does not
-        budget for a start-dependent difference (hub audit row 5, R84-03, still open: this test has not
-        been run against the v2 reference). The quartile
+        budget for a start-dependent difference (hub audit row 5, R84-03). Run against the v2 reference on
+        2026-11-13 at f4ca49a (hub agent-findings/compute-queue-2026-11-13.md, section G4): passed, median
+        5.963673 (-0.0012 against _REF), 16-84 % -0.0012 / -0.0002, 5-95 % -0.0035 / -0.0002, R-hat 1.0007,
+        ESS 1328, 0 divergences, 2904 s on 4 cores (load 78-86 shortly after); one run, so the start-dependent part is
+        bounded by that single difference, not measured. The quartile
         quantiles move more, 0.007. The package's own gate must pass too (R-hat <= 1.01, ESS > 400, 0
         divergences). Takes ~1-2 h on 4 cores at load 30-40."""
         import arviz as az
