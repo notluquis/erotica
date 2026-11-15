@@ -22,6 +22,13 @@ arranque, 6000 divergencias: no es un posterior), las corridas `A_*`/`B_*`/`loo_
 sintéticos, no NGC 6383) ni la corrida de 2026-06-11 (sin resumen en el repo). Añadirlas no exige
 MCMC nuevo salvo esta última.
 
+## Procedencia de ramas borradas
+
+Dos PR del triage del 2026-10-19 citan commits que no son ancestros de `dev`: #19 (veredicto de grillas, λ Ori) cita `cf596a9`
+y #21 (mecanismo de color) cita `b82effc`. Las ramas `isochrone-*` que los contenían se borraron; los commits se conservan en los
+tags `prov/cf596a9` y `prov/b82effc` del remoto (`git fetch origin 'refs/tags/prov/*:refs/tags/prov/*'`). Los dos tags contienen
+también `96ce4c0`, el commit de la corrida `c1-ngc6383-unbinned-eep-v1-96ce4c0`.
+
 ## Esquema (`schema_version` 2; el 1 no traía `grid`, migrado con `export_run.py migrate`)
 
 | campo | tipo | contenido |
