@@ -515,7 +515,15 @@ def test_informative_line_sharpens_p_where_astrometry_cannot():
     """Recovery: a field that sits on the cluster in PM and parallax (astrometry nearly blind) plus a line B with
     the exact log ratio of N(±0.75, 1). With the line in the model the AUC and the field fraction are recovered;
     without it, not. Measured 2026-11-05, rng seeds 0-3: AUC 0.837-0.891 with the line and 0.511-0.614 without;
-    η̂ − η = −0.051…+0.004 with it and −0.367…−0.138 without."""
+    η̂ − η = −0.051…+0.004 with it and −0.367…−0.138 without.
+
+    2026-11-17, rng seeds 0-19 (macOS arm64, numpy 2.5.5): AUC 0.840-0.917 with the line and 0.405-0.739 without,
+    so the AUC without the line is above 0.65 for 5 of 20 seeds. The former bound ``< 0.65`` held only for this
+    seed, and on Linux x86-64 with numpy 2.5.5 (CI of PR #84) seed 1 gave 0.6515 against 0.6462 here. The
+    asserted quantity is the gain from the line: AUC with minus AUC without is 0.145-0.388 (median 0.269), and the
+    bound is 0.1. η̂ − η is −0.054…+0.016 with the line and −0.365…−0.150 without. Red when the line term is dropped
+    from the likelihood (``lsum`` zeroed in ``MixtureModel._device_data``): both fits are then the same.
+    Numbers: hub agent-findings/scripts/membership_line_auc_seeds_measured.txt."""
     tr = dict(TRUTH, mu_f=(1.1, 0.05), sf_1=0.6, sf_2=0.6, rho_f=0.0, plx_f=1.0, s_plx_f=0.05)
     rng = np.random.default_rng(1)
     don = _donors(rng, 500)
@@ -536,7 +544,7 @@ def test_informative_line_sharpens_p_where_astrometry_cannot():
         bounds = (lo, hi)
         m.fit(n_starts=3, seed=0, ridge=False, init=INIT, bounds=bounds)
         res[lines] = (auc(m.p, yy), m.params["eta"])
-    assert res[("B",)][0] > 0.8 and res[()][0] < 0.65
+    assert res[("B",)][0] > 0.8 and res[("B",)][0] - res[()][0] > 0.1
     assert abs(res[("B",)][1] - (1 - yy.mean())) < 0.07
     assert abs(res[()][1] - (1 - yy.mean())) > 0.1
 
