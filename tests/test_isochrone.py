@@ -1749,7 +1749,10 @@ def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
     ``_p_observed`` and the 2026-09-24 entry of decisions.md). With the segment average,
     ESS/draw is 0.23-0.29 on dm and 0.25-0.26 on A_V (sampler seeds 11 and 12, 2 x 1000);
     the fixture runs 2 x 2000 so the gate has margin rather than passing at ESS ~ 460.
-    Mutation: the midpoint rule restored in ``_p_observed`` turns this red.
+    This gate checks the sampler, not the likelihood: the midpoint rule restored in
+    ``_p_observed`` is caught every time by
+    ``TestUnbinnedLikelihood.test_completeness_is_the_exact_segment_average``, and only half
+    the time by this test (2026-11-17 measurement below).
 
     2026-10-19, nutpie as the engine (its default ``"diag"`` adaptation, kept): ESS_bulk(dm) at
     2 x 2000 was 372 in CI and 401-617 in six local runs (seeds 11 and 12, two star draws,
@@ -1758,10 +1761,21 @@ def test_nuts_toy_fit_passes_the_vehtari_gate(toy_nuts_fit):
     versions (pymc 6.3.2, jax 0.12.0, nutpie 0.16.11), sampler/star seeds 11/11, 12/11, 11/21:
     ESS(dm) 1210, 829, 697 (ESS/draw 0.151, 0.104, 0.087), R-hat <= 1.0061, 0 divergences; the
     lowest ESS/draw seen in any run, 0.087, would give 696 at 2 x 4000, 1.7x the gate. 3000 draws was not enough:
-    one of three seeds had R-hat(dm) 1.013. The gate is unchanged. The mutation still turns it
-    red at 4000 draws: ESS(dm) 296 and 345, ESS(A_V) 325 and 263 (ESS/draw 0.03-0.04, two seeds).
-    Cost: twice the draws of before, same per-draw cost. Numbers: hub
+    one of three seeds had R-hat(dm) 1.013. The gate is unchanged. Two seeds of the midpoint
+    mutation failed it at 4000 draws: ESS(dm) 296 and 345, ESS(A_V) 325 and 263 (ESS/draw
+    0.03-0.04). Cost: twice the draws of before, same per-draw cost. Numbers: hub
     agent-findings/nuts-performance-2026-10-19.md section 12.
+
+    2026-11-17, 20 star/sampler seed pairs (101-120 / 201-220) at 2 x 4000, same versions,
+    for the unmutated code (origin/dev 406937b) and the midpoint mutation:
+    - unmutated: passes 20/20; smallest ESS/draw over met, log t, dm and A_V is 0.109-0.164.
+      The 1% quantile of a lognormal fitted to it is 0.104, so the gate needs 3835 draws in
+      total and the fixture runs 8000.
+    - mutation: fails 10/20 (Jeffreys 95% interval 0.29-0.71); the variable with the lowest ESS is A_V in
+      9 of those 10. The other 10 pass the gate with a smallest ESS/draw of 0.056-0.133.
+    The 4000 draws stand on the unmutated quantile, not on catching the mutation. Numbers: hub
+    agent-findings/compute-queue-2026-11-15.md section 5 and
+    agent-findings/scripts/r84_06_ess_gate_read_measured.txt.
     """
     import arviz as az
 
