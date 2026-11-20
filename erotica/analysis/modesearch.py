@@ -43,7 +43,9 @@ MIN_FRACTION = 0.01
 # the occupancy of a mode moves in steps of ``grain = 1 / (polished draws per chain x chains)``, so the weight
 # rule asks for ``occupancy > MASS_RATIO_TOL x share + grain`` and the fitting paths polish
 # ``MIN_POLISHED / chains`` draws per chain. With it A_7 and NGC 6383 r1 PASS and A is 7/8 PASS, exactly the
-# pre-registered threshold: that is not "A passes". Not re-measured with nutpie's common start.
+# pre-registered threshold: that is not "A passes". Re-measured with nutpie's common start (hub
+# compute-queue-2026-11-15.md §8.4, 16 K x W fits): power as pre-registered on a 1-D toy, but FAIL 1/16, 3/16 and
+# 2/16 over three search seeds, above the pre-registered <= 2/16 in one; the thresholds were not changed.
 MIN_POLISHED = 100
 # Post hoc (hub finding §3.9, after C_0): two optima of a mode WITHOUT a Laplace covariance (at a bound or a
 # non-definite Hessian) are one mode when their heights differ by <= DUP_TOL log-units AND the log density
