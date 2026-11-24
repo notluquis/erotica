@@ -706,7 +706,12 @@ _ISOCHRONE_MODE_SEARCH_CAVEAT = (
     "still FAILs by a mode no chain visited. Synthetic age--[Fe/H] ridges, numpyro, 4 chains from spread starts "
     "(nutpie's single common start does not reproduce them): with the new rule 7 of 8 fits whose chains agree PASS, "
     "exactly the pre-registered threshold, which does not mean A passes; the FAILs read as ripples of the ridge "
-    "(not tested). The gate has not been re-measured with nutpie's common start. With nutpie all chains start from "
+    "(not tested). Re-measured with nutpie's common start (hub compute-queue-2026-11-15.md section 8.4; K x W, "
+    "4 x (1000 + 1000), 16 synthetic fits): the power is as pre-registered on a 1-D bimodal toy (a missed mode of "
+    "weight >= 1 % gives FAIL 9-10 of 10, one of 0.3 % PASSes 10 of 10), but on the 16 fits the FAIL count depends on "
+    "the search seed, 1/16, 3/16 and 2/16 with three seeds, above the pre-registered <= 2/16 in one of them. Every "
+    "unvisited mode behind those FAILs sits in the high-age tail of the age--[Fe/H] ridge, inside the chains' draws "
+    "by a nearest-neighbour criterion chosen post hoc (one line of evidence, not a decision). With nutpie all chains start from "
     "one mode, so this is the only check for a mode they never visit: treat a FAIL as a list of modes to look at; "
     "mode_search=None turns it off."
 )
@@ -2010,7 +2015,13 @@ class IsochroneFitter:
               (not tested);
             * the 6 of 6 power on the multi-plateau cell was measured on flat tops at a bound with no Laplace
               mass, **not on the mass rule**;
-            * **the gate has not been re-measured with nutpie's common start** (plan in the hub finding §3.11).
+            * **re-measured with nutpie's common start** (hub ``compute-queue-2026-11-15.md`` §8.4; K x W,
+              4 x (1000 + 1000), 16 synthetic fits): the power is as pre-registered on a 1-D bimodal toy
+              (a missed mode of weight >= 1 % gives FAIL 9-10 of 10; one of 0.3 % PASSes 10 of 10), but the
+              FAIL count **depends on the search seed**: 1/16, 3/16 and 2/16 with three seeds, above the
+              pre-registered <= 2/16 in one. Every unvisited mode behind those FAILs sits in the high-age tail
+              of the age--[Fe/H] ridge; a nearest-neighbour criterion chosen post hoc places all of them inside
+              the chains' draws (one line of evidence, not a decision).
 
             **With nutpie every chain starts from the same mode** (no per-chain starts), so this search is the
             only check for a mode the chains never visit. Read a FAIL as "look at the modes it lists". It

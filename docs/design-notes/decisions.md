@@ -2839,3 +2839,21 @@ the engine control: A_0 of each model sampled with numpyro and with nutpie on th
 `XLA_FLAGS` tried in the pilot did not limit it; numba is single-threaded and 6.5 times slower). Throughput on the
 K x W likelihood: 2.0 iterations/s with one process, 3.4 with three, about 6.3 with six. Chains: 874-1340 s (X1 A),
 849-1845 s (K x W A), 2115-2215 s (data, 2000 iterations), 1142-4039 s (C), with the machine at load 65-150 from other work.
+
+## 2026-11-20 — `mode_search` FAIL caveat: "not re-measured with nutpie" was false (hub R84-05)
+
+**What was wrong.** The caveat attached to every mode-search FAIL (`_ISOCHRONE_MODE_SEARCH_CAVEAT`, also seen by
+`IsochroneFitterKW` fits), the `IsochroneFitter.fit` docstring and the comment above `MIN_POLISHED` said the gate had
+not been re-measured with nutpie's common start. It was, in the hub (`compute-queue-2026-11-15.md` §8.4): 16 K x W
+synthetic fits, nutpie 4 x (1000 + 1000), common start.
+
+**What was measured.** Power as pre-registered on a 1-D bimodal toy (FAIL 9-10/10 for a missed mode of weight
+>= 1 %, PASS 10/10 at 0.3 %, with 2 and 4 chains). On the 16 fits the FAIL count depends on the search seed: 1/16,
+3/16 and 2/16 with three seeds on the same draws, above the pre-registered <= 2/16 in one. Every unvisited mode behind
+those FAILs sits in the high-age tail of the age--[Fe/H] ridge, inside the draws by a nearest-neighbour criterion
+chosen post hoc (one line of evidence, not a decision). The pre-registered rule itself would have failed with
+probability 0.32 per seed at a true rate of exactly 1/8, so its failure says little either way.
+
+**What changed.** Text only: the caveat, the docstring and the comment state those numbers; thresholds and the
+verdict are unchanged. `test_fit_runs_the_mode_search_by_default_and_none_turns_it_off` requires the figures and the
+absence of the stale sentence; it fails on the previous `_isochrone.py`.
